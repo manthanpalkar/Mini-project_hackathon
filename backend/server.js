@@ -1093,7 +1093,7 @@ app.post('/api/users/login', async (req, res) => {
       ]
     });
     if (!user) {
-      return res.status(401).json({ error: 'User not found in the database. Please contact an administrator.' });
+      return res.status(401).json({ error: 'Invalid username/email or password. Please try again.' });
     }
     
     if (user.status === 'Pending') {
@@ -1107,7 +1107,7 @@ app.post('/api/users/login', async (req, res) => {
     // Compare bcrypt passwords
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+      return res.status(401).json({ error: 'Invalid username/email or password. Please try again.' });
     }
     
     // Sign JWT
@@ -1132,7 +1132,8 @@ app.post('/api/users/login', async (req, res) => {
       token
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'A server error occurred during login. Please try again later.' });
   }
 });
 

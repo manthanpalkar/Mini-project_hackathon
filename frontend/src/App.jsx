@@ -93,8 +93,10 @@ function AppLayout() {
       <main style={{ flexGrow: 1 }}>
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
-            {/* Public Login Route */}
+            {/* Public Login & Auth Redirection Routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Navigate to="/login" replace />} />
+            <Route path="/request-account" element={<Navigate to="/login" replace />} />
 
             {/* Dedicated Public Legal & Documentation Routes */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />

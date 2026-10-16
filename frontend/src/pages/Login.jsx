@@ -1,16 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { UserPlus, LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft } from 'lucide-react';
-import { loginUser, requestRegistration, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
+import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft } from 'lucide-react';
+import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const isRegisterMode = searchParams.get('mode') === 'register';
-  const setIsRegisterMode = (isReg) => {
-    setSearchParams(isReg ? { mode: 'register' } : {});
-  };
+
+  // Redirect /login?mode=register cleanly to /login
+  useEffect(() => {
+    if (searchParams.has('mode')) {
+      searchParams.delete('mode');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -216,7 +220,7 @@ export default function Login() {
   }, [location.state, searchParams]);
 
   useEffect(() => {
-    document.title = isRegisterMode ? 'LOOP | Register' : 'LOOP | Login';
+    document.title = 'LOOP | Login';
     // Ensure email and password start completely blank without browser autofill
     setEmail('');
     setPassword('');
@@ -225,7 +229,7 @@ export default function Login() {
       setPassword('');
     }, 200);
     return () => clearTimeout(timer);
-  }, [isRegisterMode]);
+  }, []);
 
   useEffect(() => {
     const userSession = localStorage.getItem('loop_current_user');
@@ -268,19 +272,14 @@ export default function Login() {
     triggerCharacterState('LOGIN_SUBMITTED');
 
     try {
-      if (isRegisterMode) {
-        await requestRegistration(trimmedInput.toLowerCase(), password);
-        setSuccessMsg('Access request submitted successfully! Please wait for administrator approval.');
-        setEmail('');
-        setPassword('');
-        setIsRegisterMode(false);
-        triggerCharacterState('IDLE');
-      } else {
-        const userData = await loginUser(trimmedInput, password);
-        handleLoginSuccess(userData);
-      }
+      const userData = await loginUser(trimmedInput, password);
+      handleLoginSuccess(userData);
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please check your credentials.');
+      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
+        setError('Network or server connection error. Please try again.');
+      } else {
+        setError(err.message || 'Invalid username/email or password. Please try again.');
+      }
       triggerCharacterState('IDLE');
     } finally {
       setLoading(false);
@@ -311,7 +310,11 @@ export default function Login() {
       const userData = await loginUser(demoEmail, demoPassword);
       handleLoginSuccess(userData);
     } catch (err) {
-      setError(err.message || 'Authentication failed.');
+      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
+        setError('Network or server connection error. Please try again.');
+      } else {
+        setError(err.message || 'Invalid username/email or password. Please try again.');
+      }
       triggerCharacterState('IDLE');
     } finally {
       setLoading(false);
@@ -851,7 +854,7 @@ export default function Login() {
                   color: 'var(--text-primary)',
                   lineHeight: 1.15
                 }}>
-                  {isRegisterMode ? 'Request Account' : 'Welcome Back'}
+                  Welcome Back
                 </h1>
                 <p style={{
                   color: 'var(--text-secondary)',
@@ -859,7 +862,7 @@ export default function Login() {
                   fontWeight: 400,
                   lineHeight: 1.45
                 }}>
-                  {isRegisterMode ? 'Submit your SPIT credentials to request verified access' : 'Sign in with your verified @spit.ac.in account'}
+                  Sign in with your verified @spit.ac.in account
                 </p>
               </>
             )}
@@ -879,30 +882,6 @@ export default function Login() {
               lineHeight: 1.45
             }}>
               {error}
-              {!isRegisterMode && googleAuthStep === 'IDLE' && error.includes('User not found') && (
-                <div style={{ marginTop: '0.4rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRegisterMode(true);
-                      setError('');
-                      setSuccessMsg('');
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--accent-color)',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      padding: 0,
-                      textDecoration: 'underline',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    Click here to request account access
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
@@ -1445,94 +1424,92 @@ export default function Login() {
                   }}
                   disabled={loading}
                 >
-                  {loading ? (isRegisterMode ? 'Submitting Request...' : 'Authenticating...') : (
+                  {loading ? 'Authenticating...' : (
                     <>
-                      <span>{isRegisterMode ? 'Request Access' : 'Sign In'}</span>
-                      {isRegisterMode ? <UserPlus size={16} /> : <LogIn size={16} />}
+                      <span>Sign In</span>
+                      <LogIn size={16} />
                     </>
                   )}
                 </button>
               </form>
 
               {/* 1-Click Demo Logins */}
-              {!isRegisterMode && (
-                <div style={{
-                  marginTop: '1.25rem',
-                  display: 'flex',
-                  gap: '0.65rem'
-                }}>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleQuickLogin('student@spit.ac.in', 'student123')}
-                    style={{
-                      flex: 1,
-                      height: '42px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      cursor: loading ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.35rem',
-                      transition: 'all 0.18s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!loading) {
-                        e.currentTarget.style.borderColor = 'var(--text-primary)';
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loading) {
-                        e.currentTarget.style.borderColor = 'var(--border-color)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }
-                    }}
-                  >
-                    <span>🎓</span> {loading ? '...' : 'Student Demo'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleQuickLogin('admin@spit.ac.in', 'admin123')}
-                    style={{
-                      flex: 1,
-                      height: '42px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      cursor: loading ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.35rem',
-                      transition: 'all 0.18s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!loading) {
-                        e.currentTarget.style.borderColor = 'var(--text-primary)';
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loading) {
-                        e.currentTarget.style.borderColor = 'var(--border-color)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }
-                    }}
-                  >
-                    <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
-                  </button>
-                </div>
-              )}
+              <div style={{
+                marginTop: '1.25rem',
+                display: 'flex',
+                gap: '0.65rem'
+              }}>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleQuickLogin('student@spit.ac.in', 'student123')}
+                  style={{
+                    flex: 1,
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: loading ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.18s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.borderColor = 'var(--text-primary)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
+                  }}
+                >
+                  <span>🎓</span> {loading ? '...' : 'Student Demo'}
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleQuickLogin('admin@spit.ac.in', 'admin123')}
+                  style={{
+                    flex: 1,
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: loading ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.18s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.borderColor = 'var(--text-primary)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
+                  }}
+                >
+                  <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
+                </button>
+              </div>
 
 
             </>

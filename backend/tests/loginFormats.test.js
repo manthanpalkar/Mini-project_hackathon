@@ -200,7 +200,7 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
       });
 
       assert.equal(status, 401);
-      assert.equal(data.error, 'Incorrect password. Please try again.');
+      assert.equal(data.error, 'Invalid username/email or password. Please try again.');
     });
 
     test('rejects unknown username / email with 401', async () => {
@@ -210,7 +210,7 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
       });
 
       assert.equal(status, 401);
-      assert.equal(data.error, 'User not found in the database. Please contact an administrator.');
+      assert.equal(data.error, 'Invalid username/email or password. Please try again.');
     });
 
     test('rejects non-SPIT email domains with 400', async () => {

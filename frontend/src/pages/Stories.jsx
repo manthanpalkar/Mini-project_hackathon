@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
-  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb
+  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw
 } from 'lucide-react';
 import { getStories, addPendingStory, fileToBase64 } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
@@ -729,159 +729,288 @@ export default function Stories() {
       }}>
         {/* Sidebar Filters */}
         <div className="loop-card" style={{
-          width: '260px',
+          width: '270px',
           flexShrink: 0,
-          padding: '1.75rem',
-          borderRadius: '24px',
+          padding: '1.25rem 1.15rem',
+          borderRadius: '20px',
           backgroundColor: 'var(--bg-secondary)',
           border: '1px solid var(--border-color)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.75rem',
+          gap: '1.25rem',
           position: 'sticky',
-          top: '6rem'
+          top: '5.5rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
         }}>
-          <div>
-            <h3 style={{
-              fontSize: '0.9rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              color: 'var(--text-primary)',
-              marginBottom: '1.25rem',
-              letterSpacing: '0.05em',
-              borderBottom: '1px solid var(--border-color)',
-              paddingBottom: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <Filter size={16} />
-              Filters
-            </h3>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingBottom: '0.65rem',
+            borderBottom: '1px solid var(--border-color)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <Filter size={15} style={{ color: 'var(--text-primary)' }} />
+              <span style={{
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: 'var(--text-primary)'
+              }}>
+                Filters
+              </span>
+            </div>
+            {((selectedBranches.length < 3) ||
+              (selectedBranches.includes('CSE') && selectedSubBranches.length < 3) ||
+              (minYear !== 'ALL') ||
+              (maxYear !== 'ALL') ||
+              (maxCGPA < 10.0)) && (
+              <span style={{
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                backgroundColor: 'var(--text-primary)',
+                color: 'var(--bg-primary)',
+                letterSpacing: '0.02em'
+              }}>
+                {(selectedBranches.length < 3 ? 1 : 0) +
+                 (selectedBranches.includes('CSE') && selectedSubBranches.length < 3 ? 1 : 0) +
+                 (minYear !== 'ALL' || maxYear !== 'ALL' ? 1 : 0) +
+                 (maxCGPA < 10.0 ? 1 : 0)} active
+              </span>
+            )}
+          </div>
 
-            {/* Branch Checkboxes */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                Branch
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {['CSE', 'CE', 'EXTC'].map((branch) => (
-                  <div key={branch} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedBranches.includes(branch)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedBranches([...selectedBranches, branch]);
-                          } else {
-                            setSelectedBranches(selectedBranches.filter(b => b !== branch));
-                          }
-                        }}
-                        style={{
-                          accentColor: 'var(--text-primary)',
-                          width: '15px',
-                          height: '15px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                      <span>{branch}</span>
+          {/* Branch Selector */}
+          <div>
+            <div style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              marginBottom: '0.55rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em'
+            }}>
+              Branch
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              {['CSE', 'CE', 'EXTC'].map((branch) => {
+                const isChecked = selectedBranches.includes(branch);
+                return (
+                  <div key={branch} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.45rem 0.65rem',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        backgroundColor: isChecked ? 'var(--bg-tertiary)' : 'transparent',
+                        border: '1px solid',
+                        borderColor: isChecked ? 'var(--border-color)' : 'transparent',
+                        transition: 'all 0.15s ease',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBranches([...selectedBranches, branch]);
+                            } else {
+                              setSelectedBranches(selectedBranches.filter(b => b !== branch));
+                            }
+                          }}
+                          style={{
+                            accentColor: 'var(--text-primary)',
+                            width: '15px',
+                            height: '15px',
+                            cursor: 'pointer',
+                            margin: 0
+                          }}
+                        />
+                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {branch}
+                        </span>
+                      </div>
+                      {branch === 'CSE' && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                          {selectedBranches.includes('CSE') ? `${selectedSubBranches.length}/3 tracks` : '3 tracks'}
+                        </span>
+                      )}
                     </label>
 
-                    {/* Sub-Branch Checkboxes (For CSE only, visible when CSE is checked) */}
-                    {branch === 'CSE' && selectedBranches.includes('CSE') && (
-                      <div style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', borderLeft: '1px solid var(--border-color)', marginLeft: '0.4rem', marginTop: '0.25rem', marginBottom: '0.25rem' }}>
-                        {['CSE', 'AI', 'DS'].map((sub) => (
-                          <label key={sub} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={selectedSubBranches.includes(sub)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedSubBranches([...selectedSubBranches, sub]);
-                                } else {
+                    {/* Sub-Branch Pills (For CSE only, visible when CSE is checked) */}
+                    {branch === 'CSE' && isChecked && (
+                      <div style={{
+                        display: 'flex',
+                        gap: '0.35rem',
+                        flexWrap: 'wrap',
+                        paddingLeft: '1.25rem',
+                        marginBottom: '0.2rem'
+                      }}>
+                        {['CSE', 'AI', 'DS'].map((sub) => {
+                          const isSubActive = selectedSubBranches.includes(sub);
+                          return (
+                            <button
+                              key={sub}
+                              type="button"
+                              onClick={() => {
+                                if (isSubActive) {
                                   setSelectedSubBranches(selectedSubBranches.filter(s => s !== sub));
+                                } else {
+                                  setSelectedSubBranches([...selectedSubBranches, sub]);
                                 }
                               }}
                               style={{
-                                accentColor: 'var(--text-primary)',
-                                width: '13px',
-                                height: '13px',
-                                cursor: 'pointer'
+                                padding: '0.22rem 0.55rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                border: '1px solid',
+                                borderColor: isSubActive ? 'var(--text-primary)' : 'var(--border-color)',
+                                backgroundColor: isSubActive ? 'var(--text-primary)' : 'var(--bg-primary)',
+                                color: isSubActive ? 'var(--accent-inverse)' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
                               }}
-                            />
-                            <span>{sub}</span>
-                          </label>
-                        ))}
+                            >
+                              {sub}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Passout Year Filter */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                Passout Year
-              </h4>
-              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                <select 
-                  className="input-field" 
-                  value={minYear}
-                  onChange={(e) => setMinYear(e.target.value)}
-                  style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', flexGrow: 1, height: 'auto', backgroundColor: 'var(--bg-primary)' }}
-                >
-                  {yearOptions.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>to</span>
-                <select 
-                  className="input-field" 
-                  value={maxYear}
-                  onChange={(e) => setMaxYear(e.target.value)}
-                  style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', flexGrow: 1, height: 'auto', backgroundColor: 'var(--bg-primary)' }}
-                >
-                  {yearOptions.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* CGPA Threshold */}
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  CGPA Range
-                </h4>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  4.0 – {maxCGPA.toFixed(1)}
-                </span>
-              </div>
-              <input 
-                type="range" 
-                min="4.0" 
-                max="10.0" 
-                step="0.5" 
-                value={maxCGPA} 
-                onChange={(e) => setMaxCGPA(parseFloat(e.target.value))}
-                style={{
-                  width: '100%',
-                  accentColor: 'var(--text-primary)',
-                  cursor: 'pointer'
-                }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                <span>4.0</span>
-                <span>7.0</span>
-                <span>10.0</span>
-              </div>
+                );
+              })}
             </div>
           </div>
 
+          {/* Passout Year Filter */}
+          <div>
+            <div style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              marginBottom: '0.55rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em'
+            }}>
+              Passout Year
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.35rem 0.5rem',
+              borderRadius: '12px',
+              backgroundColor: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)'
+            }}>
+              <select 
+                value={minYear}
+                onChange={(e) => setMinYear(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  padding: '0.2rem 0.25rem'
+                }}
+              >
+                <option value="ALL">From (Any)</option>
+                {yearOptions.filter(y => y !== 'ALL').map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>—</span>
+              <select 
+                value={maxYear}
+                onChange={(e) => setMaxYear(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  padding: '0.2rem 0.25rem'
+                }}
+              >
+                <option value="ALL">To (Any)</option>
+                {yearOptions.filter(y => y !== 'ALL').map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* CGPA Threshold */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: 'var(--text-secondary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}>
+                CGPA Range
+              </span>
+              <span style={{
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                fontVariantNumeric: 'tabular-nums'
+              }}>
+                4.0 – {maxCGPA.toFixed(1)}
+              </span>
+            </div>
+            <input 
+              type="range" 
+              min="4.0" 
+              max="10.0" 
+              step="0.5" 
+              value={maxCGPA} 
+              onChange={(e) => setMaxCGPA(parseFloat(e.target.value))}
+              className="filter-range-slider"
+              style={{
+                background: `linear-gradient(to right, var(--text-primary) 0%, var(--text-primary) ${Math.max(0, Math.min(100, ((maxCGPA - 4.0) / 6.0) * 100))}%, var(--bg-tertiary) ${Math.max(0, Math.min(100, ((maxCGPA - 4.0) / 6.0) * 100))}%, var(--bg-tertiary) 100%)`
+              }}
+            />
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              color: 'var(--text-muted)',
+              marginTop: '0.2rem',
+              padding: '0 2px'
+            }}>
+              <span>4.0</span>
+              <span>7.0</span>
+              <span>10.0</span>
+            </div>
+          </div>
+
+          {/* Reset Filters */}
           <button 
+            type="button"
             onClick={() => {
               setSelectedBranches(['CSE', 'CE', 'EXTC']);
               setSelectedSubBranches(['CSE', 'AI', 'DS']);
@@ -891,17 +1020,33 @@ export default function Stories() {
               setInputValue('');
               setSearchQuery('');
             }}
-            className="btn btn-secondary"
             style={{ 
               width: '100%', 
-              padding: '0.6rem 1rem', 
-              fontSize: '0.82rem', 
-              borderRadius: '999px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              padding: '0.55rem 0.85rem', 
+              fontSize: '0.8rem', 
+              borderRadius: '12px',
               border: '1px solid var(--border-color)',
-              fontWeight: 600
+              fontWeight: 600,
+              backgroundColor: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              transition: 'all 0.18s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--text-primary)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border-color)';
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            Reset Filters
+            <RotateCcw size={13} />
+            <span>Reset Filters</span>
           </button>
         </div>
 
