@@ -310,7 +310,7 @@ export default function Login() {
     }
   };
 
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '779605241663-vp20b6cbhoccdeibjlcbtp7d9kbcf5bu.apps.googleusercontent.com';
 
   const handleGoogleCredentialResponse = useCallback(async (response) => {
     const idToken = response?.credential;
