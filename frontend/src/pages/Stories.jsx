@@ -214,6 +214,7 @@ function Story3DCard({ story, index, navigate }) {
             gap: '0.5rem',
             padding: '0.75rem 1.4rem',
             borderRadius: '999px',
+            border: '1px solid var(--border-color)',
             fontSize: '0.88rem',
             fontWeight: 700,
             boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
@@ -387,7 +388,7 @@ export default function Stories() {
   };
 
   const handleInsertAdviceTemplate = () => {
-    const template = `💡 Don't wait until placement season to start preparing.\n• Start DSA early and maintain a daily habit.\n• Focus on 2 deeply understood projects instead of 10 surface-level tutorial clones.\n• Practice articulating your thought process aloud while coding.\n• Avoid comparing your journey with peers; everyone progresses at a different pace.`;
+    const template = `Don't wait until placement season to start preparing.\n• Start DSA early and maintain a daily habit.\n• Focus on 2 deeply understood projects instead of 10 surface-level tutorial clones.\n• Practice articulating your thought process aloud while coding.\n• Avoid comparing your journey with peers; everyone progresses at a different pace.`;
     setAdviceTips(prev => (prev ? prev + '\n\n' + template : template));
     if (!adviceQuote.trim()) {
       setAdviceQuote('Consistency beats intensity every single day. Trust your personal timeline and avoid comparing yourself to others.');
@@ -681,7 +682,16 @@ export default function Stories() {
         <button 
           onClick={() => setIsModalOpen(true)}
           className="btn btn-primary"
-          style={{ padding: '0.75rem 1.5rem' }}
+          style={{ 
+            padding: '0.75rem 1.6rem',
+            borderRadius: '999px',
+            border: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.55rem',
+            fontWeight: 600,
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)'
+          }}
         >
           <Upload size={16} />
           <span>Share Your Journey</span>
@@ -861,7 +871,14 @@ export default function Stories() {
               setSearchQuery('');
             }}
             className="btn btn-secondary"
-            style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '10px' }}
+            style={{ 
+              width: '100%', 
+              padding: '0.6rem 1rem', 
+              fontSize: '0.82rem', 
+              borderRadius: '999px',
+              border: '1px solid var(--border-color)',
+              fontWeight: 600
+            }}
           >
             Reset Filters
           </button>
@@ -886,9 +903,25 @@ export default function Stories() {
                   setInputValue('');
                   setSearchQuery('');
                 }}
-                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0.2rem', display: 'flex', alignItems: 'center' }}
+                style={{ 
+                  position: 'absolute', 
+                  right: '0.75rem', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  background: 'rgba(255, 255, 255, 0.08)', 
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: '50%', 
+                  width: '22px', 
+                  height: '22px', 
+                  cursor: 'pointer', 
+                  color: 'var(--text-secondary)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center' 
+                }}
+                title="Clear Search"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             )}
           </div>
@@ -965,7 +998,15 @@ export default function Stories() {
                 setMinYear(2021);
                 setMaxYear(2026);
                 setMinCGPA(6.0);
-              }} className="btn btn-secondary">
+              }} 
+                className="btn btn-secondary"
+                style={{
+                  borderRadius: '999px',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.65rem 1.5rem',
+                  fontWeight: 600
+                }}
+              >
                 Clear Filters
               </button>
             </div>
@@ -1560,7 +1601,7 @@ export default function Stories() {
                         fontSize: '0.78rem',
                         fontWeight: 600,
                         backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        border: '1px solid rgba(255, 255, 255, 0.16)',
                         color: 'var(--text-primary)',
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -1603,9 +1644,13 @@ export default function Stories() {
                     border: '1px solid var(--border-color)',
                     fontSize: '0.76rem',
                     color: 'var(--text-secondary)',
-                    lineHeight: 1.5
+                    lineHeight: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
                   }}>
-                    💡 Pro-Tip: Format as <strong>1. &quot;Project Name&quot;: Description &amp; Tech Stack</strong> to generate interactive portfolio cards on your story page.
+                    <Sparkles size={13} style={{ flexShrink: 0, opacity: 0.8 }} />
+                    <span><strong>Pro-Tip:</strong> Format as <strong>1. &quot;Project Name&quot;: Description &amp; Tech Stack</strong> to generate interactive portfolio cards on your story page.</span>
                   </div>
                 </div>
 
@@ -1656,7 +1701,7 @@ export default function Stories() {
                         fontSize: '0.78rem',
                         fontWeight: 600,
                         backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        border: '1px solid rgba(255, 255, 255, 0.16)',
                         color: 'var(--text-primary)',
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -1741,7 +1786,7 @@ export default function Stories() {
                         fontSize: '0.78rem',
                         fontWeight: 600,
                         backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        border: '1px solid rgba(255, 255, 255, 0.16)',
                         color: 'var(--text-primary)',
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -1770,8 +1815,8 @@ export default function Stories() {
                       backgroundColor: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid var(--border-color)'
                     }}>
-                      <label className="input-label" style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <span>⭐</span>
+                      <label className="input-label" style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <Sparkles size={14} style={{ opacity: 0.85 }} />
                         <span>Senior&apos;s Golden Rule / Core Takeaway</span>
                       </label>
                       <input 
@@ -1781,8 +1826,9 @@ export default function Stories() {
                         value={adviceQuote}
                         onChange={(e) => setAdviceQuote(e.target.value)}
                       />
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.35rem', display: 'block' }}>
-                        ✨ Displayed prominently as a featured quote badge on your public story page.
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Sparkles size={12} style={{ opacity: 0.7 }} />
+                        <span>Displayed prominently as a featured quote badge on your public story page.</span>
                       </span>
                     </div>
 
@@ -1926,9 +1972,9 @@ export default function Stories() {
                         onClick={handleAddResource} 
                         style={{
                           padding: '0.6rem 1.15rem',
-                          borderRadius: '12px',
+                          borderRadius: '999px',
                           backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                          border: '1px solid rgba(255, 255, 255, 0.14)',
+                          border: '1px solid rgba(255, 255, 255, 0.16)',
                           color: 'var(--text-primary)',
                           cursor: 'pointer',
                           display: 'flex',
@@ -1980,16 +2026,30 @@ export default function Stories() {
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, resources: prev.resources.filter((_, i) => i !== index) }))}
                             style={{
-                              background: 'none',
-                              border: 'none',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              border: '1px solid rgba(255, 255, 255, 0.18)',
+                              borderRadius: '50%',
+                              width: '18px',
+                              height: '18px',
                               padding: 0,
                               cursor: 'pointer',
                               color: 'var(--text-secondary)',
-                              display: 'flex',
-                              alignItems: 'center'
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease'
                             }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = '#ff453a';
+                              e.currentTarget.style.borderColor = 'rgba(255, 69, 58, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+                            }}
+                            title="Remove"
                           >
-                            <X size={13} />
+                            <X size={11} />
                           </button>
                         </span>
                       ))}
@@ -2133,7 +2193,7 @@ export default function Stories() {
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: 'var(--text-secondary)',
-                              border: 'none',
+                              border: '1px solid rgba(255, 255, 255, 0.16)',
                               background: 'rgba(255, 255, 255, 0.08)',
                               cursor: 'pointer',
                               transition: 'all 0.15s ease'
@@ -2344,9 +2404,9 @@ export default function Stories() {
                         onClick={handleAddMaterial} 
                         style={{
                           padding: '0.6rem 1.15rem',
-                          borderRadius: '12px',
+                          borderRadius: '999px',
                           backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                          border: '1px solid rgba(255, 255, 255, 0.14)',
+                          border: '1px solid rgba(255, 255, 255, 0.16)',
                           color: 'var(--text-primary)',
                           cursor: 'pointer',
                           display: 'flex',
@@ -2406,19 +2466,20 @@ export default function Stories() {
                                 top: '0.35rem',
                                 right: '0.35rem',
                                 background: 'rgba(0,0,0,0.5)',
-                                border: 'none',
+                                border: '1px solid rgba(255, 255, 255, 0.25)',
                                 color: '#fff',
                                 borderRadius: '50%',
-                                width: '20px',
-                                height: '20px',
+                                width: '22px',
+                                height: '22px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
-                                fontSize: '0.7rem'
+                                transition: 'all 0.15s ease'
                               }}
+                              title="Remove"
                             >
-                              ✕
+                              <X size={12} />
                             </button>
                             
                             {mat.type === 'Image' && mat.url && mat.url !== '#' ? (
@@ -2508,7 +2569,7 @@ export default function Stories() {
                         fontSize: '0.78rem',
                         fontWeight: 600,
                         backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        border: '1px solid rgba(255, 255, 255, 0.16)',
                         color: 'var(--text-primary)',
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -2547,10 +2608,10 @@ export default function Stories() {
                           top: '0.75rem',
                           right: '0.75rem',
                           background: 'rgba(255, 255, 255, 0.06)',
-                          border: 'none',
+                          border: '1px solid rgba(255, 255, 255, 0.16)',
                           color: 'var(--text-secondary)',
-                          width: '26px',
-                          height: '26px',
+                          width: '28px',
+                          height: '28px',
                           borderRadius: '50%',
                           display: 'flex',
                           alignItems: 'center',
@@ -2619,8 +2680,9 @@ export default function Stories() {
                     onClick={() => setIsModalOpen(false)} 
                     className="btn btn-secondary"
                     style={{
-                      padding: '0.85rem 1.85rem',
-                      borderRadius: '14px',
+                      padding: '0.85rem 2rem',
+                      borderRadius: '999px',
+                      border: '1px solid var(--border-color)',
                       fontSize: '0.95rem',
                       fontWeight: 600
                     }}
@@ -2632,12 +2694,12 @@ export default function Stories() {
                     disabled={submitting}
                     style={{ 
                       padding: '0.85rem 2.5rem',
-                      borderRadius: '14px',
+                      borderRadius: '999px',
                       fontSize: '0.96rem',
                       fontWeight: 700,
                       backgroundColor: 'var(--text-primary)',
                       color: 'var(--bg-surface)',
-                      border: 'none',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
                       opacity: submitting ? 0.7 : 1,
                       cursor: submitting ? 'not-allowed' : 'pointer',
                       boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -2721,7 +2783,7 @@ export default function Stories() {
                     textAlign: 'right',
                     fontWeight: '500'
                   }}>
-                    ⚠️ Keep this tab active. Switching or minimizing tabs will pause the upload.
+                    Keep this tab active. Switching or minimizing tabs will pause the upload.
                   </p>
                 )}
               </form>
