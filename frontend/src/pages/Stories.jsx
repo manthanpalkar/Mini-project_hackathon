@@ -359,32 +359,39 @@ export default function Stories() {
   // Custom journey sections state
   const [customSections, setCustomSections] = useState([]);
 
-  // Additional structured inputs for senior advice, hackathons, and active modal section
+  // Additional structured inputs for senior advice and hackathons
   const [adviceQuote, setAdviceQuote] = useState('');
   const [adviceTips, setAdviceTips] = useState('');
   const [hackathons, setHackathons] = useState('');
-  const [activeModalSection, setActiveModalSection] = useState('sec-profile');
 
   const handleInsertProjectsTemplate = () => {
-    const template = `1. "Project One Title": Built a high-concurrency microservice with Node.js and PostgreSQL. Handled 3,000+ requests/sec with Redis caching.\n2. "Project Two Title": Full-stack web application with React, Express, and MongoDB featuring role-based auth and real-time WebSockets.`;
+    const template = `1. "High-Throughput Task Queue": Distributed job processor in Go and Redis with exponential backoff and worker pools.\n2. "Campus Placement Portal": Full-stack MERN application with role-based JWT auth, real-time notifications, and ATS resume parsing.\n3. "AI Code Reviewer": Python FastAPI microservice using LangChain to review pull requests.`;
     setFormData(prev => ({
       ...prev,
       journey: {
         ...prev.journey,
-        projects: prev.journey.projects ? prev.journey.projects + '\n' + template : template
+        projects: prev.journey.projects ? prev.journey.projects + '\n\n' + template : template
       }
     }));
   };
 
   const handleInsertRoundsTemplate = () => {
-    const template = `Round 1 (Online Assessment): 3 coding questions on arrays/graphs + 20 CS fundamentals MCQs.\nRound 2 (Technical Interview 1): Project deep-dive, live coding on Binary Search Trees, and OS virtual memory.\nRound 3 (Technical Interview 2): System design of a URL shortener, SQL optimization, and concurrency handling.\nRound 4 (HR / Behavioral): STAR behavioral questions, culture fit, and college leadership roles.`;
+    const template = `Round 1 (Online Assessment): 3 coding problems on arrays/graphs + 20 CS fundamentals MCQs.\nRound 2 (Technical Interview 1): In-depth resume discussion, live coding on Binary Search Trees, and OS virtual memory.\nRound 3 (Technical Interview 2): System design of a URL shortener, SQL query optimization, and concurrency handling.\nRound 4 (HR / Behavioral): Situation-based questions (STAR method), culture fit, and college experiences.`;
     setFormData(prev => ({
       ...prev,
       journey: {
         ...prev.journey,
-        howSecured: prev.journey.howSecured ? prev.journey.howSecured + '\n' + template : template
+        howSecured: prev.journey.howSecured ? prev.journey.howSecured + '\n\n' + template : template
       }
     }));
+  };
+
+  const handleInsertAdviceTemplate = () => {
+    const template = `💡 Don't wait until placement season to start preparing.\n• Start DSA early and maintain a daily habit.\n• Focus on 2 deeply understood projects instead of 10 surface-level tutorial clones.\n• Practice articulating your thought process aloud while coding.\n• Avoid comparing your journey with peers; everyone progresses at a different pace.`;
+    setAdviceTips(prev => (prev ? prev + '\n\n' + template : template));
+    if (!adviceQuote.trim()) {
+      setAdviceQuote('Consistency beats intensity every single day. Trust your personal timeline and avoid comparing yourself to others.');
+    }
   };
 
   // File upload change handler
@@ -621,7 +628,6 @@ export default function Stories() {
       setAdviceQuote('');
       setAdviceTips('');
       setHackathons('');
-      setActiveModalSection('sec-profile');
       setFormData({
         name: '',
         branch: 'CSE',
@@ -1100,71 +1106,6 @@ export default function Stories() {
                   </p>
                 </div>
 
-                {/* Sticky Section Jump Pill Bar */}
-                <div 
-                  className="custom-scrollbar"
-                  style={{
-                    position: 'sticky',
-                    top: '-3rem',
-                    zIndex: 25,
-                    backgroundColor: 'var(--bg-surface)',
-                    padding: '0.5rem 0 0.85rem 0',
-                    marginBottom: '1.75rem',
-                    borderBottom: '1px solid var(--border-color)',
-                    display: 'flex',
-                    gap: '0.4rem',
-                    overflowX: 'auto',
-                    scrollbarWidth: 'none',
-                    msOverflowStyle: 'none'
-                  }}
-                >
-                  {[
-                    { id: 'sec-profile', label: 'Profile', icon: Briefcase },
-                    { id: 'sec-journey', label: '4-Year Journey', icon: Compass },
-                    { id: 'sec-prep', label: 'Prep Strategy', icon: Award },
-                    { id: 'sec-projects', label: 'Projects', icon: Code },
-                    { id: 'sec-secured', label: 'How Secured', icon: Layers },
-                    { id: 'sec-takeaways', label: 'Key Takeaways', icon: Sparkles },
-                    { id: 'sec-hackathons', label: 'Hackathons', icon: Trophy },
-                    { id: 'sec-resources', label: 'Resources', icon: BookOpen },
-                    { id: 'sec-resume', label: 'Resume', icon: FileText },
-                    { id: 'sec-materials', label: 'Materials', icon: Upload },
-                    { id: 'sec-custom', label: 'Custom', icon: Plus }
-                  ].map((sec) => {
-                    const Icon = sec.icon;
-                    const isActive = activeModalSection === sec.id;
-                    return (
-                      <button
-                        key={sec.id}
-                        type="button"
-                        onClick={() => {
-                          setActiveModalSection(sec.id);
-                          const el = document.getElementById(sec.id);
-                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }}
-                        style={{
-                          padding: '0.4rem 0.85rem',
-                          borderRadius: '999px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          border: isActive ? '1px solid var(--text-primary)' : '1px solid var(--border-color)',
-                          backgroundColor: isActive ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                          color: isActive ? 'var(--bg-surface)' : 'var(--text-primary)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          whiteSpace: 'nowrap',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <Icon size={13} />
-                        <span>{sec.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
                 {/* Section 1: Profile Details */}
                 <div 
                   id="sec-profile" 
@@ -1552,7 +1493,7 @@ export default function Stories() {
                     <textarea 
                       className="input-field" 
                       rows={4} 
-                      placeholder={`1. "High-Throughput Task Queue": Distributed job processor in Go and Redis with exponential backoff and worker pools.\n2. "Campus Placement Portal": Full-stack MERN application with role-based JWT auth, real-time notifications, and ATS resume parsing.\n3. "AI Code Reviewer": Python FastAPI microservice using LangChain to review pull requests.`}
+                      placeholder="Describe your technical projects, tech stack, and systems, or tap '+ Insert Project Template' above..."
                       value={formData.journey.projects}
                       onChange={(e) => setFormData({
                         ...formData,
@@ -1562,7 +1503,7 @@ export default function Stories() {
                     />
                   </div>
                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    💡 Pro-Tip: Format as <strong>1. "Project Name": Description &amp; Tech Stack</strong> so it renders into beautiful interactive cards on your public story page.
+                    💡 Pro-Tip: Format as <strong>1. &quot;Project Name&quot;: Description &amp; Tech Stack</strong> so it renders into beautiful interactive cards on your public story page.
                   </p>
                 </div>
 
@@ -1625,7 +1566,7 @@ export default function Stories() {
                     <textarea 
                       className="input-field" 
                       rows={4} 
-                      placeholder={`Round 1 (Online Assessment): 3 coding problems on arrays/graphs + 20 CS fundamentals MCQs.\nRound 2 (Technical Interview 1): In-depth resume discussion, live coding on Binary Search Trees, and OS virtual memory.\nRound 3 (Technical Interview 2): System design of a URL shortener, SQL query optimization, and concurrency handling.\nRound 4 (HR / Behavioral): Situation-based questions (STAR method), culture fit, and college experiences.`}
+                      placeholder="Details on OA questions, interview rounds, and HR discussion, or tap '+ Insert Rounds Template' above..."
                       value={formData.journey.howSecured}
                       onChange={(e) => setFormData({
                         ...formData,
@@ -1648,28 +1589,46 @@ export default function Stories() {
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--text-primary)',
-                      color: 'var(--bg-surface)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.8rem',
-                      fontWeight: 800
-                    }}>6</div>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Sparkles size={18} />
-                        Key Takeaways & Advice to Juniors
-                      </h3>
-                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        Your golden rule, mindset guidance, and lessons learned from the placement journey
-                      </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--text-primary)',
+                        color: 'var(--bg-surface)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}>6</div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Sparkles size={18} />
+                          Key Takeaways & Advice to Juniors
+                        </h3>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Your golden rule, mindset guidance, and lessons learned from the placement journey
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleInsertAdviceTemplate}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        border: '1px dashed var(--border-color)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Insert Advice Template
+                    </button>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -1678,7 +1637,7 @@ export default function Stories() {
                       <input 
                         type="text" 
                         className="input-field" 
-                        placeholder='e.g. Consistency beats intensity every single day. Trust your personal timeline and avoid comparing yourself to others.'
+                        placeholder="e.g. Consistency beats intensity every single day. Trust your personal timeline."
                         value={adviceQuote}
                         onChange={(e) => setAdviceQuote(e.target.value)}
                       />
@@ -1692,7 +1651,7 @@ export default function Stories() {
                       <textarea 
                         className="input-field" 
                         rows={4} 
-                        placeholder={`💡 Don't wait until placement season to start preparing.\n• Start DSA early and maintain a daily habit.\n• Focus on 2 deeply understood projects instead of 10 surface-level tutorial clones.\n• Practice articulating your thought process aloud while coding.\n• Avoid comparing your journey with peers; everyone progresses at a different pace.`}
+                        placeholder="Key advice, habits, and mindset shifts for juniors, or tap '+ Insert Advice Template' above..."
                         value={adviceTips}
                         onChange={(e) => setAdviceTips(e.target.value)}
                         style={{ resize: 'vertical', lineHeight: 1.6 }}
@@ -1742,7 +1701,7 @@ export default function Stories() {
                     <textarea 
                       className="input-field" 
                       rows={3} 
-                      placeholder={`🏆 Participated in national-level and college hackathons.\n• Top 10 Finalist in Smart India Hackathon\n• Winner of SPIT College Innovation Challenge\n• Built an AI-driven disaster relief dashboard in 24 hours`}
+                      placeholder="Details on hackathons, coding contests, and projects built under deadlines..."
                       value={hackathons}
                       onChange={(e) => setHackathons(e.target.value)}
                       style={{ resize: 'vertical', lineHeight: 1.6 }}
