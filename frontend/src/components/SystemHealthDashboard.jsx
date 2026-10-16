@@ -45,6 +45,15 @@ export default function SystemHealthDashboard() {
     fetchDiagnostics(false);
   }, [fetchDiagnostics]);
 
+  // If in fallback mode (waiting for Render deployment), automatically check every 15s
+  useEffect(() => {
+    if (!data?._isFallback) return;
+    const timer = setInterval(() => {
+      fetchDiagnostics(true);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [data?._isFallback, fetchDiagnostics]);
+
   const handleRunWriteProbe = async () => {
     try {
       setProbing(true);
@@ -167,8 +176,38 @@ export default function SystemHealthDashboard() {
   const { storage, backend, gridfs, performance, migrationReadiness } = data || {};
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
+      {/* Deploying Notice Banner (When Render deployment is in progress) */}
+      {data?._isFallback && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          padding: '1rem 1.25rem',
+          borderRadius: '16px',
+          backgroundColor: 'rgba(255, 149, 0, 0.08)',
+          border: '1px solid rgba(255, 149, 0, 0.25)',
+          color: 'var(--text-primary)',
+          fontSize: '0.85rem'
+        }}>
+          <AlertTriangle size={20} color="#ff9500" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, lineHeight: 1.5 }}>
+            <strong style={{ color: '#ff9500' }}>Render Backend Deploying: </strong>
+            The latest system diagnostics build is currently queued or compiling on Render. The dashboard is streaming live connectivity, database state, server uptime, and migration checks from <code>/health</code>. Per-collection disk space will automatically populate once Render finishes compiling.
+          </div>
+          <button
+            onClick={() => fetchDiagnostics(true)}
+            disabled={refreshing}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.78rem', padding: '0.4rem 0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <RefreshCw size={12} className={refreshing ? 'spin-animation' : ''} />
+            <span>{refreshing ? 'Checking...' : 'Check Status'}</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Overall System Header & Quick Actions */}
       <div className="loop-card" style={{ padding: '1.75rem 2rem', borderRadius: '20px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
