@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette } from 'lucide-react';
+import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail } from 'lucide-react';
 import { requestProfileEdit, updateUser } from '../utils/db';
 
 // Preset palette colors for the user name badge
@@ -67,6 +67,7 @@ export default function Navbar() {
   // Profile modal states
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [branch, setBranch] = useState('CSE');
   const [cseSpecialization, setCseSpecialization] = useState('CSE');
   const [passoutYear, setPassoutYear] = useState('2026');
@@ -84,6 +85,7 @@ export default function Navbar() {
       const isCse = ['CSE', 'CSE AI', 'CSE DS'].includes(activeBranch);
       
       setName(user.hasPendingEdit ? user.pendingName : (user.name || ''));
+      setUsername(user.username || '');
       setBranch(isCse ? 'CSE' : (activeBranch || 'CSE'));
       setCseSpecialization(isCse ? activeBranch : 'CSE');
       
@@ -164,6 +166,11 @@ export default function Navbar() {
       return;
     }
 
+    if (username && !/^[a-zA-Z0-9_-]{3,30}$/.test(username.trim())) {
+      setError('Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.');
+      return;
+    }
+
     if (newPassword && newPassword.length < 6) {
       setError('New password must be at least 6 characters long.');
       return;
@@ -179,9 +186,10 @@ export default function Navbar() {
       const selectedBranch = branch === 'CSE' ? cseSpecialization : branch;
       const isAdmin = user.isAdmin || user.role === 'Administrator' || user.role === 'Admin' || user.email?.toLowerCase() === 'admin@spit.ac.in';
 
-      // 1. Update payload including nameColor
+      // 1. Update payload including nameColor & username
       const updatePayload = {
         name: name.trim(),
+        username: username.trim(),
         branch: selectedBranch,
         currentYear: passoutYear,
         nameColor: nameColor || '',
@@ -202,15 +210,17 @@ export default function Navbar() {
         try {
           const res = await updateUser(user.email, {
             name: name.trim(),
+            username: username.trim(),
             branch: selectedBranch,
             currentYear: passoutYear,
             nameColor: nameColor || ''
           });
           updatedUser = res.user || res;
-        } catch (updateErr) {
+        } catch {
           // Fallback to requestProfileEdit if direct edit endpoint restricts
           updatedUser = await requestProfileEdit(user.email, {
             name: name.trim(),
+            username: username.trim(),
             role: user.role || 'Student',
             branch: selectedBranch,
             currentYear: passoutYear,
@@ -224,6 +234,7 @@ export default function Navbar() {
         ...user,
         ...(updatedUser || {}),
         name: name.trim(),
+        username: username.trim(),
         branch: selectedBranch,
         currentYear: passoutYear,
         passoutYear: passoutYear,
@@ -816,11 +827,16 @@ export default function Navbar() {
                 </h3>
               </div>
 
-              {/* Name */}
+              {/* Email (Read-Only) */}
               <div className="input-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="input-label">Full Name *</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="input-label">SPIT Email Address</label>
+                  <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Shield size={12} /> Verified • Read-Only
+                  </span>
+                </div>
                 <div style={{ position: 'relative' }}>
-                  <UserIcon size={16} style={{
+                  <Mail size={16} style={{
                     position: 'absolute',
                     left: '1rem',
                     top: '50%',
@@ -829,15 +845,74 @@ export default function Navbar() {
                     pointerEvents: 'none'
                   }} />
                   <input
-                    type="text"
+                    type="email"
                     className="input-field"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    style={{ paddingLeft: '2.75rem', cursor: 'text' }}
-                    disabled={loading}
-                    placeholder="e.g. John Doe"
-                    required
+                    value={user?.email || ''}
+                    readOnly
+                    disabled
+                    style={{
+                      paddingLeft: '2.75rem',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-secondary)',
+                      cursor: 'not-allowed',
+                      opacity: 0.85
+                    }}
                   />
+                </div>
+              </div>
+
+              {/* Name and Username Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                {/* Name */}
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label">Full Name *</label>
+                  <div style={{ position: 'relative' }}>
+                    <UserIcon size={16} style={{
+                      position: 'absolute',
+                      left: '1rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-secondary)',
+                      pointerEvents: 'none'
+                    }} />
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      style={{ paddingLeft: '2.75rem', cursor: 'text' }}
+                      disabled={loading}
+                      placeholder="e.g. John Doe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Username */}
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="input-label">Username</label>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>3-30 chars</span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <AtSign size={16} style={{
+                      position: 'absolute',
+                      left: '1rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-secondary)',
+                      pointerEvents: 'none'
+                    }} />
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                      style={{ paddingLeft: '2.75rem', cursor: 'text' }}
+                      disabled={loading}
+                      placeholder="e.g. aditya_patil"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -16,7 +16,10 @@ const UserSchema = new mongoose.Schema({
   pendingCurrentYear: { type: String, default: '' },
   hasPendingEdit: { type: Boolean, default: false },
   nameColor: { type: String, default: '' },
-  pendingNameColor: { type: String, default: '' }
+  pendingNameColor: { type: String, default: '' },
+  username: { type: String, unique: true, sparse: true, trim: true, index: true },
+  googleSub: { type: String, unique: true, sparse: true, index: true },
+  authProvider: { type: String, default: 'local' }
 }, { timestamps: true });
 
 UserSchema.index({ createdAt: -1 });
@@ -82,6 +85,7 @@ const StorySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 StorySchema.index({ createdAt: -1 });
+StorySchema.index({ createdAt: -1, _id: -1 });
 
 // Pending Story Schema
 const PendingStorySchema = new mongoose.Schema({
@@ -137,6 +141,8 @@ const ResourceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 ResourceSchema.index({ folderId: 1, status: 1 });
+ResourceSchema.index({ folderId: 1, status: 1, createdAt: -1 });
+ResourceSchema.index({ folderId: 1, status: 1, type: 1, createdAt: -1 });
 ResourceSchema.index({ uploadedByEmail: 1 });
 ResourceSchema.index({ ownerId: 1 });
 ResourceSchema.index({ createdAt: -1 });
@@ -202,6 +208,7 @@ const FolderSchema = new mongoose.Schema({
 
 FolderSchema.index({ ownerId: 1, visibility: 1, folderType: 1 });
 FolderSchema.index({ parentId: 1 });
+FolderSchema.index({ parentId: 1, isSystemFolder: -1, createdAt: 1 });
 FolderSchema.index({ createdAt: -1 });
 
 // GridFS Parallel Chunk Upload Session Schema

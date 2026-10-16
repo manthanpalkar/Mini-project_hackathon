@@ -152,7 +152,7 @@ function AppLayout() {
           }}>
             <div>
               <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Loop — SPIT Senior Network
+                LOOP — SPIT ALUMNI & SENIOR NETWORK
               </p>
               <p>Designed for educational mentoring and professional peer guidance.</p>
             </div>
@@ -213,8 +213,24 @@ function AppLayout() {
               </a>
             </div>
           </div>
-          <div className="container" style={{ marginTop: '2rem', fontSize: '0.75rem', opacity: 0.6 }}>
-            <p>© {new Date().getFullYear()} Loop. Created exclusively for Sardar Patel Institute of Technology.</p>
+          <div className="container" style={{
+            marginTop: '2rem',
+            paddingTop: '1.5rem',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            fontSize: '0.75rem',
+            color: 'var(--text-secondary)'
+          }}>
+            <p style={{ margin: 0, opacity: 0.75 }}>
+              © 2026 Loop. Created exclusively for Sardar Patel Institute of Technology.
+            </p>
+            <p style={{ margin: 0, opacity: 0.85, fontWeight: 500 }}>
+              Developed by Swapnil Patil
+            </p>
           </div>
         </footer>
       )}

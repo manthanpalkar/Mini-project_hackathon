@@ -1,7 +1,365 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Award, Code, BookOpen, Layers, X, Edit, Trash2, Plus, ExternalLink, Sparkles } from 'lucide-react';
-import { getStories, getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64 } from '../utils/db';
+import { 
+  ArrowLeft, Download, FileText, Award, Code, BookOpen, Layers, X, Edit, Trash2, Plus, 
+  ExternalLink, Sparkles, CheckCircle2, Trophy, Medal, Lightbulb, Quote, Target, Cpu, 
+  Users, MessageSquare, GraduationCap, 
+  Rocket, Compass, Star, ArrowRight, UserCheck
+} from 'lucide-react';
+import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64 } from '../utils/db';
+
+// Intelligent parser for preparation strategy
+function parsePrepContent(prepText) {
+  if (!prepText || typeof prepText !== 'string') return { intro: '', items: [], takeaway: '' };
+
+  let text = prepText.trim();
+  text = text.replace(/^[📚📖🎯💡📌]\s*/u, '');
+
+  let rawItems = [];
+  let intro = '';
+  let takeaway = '';
+
+  if (text.includes('•')) {
+    const parts = text.split('•').map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const first = parts[0];
+      const lastPeriodIdx = first.lastIndexOf('.');
+      if (lastPeriodIdx !== -1 && lastPeriodIdx < first.length - 1) {
+        intro = first.substring(0, lastPeriodIdx + 1).trim();
+        const firstItem = first.substring(lastPeriodIdx + 1).trim();
+        if (firstItem) rawItems.push(firstItem);
+      } else if (first.length > 80 && (first.includes('strategy was') || first.includes('focused on') || first.includes('based on'))) {
+        intro = first;
+      } else {
+        rawItems.push(first);
+      }
+
+      for (let i = 1; i < parts.length; i++) {
+        const item = parts[i];
+        if (i === parts.length - 1) {
+          const sentences = item.match(/[^.!?]+[.!?]+/g) || [item];
+          if (sentences.length > 1) {
+            rawItems.push(sentences[0].trim());
+            takeaway = sentences.slice(1).join(' ').trim();
+          } else {
+            rawItems.push(item);
+          }
+        } else {
+          rawItems.push(item);
+        }
+      }
+    } else {
+      rawItems = parts;
+    }
+  } else if (text.includes('\n')) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    lines.forEach(line => {
+      const cleaned = line.replace(/^[-*•\d.)\s]+/, '').trim();
+      if (cleaned) rawItems.push(cleaned);
+    });
+  } else {
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    if (sentences.length >= 3) {
+      intro = sentences[0].trim();
+      rawItems = sentences.slice(1, -1).map(s => s.trim());
+      takeaway = sentences[sentences.length - 1].trim();
+    } else {
+      rawItems = sentences.map(s => s.trim());
+    }
+  }
+
+  if (!takeaway && intro && (intro.includes('1%') || intro.includes('Small daily') || intro.includes('difference') || intro.includes('consistency'))) {
+    takeaway = intro;
+    intro = '';
+  }
+
+  const categorized = rawItems.map((item, idx) => {
+    const lower = item.toLowerCase();
+    let category = 'Study Discipline';
+    let icon = CheckCircle2;
+    let badgeColor = 'rgba(255, 255, 255, 0.08)';
+    let textColor = 'var(--text-secondary)';
+    let accentBorder = 'rgba(255, 255, 255, 0.12)';
+
+    if (lower.includes('dsa') || lower.includes('leetcode') || lower.includes('algorithm') || lower.includes('striver') || lower.includes('tree') || lower.includes('graph') || lower.includes('dp') || lower.includes('neetcode')) {
+      category = 'DSA & Problem Solving';
+      icon = Code;
+      badgeColor = 'rgba(16, 185, 129, 0.12)';
+      textColor = '#10b981';
+      accentBorder = 'rgba(16, 185, 129, 0.28)';
+    } else if (lower.includes('dbms') || lower.includes('os') || lower.includes('cn') || lower.includes('oop') || lower.includes('sql') || lower.includes('operating system') || lower.includes('network') || lower.includes('core')) {
+      category = 'Core CS Subjects';
+      icon = Cpu;
+      badgeColor = 'rgba(59, 130, 246, 0.12)';
+      textColor = '#60a5fa';
+      accentBorder = 'rgba(59, 130, 246, 0.28)';
+    } else if (lower.includes('project') || lower.includes('resume') || lower.includes('full-stack') || lower.includes('built') || lower.includes('app') || lower.includes('portfolio') || lower.includes('crdt')) {
+      category = 'Projects & Portfolio';
+      icon = Layers;
+      badgeColor = 'rgba(168, 85, 247, 0.12)';
+      textColor = '#c084fc';
+      accentBorder = 'rgba(168, 85, 247, 0.28)';
+    } else if (lower.includes('mock') || lower.includes('interview') || lower.includes('round') || lower.includes('peer') || lower.includes('system design') || lower.includes('simulation')) {
+      category = 'Mock Interviews';
+      icon = UserCheck;
+      badgeColor = 'rgba(245, 158, 11, 0.12)';
+      textColor = '#fbbf24';
+      accentBorder = 'rgba(245, 158, 11, 0.28)';
+    } else if (lower.includes('communication') || lower.includes('presentation') || lower.includes('soft skill') || lower.includes('articulate') || lower.includes('english')) {
+      category = 'Communication & Soft Skills';
+      icon = MessageSquare;
+      badgeColor = 'rgba(244, 63, 94, 0.12)';
+      textColor = '#fb7185';
+      accentBorder = 'rgba(244, 63, 94, 0.28)';
+    } else if (lower.includes('senior') || lower.includes('mentor') || lower.includes('guidance') || lower.includes('learned from')) {
+      category = 'Mentorship & Guidance';
+      icon = GraduationCap;
+      badgeColor = 'rgba(20, 184, 166, 0.12)';
+      textColor = '#2dd4bf';
+      accentBorder = 'rgba(20, 184, 166, 0.28)';
+    }
+
+    return {
+      id: idx,
+      text: item,
+      category,
+      icon,
+      badgeColor,
+      textColor,
+      accentBorder
+    };
+  });
+
+  return { intro, items: categorized, takeaway };
+}
+
+// 5-Stage Recruitment Roadmap Parser
+function parseHowSecuredStages(howSecuredText, story) {
+  const rawText = (howSecuredText || '').replace(/^[🏆🎉💼]\s*/u, '').trim();
+
+  const stages = [
+    {
+      stageNumber: '01',
+      title: 'Resume & Profile Preparation',
+      subtitle: 'ATS-Friendly Formatting & Project Highlights',
+      icon: FileText,
+      accent: '#60a5fa',
+      badgeBg: 'rgba(59, 130, 246, 0.12)',
+      description: 'Carefully formatted standard tech resume, emphasized core projects with measurable impact, highlighted academic CGPA, and tailored skills specifically to the targeted job description.'
+    },
+    {
+      stageNumber: '02',
+      title: 'Company-Specific Technical Prep',
+      subtitle: 'Core Concept Revision & Targeted Question Sets',
+      icon: Cpu,
+      accent: '#c084fc',
+      badgeBg: 'rgba(168, 85, 247, 0.12)',
+      description: 'Researched company culture, typical question styles, revised Operating Systems, DBMS indexing, Computer Networks, and practiced company-tagged DSA problems.'
+    },
+    {
+      stageNumber: '03',
+      title: 'Application & Online Screening',
+      subtitle: 'Campus Drive Shortlisting & Timed Assessment',
+      icon: Target,
+      accent: '#fbbf24',
+      badgeBg: 'rgba(245, 158, 11, 0.12)',
+      description: 'Applied through college placement drive or verified referral. Cleared the initial CGPA cutoff and cracked the timed online assessment covering coding and analytical aptitude.'
+    },
+    {
+      stageNumber: '04',
+      title: 'Technical & Behavioral Interviews',
+      subtitle: 'Live Problem-Solving & Thinking Aloud',
+      icon: UserCheck,
+      accent: '#10b981',
+      badgeBg: 'rgba(16, 185, 129, 0.12)',
+      description: 'Engaged with interviewers by explaining thought processes aloud, constructing clean algorithmic solutions, discussing system trade-offs, and demonstrating cultural alignment.'
+    },
+    {
+      stageNumber: '05',
+      title: 'Final Selection & Offer Rollout',
+      subtitle: 'Evaluation, Verification & Full-Time Conversion',
+      icon: Trophy,
+      accent: '#D4FF32',
+      badgeBg: 'rgba(212, 255, 50, 0.15)',
+      description: 'Converted the recruitment process into a confirmed placement offer. Demonstrates how consistent daily effort over semesters produces exceptional career milestones.'
+    }
+  ];
+
+  if (rawText) {
+    const sentences = rawText.match(/[^.!?]+[.!?]+/g) || [rawText];
+    sentences.forEach(s => {
+      const sentence = s.trim();
+      const lower = sentence.toLowerCase();
+      if (lower.includes('resume') || lower.includes('portfolio') || lower.includes('highlighted my projects') || lower.includes('tailored')) {
+        stages[0].description = sentence;
+      } else if (lower.includes('before every interview') || lower.includes('researched the company') || lower.includes('revised important concepts') || lower.includes('practiced frequently')) {
+        stages[1].description = sentence;
+      } else if (lower.includes('applied') || lower.includes('shortlisted') || lower.includes('drive') || lower.includes('screening') || lower.includes('campus selection')) {
+        stages[2].description = sentence;
+      } else if (lower.includes('during interviews') || lower.includes('explained my thought process') || lower.includes('clear communication') || lower.includes('honesty') || lower.includes('interviews')) {
+        stages[3].description = sentence;
+      } else if (lower.includes('ultimately helped') || lower.includes('convert') || lower.includes('successful placement') || lower.includes('offer') || lower.includes('ppo')) {
+        stages[4].description = sentence;
+      }
+    });
+  }
+
+  const rounds = story?.interviewRounds || null;
+  return { stages, rawText, rounds };
+}
+
+// Advice to Juniors Parser
+function parseAdviceContent(adviceText) {
+  if (!adviceText || typeof adviceText !== 'string') return { tips: [], quote: '', raw: '' };
+
+  let text = adviceText.trim().replace(/^💡\s*/, '');
+  let quote = '';
+  let tips = [];
+
+  const quoteIndicators = ['most importantly', 'avoid comparing', 'trust the process', 'small efforts', 'compounding'];
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const regularLines = [];
+  const quoteLines = [];
+
+  lines.forEach(line => {
+    const lower = line.toLowerCase();
+    const isQuoteLike = quoteIndicators.some(qi => lower.includes(qi));
+    if (isQuoteLike || quoteLines.length > 0) {
+      quoteLines.push(line);
+    } else {
+      regularLines.push(line);
+    }
+  });
+
+  if (quoteLines.length > 0) {
+    quote = quoteLines.join(' ');
+  }
+
+  const tipIcons = [
+    { icon: Target, title: 'Start Preparation Early', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' },
+    { icon: Compass, title: 'Consistency Over Intensity', color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.12)' },
+    { icon: Code, title: 'Build Meaningful Projects', color: '#c084fc', bg: 'rgba(168, 85, 247, 0.12)' },
+    { icon: Cpu, title: 'Master Core CS & DSA', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.12)' },
+    { icon: Trophy, title: 'Participate in Hackathons', color: '#fbbf24', bg: 'rgba(245, 158, 11, 0.12)' },
+    { icon: Users, title: 'Network with SPIT Seniors', color: '#2dd4bf', bg: 'rgba(45, 212, 191, 0.12)' },
+    { icon: FileText, title: 'Maintain ATS-Ready Resume', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.12)' },
+    { icon: MessageSquare, title: 'Hone Articulate Communication', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.12)' }
+  ];
+
+  regularLines.forEach((line, idx) => {
+    const cleaned = line.replace(/^[-*•\d.)\s]+/, '').trim();
+    if (!cleaned) return;
+
+    const lower = cleaned.toLowerCase();
+    let matchedIcon = tipIcons[idx % tipIcons.length];
+
+    if (lower.includes('early') || lower.includes("don't wait") || lower.includes('wait until')) {
+      matchedIcon = tipIcons[0];
+    } else if (lower.includes('consistent') || lower.includes('daily')) {
+      matchedIcon = tipIcons[1];
+    } else if (lower.includes('project') || lower.includes('build')) {
+      matchedIcon = tipIcons[2];
+    } else if (lower.includes('dsa') || lower.includes('code') || lower.includes('practice')) {
+      matchedIcon = tipIcons[3];
+    } else if (lower.includes('hackathon') || lower.includes('competition')) {
+      matchedIcon = tipIcons[4];
+    } else if (lower.includes('senior') || lower.includes('network') || lower.includes('alumni')) {
+      matchedIcon = tipIcons[5];
+    } else if (lower.includes('resume') || lower.includes('ats')) {
+      matchedIcon = tipIcons[6];
+    } else if (lower.includes('communication') || lower.includes('presentation') || lower.includes('speak')) {
+      matchedIcon = tipIcons[7];
+    }
+
+    tips.push({
+      number: String(idx + 1).padStart(2, '0'),
+      text: cleaned,
+      title: matchedIcon.title,
+      icon: matchedIcon.icon,
+      color: matchedIcon.color,
+      bg: matchedIcon.bg
+    });
+  });
+
+  if (!quote && tips.length === 0 && text) {
+    quote = text;
+  } else if (!quote) {
+    quote = "Most importantly, avoid comparing your journey with others. Everyone progresses at a different pace. Focus on learning, improving, and staying disciplined. Small efforts repeated daily can create extraordinary results over four years.";
+  }
+
+  return { tips, quote, raw: text };
+}
+
+// Hackathons and Competitions Parser
+function parseHackathonContent(hackathonText) {
+  if (!hackathonText || typeof hackathonText !== 'string') return { intro: '', achievements: [], skills: [], impact: '' };
+
+  let text = hackathonText.trim().replace(/^🏆\s*/u, '');
+  let intro = '';
+  let impact = '';
+
+  const bulletParts = text.split(/•|\n/).map(l => l.trim()).filter(Boolean);
+  const rawBullets = [];
+
+  bulletParts.forEach(part => {
+    const cleaned = part.replace(/^[-*•\d.)\s]+/, '').trim();
+    if (!cleaned) return;
+    const lower = cleaned.toLowerCase();
+    if (lower.includes('participated in multiple') || lower.includes('my engineering journey') || lower.includes('experiences improved my')) {
+      intro += (intro ? ' ' : '') + cleaned;
+    } else if (lower.includes('notable achievements:')) {
+      // header skip
+    } else if (lower.includes('helped me gain') || lower.includes('beyond academics') || lower.includes('strengthened my resume')) {
+      impact += (impact ? ' ' : '') + cleaned;
+    } else {
+      rawBullets.push(cleaned);
+    }
+  });
+
+  const achievementIcons = [Trophy, Medal, Star, Award];
+  const achievements = rawBullets.map((ach, idx) => {
+    let badgeText = 'Milestone';
+    let badgeColor = 'rgba(245, 158, 11, 0.12)';
+    let textColor = '#fbbf24';
+    const lower = ach.toLowerCase();
+
+    if (lower.includes('winner') || lower.includes('1st') || lower.includes('first')) {
+      badgeText = '1st Place / Winner';
+      badgeColor = 'rgba(212, 255, 50, 0.15)';
+      textColor = '#D4FF32';
+    } else if (lower.includes('finalist') || lower.includes('top 10') || lower.includes('runner')) {
+      badgeText = 'Top Finalist';
+      badgeColor = 'rgba(59, 130, 246, 0.15)';
+      textColor = '#60a5fa';
+    } else if (lower.includes('ai') || lower.includes('solution') || lower.includes('built')) {
+      badgeText = 'Technical Build';
+      badgeColor = 'rgba(168, 85, 247, 0.15)';
+      textColor = '#c084fc';
+    } else if (lower.includes('collaborated') || lower.includes('team')) {
+      badgeText = 'Cross-Domain Synergy';
+      badgeColor = 'rgba(16, 185, 129, 0.15)';
+      textColor = '#10b981';
+    }
+
+    return {
+      id: idx,
+      text: ach,
+      badgeText,
+      badgeColor,
+      textColor,
+      icon: achievementIcons[idx % achievementIcons.length]
+    };
+  });
+
+  const skills = [
+    { name: 'Team Collaboration', icon: Users, desc: 'Agile sprint teamwork across engineering disciplines' },
+    { name: 'Rapid Prototyping', icon: Rocket, desc: 'Shipping production MVPs within 24-36 hour hackathon constraints' },
+    { name: 'Problem-Solving Under Pressure', icon: Target, desc: 'Debugging architectures with tight deadline urgency' },
+    { name: 'Technical Presentation', icon: MessageSquare, desc: 'Pitching software architecture clearly to industry judges' }
+  ];
+
+  return { intro, achievements, skills, impact };
+}
 
 const getResourceLink = (res) => {
   if (!res) return null;
@@ -65,15 +423,46 @@ export default function StoryDetail() {
   const [story, setStory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTimelineYear, setActiveTimelineYear] = useState(1);
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [activeSection, setActiveSection] = useState('section-journey');
   const yearCardRefs = useRef({});
 
-  // Auto-scroll spy: changes active dot and year tab automatically as user scrolls
+  // Reading progress tracker and scroll spy
   useEffect(() => {
     const handleScroll = () => {
+      // 1. Reading progress bar percentage
+      const totalScrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScrollHeight > 0) {
+        const progress = Math.min(100, Math.max(0, (window.scrollY / totalScrollHeight) * 100));
+        setReadingProgress(progress);
+      }
+
+      // 2. Quick navigation section spy
+      const sections = [
+        'section-journey',
+        'section-prep',
+        'section-projects',
+        'section-secured',
+        'section-advice',
+        'section-hackathons',
+        'section-takeaways',
+        'section-resources',
+        'section-resume',
+        'section-materials'
+      ];
+      const scrollPos = window.scrollY + 180;
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const el = document.getElementById(sections[i]);
+        if (el && el.offsetTop <= scrollPos) {
+          setActiveSection(sections[i]);
+          break;
+        }
+      }
+
+      // 3. 4-Year Journey milestone spy
       const years = [1, 2, 3, 4];
       const viewportMid = window.innerHeight * 0.42;
       let matchedYear = 1;
-      
       for (const yr of years) {
         const el = yearCardRefs.current[yr];
         if (el) {
@@ -421,35 +810,132 @@ export default function StoryDetail() {
     );
   }
 
-  // Format multi-line projects list
+  // Format multi-line projects list into modern visual cards
   const formatProjects = (projectsString) => {
     if (!projectsString) return null;
-    return projectsString.split('\n').map((line, index) => (
-      <p key={index} style={{ marginBottom: '0.75rem', fontSize: '1.05rem', color: 'var(--text-secondary)' }}>
-        {line}
-      </p>
-    ));
+    const lines = projectsString.split('\n').map(l => l.trim()).filter(Boolean);
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        {lines.map((line, index) => {
+          let title = `Project ${index + 1}`;
+          let desc = line;
+          const match = line.match(/^\d*\.?\s*["']?([^"':]+)["']?[:-]\s*(.*)$/);
+          if (match) {
+            title = match[1].trim();
+            desc = match[2].trim();
+          }
+          return (
+            <div
+              key={index}
+              className="editorial-card"
+              style={{
+                padding: '1.25rem 1.4rem',
+                borderRadius: '14px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(168, 85, 247, 0.12)',
+                    color: '#c084fc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Code size={16} />
+                  </div>
+                  <h4 style={{ fontSize: '1.02rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                    {title}
+                  </h4>
+                </div>
+                <span className="badge" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                  Highlight
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                {desc}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
     <>
-      <div className="container animate-fade-in" style={{ paddingTop: '6.5rem', paddingBottom: '6rem', maxWidth: '900px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        {/* Back button */}
+      {/* Sticky Top Reading Progress Bar */}
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(readingProgress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '3px',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          zIndex: 1000,
+          pointerEvents: 'none'
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: `${readingProgress}%`,
+            background: 'linear-gradient(90deg, var(--text-primary) 0%, #10b981 100%)',
+            transition: 'width 0.1s ease-out',
+            boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)'
+          }}
+        />
+      </div>
+
+      <div className="container animate-fade-in" style={{ paddingTop: '6rem', paddingBottom: '5rem', maxWidth: '880px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        {/* Back button with smooth hover animation */}
         <button 
           onClick={() => navigate('/stories')}
           className="btn btn-text"
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
             color: 'var(--text-secondary)',
             fontSize: '0.9rem',
-            fontWeight: 500
+            fontWeight: 500,
+            cursor: 'pointer',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '20px',
+            backgroundColor: 'transparent',
+            border: '1px solid transparent',
+            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateX(-3px)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateX(0)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.borderColor = 'transparent';
           }}
         >
           <ArrowLeft size={16} />
-          <span>Back to Stories</span>
+          <span>Back to Placement Stories</span>
         </button>
 
         {/* Owner/Admin Options */}
@@ -577,16 +1063,91 @@ export default function StoryDetail() {
         </div>
       </header>
 
+      {/* Sticky Table of Contents & Quick Navigation Pill Bar */}
+      {(() => {
+        const navSections = [
+          { id: 'section-journey', label: '4-Year Journey', icon: Compass },
+          { id: 'section-prep', label: 'Prep Strategy', icon: Award },
+          ...(story?.journey?.projects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
+          { id: 'section-secured', label: 'How Secured', icon: Layers },
+          ...(story?.customSections?.some(s => s.title && s.title.toLowerCase().includes('advice')) ? [{ id: 'section-advice', label: 'Advice', icon: Lightbulb }] : []),
+          ...(story?.customSections?.some(s => s.title && (s.title.toLowerCase().includes('hackathon') || s.title.toLowerCase().includes('competition'))) ? [{ id: 'section-hackathons', label: 'Hackathons', icon: Trophy }] : []),
+          { id: 'section-takeaways', label: 'Key Takeaways', icon: Sparkles },
+          ...(story?.resources && story.resources.length > 0 ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
+          { id: 'section-resume', label: 'Resume', icon: FileText }
+        ];
+
+        return (
+          <nav
+            aria-label="Story Quick Navigation"
+            style={{
+              position: 'sticky',
+              top: '0.85rem',
+              zIndex: 35,
+              marginBottom: '2.25rem',
+              padding: '0.45rem',
+              borderRadius: '24px',
+              backgroundColor: 'var(--glass-surface)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+              display: 'flex',
+              gap: '0.35rem',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            {navSections.map(sec => {
+              const Icon = sec.icon;
+              const isActive = activeSection === sec.id;
+              return (
+                <button
+                  key={sec.id}
+                  onClick={() => {
+                    const el = document.getElementById(sec.id);
+                    if (el) {
+                      const yOffset = -90;
+                      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '18px',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    backgroundColor: isActive ? 'var(--text-primary)' : 'transparent',
+                    color: isActive ? 'var(--accent-inverse)' : 'var(--text-secondary)'
+                  }}
+                >
+                  <Icon size={13} />
+                  <span>{sec.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        );
+      })()}
+
       {/* Main Notion-Style Reading Block */}
       <main style={{ fontFamily: 'var(--font-sans)' }}>
         
         {/* Intro Highlight (Notion Callout) */}
         <div className="glass-panel" style={{
-          padding: '1.5rem 2rem',
+          padding: '1.25rem 1.75rem',
           borderRadius: '16px',
-          marginBottom: '3.5rem',
+          marginBottom: '2.25rem',
           borderLeft: '4px solid var(--text-primary)',
-          fontSize: '1.1rem',
+          fontSize: '1.05rem',
           lineHeight: '1.7',
           color: 'var(--text-secondary)',
           fontStyle: 'italic'
@@ -595,7 +1156,7 @@ export default function StoryDetail() {
         </div>
 
         {/* 4-Year Journey Timeline */}
-        <section style={{ marginBottom: '4rem' }}>
+        <section id="section-journey" style={{ marginBottom: '2.75rem', scrollMarginTop: '110px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.75rem', borderRadius: '20px', backgroundColor: 'rgba(212, 255, 50, 0.25)', border: '1px solid rgba(212, 255, 50, 0.45)', color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
@@ -791,63 +1352,665 @@ export default function StoryDetail() {
           </div>
         </section>
 
-        {/* Preparation Strategy */}
-        <section style={{ marginBottom: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Award size={24} />
-            Preparation Strategy & Study Routine
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: '1.7' }}>
-            {story.journey.prep}
-          </p>
+        {/* Preparation Strategy & Study Routine */}
+        <section id="section-prep" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <Award size={13} />
+                Daily Regimen & Milestones
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Award size={22} style={{ color: 'var(--text-primary)' }} />
+                Preparation Strategy & Study Routine
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Structured study hours, DSA problem-solving techniques, and core subjects revision
+              </p>
+            </div>
+          </div>
+
+          {(() => {
+            const { intro, items, takeaway } = parsePrepContent(story.journey?.prep);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {intro && (
+                  <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                    {intro}
+                  </p>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {items.map((item) => {
+                    const ItemIcon = item.icon;
+                    return (
+                      <div
+                        key={item.id}
+                        className="editorial-card"
+                        style={{
+                          padding: '1.25rem',
+                          borderRadius: '14px',
+                          border: `1px solid ${item.accentBorder || 'var(--border-color)'}`,
+                          backgroundColor: 'var(--bg-surface)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '8px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              backgroundColor: item.badgeColor,
+                              color: item.textColor
+                            }}
+                          >
+                            <ItemIcon size={12} />
+                            {item.category}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            #{String(item.id + 1).padStart(2, '0')}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.96rem', color: 'var(--text-primary)', lineHeight: 1.6, fontWeight: 500 }}>
+                          {item.text}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {takeaway && (
+                  <div
+                    style={{
+                      marginTop: '0.5rem',
+                      padding: '1.25rem 1.5rem',
+                      borderRadius: '14px',
+                      backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                      border: '1px solid rgba(16, 185, 129, 0.28)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '1rem'
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '0.5rem',
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                        color: '#10b981',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Lightbulb size={18} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#10b981', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                        Key Takeaway
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.65, fontStyle: 'italic' }}>
+                        "{takeaway}"
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </section>
 
         {/* Projects Built */}
-        {story.journey.projects && (
-          <section style={{ marginBottom: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Code size={24} />
-              Key Projects Built
-            </h2>
-            <div style={{
-              padding: '1.5rem',
-              borderRadius: '16px',
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)'
-            }}>
-              {formatProjects(story.journey.projects)}
+        {story.journey?.projects && (
+          <section id="section-projects" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', color: '#c084fc', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <Code size={13} />
+                Technical Proof of Work
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Code size={22} style={{ color: 'var(--text-primary)' }} />
+                Key Projects Built
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Practical systems, open-source repositories, and portfolio work showcased in interviews
+              </p>
             </div>
+            {formatProjects(story.journey?.projects)}
           </section>
         )}
 
         {/* The Recruitment Process */}
-        <section style={{ marginBottom: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Layers size={24} />
-            How I Secured the Role
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: '1.7' }}>
-            {story.journey.howSecured}
-          </p>
+        <section id="section-secured" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.75rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <Layers size={13} />
+              Recruitment Process Flow
+            </div>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Layers size={22} style={{ color: 'var(--text-primary)' }} />
+              How I Secured the Role
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              End-to-end placement journey broken into a 5-stage visual recruitment roadmap
+            </p>
+          </div>
+
+          {(() => {
+            const { stages, rounds } = parseHowSecuredStages(story.journey?.howSecured, story);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* 5-Stage Visual Roadmap */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {stages.map((stg, sIdx) => {
+                    const StageIcon = stg.icon;
+                    return (
+                      <div
+                        key={sIdx}
+                        className="editorial-card"
+                        style={{
+                          padding: '1.35rem 1.5rem',
+                          borderRadius: '16px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-surface)',
+                          position: 'relative',
+                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.1rem' }}>
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '12px',
+                              backgroundColor: stg.badgeBg,
+                              color: stg.accent,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 800,
+                              fontSize: '0.95rem',
+                              flexShrink: 0,
+                              border: `1px solid ${stg.accent}33`
+                            }}
+                          >
+                            <StageIcon size={20} />
+                          </div>
+
+                          <div style={{ flexGrow: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: stg.accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                  Stage {stg.stageNumber}
+                                </span>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                  {stg.title}
+                                </h3>
+                              </div>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                {stg.subtitle}
+                              </span>
+                            </div>
+
+                            <p style={{ margin: 0, fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                              {stg.description}
+                            </p>
+
+                            {stg.stageNumber === '04' && rounds && (
+                              <div style={{ marginTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+                                {rounds.onlineAssessment && (
+                                  <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', minWidth: '85px' }}>Round 1 (OA):</span>
+                                    <span>{rounds.onlineAssessment}</span>
+                                  </div>
+                                )}
+                                {rounds.technicalRounds && (
+                                  <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', minWidth: '85px' }}>Technical:</span>
+                                    <span>{rounds.technicalRounds}</span>
+                                  </div>
+                                )}
+                                {rounds.hrRound && (
+                                  <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', minWidth: '85px' }}>HR / Fitment:</span>
+                                    <span>{rounds.hrRound}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div
+                  style={{
+                    padding: '1.25rem 1.5rem',
+                    borderRadius: '14px',
+                    backgroundColor: 'rgba(212, 255, 50, 0.05)',
+                    border: '1px solid rgba(212, 255, 50, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                >
+                  <Sparkles size={22} color="var(--accent-lime-dark)" style={{ flexShrink: 0 }} />
+                  <div>
+                    <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Senior's Interview Strategy
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      "Even when I did not know an exact answer immediately, I explained my thought process aloud with structured honesty. Interviewers evaluate how you navigate ambiguity."
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </section>
 
-        {/* Custom Prompts / Sections */}
-        {story.customSections && story.customSections.map((sec, index) => (
-          <section key={index} style={{ marginBottom: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem', fontFamily: 'var(--font-display)' }}>
-              {sec.title}
+        {/* Custom Prompts / Sections: Advice, Hackathons & Others */}
+        {story.customSections && story.customSections.map((sec, index) => {
+          const lowerTitle = (sec.title || '').toLowerCase();
+          const isAdvice = lowerTitle.includes('advice');
+          const isHackathon = lowerTitle.includes('hackathon') || lowerTitle.includes('competition');
+
+          if (isAdvice) {
+            const { tips, quote } = parseAdviceContent(sec.content);
+            return (
+              <section key={index} id="section-advice" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                    <Lightbulb size={13} />
+                    Guidance For SPIT Juniors
+                  </div>
+                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Lightbulb size={22} style={{ color: 'var(--text-primary)' }} />
+                    Advice to Juniors
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                    Practical tips, habits, and mindset shifts to maximize your 4 engineering years
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {tips.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                      {tips.map((tip, tIdx) => {
+                        const TipIcon = tip.icon;
+                        return (
+                          <div
+                            key={tIdx}
+                            className="editorial-card"
+                            style={{
+                              padding: '1.25rem',
+                              borderRadius: '14px',
+                              border: '1px solid var(--border-color)',
+                              backgroundColor: 'var(--bg-surface)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.65rem',
+                              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                <div style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '8px',
+                                  backgroundColor: tip.bg,
+                                  color: tip.color,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}>
+                                  <TipIcon size={14} />
+                                </div>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: tip.color, letterSpacing: '0.04em' }}>
+                                  TIP {tip.number}
+                                </span>
+                              </div>
+                            </div>
+                            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                              {tip.text}
+                            </h4>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {quote && (
+                    <div
+                      className="editorial-card"
+                      style={{
+                        padding: '1.75rem 2rem',
+                        borderRadius: '18px',
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        right: '15px',
+                        fontSize: '6rem',
+                        color: 'rgba(16, 185, 129, 0.06)',
+                        fontFamily: 'serif',
+                        pointerEvents: 'none',
+                        lineHeight: 1
+                      }}>
+                        “
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '20px',
+                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                          color: '#10b981',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em'
+                        }}>
+                          <Quote size={12} />
+                          Senior's Golden Rule
+                        </span>
+                      </div>
+
+                      <p style={{
+                        margin: '0 0 1rem 0',
+                        fontSize: '1.12rem',
+                        color: 'var(--text-primary)',
+                        lineHeight: 1.75,
+                        fontWeight: 500,
+                        fontStyle: 'italic'
+                      }}>
+                        "{quote}"
+                      </p>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>— {story.name}</span>
+                        <span>•</span>
+                        <span>{story.role} at {story.company}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            );
+          }
+
+          if (isHackathon) {
+            const { intro, achievements, skills, impact } = parseHackathonContent(sec.content);
+            return (
+              <section key={index} id="section-hackathons" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(212, 255, 50, 0.15)', border: '1px solid rgba(212, 255, 50, 0.35)', color: 'var(--accent-lime-dark)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                    <Trophy size={13} />
+                    Competitive Building
+                  </div>
+                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Trophy size={22} style={{ color: 'var(--text-primary)' }} />
+                    Hackathons & Competitions
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                    Real-world prototyping, high-intensity hackathons, and verifiable technical achievements
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {intro && (
+                    <p style={{ margin: 0, fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                      {intro}
+                    </p>
+                  )}
+
+                  {achievements.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {achievements.map((ach) => {
+                        const AchIcon = ach.icon;
+                        return (
+                          <div
+                            key={ach.id}
+                            className="editorial-card"
+                            style={{
+                              padding: '1.25rem',
+                              borderRadius: '14px',
+                              border: '1px solid var(--border-color)',
+                              backgroundColor: 'var(--bg-surface)',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '0.9rem',
+                              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                            }}
+                          >
+                            <div style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              backgroundColor: ach.badgeColor,
+                              color: ach.textColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <AchIcon size={18} />
+                            </div>
+                            <div style={{ flexGrow: 1 }}>
+                              <span style={{ display: 'inline-block', fontSize: '0.7rem', fontWeight: 700, color: ach.textColor, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.25rem' }}>
+                                {ach.badgeText}
+                              </span>
+                              <p style={{ margin: 0, fontSize: '0.96rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                                {ach.text}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {skills.length > 0 && (
+                    <div
+                      className="editorial-card"
+                      style={{
+                        padding: '1.25rem 1.5rem',
+                        borderRadius: '14px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-surface)'
+                      }}
+                    >
+                      <h4 style={{ margin: '0 0 0.85rem 0', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                        Core Skills Gained Under Tight Deadlines
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                        {skills.map((sk, skIdx) => {
+                          const SkIcon = sk.icon;
+                          return (
+                            <div
+                              key={skIdx}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                                padding: '0.45rem 0.85rem',
+                                borderRadius: '10px',
+                                backgroundColor: 'var(--bg-tertiary)',
+                                border: '1px solid var(--border-color)',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                color: 'var(--text-primary)'
+                              }}
+                              title={sk.desc}
+                            >
+                              <SkIcon size={14} style={{ color: 'var(--text-secondary)' }} />
+                              <span>{sk.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {impact && (
+                    <div
+                      style={{
+                        padding: '1.2rem 1.5rem',
+                        borderRadius: '14px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid var(--border-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.85rem'
+                      }}
+                    >
+                      <Medal size={20} color="#fbbf24" style={{ flexShrink: 0 }} />
+                      <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        {impact}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            );
+          }
+
+          return (
+            <section key={index} style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <Award size={22} style={{ color: 'var(--text-primary)' }} />
+                  {sec.title}
+                </h2>
+              </div>
+              <div
+                className="editorial-card"
+                style={{
+                  padding: '1.5rem',
+                  borderRadius: '14px',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: '1.75', margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {sec.content}
+                </p>
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Key Takeaways Summary Section */}
+        <section id="section-takeaways" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(212, 255, 50, 0.15)', border: '1px solid rgba(212, 255, 50, 0.35)', color: 'var(--accent-lime-dark)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <Sparkles size={13} />
+              Executive Summary
+            </div>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Sparkles size={22} style={{ color: 'var(--text-primary)' }} />
+              Key Takeaways
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
-              {sec.content}
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              The essential principles behind {story.name}'s placement success at {story.company}
             </p>
-          </section>
-        ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+            <div
+              className="editorial-card"
+              style={{
+                padding: '1.35rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Target size={18} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Preparation Formula
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Daily compounding over last-minute cramming. Prioritize Striver SDE sheets, core OS/DBMS fundamentals, and continuous mock interview practice.
+              </p>
+            </div>
+
+            <div
+              className="editorial-card"
+              style={{
+                padding: '1.35rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UserCheck size={18} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Interview Execution
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Articulate thought processes aloud before coding. Interviewers look for structured problem-solving, honesty on unknowns, and robust communication.
+              </p>
+            </div>
+
+            <div
+              className="editorial-card"
+              style={{
+                padding: '1.35rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(212, 255, 50, 0.15)', color: 'var(--accent-lime-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Compass size={18} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Growth Mindset
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Avoid comparing yourself to peers. Focus on your unique engineering progression, build real projects, and trust the 4-year journey.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* Resources Used List */}
         {story.resources && story.resources.length > 0 && (
-          <section style={{ marginBottom: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <BookOpen size={24} />
+          <section id="section-resources" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
               Resources Used
             </h2>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -902,8 +2065,9 @@ export default function StoryDetail() {
         )}
 
         {/* Resume Preview & Download Section */}
-        <section style={{ marginBottom: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)' }}>
+        <section id="section-resume" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+          <h2 style={{ fontSize: '1.9rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <FileText size={22} style={{ color: 'var(--text-primary)' }} />
             Resume
           </h2>
 
@@ -996,8 +2160,9 @@ export default function StoryDetail() {
 
         {/* Study Materials Uploaded Section */}
         {story.studyMaterials && story.studyMaterials.length > 0 && (
-          <section style={{ paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)' }}>
+          <section id="section-materials" style={{ paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
               Study Materials Uploaded
             </h2>
 
@@ -1181,6 +2346,67 @@ export default function StoryDetail() {
             </div>
           </section>
         )}
+
+        {/* Bottom Back to Stories & Quick Return Footer */}
+        <div style={{
+          marginTop: '3.5rem',
+          paddingTop: '2rem',
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <button 
+            onClick={() => navigate('/stories')}
+            className="btn btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.75rem 1.4rem',
+              borderRadius: '30px',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(-4px)';
+              e.currentTarget.style.borderColor = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.borderColor = 'var(--border-color)';
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Back to All Placement Stories</span>
+          </button>
+
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="btn btn-text"
+            style={{
+              fontSize: '0.85rem',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'pointer',
+              padding: '0.5rem 0.9rem',
+              borderRadius: '20px',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-surface)'
+            }}
+          >
+            <span>Back to Top</span>
+            <ArrowRight size={14} style={{ transform: 'rotate(-90deg)' }} />
+          </button>
+        </div>
 
       </main>
     </div>

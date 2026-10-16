@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Lock, Mail, UserPlus, LogIn, Eye, EyeOff, ShieldCheck, Sparkles, Check } from 'lucide-react';
-import { loginUser, requestRegistration } from '../utils/db';
+import { UserPlus, LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft } from 'lucide-react';
+import { loginUser, requestRegistration, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -19,6 +19,22 @@ export default function Login() {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Google OAuth States
+  const [googleAuthStep, setGoogleAuthStep] = useState('IDLE'); // 'IDLE' | 'SIGNUP' | 'LINK'
+  const [googleIdToken, setGoogleIdToken] = useState('');
+  const [googleSignupData, setGoogleSignupData] = useState({
+    name: '',
+    email: '',
+    username: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [linkEmail, setLinkEmail] = useState('');
+  const [linkPassword, setLinkPassword] = useState('');
+  const [showDevGoogleModal, setShowDevGoogleModal] = useState(false);
+  const [devEmailInput, setDevEmailInput] = useState('student@spit.ac.in');
+  const [devNameInput, setDevNameInput] = useState('Swapnil Patil');
 
   // Dual Video Architecture for Butter-Smooth Transitions
   // IDLE: idle-butterfly.mp4 (4.0s seamless loop of character watching butterfly)
@@ -160,12 +176,16 @@ export default function Login() {
     if (!target) {
       try {
         target = sessionStorage.getItem('loop_redirect_after_login');
-      } catch (e) {}
+      } catch {
+        // Ignore sessionStorage access errors
+      }
     }
 
     try {
       sessionStorage.removeItem('loop_redirect_after_login');
-    } catch (e) {}
+    } catch {
+      // Ignore sessionStorage removal errors
+    }
 
     if (!target || target === '/login' || target === '/') {
       return '/home';
@@ -181,14 +201,18 @@ export default function Login() {
       if (path && path !== '/login' && path !== '/') {
         try {
           sessionStorage.setItem('loop_redirect_after_login', path);
-        } catch (e) {}
+        } catch {
+          // Ignore storage errors
+        }
       }
     }
     const redirectParam = searchParams.get('redirect') || searchParams.get('returnUrl');
     if (redirectParam && redirectParam !== '/login' && redirectParam !== '/') {
       try {
         sessionStorage.setItem('loop_redirect_after_login', redirectParam);
-      } catch (e) {}
+      } catch {
+        // Ignore storage errors
+      }
     }
   }, [location.state, searchParams]);
 
@@ -246,16 +270,7 @@ export default function Login() {
         triggerCharacterState('IDLE');
       } else {
         const userData = await loginUser(trimmedEmail, password);
-        localStorage.setItem('loop_current_user', JSON.stringify(userData));
-        
-        setTimeout(() => {
-          const targetUrl = getRedirectUrl();
-          if (userData.onboarded || userData.isAdmin) {
-            navigate(targetUrl, { replace: true });
-          } else {
-            navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
-          }
-        }, 500);
+        handleLoginSuccess(userData);
       }
     } catch (err) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
@@ -263,6 +278,18 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLoginSuccess = (userData) => {
+    localStorage.setItem('loop_current_user', JSON.stringify(userData));
+    setTimeout(() => {
+      const targetUrl = getRedirectUrl();
+      if (userData.onboarded || userData.isAdmin) {
+        navigate(targetUrl, { replace: true });
+      } else {
+        navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
+      }
+    }, 500);
   };
 
   const handleQuickLogin = async (demoEmail, demoPassword) => {
@@ -275,17 +302,171 @@ export default function Login() {
 
     try {
       const userData = await loginUser(demoEmail, demoPassword);
-      localStorage.setItem('loop_current_user', JSON.stringify(userData));
-      setTimeout(() => {
-        const targetUrl = getRedirectUrl();
-        if (userData.onboarded || userData.isAdmin) {
-          navigate(targetUrl, { replace: true });
-        } else {
-          navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
-        }
-      }, 500);
+      handleLoginSuccess(userData);
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please check your credentials.');
+      setError(err.message || 'Authentication failed.');
+      triggerCharacterState('IDLE');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
+  const handleGoogleCredentialResponse = useCallback(async (response) => {
+    const idToken = response?.credential;
+    if (!idToken) return;
+
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+    triggerCharacterState('LOGIN_SUBMITTED');
+
+    try {
+      const result = await verifyGoogleAuth(idToken);
+
+      if (result.action === 'LOGIN_SUCCESS') {
+        handleLoginSuccess(result);
+      } else if (result.action === 'NEEDS_SIGNUP') {
+        setGoogleIdToken(idToken);
+        setGoogleSignupData({
+          name: result.name || '',
+          email: result.email,
+          username: '',
+          password: '',
+          confirmPassword: ''
+        });
+        setGoogleAuthStep('SIGNUP');
+        triggerCharacterState('IDLE');
+      } else if (result.action === 'LINK_REQUIRED') {
+        setGoogleIdToken(idToken);
+        setLinkEmail(result.email);
+        setLinkPassword('');
+        setGoogleAuthStep('LINK');
+        triggerCharacterState('IDLE');
+      }
+    } catch (err) {
+      setError(err.message || 'Google authentication failed.');
+      triggerCharacterState('IDLE');
+    } finally {
+      setLoading(false);
+    }
+  }, [triggerCharacterState, getRedirectUrl, navigate]);
+
+  useEffect(() => {
+    if (window.google?.accounts?.id && googleClientId && !googleClientId.includes('your-google-client-id')) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true
+        });
+      } catch (e) {
+        console.warn('Google Identity Services initialization error:', e);
+      }
+    }
+  }, [googleClientId, handleGoogleCredentialResponse]);
+
+  const handleGoogleSignInClick = () => {
+    setError('');
+    setSuccessMsg('');
+
+    if (window.google?.accounts?.id && googleClientId && !googleClientId.includes('your-google-client-id')) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setShowDevGoogleModal(true);
+          }
+        });
+      } catch (e) {
+        console.warn('Google prompt error:', e);
+        setShowDevGoogleModal(true);
+      }
+    } else {
+      setShowDevGoogleModal(true);
+    }
+  };
+
+  const handleDevGoogleAuth = (testEmail, testName) => {
+    setShowDevGoogleModal(false);
+    const mockPayload = {
+      sub: 'google-sub-' + btoa(testEmail).replace(/[^a-zA-Z0-9]/g, '').slice(0, 16),
+      email: testEmail,
+      email_verified: true,
+      name: testName
+    };
+    const mockToken = `mock-google-token-${btoa(JSON.stringify(mockPayload))}`;
+    handleGoogleCredentialResponse({ credential: mockToken });
+  };
+
+  const handleGoogleSignupSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!googleSignupData.name.trim()) {
+      setError('Full Name is required.');
+      return;
+    }
+    if (!googleSignupData.username.trim()) {
+      setError('Username is required.');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(googleSignupData.username.trim())) {
+      setError('Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.');
+      return;
+    }
+    if (!googleSignupData.password || googleSignupData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (googleSignupData.password !== googleSignupData.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    triggerCharacterState('LOGIN_SUBMITTED');
+
+    try {
+      const result = await signupWithGoogle({
+        idToken: googleIdToken,
+        name: googleSignupData.name.trim(),
+        username: googleSignupData.username.trim(),
+        password: googleSignupData.password,
+        confirmPassword: googleSignupData.confirmPassword
+      });
+
+      handleLoginSuccess(result);
+    } catch (err) {
+      setError(err.message || 'Failed to complete Google signup.');
+      triggerCharacterState('IDLE');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLinkSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!linkPassword) {
+      setError('Password is required to link your account.');
+      return;
+    }
+
+    setLoading(true);
+    triggerCharacterState('LOGIN_SUBMITTED');
+
+    try {
+      const result = await linkGoogleAccount({
+        idToken: googleIdToken,
+        password: linkPassword
+      });
+
+      handleLoginSuccess(result);
+    } catch (err) {
+      setError(err.message || 'Failed to link Google account.');
       triggerCharacterState('IDLE');
     } finally {
       setLoading(false);
@@ -541,293 +722,994 @@ export default function Login() {
           </div>
 
           {/* Heading */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h1 style={{
-              fontSize: '2.1rem',
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              marginBottom: '0.4rem',
-              color: 'var(--text-primary)',
-              lineHeight: 1.15
-            }}>
-              {isRegisterMode ? 'Request Account' : 'Welcome Back'}
-            </h1>
-            <p style={{
-              color: 'var(--text-secondary)',
-              fontSize: '0.92rem',
-              fontWeight: 400,
-              lineHeight: 1.45
-            }}>
-              {isRegisterMode ? 'Submit your SPIT credentials to request verified access' : 'Enter your email and password to access your account'}
-            </p>
+          <div style={{ marginBottom: '1.75rem' }}>
+            {googleAuthStep === 'SIGNUP' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoogleAuthStep('IDLE');
+                    setGoogleIdToken('');
+                    setError('');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    padding: 0,
+                    marginBottom: '0.75rem'
+                  }}
+                >
+                  <ArrowLeft size={14} /> Back to Sign In
+                </button>
+                <h1 style={{
+                  fontSize: '2rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  marginBottom: '0.4rem',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.15
+                }}>
+                  Complete Your Profile
+                </h1>
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.92rem',
+                  fontWeight: 400,
+                  lineHeight: 1.45
+                }}>
+                  First-time Google Sign-In with verified SPIT account. Please choose a username and password.
+                </p>
+              </>
+            ) : googleAuthStep === 'LINK' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoogleAuthStep('IDLE');
+                    setGoogleIdToken('');
+                    setError('');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    padding: 0,
+                    marginBottom: '0.75rem'
+                  }}
+                >
+                  <ArrowLeft size={14} /> Back to Sign In
+                </button>
+                <h1 style={{
+                  fontSize: '2rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  marginBottom: '0.4rem',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.15
+                }}>
+                  Link SPIT Account
+                </h1>
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.92rem',
+                  fontWeight: 400,
+                  lineHeight: 1.45
+                }}>
+                  An account for <strong>{linkEmail}</strong> already exists. Enter your password to securely link your Google account.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 style={{
+                  fontSize: '2.1rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  marginBottom: '0.4rem',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.15
+                }}>
+                  {isRegisterMode ? 'Request Account' : 'Welcome Back'}
+                </h1>
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.92rem',
+                  fontWeight: 400,
+                  lineHeight: 1.45
+                }}>
+                  {isRegisterMode ? 'Submit your SPIT credentials to request verified access' : 'Sign in with your verified @spit.ac.in account'}
+                </p>
+              </>
+            )}
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {error && (
+          {/* Global Error Banner */}
+          {error && (
+            <div style={{
+              backgroundColor: 'rgba(255, 69, 58, 0.1)',
+              border: '1px solid rgba(255, 69, 58, 0.25)',
+              color: '#ff453a',
+              borderRadius: '12px',
+              padding: '0.85rem 1rem',
+              fontSize: '0.86rem',
+              textAlign: 'left',
+              marginBottom: '1.25rem',
+              lineHeight: 1.45
+            }}>
+              {error}
+              {!isRegisterMode && googleAuthStep === 'IDLE' && error.includes('User not found') && (
+                <div style={{ marginTop: '0.4rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegisterMode(true);
+                      setError('');
+                      setSuccessMsg('');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-color)',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      padding: 0,
+                      textDecoration: 'underline',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    Click here to request account access
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Global Success Banner */}
+          {successMsg && (
+            <div style={{
+              backgroundColor: 'rgba(48, 209, 88, 0.1)',
+              border: '1px solid rgba(48, 209, 88, 0.2)',
+              color: '#30d158',
+              borderRadius: '12px',
+              padding: '0.8rem 1rem',
+              fontSize: '0.85rem',
+              textAlign: 'left',
+              marginBottom: '1.25rem'
+            }}>
+              {successMsg}
+            </div>
+          )}
+
+          {/* 1. STEP: FIRST-TIME GOOGLE SIGNUP FORM */}
+          {googleAuthStep === 'SIGNUP' && (
+            <form onSubmit={handleGoogleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              {/* Full Name (pre-filled, editable) */}
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label" htmlFor="google-name" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Full Name *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="google-name"
+                    type="text"
+                    className="input-field"
+                    value={googleSignupData.name}
+                    onChange={(e) => setGoogleSignupData(prev => ({ ...prev, name: e.target.value }))}
+                    style={{
+                      height: '48px',
+                      borderRadius: '12px',
+                      fontSize: '0.92rem',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      paddingLeft: '1.1rem'
+                    }}
+                    placeholder="Enter your full name"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {/* Email (pre-filled, read-only) */}
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="input-label" htmlFor="google-email" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                    SPIT Email Address
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <ShieldCheck size={12} /> Verified • Read-Only
+                  </span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="google-email"
+                    type="email"
+                    className="input-field"
+                    value={googleSignupData.email}
+                    readOnly
+                    disabled
+                    style={{
+                      height: '48px',
+                      borderRadius: '12px',
+                      fontSize: '0.92rem',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      paddingLeft: '1.1rem',
+                      color: 'var(--text-secondary)',
+                      cursor: 'not-allowed',
+                      opacity: 0.85
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Username (manually entered, unique) */}
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="input-label" htmlFor="google-username" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                    Username *
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>3-30 chars</span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="google-username"
+                    type="text"
+                    className="input-field"
+                    value={googleSignupData.username}
+                    onChange={(e) => setGoogleSignupData(prev => ({ 
+                      ...prev, 
+                      username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') 
+                    }))}
+                    style={{
+                      height: '48px',
+                      borderRadius: '12px',
+                      fontSize: '0.92rem',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      paddingLeft: '1.1rem'
+                    }}
+                    placeholder="e.g. aditya_patil"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label" htmlFor="google-password" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Password *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="google-password"
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    value={googleSignupData.password}
+                    onChange={(e) => setGoogleSignupData(prev => ({ ...prev, password: e.target.value }))}
+                    style={{
+                      height: '48px',
+                      borderRadius: '12px',
+                      fontSize: '0.92rem',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      paddingLeft: '1.1rem',
+                      paddingRight: '2.75rem'
+                    }}
+                    placeholder="Create a password (min 6 characters)"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '1rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-secondary)',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label" htmlFor="google-confirm-password" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Confirm Password *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="google-confirm-password"
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    value={googleSignupData.confirmPassword}
+                    onChange={(e) => setGoogleSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    style={{
+                      height: '48px',
+                      borderRadius: '12px',
+                      fontSize: '0.92rem',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      paddingLeft: '1.1rem'
+                    }}
+                    placeholder="Re-enter password to confirm"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{
+                  marginTop: '0.5rem',
+                  height: '48px',
+                  borderRadius: '12px',
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  border: 'none',
+                  backgroundColor: 'var(--accent-color)',
+                  color: 'var(--accent-inverse)',
+                  fontWeight: '600',
+                  fontSize: '0.94rem',
+                  cursor: loading ? 'wait' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Completing Registration...' : 'Complete Registration & Sign In'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setGoogleAuthStep('IDLE');
+                  setGoogleIdToken('');
+                  setError('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  padding: '0.4rem',
+                  textDecoration: 'underline'
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          )}
+
+          {/* 2. STEP: ACCOUNT LINKING FORM */}
+          {googleAuthStep === 'LINK' && (
+            <form onSubmit={handleGoogleLinkSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  SPIT Email
+                </label>
+                <input
+                  type="email"
+                  className="input-field"
+                  value={linkEmail}
+                  readOnly
+                  disabled
+                  style={{
+                    height: '48px',
+                    borderRadius: '12px',
+                    fontSize: '0.92rem',
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    paddingLeft: '1.1rem',
+                    color: 'var(--text-secondary)',
+                    cursor: 'not-allowed',
+                    opacity: 0.85
+                  }}
+                />
+              </div>
+
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label" htmlFor="link-password" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Enter Account Password *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="link-password"
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    value={linkPassword}
+                    onChange={(e) => setLinkPassword(e.target.value)}
+                    placeholder="Enter your existing account password"
+                    style={{
+                      height: '48px',
+                      borderRadius: '12px',
+                      fontSize: '0.92rem',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      paddingLeft: '1.1rem',
+                      paddingRight: '2.75rem'
+                    }}
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '1rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-secondary)',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{
+                  marginTop: '0.5rem',
+                  height: '48px',
+                  borderRadius: '12px',
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  border: 'none',
+                  backgroundColor: 'var(--accent-color)',
+                  color: 'var(--accent-inverse)',
+                  fontWeight: '600',
+                  fontSize: '0.94rem',
+                  cursor: loading ? 'wait' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Verifying & Linking...' : 'Verify Password & Link Google'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setGoogleAuthStep('IDLE');
+                  setGoogleIdToken('');
+                  setError('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  padding: '0.4rem',
+                  textDecoration: 'underline'
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          )}
+
+          {/* 3. STEP: STANDARD LOGIN / REGISTER + GOOGLE SIGN-IN BUTTON */}
+          {googleAuthStep === 'IDLE' && (
+            <>
+              {/* Continue with Google Button */}
+              <button
+                type="button"
+                onClick={handleGoogleSignInClick}
+                disabled={loading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  width: '100%',
+                  height: '48px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.92rem',
+                  fontWeight: 600,
+                  cursor: loading ? 'wait' : 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: 'var(--card-shadow)',
+                  marginBottom: '1rem'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.borderColor = 'var(--text-primary)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+
+              {/* Divider */}
               <div style={{
-                backgroundColor: 'rgba(255, 69, 58, 0.1)',
-                border: '1px solid rgba(255, 69, 58, 0.2)',
-                color: '#ff453a',
-                borderRadius: '12px',
-                padding: '0.8rem 1rem',
-                fontSize: '0.85rem',
-                textAlign: 'left'
+                display: 'flex',
+                alignItems: 'center',
+                margin: '0.85rem 0 1.25rem 0',
+                gap: '0.85rem'
               }}>
-                {error}
-                {!isRegisterMode && error.includes('User not found') && (
-                  <div style={{ marginTop: '0.4rem' }}>
+                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  or sign in with password
+                </span>
+                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
+              </div>
+
+              {/* Existing Form */}
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Email Field */}
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label" htmlFor="email-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                    Email
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="email-input"
+                      type="email"
+                      className="input-field"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onFocus={handleEmailFocus}
+                      onBlur={handleInputBlur}
+                      style={{
+                        height: '48px',
+                        borderRadius: '12px',
+                        fontSize: '0.92rem',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        paddingLeft: '1.1rem'
+                      }}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label" htmlFor="password-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                    Password
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="password-input"
+                      type={showPassword ? "text" : "password"}
+                      className="input-field"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={handlePasswordFocus}
+                      onBlur={handleInputBlur}
+                      style={{
+                        height: '48px',
+                        borderRadius: '12px',
+                        fontSize: '0.92rem',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        paddingLeft: '1.1rem',
+                        paddingRight: '2.75rem'
+                      }}
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '1rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-secondary)',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      tabIndex="-1"
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remember me & Notice Row */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.82rem',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', userSelect: 'none' }}>
+                    <input 
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                    />
+                    <span>Remember me</span>
+                  </label>
+
+                  <span style={{ fontSize: '0.78rem', color: '#34C759', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <ShieldCheck size={12} strokeWidth={2.4} /> Privacy Protected
+                  </span>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{
+                    marginTop: '0.35rem',
+                    height: '48px',
+                    borderRadius: '12px',
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    border: 'none',
+                    backgroundColor: 'var(--accent-color)',
+                    color: 'var(--accent-inverse)',
+                    fontWeight: '600',
+                    fontSize: '0.94rem',
+                    cursor: loading ? 'wait' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? (isRegisterMode ? 'Submitting Request...' : 'Authenticating...') : (
+                    <>
+                      <span>{isRegisterMode ? 'Request Access' : 'Sign In'}</span>
+                      {isRegisterMode ? <UserPlus size={16} /> : <LogIn size={16} />}
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* 1-Click Demo Logins */}
+              {!isRegisterMode && (
+                <div style={{
+                  marginTop: '1.25rem',
+                  display: 'flex',
+                  gap: '0.65rem'
+                }}>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('student@spit.ac.in', 'student123')}
+                    style={{
+                      flex: 1,
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: loading ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.18s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.borderColor = 'var(--text-primary)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }
+                    }}
+                  >
+                    <span>🎓</span> {loading ? '...' : 'Student Demo'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('admin@spit.ac.in', 'admin123')}
+                    style={{
+                      flex: 1,
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: loading ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.18s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.borderColor = 'var(--text-primary)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }
+                    }}
+                  >
+                    <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
+                  </button>
+                </div>
+              )}
+
+              {/* Dev Google Test Modal Trigger */}
+              <div style={{ marginTop: '0.85rem', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDevGoogleModal(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  ⚡ Test Google Auth Simulation
+                </button>
+              </div>
+
+              {/* Dev Google Simulation Modal */}
+              {showDevGoogleModal && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  backdropFilter: 'blur(8px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '1rem'
+                }}>
+                  <div style={{
+                    width: '100%',
+                    maxWidth: '440px',
+                    backgroundColor: 'var(--bg-surface)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-color)',
+                    padding: '1.75rem',
+                    boxShadow: 'var(--card-shadow-hover)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                        Google OAuth Simulation
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowDevGoogleModal(false)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--text-secondary)' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      Test the verified @spit.ac.in Google flow or verify that non-SPIT accounts are strictly rejected:
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleDevGoogleAuth('new.student@spit.ac.in', 'New SPIT Student')}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-tertiary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        🎓 <strong>New Student</strong> (triggers First-Time Signup form)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDevGoogleAuth('student@spit.ac.in', 'Student User')}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-tertiary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        🔑 <strong>Existing Account</strong> (triggers Account Linking)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDevGoogleAuth('outsider@gmail.com', 'External User')}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(255, 69, 58, 0.3)',
+                          backgroundColor: 'rgba(255, 69, 58, 0.08)',
+                          color: '#ff453a',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        🚫 <strong>Non-SPIT Domain</strong> (tests strict domain rejection)
+                      </button>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Or test with custom input:
+                      </label>
+                      <input
+                        type="email"
+                        className="input-field"
+                        value={devEmailInput}
+                        onChange={(e) => setDevEmailInput(e.target.value)}
+                        placeholder="test@spit.ac.in"
+                        style={{ height: '38px', borderRadius: '8px', fontSize: '0.85rem' }}
+                      />
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={devNameInput}
+                        onChange={(e) => setDevNameInput(e.target.value)}
+                        placeholder="Student Name"
+                        style={{ height: '38px', borderRadius: '8px', fontSize: '0.85rem' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDevGoogleAuth(devEmailInput, devNameInput)}
+                        className="btn btn-primary"
+                        style={{ height: '38px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}
+                      >
+                        Simulate with Custom Email
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Toggle Register / Login */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.25rem', fontSize: '0.88rem' }}>
+                {isRegisterMode ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegisterMode(false);
+                      setError('');
+                      setSuccessMsg('');
+                      triggerCharacterState('IDLE');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-color)',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      padding: 0,
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Back to Sign In
+                  </button>
+                ) : (
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    Don't have an account?{' '}
                     <button
                       type="button"
                       onClick={() => {
                         setIsRegisterMode(true);
                         setError('');
                         setSuccessMsg('');
+                        triggerCharacterState('IDLE');
                       }}
                       style={{
                         background: 'none',
                         border: 'none',
                         color: 'var(--accent-color)',
                         cursor: 'pointer',
-                        fontWeight: '600',
+                        fontWeight: '700',
                         padding: 0,
-                        textDecoration: 'underline',
-                        fontSize: '0.85rem'
+                        textDecoration: 'underline'
                       }}
                     >
-                      Click here to request account access
+                      Sign Up
                     </button>
-                  </div>
+                  </p>
                 )}
               </div>
-            )}
-
-            {successMsg && (
-              <div style={{
-                backgroundColor: 'rgba(48, 209, 88, 0.1)',
-                border: '1px solid rgba(48, 209, 88, 0.2)',
-                color: '#30d158',
-                borderRadius: '12px',
-                padding: '0.8rem 1rem',
-                fontSize: '0.85rem',
-                textAlign: 'left'
-              }}>
-                {successMsg}
-              </div>
-            )}
-
-            {/* Email Field */}
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label" htmlFor="email-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                Email
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="email-input"
-                  type="email"
-                  className="input-field"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={handleEmailFocus}
-                  onBlur={handleInputBlur}
-                  style={{
-                    height: '48px',
-                    borderRadius: '12px',
-                    fontSize: '0.92rem',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)',
-                    paddingLeft: '1.1rem'
-                  }}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label" htmlFor="password-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="password-input"
-                  type={showPassword ? "text" : "password"}
-                  className="input-field"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={handlePasswordFocus}
-                  onBlur={handleInputBlur}
-                  style={{
-                    height: '48px',
-                    borderRadius: '12px',
-                    fontSize: '0.92rem',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)',
-                    paddingLeft: '1.1rem',
-                    paddingRight: '2.75rem'
-                  }}
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary)',
-                    padding: 0,
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  tabIndex="-1"
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Remember me & Notice Row */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '0.82rem',
-              color: 'var(--text-secondary)'
-            }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', userSelect: 'none' }}>
-                <input 
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
-                />
-                <span>Remember me</span>
-              </label>
-
-              <span style={{ fontSize: '0.78rem', color: '#34C759', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <ShieldCheck size={12} strokeWidth={2.4} /> Privacy Protected
-              </span>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="btn btn-primary"
-              style={{
-                marginTop: '0.35rem',
-                height: '48px',
-                borderRadius: '12px',
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '0.5rem',
-                border: 'none',
-                backgroundColor: 'var(--accent-color)',
-                color: 'var(--accent-inverse)',
-                fontWeight: '600',
-                fontSize: '0.94rem',
-                cursor: loading ? 'wait' : 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
-              }}
-              disabled={loading}
-            >
-              {loading ? (isRegisterMode ? 'Submitting Request...' : 'Authenticating...') : (
-                <>
-                  <span>{isRegisterMode ? 'Request Access' : 'Sign In'}</span>
-                  {isRegisterMode ? <UserPlus size={16} /> : <LogIn size={16} />}
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* 1-Click Demo Logins */}
-          {!isRegisterMode && (
-            <div style={{
-              marginTop: '1.25rem',
-              display: 'flex',
-              gap: '0.65rem'
-            }}>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => handleQuickLogin('student@spit.ac.in', 'student123')}
-                style={{
-                  flex: 1,
-                  height: '42px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-tertiary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: loading ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  transition: 'all 0.18s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.borderColor = 'var(--text-primary)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }
-                }}
-              >
-                <span>🎓</span> {loading ? '...' : 'Student Demo'}
-              </button>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => handleQuickLogin('admin@spit.ac.in', 'admin123')}
-                style={{
-                  flex: 1,
-                  height: '42px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-tertiary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: loading ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  transition: 'all 0.18s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.borderColor = 'var(--text-primary)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }
-                }}
-              >
-                <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
-              </button>
-            </div>
+            </>
           )}
 
           {/* Toggle Register / Login */}

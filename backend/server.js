@@ -14,52 +14,97 @@ const crypto = require('crypto');
 const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession } = require('./models');
 const StorageService = require('./services/storageService');
 const { ensureSystemFolders } = require('./scripts/initSystemFolders');
+const { verifyGoogleToken } = require('./services/googleAuth');
 
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5001;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'spit_loop_super_secret_jwt_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || typeof JWT_SECRET !== 'string' || JWT_SECRET.trim().length < 32) {
+  console.error('FATAL ERROR: JWT_SECRET environment variable is missing or less than 32 characters.');
+  process.exit(1);
+}
 
-// Define Global Rate Limiter (Max 100 requests per 15 min per IP)
+const RATE_LIMIT_CONFIG = {
+  GLOBAL_MAX: 1500,
+  LOGIN_MAX: 10,
+  REGISTER_MAX: 10,
+  UPLOAD_MAX: 30,
+  DOWNLOAD_MAX: 60,
+  WINDOW_MS: 15 * 60 * 1000
+};
+
+// Define Global Rate Limiter
+// Configured to 1500 requests per 15 min per IP to prevent locking out entire college labs
+// or libraries sharing a single public NAT IPv4 address while still defending against unthrottled DoS floods.
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100, 
+  windowMs: RATE_LIMIT_CONFIG.WINDOW_MS, 
+  max: RATE_LIMIT_CONFIG.GLOBAL_MAX, 
   standardHeaders: true, 
   legacyHeaders: false, 
-  message: { error: 'Too many requests from this IP, please try again after 15 minutes.' }
+  message: { error: 'Too many requests from this IP address. Please slow down and try again after a few minutes.' }
 });
 
-// Define Login/Auth Rate Limiter (Max 5 attempts per 15 min per IP)
+// Define Login Rate Limiter (Max 10 attempts per 15 min per IP to defend against password brute force)
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 5, 
+  windowMs: RATE_LIMIT_CONFIG.WINDOW_MS, 
+  max: RATE_LIMIT_CONFIG.LOGIN_MAX, 
   standardHeaders: true, 
   legacyHeaders: false, 
   message: { error: 'Too many login attempts from this IP, please try again after 15 minutes.' }
 });
 
+// Define Registration Rate Limiter (Max 10 requests per 15 min per IP)
+const registerLimiter = rateLimit({
+  windowMs: RATE_LIMIT_CONFIG.WINDOW_MS,
+  max: RATE_LIMIT_CONFIG.REGISTER_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many registration requests from this IP, please try again after 15 minutes.' }
+});
+
+// Define File Download / Streaming Rate Limiter (Max 60 requests per 15 min per IP)
+const fileDownloadLimiter = rateLimit({
+  windowMs: RATE_LIMIT_CONFIG.WINDOW_MS,
+  max: RATE_LIMIT_CONFIG.DOWNLOAD_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many file download requests from this IP, please try again after 15 minutes.' }
+});
+
+// Define Resource Upload Rate Limiter (Max 30 upload sessions per 15 min per IP)
+const uploadLimiter = rateLimit({
+  windowMs: RATE_LIMIT_CONFIG.WINDOW_MS,
+  max: RATE_LIMIT_CONFIG.UPLOAD_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many upload attempts from this IP, please try again after 15 minutes.' }
+});
+
 // Middlewares
 
 // Enable CORS with restricted origin access
-const ALLOWED_ORIGINS = [
-  process.env.ALLOWED_ORIGIN || 'http://localhost:5173',
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://loop-seven-delta.vercel.app',
+  'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
 ];
+
+const envAllowed = (process.env.ALLOWED_ORIGIN || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const ALLOWED_ORIGINS = Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...envAllowed]));
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman)
+    // Allow non-browser requests with no origin (mobile clients, curl, server-to-server)
     if (!origin) return callback(null, true);
-    // Allow localhost and ngrok tunnels
-    // Allow localhost, ngrok tunnels, and Vercel deployments
-    if (
-      process.env.ALLOWED_ORIGIN === '*' ||
-      ALLOWED_ORIGINS.includes(origin) ||
-      origin.endsWith('.ngrok-free.app') ||
-      origin.endsWith('.ngrok.io') ||
-      origin.endsWith('.vercel.app')
-    ) {
+
+    if (ALLOWED_ORIGINS.includes(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
@@ -96,14 +141,32 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '200mb' }));
+// Reduce JSON body limit to 5MB to protect the single-threaded event loop against CPU-exhausting JSON.parse() attacks
+// Large binary files are streamed directly via GridFS/busboy chunk endpoints and bypass express.json
+app.use(express.json({ limit: '5mb' }));
+
+// Dedicated error-handling middleware for JSON parsing errors and oversized payloads
+app.use((err, req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    return res.status(413).json({ error: 'Payload too large. Maximum allowed JSON request body size is 5MB.' });
+  }
+  if (err && (err instanceof SyntaxError && 'body' in err)) {
+    return res.status(400).json({ error: 'Malformed JSON payload.' });
+  }
+  next(err);
+});
 
 // Apply Global Limiter to all API endpoints
 app.use('/api/', globalLimiter);
 
 // Apply strict rate limiting to login and registration routes
 app.use('/api/users/login', loginLimiter);
-app.use('/api/users/register-request', loginLimiter);
+app.use('/api/users/register-request', registerLimiter);
+app.use('/api/auth/google', loginLimiter);
+
+// Apply granular rate limiting to resource downloads and file upload sessions
+app.use(['/api/resources/:id/file', '/api/pending-resources/:id/file'], fileDownloadLimiter);
+app.use(['/api/upload-session', '/api/resources/upload/init', '/api/pending-resources/upload/init'], uploadLimiter);
 
 // Prevent NoSQL query injection by stripping keys starting with $ or .
 app.use(mongoSanitize());
@@ -200,6 +263,12 @@ function sanitizeString(str) {
   return str.replace(/<[^>]*>/g, '');
 }
 
+// Helper to escape regex special characters (blocks ReDoS & query injection)
+function escapeRegExp(string) {
+  if (typeof string !== 'string') return string;
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Deep sanitization of objects
 function sanitizeObject(obj) {
   if (!obj || typeof obj !== 'object') return obj;
@@ -229,6 +298,84 @@ const ALLOWED_IMAGE_PREFIXES = ['data:image/jpeg;base64,', 'data:image/png;base6
 const ALLOWED_PDF_PREFIXES = ['data:application/pdf;base64,'];
 const ALLOWED_DOC_PREFIXES = [...ALLOWED_IMAGE_PREFIXES, ...ALLOWED_PDF_PREFIXES];
 
+// --- In-Memory User Auth Cache for Mitigating High-Concurrency Database Amplification ---
+class UserAuthCache {
+  constructor(ttlMs = 45 * 1000, maxEntries = 5000) {
+    this.ttlMs = ttlMs;
+    this.maxEntries = maxEntries;
+    this.cache = new Map();
+  }
+
+  get(email) {
+    if (!email || typeof email !== 'string') return null;
+    const key = email.toLowerCase().trim();
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.user;
+  }
+
+  set(email, user) {
+    if (!email || typeof email !== 'string' || !user) return;
+    const key = email.toLowerCase().trim();
+    if (this.cache.size >= this.maxEntries) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey) this.cache.delete(oldestKey);
+    }
+    this.cache.set(key, {
+      user,
+      expiresAt: Date.now() + this.ttlMs
+    });
+  }
+
+  invalidate(email) {
+    if (!email || typeof email !== 'string') return;
+    const key = email.toLowerCase().trim();
+    this.cache.delete(key);
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+
+  size() {
+    return this.cache.size;
+  }
+}
+
+const userAuthCache = new UserAuthCache(45 * 1000);
+
+// --- API Response Pagination Helpers ---
+function getPaginationParams(query, defaultLimit = 20, maxLimit = 100) {
+  const isPaginated = query.page !== undefined || query.limit !== undefined || query.paginate === 'true';
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(maxLimit, Math.max(1, parseInt(query.limit, 10) || defaultLimit));
+  const skip = (page - 1) * limit;
+  return { isPaginated, page, limit, skip };
+}
+
+function sendPaginatedResponse(res, data, total, page, limit) {
+  const totalPages = Math.ceil(total / limit) || (total === 0 ? 0 : 1);
+  res.set('X-Total-Count', String(total));
+  res.set('X-Page', String(page));
+  res.set('X-Limit', String(limit));
+  res.set('X-Total-Pages', String(totalPages));
+  return res.json({
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
+  });
+}
+
 // --- JWT Verification & Authorization Middlewares ---
 
 async function authenticateToken(req, res, next) {
@@ -240,15 +387,29 @@ async function authenticateToken(req, res, next) {
   }
 
   try {
+    // 1. Always verify cryptographic signature and expiration first
     const decoded = jwt.verify(token, JWT_SECRET);
-    // Find active user in DB to verify status is active
-    const user = await User.findOne({ email: new RegExp('^' + decoded.email.trim() + '$', 'i') });
-    if (!user) {
-      return res.status(401).json({ error: 'User session invalid. User not found.' });
+    const email = (decoded.email || '').trim();
+    if (!email) {
+      return res.status(401).json({ error: 'User session invalid. Email claim missing.' });
     }
+
+    // 2. Check short-lived in-memory cache before executing remote database query
+    let user = userAuthCache.get(email);
+    if (!user) {
+      user = await User.findOne({ email: new RegExp('^' + escapeRegExp(email) + '$', 'i') });
+      if (!user) {
+        return res.status(401).json({ error: 'User session invalid. User not found.' });
+      }
+      userAuthCache.set(email, user);
+    }
+
+    // 3. Immediately enforce account suspension or deactivation
     if (user.status !== 'Active') {
+      userAuthCache.invalidate(email);
       return res.status(403).json({ error: 'Your account is inactive or pending approval.' });
     }
+
     req.user = user;
     next();
   } catch (err) {
@@ -310,7 +471,9 @@ async function connectWithFallback() {
   }
 }
 
-connectWithFallback();
+if (require.main === module) {
+  connectWithFallback();
+}
 
 // Root & Health Check Endpoints (Guarantees Render and Cloud health probes always pass 200 OK)
 app.get(['/health', '/api/health'], (req, res) => {
@@ -364,12 +527,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-// Helper to escape regex special characters (blocks ReDoS)
-function escapeRegExp(string) {
-  if (typeof string !== 'string') return string;
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 // Routes
 
@@ -427,7 +584,20 @@ app.get('/api/folders', authenticateToken, async (req, res) => {
       filter.parentId = parentId === 'null' || parentId === '' ? null : parentId;
     }
 
-    const folders = await Folder.find(filter).sort({ isSystemFolder: -1, createdAt: 1 });
+    const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
+
+    if (isPaginated) {
+      const total = await Folder.countDocuments(filter);
+      const folders = await Folder.find(filter)
+        .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      return sendPaginatedResponse(res, folders, total, page, limit);
+    }
+
+    const folders = await Folder.find(filter).sort({ isSystemFolder: -1, createdAt: 1, _id: -1 });
+    res.set('X-Total-Count', String(folders.length));
     res.json(folders);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -592,7 +762,21 @@ function sanitizeUser(user) {
 // 2. Users
 app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const users = await User.find({}).select('-password');
+    const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
+
+    if (isPaginated) {
+      const total = await User.countDocuments({});
+      const users = await User.find({})
+        .select('-password -__v')
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      return sendPaginatedResponse(res, users, total, page, limit);
+    }
+
+    const users = await User.find({}).select('-password -__v').sort({ createdAt: -1, _id: -1 });
+    res.set('X-Total-Count', String(users.length));
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -634,6 +818,7 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
     };
 
     const user = await User.create(userData);
+    userAuthCache.invalidate(email);
     res.status(201).json(sanitizeUser(user));
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -688,6 +873,7 @@ app.post('/api/users/login', async (req, res) => {
       role: isUserAdmin ? 'Administrator' : user.role,
       status: user.status,
       name: user.name,
+      username: user.username || '',
       branch: user.branch,
       currentYear: user.currentYear,
       onboarded: isUserAdmin ? true : user.onboarded,
@@ -697,6 +883,238 @@ app.post('/api/users/login', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Google OAuth Endpoints
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ error: 'Google ID token is required.' });
+    }
+
+    const payload = await verifyGoogleToken(idToken);
+    const { sub, email, name } = payload;
+
+    // 1. Check if user already exists with this googleSub
+    let user = await User.findOne({ googleSub: sub });
+
+    if (user) {
+      if (user.status === 'Pending') {
+        return res.status(403).json({ error: 'Your registration request is pending administrator approval.' });
+      }
+      if (user.status !== 'Active') {
+        return res.status(403).json({ error: 'Your account is currently inactive. Please contact an administrator.' });
+      }
+
+      // Existing returning Google user - direct login without repeating signup
+      const token = jwt.sign(
+        { email: user.email, role: user.role, status: user.status },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+      return res.json({
+        action: 'LOGIN_SUCCESS',
+        email: user.email,
+        role: isUserAdmin ? 'Administrator' : user.role,
+        status: user.status,
+        name: user.name,
+        username: user.username || '',
+        branch: user.branch,
+        currentYear: user.currentYear,
+        onboarded: isUserAdmin ? true : user.onboarded,
+        isAdmin: isUserAdmin,
+        nameColor: user.nameColor || '',
+        token
+      });
+    }
+
+    // 2. Check if a user with this email exists without linked googleSub
+    const existingByEmail = await User.findOne({ email: new RegExp('^' + escapeRegExp(email.trim()) + '$', 'i') });
+    if (existingByEmail) {
+      return res.json({
+        action: 'LINK_REQUIRED',
+        email: existingByEmail.email,
+        name: existingByEmail.name,
+        message: 'An account with this SPIT email already exists. Please enter your account password to securely link your Google account.'
+      });
+    }
+
+    // 3. New user - needs first-time signup
+    return res.json({
+      action: 'NEEDS_SIGNUP',
+      email,
+      name
+    });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/google/signup', async (req, res) => {
+  try {
+    const { idToken, name, username, password, confirmPassword } = req.body;
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ error: 'Google ID token is required.' });
+    }
+
+    const payload = await verifyGoogleToken(idToken);
+    const { sub, email } = payload;
+
+    // Validate inputs
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Full name is required.' });
+    }
+    if (name.trim().length > 100) {
+      return res.status(400).json({ error: 'Full name exceeds maximum permitted length.' });
+    }
+
+    if (!username || typeof username !== 'string' || !username.trim()) {
+      return res.status(400).json({ error: 'Username is required.' });
+    }
+    const trimmedUsername = username.trim();
+    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(trimmedUsername)) {
+      return res.status(400).json({ error: 'Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.' });
+    }
+
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required.' });
+    }
+    if (password.length < 6 || password.length > 100) {
+      return res.status(400).json({ error: 'Password must be between 6 and 100 characters.' });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match.' });
+    }
+
+    // Verify username uniqueness
+    const existingUsername = await User.findOne({ username: new RegExp('^' + escapeRegExp(trimmedUsername) + '$', 'i') });
+    if (existingUsername) {
+      return res.status(400).json({ error: 'Username is already taken. Please choose another username.' });
+    }
+
+    // Check if user already exists with this email or googleSub
+    const existingUser = await User.findOne({
+      $or: [
+        { email: new RegExp('^' + escapeRegExp(email) + '$', 'i') },
+        { googleSub: sub }
+      ]
+    });
+    if (existingUser) {
+      return res.status(400).json({ error: 'An account with this email or Google identity already exists. Please log in.' });
+    }
+
+    // Hash password with bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user (Standard Student role, Active status, no admin privileges)
+    const newUser = new User({
+      email,
+      name: sanitizeString(name.trim()),
+      username: sanitizeString(trimmedUsername),
+      password: hashedPassword,
+      googleSub: sub,
+      authProvider: 'google',
+      role: 'Student',
+      status: 'Active',
+      onboarded: false
+    });
+
+    await newUser.save();
+    userAuthCache.invalidate(email);
+
+    // Sign JWT
+    const token = jwt.sign(
+      { email: newUser.email, role: newUser.role, status: newUser.status },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    return res.status(201).json({
+      action: 'LOGIN_SUCCESS',
+      email: newUser.email,
+      role: newUser.role,
+      status: newUser.status,
+      name: newUser.name,
+      username: newUser.username,
+      branch: newUser.branch,
+      currentYear: newUser.currentYear,
+      onboarded: newUser.onboarded,
+      isAdmin: false,
+      nameColor: newUser.nameColor || '',
+      token
+    });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/google/link', async (req, res) => {
+  try {
+    const { idToken, password } = req.body;
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ error: 'Google ID token is required.' });
+    }
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required to link your account.' });
+    }
+
+    const payload = await verifyGoogleToken(idToken);
+    const { sub, email } = payload;
+
+    const user = await User.findOne({ email: new RegExp('^' + escapeRegExp(email.trim()) + '$', 'i') });
+    if (!user) {
+      return res.status(404).json({ error: 'Account not found for this SPIT email.' });
+    }
+
+    // Verify existing password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Incorrect password. Unable to link Google account.' });
+    }
+
+    // Ensure googleSub is not linked to another user
+    const otherUser = await User.findOne({ googleSub: sub, _id: { $ne: user._id } });
+    if (otherUser) {
+      return res.status(400).json({ error: 'This Google account is already linked to another user.' });
+    }
+
+    user.googleSub = sub;
+    if (!user.authProvider || user.authProvider === 'local') {
+      user.authProvider = 'google';
+    }
+    await user.save();
+    userAuthCache.invalidate(email);
+
+    const token = jwt.sign(
+      { email: user.email, role: user.role, status: user.status },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+    return res.json({
+      action: 'LOGIN_SUCCESS',
+      email: user.email,
+      role: isUserAdmin ? 'Administrator' : user.role,
+      status: user.status,
+      name: user.name,
+      username: user.username || '',
+      branch: user.branch,
+      currentYear: user.currentYear,
+      onboarded: isUserAdmin ? true : user.onboarded,
+      isAdmin: isUserAdmin,
+      nameColor: user.nameColor || '',
+      token
+    });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ error: err.message });
   }
 });
 
@@ -751,6 +1169,7 @@ app.post('/api/users/:email/approve-registration', authenticateToken, requireAdm
     
     user.status = 'Active';
     await user.save();
+    userAuthCache.invalidate(email);
     
     res.json({ message: 'User registration approved successfully.', user: sanitizeUser(user) });
   } catch (err) {
@@ -768,7 +1187,7 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied. You can only update your own profile.' });
     }
 
-    const { name, role, branch, currentYear, status, password, nameColor } = req.body;
+    const { name, role, branch, currentYear, status, password, nameColor, username } = req.body;
 
     // Input size limits
     if (name !== undefined && (typeof name !== 'string' || name.length > 200)) {
@@ -792,6 +1211,24 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
     
+    if (username !== undefined) {
+      if (typeof username !== 'string' || !username.trim()) {
+        return res.status(400).json({ error: 'Invalid username.' });
+      }
+      const trimmedUsername = username.trim();
+      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(trimmedUsername)) {
+        return res.status(400).json({ error: 'Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.' });
+      }
+      const existingUserWithUsername = await User.findOne({
+        username: new RegExp('^' + escapeRegExp(trimmedUsername) + '$', 'i'),
+        email: { $ne: user.email }
+      });
+      if (existingUserWithUsername) {
+        return res.status(400).json({ error: 'Username is already taken. Please choose another username.' });
+      }
+      user.username = sanitizeString(trimmedUsername);
+    }
+
     if (name !== undefined) user.name = sanitizeString(name.trim());
     if (branch !== undefined) user.branch = sanitizeString(branch.trim());
     if (currentYear !== undefined) user.currentYear = sanitizeString(String(currentYear).trim());
@@ -807,12 +1244,18 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
       user.password = await bcrypt.hash(password.trim(), 10);
     }
     
-    // Prevent changing admin's role
-    if (email.trim().toLowerCase() !== 'admin@spit.ac.in') {
-      if (role !== undefined) user.role = sanitizeString(role.trim());
+    // Prevent changing admin's role, and only allow Admins to change user roles
+    if (role !== undefined) {
+      if (!isUserAdmin) {
+        return res.status(403).json({ error: 'Only Administrators can change user roles.' });
+      }
+      if (email.trim().toLowerCase() !== 'admin@spit.ac.in') {
+        user.role = sanitizeString(role.trim());
+      }
     }
     
     await user.save();
+    userAuthCache.invalidate(email);
     
     res.json({ message: 'User updated successfully.', user: sanitizeUser(user) });
   } catch (err) {
@@ -841,9 +1284,14 @@ app.put('/api/users/:email/onboard', authenticateToken, async (req, res) => {
     }
     
     user.name = sanitizeString(name.trim());
-    // Do not allow changing admin@spit.ac.in's role
+    // Restrict onboard roles to authorized student/alumni roles to prevent privilege escalation
+    const ALLOWED_ONBOARD_ROLES = ['Student', 'Senior / Contributor', 'Alumni / Contributor', 'Alumni', 'Senior'];
     if (email.trim().toLowerCase() !== 'admin@spit.ac.in') {
-      user.role = sanitizeString(role.trim());
+      const sanitizedRole = sanitizeString(role.trim());
+      if (!ALLOWED_ONBOARD_ROLES.includes(sanitizedRole)) {
+        return res.status(400).json({ error: 'Invalid onboarding role selected. Administrative roles cannot be self-assigned.' });
+      }
+      user.role = sanitizedRole;
     } else {
       user.role = 'Administrator';
     }
@@ -852,6 +1300,7 @@ app.put('/api/users/:email/onboard', authenticateToken, async (req, res) => {
     user.onboarded = true;
     
     await user.save();
+    userAuthCache.invalidate(email);
     
     const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
     res.json({
@@ -877,6 +1326,7 @@ app.delete('/api/users/:email', authenticateToken, requireAdmin, async (req, res
       return res.status(400).json({ error: 'Root administrator account cannot be deleted.' });
     }
     await User.deleteOne({ email: new RegExp('^' + escapeRegExp(email.trim()) + '$', 'i') });
+    userAuthCache.invalidate(email);
     res.json({ message: 'User deleted.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -905,9 +1355,14 @@ app.post('/api/users/:email/edit-request', authenticateToken, async (req, res) =
     
     // Set pending fields
     user.pendingName = sanitizeString(name.trim());
-    // Do not allow admin@spit.ac.in to change their Administrator role
+    // Restrict requested roles to non-administrative roles to prevent privilege escalation
+    const ALLOWED_REQUEST_ROLES = ['Student', 'Senior / Contributor', 'Alumni / Contributor', 'Alumni', 'Senior'];
     if (email.trim().toLowerCase() !== 'admin@spit.ac.in') {
-      user.pendingRole = sanitizeString(role.trim());
+      const sanitizedRole = sanitizeString(role.trim());
+      if (!ALLOWED_REQUEST_ROLES.includes(sanitizedRole)) {
+        return res.status(400).json({ error: 'Invalid role requested. Administrative roles cannot be requested via profile edits.' });
+      }
+      user.pendingRole = sanitizedRole;
     } else {
       user.pendingRole = 'Administrator';
     }
@@ -974,6 +1429,7 @@ app.post('/api/users/:email/approve-edit', authenticateToken, requireAdmin, asyn
     user.hasPendingEdit = false;
     
     await user.save();
+    userAuthCache.invalidate(email);
     
     res.json({ message: 'User profile edit approved successfully.', user: sanitizeUser(user) });
   } catch (err) {
@@ -999,6 +1455,7 @@ app.post('/api/users/:email/reject-edit', authenticateToken, requireAdmin, async
     user.hasPendingEdit = false;
     
     await user.save();
+    userAuthCache.invalidate(email);
     
     res.json({ message: 'User profile edit rejected successfully.', user: sanitizeUser(user) });
   } catch (err) {
@@ -1027,8 +1484,24 @@ function validateStoryFiles(payload) {
 // 3. Stories
 app.get('/api/stories', authenticateToken, async (req, res) => {
   try {
-    // Exclude heavy fields from the listing payload and sort newest first
-    const stories = await Story.find({}).sort({ createdAt: -1 }).select('-journey -resumeFile -studyMaterials -customSections -photo -resume');
+    const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
+
+    if (isPaginated) {
+      const total = await Story.countDocuments({});
+      const stories = await Story.find({})
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select('-journey -resumeFile -studyMaterials -customSections -photo -resume');
+
+      return sendPaginatedResponse(res, stories, total, page, limit);
+    }
+
+    // Exclude heavy fields from the listing payload and sort newest first with deterministic order
+    const stories = await Story.find({})
+      .sort({ createdAt: -1, _id: -1 })
+      .select('-journey -resumeFile -studyMaterials -customSections -photo -resume');
+    res.set('X-Total-Count', String(stories.length));
     res.json(stories);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1286,7 +1759,7 @@ const handleUploadInit = async (req, res) => {
       return res.status(403).json({ error: 'You cannot upload to another user private folder.' });
     }
 
-    const isPending = !isAdmin && req.path.includes('pending-resources');
+    const isPending = !isAdmin;
     const chunkSize = StorageService.CHUNK_SIZE_BYTES; // Configurable, default 8 MB
     const totalChunks = Math.ceil(numSize / chunkSize);
     const uploadId = `up_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
@@ -1623,14 +2096,17 @@ app.get('/api/resources', authenticateToken, async (req, res) => {
       filter.folderId = folderId;
     }
 
-    if (search) {
-      const sanitized = sanitizeString(search);
-      filter.$or = [
-        { title: { $regex: sanitized, $options: 'i' } },
-        { description: { $regex: sanitized, $options: 'i' } },
-        { uploadedBy: { $regex: sanitized, $options: 'i' } },
-        { originalFileName: { $regex: sanitized, $options: 'i' } }
-      ];
+    if (search && typeof search === 'string') {
+      const trimmedSearch = search.trim().slice(0, 100);
+      if (trimmedSearch) {
+        const escaped = escapeRegExp(sanitizeString(trimmedSearch));
+        filter.$or = [
+          { title: { $regex: escaped, $options: 'i' } },
+          { description: { $regex: escaped, $options: 'i' } },
+          { uploadedBy: { $regex: escaped, $options: 'i' } },
+          { originalFileName: { $regex: escaped, $options: 'i' } }
+        ];
+      }
     }
 
     if (type && type !== 'all') {
@@ -1652,10 +2128,24 @@ app.get('/api/resources', authenticateToken, async (req, res) => {
       });
     }
 
+    const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
+
+    if (isPaginated) {
+      const total = await Resource.countDocuments(filter);
+      const resources = await Resource.find(filter)
+        .select('-link')
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      return sendPaginatedResponse(res, resources, total, page, limit);
+    }
+
     const resources = await Resource.find(filter)
       .select('-link')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1, _id: -1 });
 
+    res.set('X-Total-Count', String(resources.length));
     res.json(resources);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1727,10 +2217,13 @@ app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenti
       );
     }
 
-    // 2. Legacy Local Disk Fallback
+    // 2. Legacy Local Disk Fallback (Path traversal safe)
     if (resource.link && resource.link.startsWith('/uploads/')) {
-      const localPath = path.join(__dirname, resource.link);
-      if (fs.existsSync(localPath)) {
+      const sanitizedFilename = path.basename(resource.link);
+      const uploadsDirResolved = path.resolve(UPLOADS_DIR);
+      const localPath = path.resolve(uploadsDirResolved, sanitizedFilename);
+
+      if (localPath.startsWith(uploadsDirResolved + path.sep) && fs.existsSync(localPath)) {
         res.setHeader('Content-Type', resource.mimeType || 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(resource.originalFileName || resource.title)}"`);
         return fs.createReadStream(localPath).pipe(res);
@@ -1790,6 +2283,7 @@ app.post('/api/resources', authenticateToken, async (req, res) => {
     if (year) resourceData.year = year;
     if (description) resourceData.description = description;
     if (tags) resourceData.tags = Array.isArray(tags) ? tags : [tags];
+    resourceData.status = isAdmin ? 'approved' : 'pending';
 
     const resource = await Resource.create(resourceData);
     res.status(201).json(resource);
@@ -2005,7 +2499,8 @@ const handleStreamingUpload = (req, res, { isPending = false } = {}) => {
 
 // Direct Resource Upload Endpoints (Single-file multipart fallback)
 app.post('/api/resources/upload', authenticateToken, (req, res) => {
-  handleStreamingUpload(req, res, { isPending: false });
+  const isAdmin = isUserAdmin(req.user);
+  handleStreamingUpload(req, res, { isPending: !isAdmin });
 });
 
 // Student & Community Resource Submission Upload Endpoints (Single-file multipart fallback)
@@ -2250,16 +2745,34 @@ app.delete('/api/achievements/:id', authenticateToken, requireAdmin, async (req,
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}.`);
-  console.log('[UPLOAD ROUTES] chunked upload routes loaded');
-  console.log('[UPLOAD ROUTES] GridFS parallel streaming active (200MB limit)');
+let server = null;
+if (require.main === module) {
+  server = app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}.`);
+    console.log('[UPLOAD ROUTES] chunked upload routes loaded');
+    console.log('[UPLOAD ROUTES] GridFS parallel streaming active (200MB limit)');
 
-  // Initial startup cleanup of stale temporary upload chunks
-  StorageService.purgeStaleTempUploads(2).catch(() => {});
-
-  // Periodic automatic purge every 60 minutes
-  setInterval(() => {
+    // Initial startup cleanup of stale temporary upload chunks
     StorageService.purgeStaleTempUploads(2).catch(() => {});
-  }, 60 * 60 * 1000);
-});
+
+    // Periodic automatic purge every 60 minutes
+    setInterval(() => {
+      StorageService.purgeStaleTempUploads(2).catch(() => {});
+    }, 60 * 60 * 1000);
+  });
+}
+
+module.exports = {
+  app,
+  server,
+  RATE_LIMIT_CONFIG,
+  userAuthCache,
+  UserAuthCache,
+  getPaginationParams,
+  sendPaginatedResponse,
+  globalLimiter,
+  loginLimiter,
+  registerLimiter,
+  uploadLimiter,
+  fileDownloadLimiter
+};

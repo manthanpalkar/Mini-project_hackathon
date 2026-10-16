@@ -175,10 +175,12 @@ export const initDB = () => {
   // Database initialized and managed on backend side.
 };
 
-export const getStories = async () => {
+export const getStories = async (params = {}) => {
   let data = null;
   try {
-    const res = await authFetch(`${API_URL}/stories`);
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `${API_URL}/stories?${query}` : `${API_URL}/stories`;
+    const res = await authFetch(url);
     if (res.ok) {
       data = await res.json();
     }
@@ -188,7 +190,8 @@ export const getStories = async () => {
   if (data === null) {
     return isLocal ? adjustUrls(localMockStories) : [];
   }
-  return adjustUrls(data);
+  const items = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
+  return adjustUrls(items);
 };
 
 export const getStoryById = async (id) => {
@@ -310,10 +313,12 @@ export const rejectPendingStory = async (id) => {
 };
 
 // Resources Helpers
-export const getResources = async () => {
+export const getResources = async (params = {}) => {
   let data = null;
   try {
-    const res = await authFetch(`${API_URL}/resources`);
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `${API_URL}/resources?${query}` : `${API_URL}/resources`;
+    const res = await authFetch(url);
     if (res.ok) {
       data = await res.json();
     }
@@ -323,7 +328,8 @@ export const getResources = async () => {
   if (data === null) {
     return isLocal ? adjustUrls(localMockResources) : [];
   }
-  return adjustUrls(data);
+  const items = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
+  return adjustUrls(items);
 };
 
 export const getResourceById = async (id) => {
@@ -499,10 +505,12 @@ export const updateAchievement = async (id, updatedAchievement) => {
 };
 
 // User Management Helpers
-export const getUsers = async () => {
+export const getUsers = async (params = {}) => {
   let data = null;
   try {
-    const res = await authFetch(`${API_URL}/users`);
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `${API_URL}/users?${query}` : `${API_URL}/users`;
+    const res = await authFetch(url);
     if (res.ok) {
       data = await res.json();
     }
@@ -512,7 +520,7 @@ export const getUsers = async () => {
   if (data === null) {
     return isLocal ? localMockUsers : [];
   }
-  return data;
+  return Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
 };
 
 export const addUser = async (user) => {
@@ -548,6 +556,45 @@ export const loginUser = async (email, password) => {
     throw new Error(errData.error || 'Failed to authenticate');
   }
   return res.json();
+};
+
+export const verifyGoogleAuth = async (idToken) => {
+  const res = await fetch(`${API_URL}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to authenticate with Google');
+  }
+  return data;
+};
+
+export const signupWithGoogle = async ({ idToken, name, username, password, confirmPassword }) => {
+  const res = await fetch(`${API_URL}/auth/google/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, name, username, password, confirmPassword })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to complete Google signup');
+  }
+  return data;
+};
+
+export const linkGoogleAccount = async ({ idToken, password }) => {
+  const res = await fetch(`${API_URL}/auth/google/link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, password })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to link Google account');
+  }
+  return data;
 };
 
 export const onboardUser = async (email, profileData) => {
@@ -636,10 +683,12 @@ export const updateUser = async (email, userData) => {
 };
 
 // Folder Management Helpers (New APIs)
-export const getFolders = async () => {
+export const getFolders = async (params = {}) => {
   let data = null;
   try {
-    const res = await authFetch(`${API_URL}/folders`);
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `${API_URL}/folders?${query}` : `${API_URL}/folders`;
+    const res = await authFetch(url);
     if (res.ok) {
       data = await res.json();
     }
@@ -649,7 +698,7 @@ export const getFolders = async () => {
   if (data === null) {
     return isLocal ? localMockFolders : [];
   }
-  return data;
+  return Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
 };
 
 export const addFolder = async (folder) => {
