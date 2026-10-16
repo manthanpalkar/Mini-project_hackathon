@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
-  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, Check
+  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb
 } from 'lucide-react';
 import { getStories, addPendingStory, fileToBase64 } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
@@ -1477,7 +1477,7 @@ export default function Stories() {
                     </div>
                   </div>
 
-                  <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label">Preparation Strategy & Tips</label>
                     <textarea 
                       className="input-field" 
@@ -1490,46 +1490,6 @@ export default function Stories() {
                       })}
                       style={{ resize: 'vertical', lineHeight: 1.6 }}
                     />
-                  </div>
-
-                  {/* Quick Starter Chips */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Quick Add:</span>
-                    {[
-                      'Striver SDE Sheet for DSA',
-                      'Daily LeetCode (Arrays, Trees, DP)',
-                      'Core Subjects: OS, DBMS & CN',
-                      'Peer Mock Interviews'
-                    ].map((promptText, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            journey: {
-                              ...prev.journey,
-                              prep: prev.journey.prep 
-                                ? (prev.journey.prep.includes(promptText) ? prev.journey.prep : prev.journey.prep + '\n• ' + promptText)
-                                : '• ' + promptText
-                            }
-                          }));
-                        }}
-                        style={{
-                          padding: '0.25rem 0.65rem',
-                          borderRadius: '999px',
-                          fontSize: '0.72rem',
-                          fontWeight: 600,
-                          border: '1px solid var(--border-color)',
-                          backgroundColor: 'var(--bg-secondary)',
-                          color: 'var(--text-primary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        + {promptText}
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -1870,61 +1830,6 @@ export default function Stories() {
                     </div>
                   </div>
 
-                  {/* Quick Add Chips */}
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.4rem' }}>
-                      Popular at SPIT (Click to add):
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      {[
-                        { name: 'Striver SDE Sheet', type: 'DSA' },
-                        { name: 'NeetCode 150', type: 'DSA' },
-                        { name: 'LeetCode Top 100', type: 'DSA' },
-                        { name: 'Gate Smashers', type: 'Core CS' },
-                        { name: 'Designing Data-Intensive Applications', type: 'System Design' },
-                        { name: 'Gaurav Sen System Design', type: 'System Design' },
-                        { name: 'TakeUforward', type: 'DSA' }
-                      ].map((res, idx) => {
-                        const isAdded = formData.resources.some(r => r.name.toLowerCase() === res.name.toLowerCase());
-                        return (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => {
-                              if (isAdded) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  resources: prev.resources.filter(r => r.name.toLowerCase() !== res.name.toLowerCase())
-                                }));
-                              } else {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  resources: [...prev.resources, res]
-                                }));
-                              }
-                            }}
-                            style={{
-                              padding: '0.3rem 0.75rem',
-                              borderRadius: '999px',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              border: isAdded ? '1px solid var(--text-primary)' : '1px solid var(--border-color)',
-                              backgroundColor: isAdded ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                              color: isAdded ? 'var(--bg-surface)' : 'var(--text-primary)',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            {isAdded ? <Check size={12} /> : <Plus size={12} />}
-                            <span>{res.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
 
                   {/* Resources Preview Tag List */}
                   {formData.resources.length > 0 && (
