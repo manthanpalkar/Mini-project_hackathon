@@ -498,28 +498,46 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* Chart Display Area (Borderless & Shadowless, blending with white background) */}
+          {/* Chart Display Area — Both New Placement Performance Charts */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '2rem',
             width: '100%',
-            minHeight: '400px',
-            backgroundColor: '#ffffff',
-            padding: '1rem 0'
+            maxWidth: '1100px',
+            margin: '0 auto',
+            padding: '1rem 0',
+            alignItems: 'center',
+            backgroundColor: '#ffffff'
           }}>
-            <img 
-              src="/images/chart-placed-ctc.png" 
-              alt="Placement Performance & CTC Statistics" 
-              loading="lazy"
-              decoding="async"
-              style={{
-                maxWidth: '100%',
-                height: 'auto',
-                maxHeight: '460px',
-                objectFit: 'contain'
-              }}
-            />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+              <img 
+                src="/images/chart-placement-percentage.png" 
+                alt="Placement Statistics — Placement Percentage" 
+                loading="lazy"
+                decoding="async"
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  maxHeight: '480px',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+              <img 
+                src="/images/chart-average-ctc.png" 
+                alt="Placement Statistics — Average & Median CTCs" 
+                loading="lazy"
+                decoding="async"
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  maxHeight: '480px',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
           </div>
 
           {/* Recruiters / Partners Section */}
