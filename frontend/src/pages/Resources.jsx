@@ -474,10 +474,19 @@ export default function Resources() {
     const rootFolders = folders.filter(f => !f.parentId);
 
     const system = rootFolders.filter(f => f.folderType === 'system' || f.isSystemFolder || f.id?.startsWith('system-'));
-    const myPrivate = rootFolders.filter(f => f.visibility === 'private' || (!f.isSystemFolder && f.folderType !== 'system'));
+    const myPrivate = isAdmin
+      ? rootFolders.filter(f => f.visibility === 'private' || (!f.isSystemFolder && f.folderType !== 'system'))
+      : [];
 
     return { systemFolders: system, myPrivateFolders: myPrivate };
-  }, [folders]);
+  }, [folders, isAdmin]);
+
+  // If a non-admin somehow has private filter selected, reset to all
+  useEffect(() => {
+    if (!isAdmin && filterTab === 'private') {
+      setFilterTab('all');
+    }
+  }, [isAdmin, filterTab]);
 
   // Subfolders of the currently active folder
   const currentSubfolders = useMemo(() => {
@@ -581,6 +590,10 @@ export default function Resources() {
   // Create folder
   const handleCreateFolder = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Folder creation is restricted to administrators only.');
+      return;
+    }
     if (!folderForm.name.trim()) return;
 
     try {
@@ -701,23 +714,25 @@ export default function Resources() {
 
         {/* Global Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            type="button"
-            onClick={() => {
-              setFolderForm({
-                name: '',
-                description: '',
-                visibility: 'private',
-                allowContributions: false,
-                parentId: currentFolderId || null
-              });
-              setIsFolderModalOpen(true);
-            }}
-            className="btn btn-secondary"
-            style={{ borderRadius: '12px', padding: '0.65rem 1.1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <Lock size={15} /> ＋ New Private Folder
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setFolderForm({
+                  name: '',
+                  description: '',
+                  visibility: 'private',
+                  allowContributions: false,
+                  parentId: currentFolderId || null
+                });
+                setIsFolderModalOpen(true);
+              }}
+              className="btn btn-secondary"
+              style={{ borderRadius: '12px', padding: '0.65rem 1.1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Lock size={15} /> ＋ New Private Folder
+            </button>
+          )}
 
           <button
             type="button"
@@ -736,7 +751,7 @@ export default function Resources() {
           {[
             { id: 'all', label: 'All Resources', icon: Layers },
             { id: 'system', label: 'College / System', icon: Shield },
-            { id: 'private', label: 'My Private Folders', icon: Lock }
+            ...(isAdmin ? [{ id: 'private', label: 'My Private Folders', icon: Lock }] : [])
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = filterTab === tab.id;
@@ -977,8 +992,8 @@ export default function Resources() {
             </div>
           )}
 
-          {/* SECTION B: MY PRIVATE FOLDERS */}
-          {(filterTab === 'all' || filterTab === 'private') && (
+          {/* SECTION B: MY PRIVATE FOLDERS (Admin Only) */}
+          {isAdmin && (filterTab === 'all' || filterTab === 'private') && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1080,8 +1095,8 @@ export default function Resources() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {/* Add Subfolder Button */}
-              {(isOwnerOfFolder(currentFolder) || isAdmin) && (
+              {/* Add Subfolder Button (Admin Only) */}
+              {isAdmin && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1421,11 +1436,13 @@ export default function Resources() {
                     disabled={isUploading}
                     style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                   >
-                    {folders.map(f => (
-                      <option key={f.id} value={f.id}>
-                        {f.parentId ? `  ↳ ${f.name}` : f.name} {f.visibility === 'private' ? '🔒' : ''}
-                      </option>
-                    ))}
+                    {folders
+                      .filter(f => isAdmin || f.visibility !== 'private')
+                      .map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.parentId ? `  ↳ ${f.name}` : f.name} {f.visibility === 'private' ? '🔒' : ''}
+                        </option>
+                      ))}
                   </select>
                 </div>
 

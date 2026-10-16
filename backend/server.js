@@ -637,7 +637,7 @@ app.get('/api/folders', authenticateToken, async (req, res) => {
     // Base query:
     // 1. System folders: visible to all authenticated users
     // 2. Public folders: visible to all authenticated users
-    // 3. Private folders: ONLY visible to owner or Admin
+    // 3. Private folders: ONLY visible to Administrators
     const visibilityConditions = [
       { folderType: 'system' },
       { visibility: 'public' }
@@ -645,14 +645,6 @@ app.get('/api/folders', authenticateToken, async (req, res) => {
 
     if (isAdmin) {
       visibilityConditions.push({ visibility: 'private' });
-    } else if (userEmail || userId) {
-      visibilityConditions.push({
-        visibility: 'private',
-        $or: [
-          ...(userEmail ? [{ ownerEmail: userEmail }] : []),
-          ...(userId ? [{ ownerId: userId }] : [])
-        ]
-      });
     }
 
     let filter = { $or: visibilityConditions };
@@ -662,18 +654,10 @@ app.get('/api/folders', authenticateToken, async (req, res) => {
     } else if (category === 'public') {
       filter = { folderType: 'user', visibility: 'public' };
     } else if (category === 'private') {
-      if (isAdmin) {
-        filter = { folderType: 'user', visibility: 'private' };
-      } else {
-        filter = {
-          folderType: 'user',
-          visibility: 'private',
-          $or: [
-            ...(userEmail ? [{ ownerEmail: userEmail }] : []),
-            ...(userId ? [{ ownerId: userId }] : [])
-          ]
-        };
+      if (!isAdmin) {
+        return res.json([]);
       }
+      filter = { folderType: 'user', visibility: 'private' };
     }
 
     if (parentId !== undefined) {
@@ -732,6 +716,10 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
   try {
     const { name, description, parentId, visibility, allowContributions, isSystemFolder } = req.body;
     const isAdmin = isUserAdmin(req.user);
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Folder creation is restricted to administrators only.' });
+    }
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({ error: 'Folder name is required.' });
