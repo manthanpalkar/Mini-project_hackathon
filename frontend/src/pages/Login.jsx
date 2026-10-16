@@ -917,7 +917,13 @@ export default function Login() {
 
           {/* 1. STEP: FIRST-TIME GOOGLE SIGNUP FORM */}
           {googleAuthStep === 'SIGNUP' && (
-            <form onSubmit={handleGoogleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+            <form onSubmit={handleGoogleSignupSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              {/* Off-screen dummy inputs to prevent browser autofill from populating the user fields */}
+              <div style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1, overflow: 'hidden' }} aria-hidden="true">
+                <input type="text" name="dummy_username_autofill" tabIndex="-1" autoComplete="off" />
+                <input type="password" name="dummy_password_autofill" tabIndex="-1" autoComplete="new-password" />
+              </div>
+
               {/* Full Name (pre-filled, editable) */}
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label className="input-label" htmlFor="google-name" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
@@ -989,7 +995,12 @@ export default function Login() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="google-username"
+                    name="loop_new_username"
                     type="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck="false"
                     className="input-field"
                     value={googleSignupData.username}
                     onChange={(e) => setGoogleSignupData(prev => ({ 
@@ -1004,7 +1015,7 @@ export default function Login() {
                       border: '1px solid var(--border-color)',
                       paddingLeft: '1.1rem'
                     }}
-                    placeholder="e.g. aditya_patil"
+                    placeholder="Choose your username"
                     required
                     disabled={loading}
                   />
@@ -1019,7 +1030,9 @@ export default function Login() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="google-password"
+                    name="loop_new_password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     className="input-field"
                     value={googleSignupData.password}
                     onChange={(e) => setGoogleSignupData(prev => ({ ...prev, password: e.target.value }))}
@@ -1066,7 +1079,9 @@ export default function Login() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="google-confirm-password"
+                    name="loop_new_confirm_password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     className="input-field"
                     value={googleSignupData.confirmPassword}
                     onChange={(e) => setGoogleSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
