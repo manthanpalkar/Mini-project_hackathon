@@ -257,7 +257,13 @@ function AppLayout() {
             <p style={{ margin: 0, opacity: 0.75 }}>
               © 2026 Loop. Created exclusively for Sardar Patel Institute of Technology.
             </p>
-            <p style={{ margin: 0, opacity: 0.85, fontWeight: 500 }}>
+            <p style={{ 
+              margin: 0, 
+              fontSize: '0.925rem', 
+              fontWeight: 600, 
+              color: 'var(--text-primary)',
+              letterSpacing: '0.01em'
+            }}>
               Developed by Swapnil Patil
             </p>
           </div>
