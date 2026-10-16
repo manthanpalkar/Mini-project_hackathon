@@ -66,9 +66,15 @@ export default function DocumentPreview({
       cMapPacked: true
     });
 
+    let loadedDoc = null;
+
     loadingTask.promise
       .then((doc) => {
-        if (!active) return;
+        if (!active) {
+          try { doc.destroy(); } catch (e) {}
+          return;
+        }
+        loadedDoc = doc;
         setPdfDoc(doc);
         if (onDocLoaded) {
           onDocLoaded(doc.numPages);
@@ -85,6 +91,9 @@ export default function DocumentPreview({
 
     return () => {
       active = false;
+      if (loadedDoc) {
+        try { loadedDoc.destroy(); } catch (e) {}
+      }
       try {
         loadingTask.destroy();
       } catch (e) {}

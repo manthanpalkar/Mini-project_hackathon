@@ -3,6 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getAchievements } from '../utils/db';
 import { ArrowLeft, Calendar } from 'lucide-react';
 
+function formatAchievementDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+  } catch (e) {}
+  return String(dateStr);
+}
+
 const parsePosition = (posStr) => {
   if (!posStr) return { x: 50, y: 50, zoom: 1.0 };
   if (posStr === 'center') return { x: 50, y: 50, zoom: 1.0 };
@@ -205,7 +216,7 @@ export default function AchievementDetail() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)' }}>
               <Calendar size={14} />
               <span style={{ fontSize: '0.8rem' }}>
-                {new Date(achievement.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {formatAchievementDate(achievement.date)}
               </span>
             </div>
           </div>

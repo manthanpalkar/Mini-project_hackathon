@@ -40,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local backups & external workspaces
+backend/backups/
+ShelfLife/
+goGreen-main/
+LOOP/
+PROJECT IMG/
+*.pdf

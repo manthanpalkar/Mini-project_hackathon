@@ -4,6 +4,17 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getAchievements } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
 
+function formatAchievementDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+  } catch (e) {}
+  return String(dateStr);
+}
+
 const parsePosition = (posStr) => {
   if (!posStr) return { x: 50, y: 50, zoom: 1.0 };
   if (posStr === 'center') return { x: 50, y: 50, zoom: 1.0 };
@@ -168,7 +179,7 @@ function Achievement3DCard({ item, index, navigate }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <Calendar size={13} style={{ color: 'var(--text-secondary)' }} />
           <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            {new Date(item.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {formatAchievementDate(item.date)}
           </span>
         </div>
       </div>
@@ -368,9 +379,9 @@ export default function Achievements() {
   });
 
   const sortedAndFilteredAchievements = [...filteredAchievements].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    const timeA = a.date ? (new Date(a.date).getTime() || 0) : 0;
+    const timeB = b.date ? (new Date(b.date).getTime() || 0) : 0;
+    return sortBy === 'newest' ? timeB - timeA : timeA - timeB;
   });
 
   return (

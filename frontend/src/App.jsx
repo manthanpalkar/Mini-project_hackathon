@@ -1,21 +1,46 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import Navbar from './components/Navbar';
-import Login from './pages/Login';
-import Landing from './pages/Landing';
-import Stories from './pages/Stories';
-import StoryDetail from './pages/StoryDetail';
-import Resources from './pages/Resources';
-import Achievements from './pages/Achievements';
-import AchievementDetail from './pages/AchievementDetail';
-import AdminDashboard from './pages/AdminDashboard';
-import Onboarding from './pages/Onboarding';
-import FilePreviewPage from './pages/FilePreviewPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfUse from './pages/TermsOfUse';
 import { UploadProvider } from './context/UploadContext';
 import UploadDock from './components/UploadDock';
+
+// Route-level code-splitting with React.lazy for instant initial page loads
+const Login = lazy(() => import('./pages/Login'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Stories = lazy(() => import('./pages/Stories'));
+const StoryDetail = lazy(() => import('./pages/StoryDetail'));
+const Resources = lazy(() => import('./pages/Resources'));
+const Achievements = lazy(() => import('./pages/Achievements'));
+const AchievementDetail = lazy(() => import('./pages/AchievementDetail'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const FilePreviewPage = lazy(() => import('./pages/FilePreviewPage'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
+
+// Lightweight Apple-style Route Loading Fallback
+function RouteLoadingFallback() {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '60vh',
+      gap: '0.75rem',
+      color: 'var(--text-secondary)'
+    }}>
+      <div style={{
+        width: '28px',
+        height: '28px',
+        border: '2px solid var(--border-color)',
+        borderTopColor: 'var(--text-primary)',
+        borderRadius: '50%',
+        animation: 'spin 0.6s linear infinite'
+      }} />
+    </div>
+  );
+}
 
 // Route Guard Component
 function ProtectedRoute({ children }) {
@@ -66,69 +91,71 @@ function AppLayout() {
       {!isPreviewPage && <Navbar />}
       
       <main style={{ flexGrow: 1 }}>
-        <Routes>
-          {/* Public Login Route */}
-          <Route path="/login" element={<Login />} />
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes>
+            {/* Public Login Route */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Dedicated Public Legal & Documentation Routes */}
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfUse />} />
+            {/* Dedicated Public Legal & Documentation Routes */}
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfUse />} />
 
-          {/* Onboarding Route (requires login but not completed onboarding) */}
-          <Route path="/onboarding" element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          } />
+            {/* Onboarding Route (requires login but not completed onboarding) */}
+            <Route path="/onboarding" element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            } />
 
-          {/* Dedicated Full-Viewport File Preview Route */}
-          <Route path="/preview/:id" element={
-            <ProtectedRoute>
-              <FilePreviewPage />
-            </ProtectedRoute>
-          } />
+            {/* Dedicated Full-Viewport File Preview Route */}
+            <Route path="/preview/:id" element={
+              <ProtectedRoute>
+                <FilePreviewPage />
+              </ProtectedRoute>
+            } />
 
-          {/* Protected Main Routes */}
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={
-            <ProtectedRoute>
-              <Landing />
-            </ProtectedRoute>
-          } />
-          <Route path="/stories" element={
-            <ProtectedRoute>
-              <Stories />
-            </ProtectedRoute>
-          } />
-          <Route path="/stories/:id" element={
-            <ProtectedRoute>
-              <StoryDetail />
-            </ProtectedRoute>
-          } />
-          <Route path="/resources" element={
-            <ProtectedRoute>
-              <Resources />
-            </ProtectedRoute>
-          } />
-           <Route path="/achievements" element={
-            <ProtectedRoute>
-              <Achievements />
-            </ProtectedRoute>
-          } />
-          <Route path="/achievements/:id" element={
-            <ProtectedRoute>
-              <AchievementDetail />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
+            {/* Protected Main Routes */}
+            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="/home" element={
+              <ProtectedRoute>
+                <Landing />
+              </ProtectedRoute>
+            } />
+            <Route path="/stories" element={
+              <ProtectedRoute>
+                <Stories />
+              </ProtectedRoute>
+            } />
+            <Route path="/stories/:id" element={
+              <ProtectedRoute>
+                <StoryDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/resources" element={
+              <ProtectedRoute>
+                <Resources />
+              </ProtectedRoute>
+            } />
+             <Route path="/achievements" element={
+              <ProtectedRoute>
+                <Achievements />
+              </ProtectedRoute>
+            } />
+            <Route path="/achievements/:id" element={
+              <ProtectedRoute>
+                <AchievementDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
 
-          {/* Catch-all Redirect */}
-          <Route path="*" element={<Navigate to="/home" replace />} />
-        </Routes>
+            {/* Catch-all Redirect */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
       {/* Global Background Upload Dock (hidden during full-screen preview) */}

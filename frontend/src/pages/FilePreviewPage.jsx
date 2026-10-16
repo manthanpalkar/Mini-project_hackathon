@@ -127,10 +127,9 @@ export default function FilePreviewPage() {
           const targetFolder = folderId || currentRes.folderId;
           if (targetFolder) {
             try {
-              const all = await getResources();
+              const folderFiles = await getResources({ folderId: targetFolder });
               if (active) {
-                const folderFiles = all.filter(r => r.folderId === targetFolder);
-                setFiles(folderFiles);
+                setFiles(folderFiles && folderFiles.length > 0 ? folderFiles : [currentRes]);
               }
             } catch (e) {
               setFiles([currentRes]);

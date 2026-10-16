@@ -582,6 +582,12 @@ async function generateFullSystemHealth(apiMetrics, userAuthCache, forceFresh = 
     ? userAuthCache.getStats()
     : { size: 0, hits: 0, misses: 0, hitRate: 'Unavailable' };
 
+  let redisStats = { enabled: false, connected: false, hitRate: '0.0%' };
+  try {
+    const cacheService = require('./cacheService');
+    redisStats = cacheService.getMetrics();
+  } catch {}
+
   const performance = {
     totalRequests: apiMetrics?.totalRequests || 0,
     requestsPerMinute,
@@ -590,6 +596,7 @@ async function generateFullSystemHealth(apiMetrics, userAuthCache, forceFresh = 
     statusCounts: apiMetrics?.statusCounts || { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 },
     rateLimitEvents: apiMetrics?.rateLimitHits || 0,
     cacheStats,
+    redisCache: redisStats,
     slowestEndpoints: slowestEndpoints.slice(0, 5),
     recentErrors: apiMetrics?.recentErrors || []
   };

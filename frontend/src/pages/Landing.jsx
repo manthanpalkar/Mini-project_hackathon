@@ -46,6 +46,8 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
         <img 
           src={src} 
           alt={alt} 
+          loading="lazy"
+          decoding="async"
           style={{ 
             width: '100%', 
             height: '100%', 
@@ -524,6 +526,8 @@ export default function Landing() {
               <img 
                 src="/images/chart-placed-ctc.png" 
                 alt="Placement & CTC Statistics" 
+                loading="lazy"
+                decoding="async"
                 style={{
                   maxWidth: '100%',
                   height: 'auto',
@@ -536,6 +540,8 @@ export default function Landing() {
               <img 
                 src="/images/chart-internships-higherstudies.png" 
                 alt="Internships & Higher Studies Statistics" 
+                loading="lazy"
+                decoding="async"
                 style={{
                   maxWidth: '100%',
                   height: 'auto',
@@ -548,6 +554,8 @@ export default function Landing() {
               <img 
                 src="/images/chart-category-companies-students.png" 
                 alt="Category-wise Company & Students Placed Statistics" 
+                loading="lazy"
+                decoding="async"
                 style={{
                   maxWidth: '100%',
                   height: 'auto',
@@ -781,6 +789,8 @@ export default function Landing() {
               <img 
                 src="/images/file-1.jpg" 
                 alt="Students studying" 
+                loading="lazy"
+                decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>
@@ -805,6 +815,8 @@ export default function Landing() {
               <img 
                 src="/images/file-2.jpg" 
                 alt="Working at a table" 
+                loading="lazy"
+                decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>
@@ -830,6 +842,8 @@ export default function Landing() {
               <img 
                 src="/images/file-3.jpg" 
                 alt="Student presenting code" 
+                loading="lazy"
+                decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>

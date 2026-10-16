@@ -16,6 +16,7 @@ const StorageService = require('./services/storageService');
 const { ensureSystemFolders } = require('./scripts/initSystemFolders');
 const { verifyGoogleToken } = require('./services/googleAuth');
 const { generateFullSystemHealth, recordWriteVerification } = require('./services/systemDiagnostics');
+const cacheService = require('./services/cacheService');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -681,17 +682,45 @@ app.get('/api/folders', authenticateToken, async (req, res) => {
 
     const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
 
+    if (category === 'system') {
+      const cacheKey = cacheService.makeKey('folders:system', `${parentId || 'root'}_p_${page}_l_${limit}_pag_${isPaginated}`);
+      const payload = await cacheService.getOrSet(cacheKey, async () => {
+        if (isPaginated) {
+          const total = await Folder.countDocuments(filter);
+          const folders = await Folder.find(filter)
+            .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+          return { isPaginated: true, folders, total };
+        }
+        const folders = await Folder.find(filter)
+          .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
+          .lean();
+        return { isPaginated: false, folders, total: folders.length };
+      }, cacheService.DEFAULT_TTLS.folders);
+
+      if (payload.isPaginated) {
+        return sendPaginatedResponse(res, payload.folders, payload.total, page, limit);
+      }
+      res.set('X-Total-Count', String(payload.folders.length));
+      return res.json(payload.folders);
+    }
+
     if (isPaginated) {
       const total = await Folder.countDocuments(filter);
       const folders = await Folder.find(filter)
         .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
       return sendPaginatedResponse(res, folders, total, page, limit);
     }
 
-    const folders = await Folder.find(filter).sort({ isSystemFolder: -1, createdAt: 1, _id: -1 });
+    const folders = await Folder.find(filter)
+      .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
+      .lean();
     res.set('X-Total-Count', String(folders.length));
     res.json(folders);
   } catch (err) {
@@ -746,6 +775,7 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
       isSystemFolder: isSystem
     });
 
+    await cacheService.invalidateFolders().catch(() => {});
     res.status(201).json(folder);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -781,6 +811,7 @@ app.patch('/api/folders/:id', authenticateToken, async (req, res) => {
     if (req.body.allowContributions !== undefined) updates.allowContributions = Boolean(req.body.allowContributions);
 
     const updated = await Folder.findOneAndUpdate({ id }, { $set: updates }, { new: true });
+    await cacheService.invalidateFolders().catch(() => {});
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -817,7 +848,7 @@ app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
     // Safe cascading deletion: collect all subfolder IDs recursively
     const allFolderIdsToDelete = [id];
     const collectChildren = async (parentId) => {
-      const children = await Folder.find({ parentId });
+      const children = await Folder.find({ parentId }).select('id').lean();
       for (const child of children) {
         allFolderIdsToDelete.push(child.id);
         await collectChildren(child.id);
@@ -826,7 +857,9 @@ app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
     await collectChildren(id);
 
     // Clean up physical/cloud storage files for all resources inside deleted folders
-    const resourcesToDelete = await Resource.find({ folderId: { $in: allFolderIdsToDelete } });
+    const resourcesToDelete = await Resource.find({ folderId: { $in: allFolderIdsToDelete } })
+      .select('storageKey storageProvider')
+      .lean();
     for (const resItem of resourcesToDelete) {
       if (resItem.storageKey) {
         await StorageService.deleteFile(resItem.storageKey, resItem.storageProvider);
@@ -836,6 +869,9 @@ app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
     // Delete records from database
     await Resource.deleteMany({ folderId: { $in: allFolderIdsToDelete } });
     await Folder.deleteMany({ id: { $in: allFolderIdsToDelete } });
+
+    await cacheService.invalidateFolders().catch(() => {});
+    await cacheService.invalidateResources().catch(() => {});
 
     res.json({
       message: 'Folder and its contents deleted successfully without orphaned records.',
@@ -908,12 +944,13 @@ app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
         .select('-password -__v')
         .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
       return sendPaginatedResponse(res, users, total, page, limit);
     }
 
-    const users = await User.find({}).select('-password -__v').sort({ createdAt: -1, _id: -1 });
+    const users = await User.find({}).select('-password -__v').sort({ createdAt: -1, _id: -1 }).lean();
     res.set('X-Total-Count', String(users.length));
     res.json(users);
   } catch (err) {
@@ -1711,20 +1748,30 @@ app.get('/api/stories', authenticateToken, async (req, res) => {
     const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
 
     if (isPaginated) {
-      const total = await Story.countDocuments({});
-      const stories = await Story.find({})
-        .sort({ createdAt: -1, _id: -1 })
-        .skip(skip)
-        .limit(limit)
-        .select('-journey -resumeFile -studyMaterials -customSections -photo -resume');
+      const cacheKey = cacheService.makeKey('stories:list', `p_${page}_l_${limit}`);
+      const payload = await cacheService.getOrSet(cacheKey, async () => {
+        const total = await Story.countDocuments({});
+        const stories = await Story.find({})
+          .sort({ createdAt: -1, _id: -1 })
+          .skip(skip)
+          .limit(limit)
+          .select('-journey -resumeFile -studyMaterials -customSections -photo -resume')
+          .lean();
+        return { stories, total };
+      }, cacheService.DEFAULT_TTLS.stories);
 
-      return sendPaginatedResponse(res, stories, total, page, limit);
+      return sendPaginatedResponse(res, payload.stories, payload.total, page, limit);
     }
 
     // Exclude heavy fields from the listing payload and sort newest first with deterministic order
-    const stories = await Story.find({})
-      .sort({ createdAt: -1, _id: -1 })
-      .select('-journey -resumeFile -studyMaterials -customSections -photo -resume');
+    const cacheKey = cacheService.makeKey('stories:list', 'all');
+    const stories = await cacheService.getOrSet(cacheKey, async () => {
+      return await Story.find({})
+        .sort({ createdAt: -1, _id: -1 })
+        .select('-journey -resumeFile -studyMaterials -customSections -photo -resume')
+        .lean();
+    }, cacheService.DEFAULT_TTLS.stories);
+
     res.set('X-Total-Count', String(stories.length));
     res.json(stories);
   } catch (err) {
@@ -1736,7 +1783,12 @@ app.get('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const sanitizedId = sanitizeString(id);
-    const story = await Story.findOne({ id: sanitizedId });
+    const cacheKey = cacheService.makeKey('stories:detail', sanitizedId);
+
+    const story = await cacheService.getOrSet(cacheKey, async () => {
+      return await Story.findOne({ id: sanitizedId }).lean();
+    }, cacheService.DEFAULT_TTLS.storyDetail);
+
     if (!story) {
       return res.status(404).json({ error: 'Story not found.' });
     }
@@ -1772,6 +1824,7 @@ app.post('/api/stories', authenticateToken, requireAdmin, async (req, res) => {
     if (!sanitizedBody.id) sanitizedBody.id = String(Date.now());
 
     const story = await Story.create(sanitizedBody);
+    await cacheService.invalidateStories().catch(() => {});
     res.status(201).json(story);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -1789,6 +1842,7 @@ app.put('/api/stories/:id', authenticateToken, requireAdmin, async (req, res) =>
     const sanitizedBody = sanitizeObject({ ...processedBody });
     const story = await Story.findOneAndUpdate({ id: req.params.id }, sanitizedBody, { new: true });
     if (!story) return res.status(404).json({ error: 'Story not found.' });
+    await cacheService.invalidateStories(req.params.id).catch(() => {});
     res.json(story);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -1798,6 +1852,7 @@ app.put('/api/stories/:id', authenticateToken, requireAdmin, async (req, res) =>
 app.delete('/api/stories/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await Story.deleteOne({ id: req.params.id });
+    await cacheService.invalidateStories(req.params.id).catch(() => {});
     res.json({ message: 'Story deleted.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1807,7 +1862,7 @@ app.delete('/api/stories/:id', authenticateToken, requireAdmin, async (req, res)
 // 4. Pending Stories
 app.get('/api/pending-stories', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const pending = await PendingStory.find({});
+    const pending = await PendingStory.find({}).sort({ createdAt: -1 }).lean();
     res.json(pending);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1902,6 +1957,7 @@ app.post('/api/pending-stories/:id/approve', authenticateToken, requireAdmin, as
     }
 
     await PendingStory.deleteOne({ _id: pending._id });
+    await cacheService.invalidateStories(pending.activeId).catch(() => {});
     res.json({ message: 'Story approved successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2275,6 +2331,8 @@ const handleUploadFinalize = async (req, res) => {
     session.finalGridFsId = assembledFile.gridFsFileId;
     await session.save();
 
+    await cacheService.invalidateResources(resourceId).catch(() => {});
+
     res.status(200).json({
       success: true,
       uploadId,
@@ -2381,20 +2439,51 @@ app.get('/api/resources', authenticateToken, async (req, res) => {
 
     const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
 
+    // Cache public system folder resources where results are strictly uniform across users
+    const isPublicSystemQuery = !search && (!visibility || visibility === 'public') && (!folderId || folderId.startsWith('system-'));
+    if (isPublicSystemQuery) {
+      const cacheKey = cacheService.makeKey('resources:public', `${folderId || 'all'}_${type || 'all'}_p_${page}_l_${limit}_pag_${isPaginated}`);
+      const payload = await cacheService.getOrSet(cacheKey, async () => {
+        if (isPaginated) {
+          const total = await Resource.countDocuments(filter);
+          const resources = await Resource.find(filter)
+            .select('-link')
+            .sort({ createdAt: -1, _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+          return { isPaginated: true, resources, total };
+        }
+        const resources = await Resource.find(filter)
+          .select('-link')
+          .sort({ createdAt: -1, _id: -1 })
+          .lean();
+        return { isPaginated: false, resources, total: resources.length };
+      }, cacheService.DEFAULT_TTLS.resources);
+
+      if (payload.isPaginated) {
+        return sendPaginatedResponse(res, payload.resources, payload.total, page, limit);
+      }
+      res.set('X-Total-Count', String(payload.resources.length));
+      return res.json(payload.resources);
+    }
+
     if (isPaginated) {
       const total = await Resource.countDocuments(filter);
       const resources = await Resource.find(filter)
         .select('-link')
         .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
       return sendPaginatedResponse(res, resources, total, page, limit);
     }
 
     const resources = await Resource.find(filter)
       .select('-link')
-      .sort({ createdAt: -1, _id: -1 });
+      .sort({ createdAt: -1, _id: -1 })
+      .lean();
 
     res.set('X-Total-Count', String(resources.length));
     res.json(resources);
@@ -2407,13 +2496,13 @@ app.get('/api/resources', authenticateToken, async (req, res) => {
 app.get('/api/resources/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const resource = await Resource.findOne({ id: sanitizeString(id) });
+    const resource = await Resource.findOne({ id: sanitizeString(id) }).lean();
     if (!resource) {
       return res.status(404).json({ error: 'Resource not found.' });
     }
 
     // Verify folder privacy
-    const folder = await Folder.findOne({ id: resource.folderId });
+    const folder = await Folder.findOne({ id: resource.folderId }).lean();
     const isAdmin = isUserAdmin(req.user);
     const isUploader = resource.uploadedByEmail === req.user.email;
 
@@ -2801,6 +2890,7 @@ const handleUpdateResource = async (req, res) => {
     }
 
     const updated = await Resource.findOneAndUpdate({ id: resource.id }, { $set: updates }, { new: true });
+    await cacheService.invalidateResources(resource.id).catch(() => {});
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -2837,6 +2927,7 @@ app.delete('/api/resources/:id', authenticateToken, async (req, res) => {
     }
 
     await Resource.deleteOne({ id: resource.id });
+    await cacheService.invalidateResources(resource.id).catch(() => {});
     res.json({ message: 'Resource permanently deleted.' });
   } catch (err) {
     console.error('Error in DELETE /api/resources/:id:', err);
@@ -2847,7 +2938,7 @@ app.delete('/api/resources/:id', authenticateToken, async (req, res) => {
 // 6. Pending Resources
 app.get('/api/pending-resources', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const pending = await PendingResource.find({});
+    const pending = await PendingResource.find({}).sort({ createdAt: -1 }).lean();
     res.json(pending);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2925,6 +3016,7 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
     }
 
     await PendingResource.deleteOne({ _id: pending._id });
+    await cacheService.invalidateResources(pending.activeId || req.params.id).catch(() => {});
     res.json({ message: 'Resource approved successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2934,7 +3026,11 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
 // 7. Achievements
 app.get('/api/achievements', authenticateToken, async (req, res) => {
   try {
-    const achievements = await Achievement.find({});
+    const cacheKey = cacheService.makeKey('achievements:list');
+    const achievements = await cacheService.getOrSet(cacheKey, async () => {
+      return await Achievement.find({}).sort({ createdAt: -1, _id: -1 }).lean();
+    }, cacheService.DEFAULT_TTLS.achievements);
+
     res.json(achievements);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2965,6 +3061,7 @@ app.post('/api/achievements', authenticateToken, requireAdmin, async (req, res) 
     if (!achievementData.date) achievementData.date = new Date().toISOString().split('T')[0];
     
     const achievement = await Achievement.create(achievementData);
+    await cacheService.invalidateAchievements(achievement.id).catch(() => {});
     res.status(201).json(achievement);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -2981,6 +3078,7 @@ app.put('/api/achievements/:id', authenticateToken, requireAdmin, async (req, re
     const sanitizedBody = sanitizeObject({ ...processedBody });
     const achievement = await Achievement.findOneAndUpdate({ id: req.params.id }, sanitizedBody, { new: true });
     if (!achievement) return res.status(404).json({ error: 'Achievement not found.' });
+    await cacheService.invalidateAchievements(req.params.id).catch(() => {});
     res.json(achievement);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -2990,6 +3088,7 @@ app.put('/api/achievements/:id', authenticateToken, requireAdmin, async (req, re
 app.delete('/api/achievements/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await Achievement.deleteOne({ id: req.params.id });
+    await cacheService.invalidateAchievements(req.params.id).catch(() => {});
     res.json({ message: 'Achievement deleted.' });
   } catch (err) {
     res.status(500).json({ error: err.message });

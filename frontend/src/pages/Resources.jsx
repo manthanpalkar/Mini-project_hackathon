@@ -43,19 +43,40 @@ function ResourceFolder3DCard({
     return () => observer.disconnect();
   }, []);
 
+  const animFrameRef = useRef(null);
+
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -5;
-    const rotateY = ((x - centerX) / centerX) * 5;
-    setTilt({ x: rotateX, y: rotateY, active: true });
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    if (animFrameRef.current) return;
+
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    animFrameRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) {
+        animFrameRef.current = null;
+        return;
+      }
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = ((y - centerY) / centerY) * -5;
+      const rotateY = ((x - centerX) / centerX) * 5;
+      setTilt({ x: rotateX, y: rotateY, active: true });
+      animFrameRef.current = null;
+    });
   };
 
   const handleMouseLeave = () => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
     setTilt({ x: 0, y: 0, active: false });
   };
 
