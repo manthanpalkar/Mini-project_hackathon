@@ -198,7 +198,6 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
 export default function Landing() {
   const navigate = useNavigate();
   const [activePhoto, setActivePhoto] = useState(null);
-  const [activeChartTab, setActiveChartTab] = useState(0);
 
   useEffect(() => {
     document.title = 'LOOP | Home';
@@ -468,50 +467,35 @@ export default function Landing() {
             />
           </div>
 
-          {/* Interactive Chart Tabs */}
+          {/* Placement Performance Section Header */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
-            gap: '1rem',
-            flexWrap: 'wrap',
             marginBottom: '2.5rem',
             borderBottom: '1px solid var(--border-color)',
             paddingBottom: '1rem'
-          }} className="chart-tabs-wrapper">
-            {['Placement Performance', 'Category-wise Placement Trends', 'Internships & Higher Education'].map((tabLabel, idx) => {
-              const isActive = activeChartTab === idx;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => setActiveChartTab(idx)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '0.95rem',
-                    fontWeight: isActive ? 700 : 500,
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    padding: '0.6rem 1.2rem',
-                    position: 'relative',
-                    transition: 'all 0.25s ease',
-                    fontFamily: 'var(--font-sans)'
-                  }}
-                >
-                  {tabLabel}
-                  {isActive && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '-17px',
-                      left: 0,
-                      right: 0,
-                      height: '3px',
-                      backgroundColor: '#8A2BE2',
-                      borderRadius: '2px'
-                    }} />
-                  )}
-                </button>
-              );
-            })}
+          }}>
+            <span
+              style={{
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                padding: '0.6rem 1.2rem',
+                position: 'relative',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Placement Performance
+              <div style={{
+                position: 'absolute',
+                bottom: '-17px',
+                left: 0,
+                right: 0,
+                height: '3px',
+                backgroundColor: '#8A2BE2',
+                borderRadius: '2px'
+              }} />
+            </span>
           </div>
 
           {/* Chart Display Area (Borderless & Shadowless, blending with white background) */}
@@ -522,51 +506,20 @@ export default function Landing() {
             width: '100%',
             minHeight: '400px',
             backgroundColor: '#ffffff',
-            padding: '1rem 0',
-            animation: 'fadeIn 0.4s ease-out'
+            padding: '1rem 0'
           }}>
-            {activeChartTab === 0 && (
-              <img 
-                src="/images/chart-placed-ctc.png" 
-                alt="Placement & CTC Statistics" 
-                loading="lazy"
-                decoding="async"
-                style={{
-                  maxWidth: '100%',
-                  height: 'auto',
-                  maxHeight: '460px',
-                  objectFit: 'contain'
-                }}
-              />
-            )}
-            {activeChartTab === 1 && (
-              <img 
-                src="/images/chart-internships-higherstudies.png" 
-                alt="Internships & Higher Studies Statistics" 
-                loading="lazy"
-                decoding="async"
-                style={{
-                  maxWidth: '100%',
-                  height: 'auto',
-                  maxHeight: '460px',
-                  objectFit: 'contain'
-                }}
-              />
-            )}
-            {activeChartTab === 2 && (
-              <img 
-                src="/images/chart-category-companies-students.png" 
-                alt="Category-wise Company & Students Placed Statistics" 
-                loading="lazy"
-                decoding="async"
-                style={{
-                  maxWidth: '100%',
-                  height: 'auto',
-                  maxHeight: '460px',
-                  objectFit: 'contain'
-                }}
-              />
-            )}
+            <img 
+              src="/images/chart-placed-ctc.png" 
+              alt="Placement Performance & CTC Statistics" 
+              loading="lazy"
+              decoding="async"
+              style={{
+                maxWidth: '100%',
+                height: 'auto',
+                maxHeight: '460px',
+                objectFit: 'contain'
+              }}
+            />
           </div>
 
           {/* Recruiters / Partners Section */}
