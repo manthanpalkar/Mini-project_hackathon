@@ -906,7 +906,7 @@ export default function Stories() {
         </div>
 
         {/* Stories List (on the right) */}
-        <div style={{ flexGrow: 1, minWidth: '320px' }}>
+        <div style={{ flexGrow: 1, minWidth: '260px', maxWidth: '100%' }}>
           {/* Search Bar */}
           <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
@@ -1018,7 +1018,6 @@ export default function Stories() {
                 setSelectedSubBranches(['CSE', 'AI', 'DS']);
                 setMinYear(2021);
                 setMaxYear(2026);
-                setMinCGPA(6.0);
               }} 
                 className="btn btn-secondary"
                 style={{

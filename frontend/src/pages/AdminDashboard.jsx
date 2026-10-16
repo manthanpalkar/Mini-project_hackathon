@@ -1563,7 +1563,7 @@ export default function AdminDashboard() {
                       {storiesExpanded ? <ChevronUp size={20} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={20} style={{ color: 'var(--text-secondary)' }} />}
                     </div>
                     {storiesExpanded && (
-                      <div style={{ position: 'relative', minWidth: '240px' }}>
+                      <div style={{ position: 'relative', minWidth: '240px', maxWidth: '100%' }}>
                         <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                         <input
                           type="text"
@@ -1681,7 +1681,7 @@ export default function AdminDashboard() {
                       {achievementsExpanded ? <ChevronUp size={20} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={20} style={{ color: 'var(--text-secondary)' }} />}
                     </div>
                     {achievementsExpanded && (
-                      <div style={{ position: 'relative', minWidth: '240px' }}>
+                      <div style={{ position: 'relative', minWidth: '240px', maxWidth: '100%' }}>
                         <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                         <input
                           type="text"
@@ -1763,7 +1763,7 @@ export default function AdminDashboard() {
 
               {/* Tree Controls & Search */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', minWidth: '220px' }}>
+                <div style={{ position: 'relative', minWidth: '220px', maxWidth: '100%' }}>
                   <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                   <input
                     type="text"
@@ -4991,6 +4991,7 @@ export default function AdminDashboard() {
             justifyContent: 'center',
             zIndex: 10000,
             backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             padding: '1rem'
           }}
         >
@@ -5086,6 +5087,7 @@ export default function AdminDashboard() {
             justifyContent: 'center',
             zIndex: 10000,
             backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             padding: '1rem'
           }}
         >

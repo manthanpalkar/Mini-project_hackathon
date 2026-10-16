@@ -75,6 +75,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
           alignItems: 'center',
           gap: '6px',
           backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           border: '1px solid rgba(255, 255, 255, 0.15)',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
         }}>
@@ -93,6 +94,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
             bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.95)',
             backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -120,6 +122,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
               transition: 'all 0.2s',
               zIndex: 100000,
               backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
               border: '1px solid rgba(255, 255, 255, 0.2)'
             }}
             onMouseEnter={(e) => {
@@ -980,6 +983,7 @@ export default function Landing() {
             bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.95)',
             backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1007,6 +1011,7 @@ export default function Landing() {
               transition: 'all 0.2s',
               zIndex: 100000,
               backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
               border: '1px solid rgba(255, 255, 255, 0.2)'
             }}
             onMouseEnter={(e) => {

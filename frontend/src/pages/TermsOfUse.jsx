@@ -296,7 +296,7 @@ export default function TermsOfUse() {
                   >
                     <span style={{ 
                       fontSize: '0.7rem', 
-                      fontFamily: 'monospace', 
+                      fontFamily: 'var(--font-mono)', 
                       opacity: isSelected ? 1 : 0.5,
                       color: isSelected ? 'var(--accent-color)' : 'inherit'
                     }}>

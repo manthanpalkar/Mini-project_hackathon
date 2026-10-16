@@ -991,7 +991,7 @@ export default function StoryDetail() {
           flexWrap: 'wrap'
         }}>
           {/* Details */}
-          <div style={{ flexGrow: 1, minWidth: '280px' }}>
+          <div style={{ flexGrow: 1, minWidth: '220px', maxWidth: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
               <span className="badge" style={{ fontSize: '0.7rem' }}>
                 {story.branch} {story.subBranch && `(${story.subBranch})`}
@@ -1708,7 +1708,7 @@ export default function StoryDetail() {
                         right: '15px',
                         fontSize: '6rem',
                         color: 'rgba(16, 185, 129, 0.06)',
-                        fontFamily: 'serif',
+                        fontFamily: 'var(--font-serif)',
                         pointerEvents: 'none',
                         lineHeight: 1
                       }}>

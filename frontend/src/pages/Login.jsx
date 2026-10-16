@@ -625,6 +625,7 @@ export default function Login() {
             borderRadius: '9999px',
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
             border: '1px solid rgba(0,0,0,0.06)'
           }}>
@@ -648,6 +649,7 @@ export default function Login() {
             borderRadius: '9999px',
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
             fontSize: '0.76rem',
             fontWeight: 600,

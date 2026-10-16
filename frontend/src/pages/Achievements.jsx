@@ -437,7 +437,7 @@ export default function Achievements() {
         <div style={{
           position: 'relative',
           flex: '1',
-          minWidth: '280px',
+          minWidth: '220px',
           maxWidth: '500px'
         }}>
           <span style={{

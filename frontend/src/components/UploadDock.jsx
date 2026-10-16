@@ -30,6 +30,7 @@ export default function UploadDock() {
           gap: '0.75rem',
           cursor: 'pointer',
           backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           transition: 'all 0.2s ease',
           userSelect: 'none'
         }}
@@ -72,6 +73,7 @@ export default function UploadDock() {
         boxShadow: '0 16px 40px rgba(0, 0, 0, 0.45)',
         overflow: 'hidden',
         backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
         display: 'flex',
         flexDirection: 'column',
         animation: 'slideUp 0.25s ease-out'

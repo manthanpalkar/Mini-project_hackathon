@@ -525,6 +525,7 @@ export default function Navbar() {
             flexDirection: 'column',
             gap: '1.25rem',
             backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
             maxHeight: 'calc(100vh - 80px)',
             overflowY: 'auto',
             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
