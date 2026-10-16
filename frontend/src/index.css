@@ -684,4 +684,22 @@ input:-webkit-autofill:active {
   transition: background-color 5000s ease-in-out 0s;
 }
 
+/* Aesthetic Google Sign-In Pill Styling */
+.google-btn-wrapper {
+  border-radius: 9999px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.google-btn-wrapper:hover {
+  transform: translateY(-1.5px);
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.12));
+}
+
+.google-fallback-btn:hover {
+  transform: translateY(-1.5px);
+  border-color: var(--border-hover) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+
 

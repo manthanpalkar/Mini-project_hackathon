@@ -373,7 +373,7 @@ export default function Login() {
               theme: 'outline',
               size: 'large',
               text: 'continue_with',
-              shape: 'rectangular',
+              shape: 'pill',
               logo_alignment: 'left',
               width: 380
             });
@@ -1231,13 +1231,17 @@ export default function Login() {
           {googleAuthStep === 'IDLE' && (
             <>
               {/* Continue with Google Button Container */}
-              <div style={{ width: '100%', marginBottom: '1rem', minHeight: '44px', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '100%', marginBottom: '1.25rem', minHeight: '46px', display: 'flex', justifyContent: 'center' }}>
                 <div
                   ref={googleButtonRef}
+                  className="google-btn-wrapper"
                   style={{
                     width: '100%',
                     display: isGoogleAvailable ? 'flex' : 'none',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderRadius: '9999px',
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}
                 />
 
@@ -1246,21 +1250,24 @@ export default function Login() {
                     type="button"
                     onClick={handleGoogleSignInClick}
                     disabled={loading}
+                    className="google-fallback-btn"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.75rem',
                       width: '100%',
-                      height: '44px',
-                      borderRadius: '8px',
+                      maxWidth: '380px',
+                      height: '46px',
+                      borderRadius: '9999px',
                       backgroundColor: 'var(--bg-surface)',
                       border: '1px solid var(--border-color)',
                       color: 'var(--text-primary)',
                       fontSize: '0.92rem',
                       fontWeight: 600,
                       cursor: loading ? 'wait' : 'pointer',
-                      boxShadow: 'var(--card-shadow)'
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24">
