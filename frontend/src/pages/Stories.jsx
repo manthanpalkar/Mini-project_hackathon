@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
@@ -1180,24 +1181,21 @@ export default function Stories() {
       </div>
 
       {/* Upload Story Modal - Apple OS Liquid Glass Redesign */}
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div 
           onClick={() => setIsModalOpen(false)}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            backdropFilter: 'blur(30px) saturate(190%)',
-            WebkitBackdropFilter: 'blur(30px) saturate(190%)',
-            zIndex: 1000,
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(20px) saturate(190%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(190%)',
+            zIndex: 100000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '2rem 1.5rem',
-            overflow: 'hidden',
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
             overscrollBehavior: 'contain'
           }}
         >
@@ -1205,13 +1203,14 @@ export default function Stories() {
             onClick={(e) => e.stopPropagation()}
             className="animate-fade-in custom-scrollbar" 
             style={{
+              margin: 'auto',
               width: '100%',
               maxWidth: '820px',
               borderRadius: '28px',
               backgroundColor: 'var(--bg-surface)',
               border: '1px solid var(--border-color)',
-              boxShadow: '0 30px 80px rgba(0, 0, 0, 0.22), 0 4px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-              maxHeight: '90vh',
+              boxShadow: '0 30px 80px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+              maxHeight: 'calc(100vh - 4rem)',
               overflowY: 'auto',
               overscrollBehavior: 'contain',
               position: 'relative',
@@ -2262,7 +2261,8 @@ export default function Stories() {
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Styled card interactions */}

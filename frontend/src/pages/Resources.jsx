@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Search, Download, Plus, X, Folder, Lock, Globe, Shield, 
@@ -1311,9 +1312,39 @@ export default function Resources() {
       )}
 
       {/* 100MB STREAMING FILE UPLOAD MODAL */}
-      {isUploadModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '540px', borderRadius: '20px', padding: '2rem', border: '1px solid var(--border-color)', boxShadow: '0 30px 60px rgba(0,0,0,0.6)' }}>
+      {isUploadModalOpen && createPortal(
+        <div 
+          onClick={() => !isUploading && setIsUploadModalOpen(false)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.75)', 
+            backdropFilter: 'blur(12px)', 
+            WebkitBackdropFilter: 'blur(12px)', 
+            zIndex: 100000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel custom-scrollbar" 
+            style={{ 
+              margin: 'auto',
+              width: '100%', 
+              maxWidth: '560px', 
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              borderRadius: '20px', 
+              padding: '2rem', 
+              border: '1px solid var(--border-color)', 
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6)' 
+            }}
+          >
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1540,13 +1571,44 @@ export default function Resources() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* CREATE FOLDER MODAL */}
-      {isFolderModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', borderRadius: '20px', padding: '2rem', border: '1px solid var(--border-color)', boxShadow: '0 30px 60px rgba(0,0,0,0.6)' }}>
+      {isFolderModalOpen && createPortal(
+        <div 
+          onClick={() => setIsFolderModalOpen(false)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.75)', 
+            backdropFilter: 'blur(12px)', 
+            WebkitBackdropFilter: 'blur(12px)', 
+            zIndex: 100000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel custom-scrollbar" 
+            style={{ 
+              margin: 'auto',
+              width: '100%', 
+              maxWidth: '480px', 
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              borderRadius: '20px', 
+              padding: '2rem', 
+              border: '1px solid var(--border-color)', 
+              boxShadow: '0 30px 60px rgba(0,0,0,0.6)' 
+            }}
+          >
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1637,13 +1699,44 @@ export default function Resources() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDIT FOLDER MODAL */}
-      {editingFolder && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', borderRadius: '20px', padding: '2rem', border: '1px solid var(--border-color)' }}>
+      {editingFolder && createPortal(
+        <div 
+          onClick={() => setEditingFolder(null)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.75)', 
+            backdropFilter: 'blur(12px)', 
+            WebkitBackdropFilter: 'blur(12px)', 
+            zIndex: 100000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel custom-scrollbar" 
+            style={{ 
+              margin: 'auto',
+              width: '100%', 
+              maxWidth: '480px', 
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              borderRadius: '20px', 
+              padding: '2rem', 
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6)'
+            }}
+          >
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1718,13 +1811,44 @@ export default function Resources() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDIT RESOURCE METADATA MODAL */}
-      {editingResource && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', borderRadius: '20px', padding: '2rem', border: '1px solid var(--border-color)' }}>
+      {editingResource && createPortal(
+        <div 
+          onClick={() => setEditingResource(null)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.75)', 
+            backdropFilter: 'blur(12px)', 
+            WebkitBackdropFilter: 'blur(12px)', 
+            zIndex: 100000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel custom-scrollbar" 
+            style={{ 
+              margin: 'auto',
+              width: '100%', 
+              maxWidth: '480px', 
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              borderRadius: '20px', 
+              padding: '2rem', 
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6)'
+            }}
+          >
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1798,13 +1922,45 @@ export default function Resources() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* DELETE CONFIRMATION MODAL */}
-      {deleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', borderRadius: '20px', padding: '2rem', border: '1px solid rgba(255, 69, 58, 0.3)', textAlign: 'center' }}>
+      {deleteConfirm && createPortal(
+        <div 
+          onClick={() => setDeleteConfirm(null)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+            backdropFilter: 'blur(12px)', 
+            WebkitBackdropFilter: 'blur(12px)', 
+            zIndex: 100000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel custom-scrollbar" 
+            style={{ 
+              margin: 'auto',
+              width: '100%', 
+              maxWidth: '440px', 
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              borderRadius: '20px', 
+              padding: '2rem', 
+              border: '1px solid rgba(255, 69, 58, 0.3)', 
+              textAlign: 'center',
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6)'
+            }}
+          >
             <AlertCircle size={48} color="#ff453a" style={{ marginBottom: '1rem' }} />
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.5rem 0' }}>
               Confirm Permanent Deletion
@@ -1842,7 +1998,8 @@ export default function Resources() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 

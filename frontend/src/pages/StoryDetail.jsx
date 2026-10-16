@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Download, FileText, Award, Code, BookOpen, Layers, X, Edit, Trash2, Plus, 
@@ -2414,34 +2415,41 @@ export default function StoryDetail() {
 
 
       {/* Edit Story Details Overlay Modal */}
-      {isEditing && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.45)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1.5rem'
-        }}>
-          <div className="glass-panel animate-fade-in" style={{
-            width: '100%',
-            maxWidth: '650px',
-            borderRadius: '24px',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)',
-            position: 'relative',
-            padding: '2rem',
-            maxHeight: '85vh',
+      {isEditing && createPortal(
+        <div 
+          onClick={() => setIsEditing(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            zIndex: 100000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2.5rem 1rem',
             overflowY: 'auto',
-            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.1) inset'
-          }}>
+            overscrollBehavior: 'contain'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel animate-fade-in custom-scrollbar" 
+            style={{
+              margin: 'auto',
+              width: '100%',
+              maxWidth: '650px',
+              borderRadius: '24px',
+              backgroundColor: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              position: 'relative',
+              padding: '2rem',
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.1) inset'
+            }}
+          >
             <button 
               onClick={() => setIsEditing(false)}
               style={{
@@ -2983,7 +2991,8 @@ export default function StoryDetail() {
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 

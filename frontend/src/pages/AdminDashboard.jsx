@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Check, X, ShieldAlert, Plus, Trash2, Users, Clock, Edit, FileText, 
@@ -3202,24 +3203,21 @@ export default function AdminDashboard() {
     </div>
 
     {/* Glassmorphic Edit Details Overlay Modal */}
-    {editingItem && (
+    {editingItem && createPortal(
         <div 
           onClick={() => setEditingItem(null)}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 1000,
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            zIndex: 100000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem',
-            overflow: 'hidden',
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
             overscrollBehavior: 'contain'
           }}
         >
@@ -3227,6 +3225,7 @@ export default function AdminDashboard() {
             onClick={(e) => e.stopPropagation()}
             className="glass-panel animate-fade-in custom-scrollbar" 
             style={{
+              margin: 'auto',
               width: '100%',
               maxWidth: '650px',
               borderRadius: '24px',
@@ -3234,7 +3233,7 @@ export default function AdminDashboard() {
               border: '1px solid var(--border-color)',
               position: 'relative',
               padding: '2rem',
-              maxHeight: '85vh',
+              maxHeight: 'calc(100vh - 4rem)',
               overflowY: 'auto',
               overscrollBehavior: 'contain',
               boxShadow: '0 24px 60px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.1) inset'
@@ -4437,28 +4436,26 @@ export default function AdminDashboard() {
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Glassmorphic Preview Story Details Overlay Modal */}
-      {previewingPendingStory && (
+      {previewingPendingStory && createPortal(
         <div 
           onClick={() => setPreviewingPendingStory(null)}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 1000,
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            zIndex: 100000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem',
-            overflow: 'hidden',
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
             overscrollBehavior: 'contain'
           }}
         >
@@ -4466,6 +4463,7 @@ export default function AdminDashboard() {
             onClick={(e) => e.stopPropagation()}
             className="glass-panel animate-fade-in custom-scrollbar" 
             style={{
+              margin: 'auto',
               width: '100%',
               maxWidth: '750px',
               borderRadius: '24px',
@@ -4473,7 +4471,7 @@ export default function AdminDashboard() {
               border: '1px solid var(--border-color)',
               position: 'relative',
               padding: '2.5rem',
-              maxHeight: '85vh',
+              maxHeight: 'calc(100vh - 4rem)',
               overflowY: 'auto',
               overscrollBehavior: 'contain',
               boxShadow: '0 24px 60px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.1) inset'
@@ -4796,28 +4794,26 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Glassmorphic Preview Resource Details Overlay Modal */}
-      {previewingPendingResource && (
+      {previewingPendingResource && createPortal(
         <div 
           onClick={() => setPreviewingPendingResource(null)}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 1000,
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            zIndex: 100000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem',
-            overflow: 'hidden',
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
             overscrollBehavior: 'contain'
           }}
         >
@@ -4825,6 +4821,7 @@ export default function AdminDashboard() {
             onClick={(e) => e.stopPropagation()}
             className="glass-panel animate-fade-in custom-scrollbar" 
             style={{
+              margin: 'auto',
               width: '100%',
               maxWidth: '550px',
               borderRadius: '24px',
@@ -4832,7 +4829,7 @@ export default function AdminDashboard() {
               border: '1px solid var(--border-color)',
               position: 'relative',
               padding: '2.5rem',
-              maxHeight: '85vh',
+              maxHeight: 'calc(100vh - 4rem)',
               overflowY: 'auto',
               overscrollBehavior: 'contain',
               boxShadow: '0 24px 60px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.1) inset'
@@ -4974,37 +4971,44 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Move Resource / File Modal */}
-      {movingResourceItem && (
+      {movingResourceItem && createPortal(
         <div
           className="modal-backdrop"
           onClick={() => setMovingResourceItem(null)}
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10000,
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            padding: '1rem'
+            zIndex: 100000,
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
           }}
         >
           <div
-            className="loop-card"
+            className="loop-card custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
             style={{
+              margin: 'auto',
               width: '100%',
               maxWidth: '480px',
               backgroundColor: 'var(--bg-primary)',
               borderRadius: '20px',
               border: '1px solid var(--border-color)',
               padding: '2rem',
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
               boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
               position: 'relative'
             }}
@@ -5070,37 +5074,44 @@ export default function AdminDashboard() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Folder Modal */}
-      {editingFolderItem && (
+      {editingFolderItem && createPortal(
         <div 
           className="modal-backdrop" 
           onClick={() => setEditingFolderItem(null)}
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10000,
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            padding: '1rem'
+            zIndex: 100000,
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            padding: '2.5rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
           }}
         >
           <div 
-            className="loop-card" 
+            className="loop-card custom-scrollbar" 
             onClick={(e) => e.stopPropagation()}
             style={{
+              margin: 'auto',
               width: '100%',
               maxWidth: '480px',
               backgroundColor: 'var(--bg-primary)',
               borderRadius: '20px',
               border: '1px solid var(--border-color)',
               padding: '2rem',
+              maxHeight: 'calc(100vh - 4rem)',
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
               boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
               position: 'relative'
             }}
@@ -5185,7 +5196,8 @@ export default function AdminDashboard() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 

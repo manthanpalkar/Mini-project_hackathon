@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { UploadCloud, X, CheckCircle, FileText, AlertCircle } from 'lucide-react';
 import { MAX_FILE_SIZE, formatBytes, validateFile } from '../utils/upload';
 import UploadProgress from './UploadProgress';
@@ -84,34 +85,42 @@ export default function FileUploadModal({
     onClose();
   };
 
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '1.25rem'
-    }}>
-      <div style={{
-        backgroundColor: 'var(--bg-primary, #1c1c1e)',
-        border: '1px solid var(--border-color, #38383a)',
-        borderRadius: '24px',
-        width: '100%',
-        maxWidth: '560px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6)',
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div 
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         display: 'flex',
-        flexDirection: 'column'
-      }}>
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100000,
+        padding: '2.5rem 1rem',
+        overflowY: 'auto',
+        overscrollBehavior: 'contain'
+      }}
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          margin: 'auto',
+          backgroundColor: 'var(--bg-primary, #1c1c1e)',
+          border: '1px solid var(--border-color, #38383a)',
+          borderRadius: '24px',
+          width: '100%',
+          maxWidth: '560px',
+          maxHeight: 'calc(100vh - 4rem)',
+          overflowY: 'auto',
+          boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         {/* Header */}
         <div style={{
           padding: '1.25rem 1.75rem',
@@ -361,6 +370,7 @@ export default function FileUploadModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

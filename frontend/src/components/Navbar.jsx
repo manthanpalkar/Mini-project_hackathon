@@ -633,10 +633,7 @@ export default function Navbar() {
         onClick={() => { setShowProfileModal(false); setError(''); setSuccess(''); }}
         style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.45)',
           backdropFilter: 'blur(30px) saturate(190%)',
           WebkitBackdropFilter: 'blur(30px) saturate(190%)',
@@ -644,8 +641,8 @@ export default function Navbar() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '2rem 1.5rem',
-          overflow: 'hidden',
+          padding: '2.5rem 1rem',
+          overflowY: 'auto',
           overscrollBehavior: 'contain',
           pointerEvents: 'auto'
         }}
@@ -654,13 +651,14 @@ export default function Navbar() {
           onClick={(e) => e.stopPropagation()}
           className="animate-fade-in custom-scrollbar"
           style={{
+            margin: 'auto',
             width: '100%',
             maxWidth: '680px',
             borderRadius: '28px',
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             boxShadow: '0 30px 80px rgba(0, 0, 0, 0.28), 0 4px 20px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            maxHeight: '90vh',
+            maxHeight: 'calc(100vh - 4rem)',
             overflowY: 'auto',
             overscrollBehavior: 'contain',
             position: 'relative',
