@@ -1,172 +1,283 @@
-# 🚀 LOOP — Launchpad Of Outstanding Placements
+# LOOP — Launchpad Of Outstanding Placements
 
 [![React](https://img.shields.io/badge/React-19.0-blue?logo=react&style=flat-square)](https://react.dev/)
 [![Node](https://img.shields.io/badge/Node.js-Express-green?logo=node.js&style=flat-square)](https://nodejs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
-[![Vercel](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://vercel.com/)
-[![Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&style=flat-square)](https://render.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
+[![Tests](https://img.shields.io/badge/Automated_Tests-45_Passed-success?style=flat-square)](backend/tests/)
+[![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
+[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&style=flat-square)](https://loop-qnh9.onrender.com/)
 
-**LOOP** is a premium, community-driven placement preparation portal designed for college students to bridge the gap between academic learning and real-world placement success. It acts as a localized knowledge-sharing ecosystem where juniors learn directly from the verified journeys, preparation roadmaps, and resumes of successful seniors and alumni.
-
----
-
-## ✨ Live Demo & Credentials
-
-Experience the live application deployed across standard cloud providers:
-
-* 🌐 **Live Website (Frontend)**: [https://loop-seven-delta.vercel.app/](https://loop-seven-delta.vercel.app/)
-* ⚙️ **API Server (Backend)**: [https://loop-qnh9.onrender.com/](https://loop-qnh9.onrender.com/)
-* 📦 **Cloud Database**: MongoDB Atlas Sandbox
-
-### 🔑 Test Access Credentials
-You can log in to the portal using this pre-registered account to explore features:
-* **Email Address**: `student@spit.ac.in`
-* **Password**: `student123`
-
-
+**LOOP** is a high-performance, institutional placement preparation portal engineered for college students and alumni. It bridges the gap between theoretical classroom learning and competitive campus hiring by creating a verified knowledge-sharing ecosystem. Juniors learn directly from the 4-year roadmaps, actual interview questions, and verified resumes of seniors placed at top engineering and technology firms.
 
 ---
 
-## 🌟 Real-World Problems Solved
+## Deployments & Demo Access
 
-Many college students struggle during the placement season not because of a lack of talent, but due to a lack of guidance and clarity. LOOP solves several critical real-world problems:
+| Environment | Service | URL |
+| :--- | :--- | :--- |
+| **Frontend** | Production Single Page Application | [https://loop-seven-delta.vercel.app/](https://loop-seven-delta.vercel.app/) |
+| **Backend** | Production RESTful API Server | [https://loop-qnh9.onrender.com/](https://loop-qnh9.onrender.com/) |
+| **Database** | Managed Cloud Database | MongoDB Atlas + GridFS Storage |
+
+### Demo Credentials
+
+You can explore role-based features using these test accounts or your campus Google account:
+
+* **Student Account**:
+  * Email: `student@spit.ac.in`
+  * Password: `student123`
+* **Google OAuth**:
+  * Any active institutional `@spit.ac.in` Google account can log in or register directly via the Google Sign-In button.
+
+---
+
+## Core Problems Solved
 
 ### 1. The "Where to Start?" Dilemma (Lack of Roadmaps)
-* **Problem**: Most college students want to prepare for top-tier companies but have no structured roadmap. They don't know what to focus on in their 1st, 2nd, 3rd, or 4th years.
-* **Solution**: LOOP features a detailed, year-by-year timeline (`firstYear`, `secondYear`, `thirdYear`, `fourthYear` journeys) for every senior story. Juniors can see exactly when seniors started DSA, when they built projects, and when they applied for internships.
+* **Problem**: College students frequently feel overwhelmed when preparing for technical hiring, lacking guidance on when to begin DSA, system design, or full-stack projects.
+* **Solution**: LOOP structures senior stories into progressive year-by-year timelines (`First Year`, `Second Year`, `Third Year`, and `Fourth Year`), giving juniors actionable milestones for each academic semester.
 
-### 2. Resume Building Ambiguity
-* **Problem**: College students struggle to build competitive resumes. They don't know what templates to use or what projects are valued.
-* **Solution**: LOOP allows seniors to upload their actual resumes. Juniors can view successful resumes that secured shortlists at companies like Microsoft, NVIDIA, Cisco, and Zoho.
+### 2. Resume & Portfolio Ambiguity
+* **Problem**: Students often struggle to understand what technical project depth or resume layouts recruiters actually value.
+* **Solution**: Seniors upload their verified resumes and technical portfolio items directly to MongoDB GridFS. Juniors can inspect successful resume templates that secured shortlists at companies such as Microsoft, Cisco, NVIDIA, and Morgan Stanley.
 
-### 3. Gap Between Theory and Practical Interviews
-* **Problem**: Online preparation resources are generic, while actual campus recruitment processes are highly specific.
-* **Solution**: Every profile contains a **"How I Secured My Placement"** section that breaks down the exact rounds:
-  * Online Assessment (OA) topics and difficulty.
-  * Technical Interview coding questions (e.g., trees, graphs, system design).
-  * HR round details and behavioral expectations.
+### 3. Disconnect Between Theory and Actual Interviews
+* **Problem**: Standard online coding platforms offer generic problem sets that rarely mirror campus-specific hiring workflows.
+* **Solution**: Every senior story features an interview breakdown detailing:
+  * Online Assessment (OA) platforms, topics, and problem difficulty.
+  * Technical interview questions, system architecture discussions, and coding prompts.
+  * Behavioral and HR round questions and expectations.
 
-### 4. Fragmented & Unverified Study Resources
-* **Problem**: Students waste hours sorting through low-quality or outdated tutorials and sheets.
-* **Solution**: LOOP features a curated **Study Resources** portal structured into hierarchical folders where high-achieving seniors upload verified roadmaps, cheat sheets, and books, which are then vetted by administrators.
-
----
-
-## ⚡ Performance Optimizations (High-Performance Engine)
-
-To deliver a premium, fluid user experience, several state-of-the-art web optimizations have been engineered into the platform:
-
-* **Stale-While-Revalidate (SWR) Cache Layer**: Implemented custom cached hooks that fetch data from an in-memory registry and synchronize it to `sessionStorage`. Page transitions load in **0ms** from cache while re-fetching from the server in the background to ensure data is never stale.
-* **Optimistic UI State Updates**: User actions (approving/rejecting stories, deleting resources, and adding folders) reflect in the UI **instantly** before the API request completes, rolling back automatically only if an error is encountered.
-* **Parallelized Fetches**: Backend fetching in the Admin Dashboard is parallelized using `Promise.all`, resolving all queues and metrics simultaneously to speed up dashboard loads by **~7x**.
-* **Hardware-Accelerated Skeleton Loaders**: Implemented custom shimmering keyframe skeleton grids (`.skeleton-pulse` and CSS shimmers) to ensure visually smooth loading states during initial cold loads.
-* **Large File Upload Optimization**: Express payloads are scaled up to `200mb` on the backend, paired with an extended client-side upload timeout of **10 minutes** to support large PDF resource uploads.
+### 4. Fragmented & Unvetted Study Materials
+* **Problem**: Useful notes, interview sheets, and curated links are often lost across scattered chat groups and dead links.
+* **Solution**: LOOP provides an academic study vault arranged in hierarchical folders (`/DSA`, `/System Design`, `/Web Dev`, `/Core CS`). All contributions undergo administrative verification before going live.
 
 ---
 
-## 🛠️ Technology Stack & Languages
+## Architecture & Technology Stack
 
-| Component | Technology | Use Case |
+```
+   ┌─────────────────────────────────────────────────────────────────┐
+   │                         CLIENT BROWSER                          │
+   │   React 19 (Vite 8) • React Router v7 • Lucide Icons • SWR      │
+   └───────────────────────────────┬─────────────────────────────────┘
+                                   │ HTTPS / REST JSON
+                                   ▼
+   ┌─────────────────────────────────────────────────────────────────┐
+   │                       NODE.JS / EXPRESS API                     │
+   │  Helmet CSP • Dual-Tier Rate Limiting • UserAuthCache • JWT     │
+   └───────────────┬───────────────────────────────┬─────────────────┘
+                   │ Mongoose ODM                  │ Stream Protocol
+                   ▼                               ▼
+   ┌───────────────────────────────┐ ┌───────────────────────────────┐
+   │      MONGODB ATLAS NO-SQL     │ │    MONGODB GRIDFS BUCKETS     │
+   │  Users • Stories • Resources  │ │   fs.files • fs.chunks (200MB)│
+   └───────────────────────────────┘ └───────────────────────────────┘
+```
+
+| Layer | Technologies | Implementation Details |
 | :--- | :--- | :--- |
-| **Frontend** | **React 19** (Vite 8) | Single Page Application UI with React Router v7. |
-| **Styling** | **Vanilla CSS Variables** | Glassmorphic, premium dark theme design with micro-animations. |
-| **Caching** | **SWR Hooks** | Instant cache loading, stale-while-revalidate background sync. |
-| **Backend** | **Node.js + Express** | RESTful API server with custom security filters. |
-| **Database** | **MongoDB Atlas** | Managed cloud NoSQL database. |
-| **ODM** | **Mongoose** | Schema modeling and index-optimized validation. |
+| **Frontend UI** | **React 19**, **Vite 8**, **React Router v7** | Single Page Application with Apple-minimalist liquid glass styling, responsive grid layouts, and zero-emoji design. |
+| **Icons & Styling** | **Lucide React**, **CSS Variables** | Cohesive vector iconography, pill buttons (`999px`), subtle contrast borders, and GPU-accelerated micro-interactions. |
+| **State & Caching** | **Custom SWR Hooks**, `sessionStorage` | Stale-while-revalidate client cache providing **0ms** navigation transitions with optimistic background revalidation. |
+| **Backend API** | **Node.js (v18+)**, **Express 4.19** | Stateless REST server with route-level input validation, rate limiting, and centralized error sanitization. |
+| **Database** | **MongoDB Atlas**, **Mongoose 8** | Schema validation, compound indexing, deterministic sorting, and relationship population. |
+| **Binary Storage** | **MongoDB GridFS** (`fs.files`, `fs.chunks`) | Chunked document and PDF streaming up to 200MB directly within database clusters. |
+| **Authentication** | **JWT**, **Google OAuth 2.0** | Cryptographic token rotation, campus domain validation (`@spit.ac.in`), and in-memory LRU auth cache. |
 
 ---
 
-## 📂 Codebase Architecture
+## Functional Modules
 
-The project is structured as a full-stack Javascript repository containing separate, modular directories for the frontend application and backend API services:
+### 1. Senior Stories Archive
+* **3D Interactive Perspective Cards**: Real-time cursor tracking tilt effect (`Story3DCard`) rendering key placement stats, student avatars, and company badges.
+* **Hinge-Style Story Prompts**: Structured blocks separating personal golden rules, preparation strategy, and round-by-round interview breakdowns.
+* **Archive Contribution Modal**: Liquid glass modal with quick-jump section anchors, reusable templates (`+ Insert Project Template`, `+ Insert Rounds Template`, `+ Insert Advice Template`), and custom section prompts.
+* **Resume & Attachment Handling**: Integrated file upload with instant client preview and GridFS storage.
+
+### 2. Academic Vault & Hierarchical Folders
+* **Nested Directory Tree**: Dynamic folder structure supporting arbitrary depth (e.g., `/DSA/Trees/Roadmap.pdf`).
+* **Multi-Format Media Streamer**: In-browser document viewer supporting high-resolution PDF rendering via `pdfjs-dist` and inline image review.
+* **Tag-Based Filtering**: Search and filter resources by technical topic, file type, or contributor branch.
+
+### 3. Administrative Moderation Hub
+* **Two-Tier Approval Queues**: Dedicated staging queues for pending stories and resources to guarantee content quality.
+* **Optimistic Actions**: Approvals and rejections execute instantly in the UI with automatic rollback upon failure.
+* **Role Governance**: Secure administration dashboard for monitoring student registrations, profile updates, and system metrics.
+
+### 4. Hall of Fame & Achievements
+* **Curated Milestones**: Showcase top campus achievements, competitive programming rankings, and hackathon wins.
+* **Rich Metadata**: Verified team rosters, external repository links, and photographic proof of accomplishments.
+
+---
+
+## Security & Scalability Engineering
+
+### Institutional Google OAuth & Domain Restriction
+* All Google OAuth sign-in and registration attempts strictly enforce the `@spit.ac.in` domain at both the OAuth verifier and database schema levels. Non-institutional accounts are rejected with an explicit `403 Forbidden` response.
+
+### High-Performance UserAuthCache
+* An in-memory LRU authentication cache caches verified user records with a 5-minute TTL to reduce database lookup overhead during frequent authenticated requests.
+* **Event-Driven Eviction**: The cache immediately purges affected keys upon role changes, account suspensions, or password modifications.
+
+### Dual-Tier Campus Rate Limiting
+* **Global Tier**: Accommodates shared campus lab NAT IP addresses with up to 1,500 requests per 15-minute window.
+* **Sensitive Tier**: Strict brute-force protection on authentication, signup, and password verification endpoints.
+
+### Defense-in-Depth Hardening
+* **ReDoS Prevention**: Sanitizes user search inputs using `escapeRegExp` to prevent catastrophic regular expression backtracking.
+* **Privilege Escalation Protection**: Onboarding, registration, and user edit endpoints strictly prohibit self-assignment of administrative roles.
+* **File Upload Security**: Enforces a strict MIME-type whitelist for educational documents and images while rejecting executable extensions (`.exe`, `.sh`, `.bat`, `.msi`, `.dll`).
+* **HTTP Security Headers**: Strict Content Security Policy (CSP), frameguard rules, and restricted CORS allowlists configured via Helmet.
+
+---
+
+## Codebase Structure
 
 ```text
 loop/
-├── backend/                  # REST API Server & Database Models
-│   ├── uploads/              # Local storage folder for PDF/image uploads
-│   ├── models.js             # Mongoose database schemas & models
-│   ├── server.js             # API entrypoint, routers, and CORS/Helmet configuration
-│   └── seed.js               # Database hydration seeding script
+├── backend/
+│   ├── middlewares/          # JWT verification & token rotation middleware
+│   ├── services/             # Google OAuth & GridFS file storage services
+│   ├── tests/                # 45 automated unit and integration tests
+│   ├── models.js             # Mongoose schemas & compound database indexes
+│   ├── server.js             # Express API server, routes, & security filters
+│   ├── seed.js               # Database seeding and demo hydration scripts
+│   ├── .env.example          # Backend environment variable template
+│   └── package.json          # Backend dependencies & npm scripts
 │
-├── frontend/                 # React Single Page Application (Vite)
-│   ├── public/               # Static assets & public preview resources
+├── frontend/
 │   ├── src/
-│   │   ├── assets/           # Visual UI artwork and vector logos
-│   │   ├── components/       # Reusable components (e.g. Navbar.jsx)
-│   │   ├── hooks/            # Custom hooks (e.g. useCachedData.js for SWR caching)
-│   │   ├── pages/            # View pages (e.g. AdminDashboard.jsx, Onboarding.jsx)
-│   │   ├── utils/            # Shared utilities (e.g. db.js for API fetch hooks)
-│   │   ├── App.jsx           # App layout, router routing, and login context
-│   │   └── main.jsx          # Entry script binding React to the DOM
-│   ├── vercel.json           # Vercel deployment URL rewrites & route controllers
-│   └── vite.config.js        # Vite build bundler configuration
+│   │   ├── assets/           # Vector branding and illustrations
+│   │   ├── components/       # Reusable UI widgets, Navbar, modals, & viewers
+│   │   ├── context/          # React contexts for authentication & theme state
+│   │   ├── hooks/            # Custom hooks (SWR useCachedData, etc.)
+│   │   ├── pages/            # Views (Stories, Resources, Admin, Login, etc.)
+│   │   ├── utils/            # API client wrappers & database helpers
+│   │   ├── App.jsx           # Main application routing & protected route guards
+│   │   └── main.jsx          # DOM entry point
+│   ├── public/               # Public assets and fallback avatars
+│   ├── vercel.json           # SPA rewrite rules for production hosting
+│   ├── .env.example          # Frontend environment variable template
+│   └── package.json          # Frontend dependencies & npm scripts
 │
-└── README.md                 # Complete project documentation & roadmap
+├── PHASE3_EVALUATION_REPORT.md # Comprehensive 25-mark evaluation audit & viva prep
+└── README.md                 # Complete project documentation
 ```
 
 ---
 
-## 📂 Core Database Schema Models
+## Automated Test Suite
 
-The database is structured into models that manage user access, student journeys, study folders, and files:
+LOOP includes an automated test suite executed with the native Node.js test runner:
 
-1. **User Model**: Handles role-based authentication (`Administrator`, `Senior / Contributor`, `Alumni / Contributor`, and `Student`).
-2. **Story Model**: Stores placement details (CGPA, Branch, Company, Role, Year Placed) and the 4-year roadmap/interview breakdown.
-3. **PendingStory Model**: Holds newly submitted or edited stories in a moderation queue for administrator approval.
-4. **Resource & PendingResource Models**: Manages study links, PDF roadmaps, and cheat sheets.
-5. **Folder Model**: Manages the folder directory structure so resources can be nested in folders like `/DSA`, `/System Design`, or `/Web Dev`.
-6. **Achievement Model**: Highlights key college achievements, hackathon victories, and outstanding selections.
+```bash
+cd backend
+npm test
+```
+
+### Test Coverage Summary (45 / 45 Tests Passing)
+
+* **Google OAuth & Domain Restriction (11 tests)**: Institutional `@spit.ac.in` domain enforcement, token verification, account linking, and signup validation.
+* **Rate Limiting & Abuse Prevention (2 tests)**: Shared-IP campus lab tolerance (1,500 req/15min) and sensitive route rate limiting.
+* **UserAuthCache (5 tests)**: Storage and retrieval, TTL expiration, event-driven invalidation on role changes, and LRU cache eviction.
+* **Pagination & Query Optimization (2 tests)**: Standardized page limits, offset calculation, and pagination response headers.
+* **Database Indexes & Sorting (2 tests)**: Compound index validation for Story, Resource, and Folder models.
+* **Security & Vulnerability Fixes (9 tests)**: CORS allowlist validation, JWT secret strength, ReDoS escaping, privilege escalation blocking, and path traversal prevention.
+* **Database Storage Resiliency (2 tests)**: Storage quota error handling and safe error messaging.
+* **GridFS File Validation & Storage (9 tests)**: 200MB file limit enforcement, format classification, and executable file blocking.
+* **System Metrics & Token Rotation (3 tests)**: Health metrics reporting, bearer token validation, and automatic token renewal.
 
 ---
 
-## 🎨 UI/UX Design & Hinge Aesthetic Inspiration
+## Getting Started
 
-The user interface of **LOOP** is heavily inspired by the modern, premium aesthetic of **Hinge**. 
-Just as Hinge is designed to connect people through clean, rich user profiles and prompts, LOOP is designed to connect juniors with seniors through high-fidelity, readable storytelling.
-* **Premium Typography & Contrast**: Incorporates bold serif headlines paired with clean sans-serif body fonts for a modern, editorial magazine feel.
-* **Storytelling Prompts**: Instead of dry text blocks, senior journeys are split into engaging, prompts (e.g., "1st Year Strategy", "Preparation Strategy & Tips", "How I Secured My Placement") that mirror Hinge's famous profile prompt layout.
-* **Glassmorphic Cards**: Features sleek dark-themed backing panels with light translucent borders and subtle drop shadows to create layer depth.
+### Prerequisites
+* **Node.js**: v18.0.0 or higher
+* **npm**: v9.0.0 or higher
+* **MongoDB**: A running local MongoDB instance or a free MongoDB Atlas connection string
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/swapnil-exxe/loop.git
+cd loop
+```
+
+### 2. Configure Backend
+```bash
+cd backend
+npm install
+cp .env.example .env
+```
+
+Edit `backend/.env` with your configuration:
+```env
+PORT=5001
+MONGODB_URI=your_mongodb_atlas_connection_string
+JWT_SECRET=your_super_secret_jwt_key
+ALLOWED_ORIGIN=http://localhost:5173
+GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
+
+### 3. Configure Frontend
+```bash
+cd ../frontend
+npm install
+cp .env.example .env
+```
+
+Edit `frontend/.env`:
+```env
+VITE_API_URL=http://localhost:5001/api
+VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+```
+
+### 4. Seed Database (Optional)
+Hydrate your database with sample placement stories and resources:
+```bash
+cd ../backend
+npm run seed
+```
+
+### 5. Run the Application
+Open two separate terminal windows:
+
+* **Terminal 1 (Backend API)**:
+  ```bash
+  cd backend
+  npm run dev
+  # Server starts on http://localhost:5001
+  ```
+
+* **Terminal 2 (Frontend Client)**:
+  ```bash
+  cd frontend
+  npm run dev
+  # Client starts on http://localhost:5173
+  ```
 
 ---
 
-## 📅 2-Month Development Journey & Challenges Overcome
+## Git Workflow & Branching Strategy
 
-Building **LOOP** from an idea to a fully optimized, production-ready portal was a 2-month journey of active engineering. Here is the week-by-week timeline of how the application was built and the technical challenges solved along the way:
+The project adheres to structured Git conventions:
 
-### 🛠️ Phase 1: Foundation & Layout Design (Weeks 1-2)
-* **Goal**: Establish the theme, layout, routing structure, and database models.
-* **Key Achievements**:
-  * Set up a responsive CSS framework with customized variables for a premium dark mode, glassmorphic card panels, and navigation bars.
-  * Configured React Router v7 for routing and navigation structures.
-* **Challenges & Solutions**: 
-  * *CSS layout collapses*: On mobile viewports, dashboard grids collapsed. Solved by implementing dynamic viewport calculations (`dvh`) and flexible CSS grid layouts.
-  * *Hinge-inspired layout integration*: Integrating the prompt-based card structure without breaking vertical margins. Solved by defining absolute padding structures and modular flexbox columns.
+* **Branching Model**:
+  * `main`: Production-ready branch deployed to Vercel and Render.
+  * `feature/*`: Isolated branches for new modules or enhancements.
+  * `bugfix/*` / `fix/*`: Targeted patches and issue resolutions.
+* **Commit Conventions**: Conventional commits format (`feat:`, `fix:`, `style:`, `test:`, `docs:`, `refactor:`).
 
-### 🔑 Phase 2: User Access & Role-Based Security (Weeks 3-4)
-* **Goal**: Secure the site and build registration, onboarding, and role-based login interfaces.
-* **Key Achievements**:
-  * Developed registration and onboarding portals where new students fill in their current branch, year, CGPA, and placement status.
-  * Programmed secure JWT-based backend controllers and passport-style token interceptors.
-* **Challenges & Solutions**:
-  * *Password visibility issues*: Users often typed incorrect passwords during login with no way to verify. Solved by implementing a custom eye icon component with responsive toggle states.
-  * *Role verification leak*: Standard security interceptors let logged-in students access raw admin routes. Solved by implementing backend Express middleware filters (`requireAdmin`) that verify database user documents on each request.
+---
 
-### 📂 Phase 3: Data Management & File Upload Architecture (Weeks 5-6)
-* **Goal**: Create the stories database model, administrative moderation dashboard, and study folder resources portal.
-* **Key Achievements**:
-  * Developed the hierarchical folder management engine, enabling nesting of links and PDF files like `/DSA/Trees/Roadmap.pdf`.
-  * Created the Admin Panel moderation queues for vetting senior stories and study resource files.
-* **Challenges & Solutions**:
-  * *Admin Form Data Missing on Edit*: Clicking "Edit" on active stories loaded empty rich-text fields (journey roadmaps and attached files) because the backend list endpoint excluded those heavy fields. Solved by redesigning the React action pipeline to trigger background API fetches via `getStoryById(item.id)` to load complete data.
-  * *Recursive Folder Deletions*: Deleting a folder left its nested subfolders and resources orphaned in the database. Solved by writing a recursive database clean-up transaction that automatically sweeps all children when a parent folder is deleted.
+## Evaluation & Documentation
 
-### ⚡ Phase 4: Scaling, Performance & Security Hardening (Weeks 7-8)
-* **Goal**: Optimize page speed, resolve cloud bugs, and prepare the site for public production deployment.
-* **Key Achievements**:
-  * Programmed custom cache registries (`sessionStorage` SWR layers) and parallelized Express API calls using `Promise.all` to accelerate dashboard speeds.
-  * Configured build-time lint checks to clear all warnings and prevent build crashes.
-  * Audited the entire codebase's API queries to prevent SQL/NoSQL Injection attacks and secure raw user inputs.
-* **Challenges & Solutions**:
-  * *PDF Preview Connection Refused (CORS & Helmet)*: Direct embedding of PDF resumes inside `<iframe>` tags failed due to strict `frame-ancestors` policy. Solved by adjusting `helmet` frameguard settings on the Express server to white-list Vercel app domains.
-  * *Vercel SPA Route Refresh 404s*: Refreshing pages like `/admin` or `/resources` directly triggered Vercel 404 errors. Solved by adding a custom `vercel.json` rewrite configuration rule to redirect all traffic to `index.html`.
+For full Phase 3 viva preparation, architectural diagrams, API route catalogs, and Git commit evidence, refer to:
+* **[PHASE3_EVALUATION_REPORT.md](file:///Users/swapnil/Base%20Zero%20/Placement/PROJECT%20FILE/PHASE3_EVALUATION_REPORT.md)**: Comprehensive evaluation report with 32 viva questions and answers, Git branch analysis, and live demonstration checklist.
+
+---
+
+## License
+
+This project is developed for educational and academic use at Sardar Patel Institute of Technology (SPIT). All rights reserved.
