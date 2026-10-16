@@ -502,12 +502,12 @@ export default function Landing() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '2rem',
+            gap: '2.5rem',
             width: '100%',
             maxWidth: '1100px',
             margin: '0 auto',
-            padding: '1rem 0',
-            alignItems: 'center',
+            padding: '1.5rem 0',
+            alignItems: 'stretch',
             backgroundColor: '#ffffff'
           }}>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
@@ -517,10 +517,12 @@ export default function Landing() {
                 loading="lazy"
                 decoding="async"
                 style={{
-                  maxWidth: '100%',
+                  width: '100%',
+                  maxWidth: '520px',
                   height: 'auto',
-                  maxHeight: '480px',
-                  objectFit: 'contain'
+                  aspectRatio: '82 / 62',
+                  objectFit: 'contain',
+                  display: 'block'
                 }}
               />
             </div>
@@ -531,10 +533,12 @@ export default function Landing() {
                 loading="lazy"
                 decoding="async"
                 style={{
-                  maxWidth: '100%',
+                  width: '100%',
+                  maxWidth: '520px',
                   height: 'auto',
-                  maxHeight: '480px',
-                  objectFit: 'contain'
+                  aspectRatio: '82 / 62',
+                  objectFit: 'contain',
+                  display: 'block'
                 }}
               />
             </div>
