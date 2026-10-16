@@ -653,7 +653,7 @@ export const requestRegistration = async (email, password) => {
   });
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.error || 'Failed to submit registration request');
+    throw new Error(errData.error || 'Registration is temporarily unavailable. Please try again later.');
   }
   return res.json();
 };

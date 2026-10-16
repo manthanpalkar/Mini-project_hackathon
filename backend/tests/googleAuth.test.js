@@ -270,6 +270,33 @@ describe('Google OAuth & Domain Restriction', () => {
     assert.equal(res2.status, 400);
     const data2 = await res2.json();
     assert.match(data2.error, /Username must be 3-30 characters/i);
+
+    // Signup without username succeeds
+    let savedUser = null;
+    const origSave = User.prototype.save;
+    User.prototype.save = async function() {
+      savedUser = this;
+      return this;
+    };
+    try {
+      const res3 = await fetch(`${baseUrl}/api/auth/google/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken: testToken,
+          name: 'Val Student',
+          password: 'password123',
+          confirmPassword: 'password123'
+        })
+      });
+      assert.equal(res3.status, 201);
+      const data3 = await res3.json();
+      assert.equal(data3.action, 'LOGIN_SUCCESS');
+      assert.equal(data3.email, 'val.student@spit.ac.in');
+      assert.equal(savedUser.username, undefined);
+    } finally {
+      User.prototype.save = origSave;
+    }
   });
 
   test('Database Schema: User schema defines username, googleSub, and authProvider', () => {

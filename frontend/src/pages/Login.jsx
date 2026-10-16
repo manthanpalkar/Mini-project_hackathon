@@ -431,14 +431,6 @@ export default function Login() {
       setError('Full Name is required.');
       return;
     }
-    if (!googleSignupData.username.trim()) {
-      setError('Username is required.');
-      return;
-    }
-    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(googleSignupData.username.trim())) {
-      setError('Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.');
-      return;
-    }
     if (!googleSignupData.password || googleSignupData.password.length < 6) {
       setError('Password must be at least 6 characters long.');
       return;
@@ -455,14 +447,13 @@ export default function Login() {
       const result = await signupWithGoogle({
         idToken: googleIdToken,
         name: googleSignupData.name.trim(),
-        username: googleSignupData.username.trim(),
         password: googleSignupData.password,
         confirmPassword: googleSignupData.confirmPassword
       });
 
       handleLoginSuccess(result);
     } catch (err) {
-      setError(err.message || 'Failed to complete Google signup.');
+      setError(err.message || 'Registration is temporarily unavailable. Please try again later.');
       triggerCharacterState('IDLE');
     } finally {
       setLoading(false);
@@ -980,44 +971,6 @@ export default function Login() {
                       cursor: 'not-allowed',
                       opacity: 0.85
                     }}
-                  />
-                </div>
-              </div>
-
-              {/* Username (manually entered, unique) */}
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className="input-label" htmlFor="google-username" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                    Username *
-                  </label>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>3-30 chars</span>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="google-username"
-                    name="loop_new_username"
-                    type="text"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck="false"
-                    className="input-field"
-                    value={googleSignupData.username}
-                    onChange={(e) => setGoogleSignupData(prev => ({ 
-                      ...prev, 
-                      username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') 
-                    }))}
-                    style={{
-                      height: '48px',
-                      borderRadius: '12px',
-                      fontSize: '0.92rem',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      paddingLeft: '1.1rem'
-                    }}
-                    placeholder="Choose your username"
-                    required
-                    disabled={loading}
                   />
                 </div>
               </div>

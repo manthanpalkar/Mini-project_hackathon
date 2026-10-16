@@ -759,6 +759,49 @@ function sanitizeUser(user) {
   return obj;
 }
 
+// Helper to detect MongoDB storage quota, server, or connection errors
+function isDatabaseStorageOrConnectionError(err) {
+  if (!err) return false;
+  const msg = (err.message || '').toLowerCase();
+  const name = err.name || '';
+  return (
+    err.code === 8000 || // Atlas space quota exceeded error code
+    err.code === 86 ||
+    msg.includes('quota exceeded') ||
+    msg.includes('space quota') ||
+    msg.includes('storage quota') ||
+    msg.includes('disk full') ||
+    msg.includes('cannot allocate') ||
+    name === 'MongoServerError' ||
+    name === 'MongoError' ||
+    name === 'MongooseServerSelectionError' ||
+    name === 'MongoNetworkError' ||
+    name === 'MongoTimeoutError'
+  );
+}
+
+// Secure registration error handler that never leaks credentials or raw database internals
+function handleRegistrationError(err, operation, res) {
+  console.error(`[SECURE_DB_ERROR] ${operation} failed:`, {
+    errorName: err.name,
+    errorCode: err.code,
+    errorMessage: err.message,
+    timestamp: new Date().toISOString()
+  });
+
+  if (err.status && err.status < 500) {
+    return res.status(err.status).json({ error: err.message });
+  }
+
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ error: err.message });
+  }
+
+  return res.status(503).json({
+    error: 'Registration is temporarily unavailable. Please try again later.'
+  });
+}
+
 // 2. Users
 app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -821,6 +864,15 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
     userAuthCache.invalidate(email);
     res.status(201).json(sanitizeUser(user));
   } catch (err) {
+    if (isDatabaseStorageOrConnectionError(err)) {
+      console.error('[SECURE_DB_ERROR] Admin User Create failed due to DB storage:', {
+        errorName: err.name,
+        errorCode: err.code,
+        errorMessage: err.message,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(503).json({ error: 'Database storage quota reached. User creation is temporarily unavailable.' });
+    }
     res.status(400).json({ error: err.message });
   }
 });
@@ -973,12 +1025,18 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
       return res.status(400).json({ error: 'Full name exceeds maximum permitted length.' });
     }
 
-    if (!username || typeof username !== 'string' || !username.trim()) {
-      return res.status(400).json({ error: 'Username is required.' });
-    }
-    const trimmedUsername = username.trim();
-    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(trimmedUsername)) {
-      return res.status(400).json({ error: 'Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.' });
+    let trimmedUsername = null;
+    if (username && typeof username === 'string' && username.trim()) {
+      trimmedUsername = username.trim();
+      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(trimmedUsername)) {
+        return res.status(400).json({ error: 'Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.' });
+      }
+
+      // Verify username uniqueness
+      const existingUsername = await User.findOne({ username: new RegExp('^' + escapeRegExp(trimmedUsername) + '$', 'i') });
+      if (existingUsername) {
+        return res.status(400).json({ error: 'Username is already taken. Please choose another username.' });
+      }
     }
 
     if (!password || typeof password !== 'string') {
@@ -989,12 +1047,6 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
     }
     if (password !== confirmPassword) {
       return res.status(400).json({ error: 'Passwords do not match.' });
-    }
-
-    // Verify username uniqueness
-    const existingUsername = await User.findOne({ username: new RegExp('^' + escapeRegExp(trimmedUsername) + '$', 'i') });
-    if (existingUsername) {
-      return res.status(400).json({ error: 'Username is already taken. Please choose another username.' });
     }
 
     // Check if user already exists with this email or googleSub
@@ -1012,17 +1064,21 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user (Standard Student role, Active status, no admin privileges)
-    const newUser = new User({
+    const userData = {
       email,
       name: sanitizeString(name.trim()),
-      username: sanitizeString(trimmedUsername),
       password: hashedPassword,
       googleSub: sub,
       authProvider: 'google',
       role: 'Student',
       status: 'Active',
       onboarded: false
-    });
+    };
+    if (trimmedUsername) {
+      userData.username = sanitizeString(trimmedUsername);
+    }
+
+    const newUser = new User(userData);
 
     await newUser.save();
     userAuthCache.invalidate(email);
@@ -1049,8 +1105,7 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
       token
     });
   } catch (err) {
-    const status = err.status || 500;
-    return res.status(status).json({ error: err.message });
+    return handleRegistrationError(err, 'Google Registration', res);
   }
 });
 
@@ -1113,8 +1168,16 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
       token
     });
   } catch (err) {
-    const status = err.status || 500;
-    return res.status(status).json({ error: err.message });
+    console.error('[SECURE_DB_ERROR] Google Account Link failed:', {
+      errorName: err.name,
+      errorCode: err.code,
+      errorMessage: err.message,
+      timestamp: new Date().toISOString()
+    });
+    if (err.status && err.status < 500) {
+      return res.status(err.status).json({ error: err.message });
+    }
+    return res.status(503).json({ error: 'Account linking is temporarily unavailable. Please try again later.' });
   }
 });
 
@@ -1155,7 +1218,7 @@ app.post('/api/users/register-request', async (req, res) => {
     
     res.status(201).json({ message: 'Registration request submitted successfully.', user: sanitizeUser(user) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return handleRegistrationError(err, 'Standard Registration', res);
   }
 });
 
