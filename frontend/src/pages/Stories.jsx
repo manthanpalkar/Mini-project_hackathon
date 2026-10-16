@@ -1121,80 +1121,62 @@ export default function Stories() {
             ) : (
               <form onSubmit={handleFormSubmit}>
                 {/* Header Banner */}
-                <div style={{ marginBottom: '2.25rem', position: 'relative' }}>
+                <div style={{ marginBottom: '2rem', position: 'relative' }}>
                   <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.45rem',
                     padding: '0.35rem 0.85rem',
                     borderRadius: '999px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
+                    backgroundColor: 'rgba(212, 255, 50, 0.22)',
+                    border: '1px solid rgba(212, 255, 50, 0.45)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                     marginBottom: '0.85rem'
                   }}>
-                    <Sparkles size={13} style={{ color: 'var(--text-primary)', opacity: 0.9 }} />
-                    <span>Senior Archive Contribution</span>
+                    <span>SENIOR ARCHIVE CONTRIBUTION</span>
                   </div>
-                  <h2 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 0.45rem 0', color: 'var(--text-primary)' }}>
                     Share Your Story
                   </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0, lineHeight: 1.6, maxWidth: '640px' }}>
-                    Inspire the next batch of SPIT engineers by documenting your interview preparation, technical milestones, key projects, and study roadmaps.
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', margin: 0, lineHeight: 1.5 }}>
+                    Help juniors prepare by sharing your interview prep, milestones, and materials.
                   </p>
                 </div>
 
-                {/* Section 1: Profile Details */}
-                <div 
-                  id="sec-profile" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}>1</div>
-                      <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                          <Briefcase size={18} style={{ opacity: 0.9 }} />
-                          Profile Details
-                        </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Candidate credentials and placement offer overview
-                        </p>
-                      </div>
-                    </div>
-                    <span style={{ 
-                      fontSize: '0.72rem', 
-                      fontWeight: 600, 
-                      color: 'var(--text-muted)'
-                    }}>* Required</span>
+                {/* 1. Profile Details Card */}
+                <div style={{
+                  padding: '1.75rem',
+                  borderRadius: '20px',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '1.5rem',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.35rem' }}>
+                    <div style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--text-primary)',
+                      color: 'var(--bg-surface)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      flexShrink: 0
+                    }}>1</div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Profile Details
+                    </h3>
                   </div>
 
-                  <div className="input-group">
-                    <label className="input-label">Full Name *</label>
+                  <div className="input-group" style={{ marginBottom: '1rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Full Name *</label>
                     <input 
                       type="text" 
                       className="input-field" 
@@ -1205,9 +1187,14 @@ export default function Stories() {
                     />
                   </div>
 
-                  <div className={formData.branch === 'CSE' ? 'form-grid-3col' : 'form-grid-2col'} style={{ marginBottom: '1.25rem' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: formData.branch === 'CSE' ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+                    gap: '0.85rem',
+                    marginBottom: '1rem'
+                  }}>
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Branch *</label>
+                      <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Branch *</label>
                       <select 
                         className="input-field"
                         value={formData.branch}
@@ -1228,7 +1215,7 @@ export default function Stories() {
 
                     {formData.branch === 'CSE' && (
                       <div className="input-group" style={{ marginBottom: 0 }}>
-                        <label className="input-label">Sub-Category *</label>
+                        <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Sub-Category *</label>
                         <select
                           className="input-field"
                           value={formData.subBranch || 'CSE'}
@@ -1242,7 +1229,7 @@ export default function Stories() {
                     )}
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Passout Year *</label>
+                      <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Passout Year *</label>
                       <input 
                         type="number" 
                         className="input-field" 
@@ -1256,11 +1243,12 @@ export default function Stories() {
 
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                    gap: '1rem'
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '0.85rem',
+                    marginBottom: '1rem'
                   }}>
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Company *</label>
+                      <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Company *</label>
                       <input 
                         type="text" 
                         className="input-field" 
@@ -1272,7 +1260,7 @@ export default function Stories() {
                     </div>
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Role *</label>
+                      <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Role *</label>
                       <input 
                         type="text" 
                         className="input-field" 
@@ -1284,7 +1272,7 @@ export default function Stories() {
                     </div>
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Semester Placed *</label>
+                      <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Semester Placed *</label>
                       <select 
                         className="input-field"
                         value={formData.semester}
@@ -1293,257 +1281,119 @@ export default function Stories() {
                         {['1','2','3','4','5','6','7','8'].map(n => <option key={n} value={n}>Semester {n}</option>)}
                       </select>
                     </div>
+                  </div>
 
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">CGPA</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
-                        placeholder="e.g. 9.4"
-                        value={formData.cgpa}
-                        onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
-                      />
-                    </div>
+                  <div className="input-group" style={{ marginBottom: 0, maxWidth: '220px' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>CGPA</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="e.g. 9.4"
+                      value={formData.cgpa}
+                      onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
+                    />
                   </div>
                 </div>
 
-                {/* Section 2: 4-Year Journey */}
-                <div 
-                  id="sec-journey" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
+                {/* 2. Your Journey (Year by Year) Card */}
+                <div style={{
+                  padding: '1.75rem',
+                  borderRadius: '20px',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '1.5rem',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.35rem' }}>
                     <div style={{
-                      width: '30px',
-                      height: '30px',
+                      width: '22px',
+                      height: '22px',
                       borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      color: 'var(--text-primary)',
+                      backgroundColor: 'var(--text-primary)',
+                      color: 'var(--bg-surface)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.82rem',
-                      fontWeight: 700
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      flexShrink: 0
                     }}>2</div>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                        <Compass size={18} style={{ opacity: 0.9 }} />
-                        4-Year Journey (Year by Year)
-                      </h3>
-                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        Your evolution across engineering phases from orientation to campus offers
-                      </p>
-                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Your Journey (Year by Year)
+                    </h3>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {/* First Year */}
-                    <div style={{
-                      padding: '1.15rem',
-                      borderRadius: '16px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{
-                            padding: '0.2rem 0.55rem',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.04em'
-                          }}>FE</span>
-                          <label className="input-label" style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>
-                            First Year Journey
-                          </label>
-                        </div>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Foundations &amp; Mindset</span>
-                      </div>
-                      <textarea 
-                        className="input-field" 
-                        rows={3} 
-                        placeholder="Exploration, foundational math & coding, clubs joined (e.g. CSI, IEEE, ACM), mindset, initial GPA focus..."
-                        value={formData.journey.firstYear}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          journey: { ...formData.journey, firstYear: e.target.value }
-                        })}
-                        style={{ resize: 'vertical', lineHeight: 1.6 }}
-                      />
-                    </div>
-
-                    {/* Second Year */}
-                    <div style={{
-                      padding: '1.15rem',
-                      borderRadius: '16px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{
-                            padding: '0.2rem 0.55rem',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.04em'
-                          }}>SE</span>
-                          <label className="input-label" style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>
-                            Second Year Journey
-                          </label>
-                        </div>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>DSA &amp; Tech Exploration</span>
-                      </div>
-                      <textarea 
-                        className="input-field" 
-                        rows={3} 
-                        placeholder="DSA commencement (LeetCode/GFG), choosing your tech stack, hackathons, initial core projects, subjects..."
-                        value={formData.journey.secondYear}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          journey: { ...formData.journey, secondYear: e.target.value }
-                        })}
-                        style={{ resize: 'vertical', lineHeight: 1.6 }}
-                      />
-                    </div>
-
-                    {/* Third Year */}
-                    <div style={{
-                      padding: '1.15rem',
-                      borderRadius: '16px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{
-                            padding: '0.2rem 0.55rem',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.04em'
-                          }}>TE</span>
-                          <label className="input-label" style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>
-                            Third Year Journey
-                          </label>
-                        </div>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Internships &amp; Assessments</span>
-                      </div>
-                      <textarea 
-                        className="input-field" 
-                        rows={3} 
-                        placeholder="Internship preparation, online coding assessments, clearing campus drives, resume building, mock interviews..."
-                        value={formData.journey.thirdYear}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          journey: { ...formData.journey, thirdYear: e.target.value }
-                        })}
-                        style={{ resize: 'vertical', lineHeight: 1.6 }}
-                      />
-                    </div>
-
-                    {/* Fourth Year */}
-                    <div style={{
-                      padding: '1.15rem',
-                      borderRadius: '16px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{
-                            padding: '0.2rem 0.55rem',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.04em'
-                          }}>BE</span>
-                          <label className="input-label" style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>
-                            Fourth Year Journey
-                          </label>
-                        </div>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Placements &amp; Career Launch</span>
-                      </div>
-                      <textarea 
-                        className="input-field" 
-                        rows={3} 
-                        placeholder="Final placement season, PPO conversion, capstone engineering project, higher studies/work plans, mentoring juniors..."
-                        value={formData.journey.fourthYear}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          journey: { ...formData.journey, fourthYear: e.target.value }
-                        })}
-                        style={{ resize: 'vertical', lineHeight: 1.6 }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 3: Prep Strategy */}
-                <div 
-                  id="sec-prep" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
-                    <div style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      color: 'var(--text-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.82rem',
-                      fontWeight: 700
-                    }}>3</div>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                        <Award size={18} style={{ opacity: 0.9 }} />
-                        Preparation Strategy &amp; Roadmaps
-                      </h3>
-                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        DSA routines, core computer science subjects, and interview readiness
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Preparation Strategy &amp; Tips</label>
+                  {/* First Year Journey */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>First Year Journey</label>
                     <textarea 
                       className="input-field" 
-                      rows={4} 
-                      placeholder="e.g. Started DSA with Striver SDE sheet (solved 350+ questions). Dedicated 2 hours daily on LeetCode. Revised OS (threads, locks, paging), DBMS (indexes, transactions), and Computer Networks. Did 5 peer mock interviews before the on-campus drive..."
+                      rows={3} 
+                      placeholder="Exploration, core subjects, clubs joined, mindset..."
+                      value={formData.journey.firstYear}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        journey: { ...formData.journey, firstYear: e.target.value }
+                      })}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+
+                  {/* Second Year Journey */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Second Year Journey</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={3} 
+                      placeholder="Diving into DSA, core CS topics, initial projects, hackathons..."
+                      value={formData.journey.secondYear}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        journey: { ...formData.journey, secondYear: e.target.value }
+                      })}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+
+                  {/* Third Year Journey */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Third Year Journey</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={3} 
+                      placeholder="Internship prep, online tests, cracking placement drives, interviews..."
+                      value={formData.journey.thirdYear}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        journey: { ...formData.journey, thirdYear: e.target.value }
+                      })}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+
+                  {/* Fourth Year Journey */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Fourth Year Journey</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={3} 
+                      placeholder="PPO conversion, capstone project, final plans, tips for juniors..."
+                      value={formData.journey.fourthYear}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        journey: { ...formData.journey, fourthYear: e.target.value }
+                      })}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+
+                  {/* Preparation & Strategy */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Preparation &amp; Strategy</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={3} 
+                      placeholder="DSA sheets, systems subjects revised, resume tips, interview prep..."
                       value={formData.journey.prep}
                       onChange={(e) => setFormData({
                         ...formData,
@@ -1552,82 +1402,36 @@ export default function Stories() {
                       style={{ resize: 'vertical', lineHeight: 1.6 }}
                     />
                   </div>
-                </div>
 
-                {/* Section 4: Key Projects */}
-                <div 
-                  id="sec-projects" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}>4</div>
-                      <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                          <Code size={18} style={{ opacity: 0.9 }} />
-                          Key Projects &amp; Technical Proof of Work
-                        </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Practical systems, GitHub repositories, and portfolio work discussed in interviews
-                        </p>
-                      </div>
+                  {/* Key Projects */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <label className="input-label" style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem' }}>Key Projects &amp; Technical Proof of Work</label>
+                      <button
+                        type="button"
+                        onClick={handleInsertProjectsTemplate}
+                        style={{
+                          padding: '0.35rem 0.85rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Sparkles size={12} style={{ opacity: 0.8 }} />
+                        <span>+ Insert Project Template</span>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleInsertProjectsTemplate}
-                      style={{
-                        padding: '0.4rem 0.95rem',
-                        borderRadius: '999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.22)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-                      }}
-                    >
-                      <Sparkles size={13} style={{ opacity: 0.8 }} />
-                      <span>+ Insert Project Template</span>
-                    </button>
-                  </div>
-
-                  <div className="input-group" style={{ marginBottom: '0.65rem' }}>
-                    <label className="input-label">Projects &amp; Tech Stack</label>
                     <textarea 
                       className="input-field" 
-                      rows={4} 
+                      rows={3} 
                       placeholder="Describe your technical projects, tech stack, and systems, or tap '+ Insert Project Template' above..."
                       value={formData.journey.projects}
                       onChange={(e) => setFormData({
@@ -1637,98 +1441,37 @@ export default function Stories() {
                       style={{ resize: 'vertical', lineHeight: 1.6 }}
                     />
                   </div>
-                  <div style={{
-                    padding: '0.65rem 0.9rem',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.025)',
-                    border: '1px solid var(--border-color)',
-                    fontSize: '0.76rem',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <Sparkles size={13} style={{ flexShrink: 0, opacity: 0.8 }} />
-                    <span><strong>Pro-Tip:</strong> Format as <strong>1. &quot;Project Name&quot;: Description &amp; Tech Stack</strong> to generate interactive portfolio cards on your story page.</span>
-                  </div>
-                </div>
 
-                {/* Section 5: How Secured */}
-                <div 
-                  id="sec-secured" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}>5</div>
-                      <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                          <Layers size={18} style={{ opacity: 0.9 }} />
-                          How Secured (Recruitment Process &amp; Rounds)
-                        </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Step-by-step breakdown: OA, technical rounds, questions asked, and HR
-                        </p>
-                      </div>
+                  {/* How You Secured the Placement */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <label className="input-label" style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem' }}>How You Secured the Placement</label>
+                      <button
+                        type="button"
+                        onClick={handleInsertRoundsTemplate}
+                        style={{
+                          padding: '0.35rem 0.85rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Sparkles size={12} style={{ opacity: 0.8 }} />
+                        <span>+ Insert Rounds Template</span>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleInsertRoundsTemplate}
-                      style={{
-                        padding: '0.4rem 0.95rem',
-                        borderRadius: '999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.22)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-                      }}
-                    >
-                      <Layers size={13} style={{ opacity: 0.8 }} />
-                      <span>+ Insert Rounds Template</span>
-                    </button>
-                  </div>
-
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Recruitment Process &amp; Interview Rounds</label>
                     <textarea 
                       className="input-field" 
-                      rows={4} 
-                      placeholder="Details on OA questions, interview rounds, and HR discussion, or tap '+ Insert Rounds Template' above..."
+                      rows={3} 
+                      placeholder="Rounds details, interview questions asked, advice..."
                       value={formData.journey.howSecured}
                       onChange={(e) => setFormData({
                         ...formData,
@@ -1737,212 +1480,184 @@ export default function Stories() {
                       style={{ resize: 'vertical', lineHeight: 1.6 }}
                     />
                   </div>
-                </div>
 
-                {/* Section 6: Key Takeaways & Advice */}
-                <div 
-                  id="sec-takeaways" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}>6</div>
-                      <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                          <Sparkles size={18} style={{ opacity: 0.9 }} />
-                          Key Takeaways &amp; Advice to Juniors
-                        </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Your golden rule, mindset guidance, and lessons learned from the placement journey
-                        </p>
-                      </div>
+                  {/* Key Takeaways & Advice to Juniors */}
+                  <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <label className="input-label" style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem' }}>Senior&apos;s Golden Rule &amp; Advice</label>
+                      <button
+                        type="button"
+                        onClick={handleInsertAdviceTemplate}
+                        style={{
+                          padding: '0.35rem 0.85rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Sparkles size={12} style={{ opacity: 0.8 }} />
+                        <span>+ Insert Advice Template</span>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleInsertAdviceTemplate}
-                      style={{
-                        padding: '0.4rem 0.95rem',
-                        borderRadius: '999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.22)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-                      }}
-                    >
-                      <Sparkles size={13} style={{ opacity: 0.8 }} />
-                      <span>+ Insert Advice Template</span>
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div style={{
-                      padding: '1.15rem',
-                      borderRadius: '16px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      <label className="input-label" style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                        <Sparkles size={14} style={{ opacity: 0.85 }} />
-                        <span>Senior&apos;s Golden Rule / Core Takeaway</span>
-                      </label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
-                        placeholder="e.g. Consistency beats intensity every single day. Trust your personal timeline."
-                        value={adviceQuote}
-                        onChange={(e) => setAdviceQuote(e.target.value)}
-                      />
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <Sparkles size={12} style={{ opacity: 0.7 }} />
-                        <span>Displayed prominently as a featured quote badge on your public story page.</span>
-                      </span>
-                    </div>
-
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Actionable Advice &amp; Principles for Juniors</label>
-                      <textarea 
-                        className="input-field" 
-                        rows={4} 
-                        placeholder="Key advice, habits, and mindset shifts for juniors, or tap '+ Insert Advice Template' above..."
-                        value={adviceTips}
-                        onChange={(e) => setAdviceTips(e.target.value)}
-                        style={{ resize: 'vertical', lineHeight: 1.6 }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 7: Hackathons (Optional) */}
-                <div 
-                  id="sec-hackathons" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
-                    <div style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      color: 'var(--text-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.82rem',
-                      fontWeight: 700
-                    }}>7</div>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                        <Trophy size={18} style={{ opacity: 0.9 }} />
-                        Hackathons &amp; Competitions (Optional)
-                      </h3>
-                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        High-intensity hackathons, awards won, competitive building, and open-source sprints
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Hackathons Participated &amp; Achievements</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="Golden Rule (e.g. Consistency beats intensity every single day. Trust your personal timeline.)"
+                      value={adviceQuote}
+                      onChange={(e) => setAdviceQuote(e.target.value)}
+                      style={{ marginBottom: '0.65rem' }}
+                    />
                     <textarea 
                       className="input-field" 
                       rows={3} 
-                      placeholder="Details on hackathons, coding contests, and projects built under deadlines..."
-                      value={hackathons}
-                      onChange={(e) => setHackathons(e.target.value)}
+                      placeholder="Actionable advice and principles for juniors..."
+                      value={adviceTips}
+                      onChange={(e) => setAdviceTips(e.target.value)}
                       style={{ resize: 'vertical', lineHeight: 1.6 }}
                     />
                   </div>
+
+                  {/* CUSTOM SECTIONS & PROMPTS (from screenshot image 3) */}
+                  <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px dashed var(--border-color)' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.85rem' }}>
+                      CUSTOM SECTIONS &amp; PROMPTS
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddCustomSection}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '12px',
+                        border: '1px dashed var(--border-color)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                        e.currentTarget.style.borderColor = 'var(--text-secondary)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                      }}
+                    >
+                      <Plus size={14} />
+                      <span>+ Add Custom Prompts / Sections</span>
+                    </button>
+
+                    {customSections.map((sec, index) => (
+                      <div key={index} style={{
+                        marginTop: '0.85rem',
+                        padding: '1.25rem',
+                        borderRadius: '14px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        position: 'relative'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCustomSection(index)}
+                          style={{
+                            position: 'absolute',
+                            top: '0.75rem',
+                            right: '0.75rem',
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '50%',
+                            border: '1px solid var(--border-color)',
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            color: 'var(--text-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                          title="Remove"
+                        >
+                          <X size={13} />
+                        </button>
+                        <div className="input-group" style={{ marginBottom: '0.65rem', paddingRight: '2rem' }}>
+                          <label className="input-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>Section Headline *</label>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="e.g. Work Culture & Team Dynamics, Open Source..."
+                            value={sec.title}
+                            onChange={(e) => handleUpdateCustomSection(index, 'title', e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="input-group" style={{ marginBottom: 0 }}>
+                          <label className="input-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>Section Details *</label>
+                          <textarea
+                            className="input-field"
+                            rows={3}
+                            placeholder="Write the details for this prompt..."
+                            value={sec.content}
+                            onChange={(e) => handleUpdateCustomSection(index, 'content', e.target.value)}
+                            required
+                            style={{ resize: 'vertical', lineHeight: 1.6 }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Section 8: Resources Used */}
-                <div 
-                  id="sec-resources" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
+                {/* 3. Resources & Materials Used Card */}
+                <div style={{
+                  padding: '1.75rem',
+                  borderRadius: '20px',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '1.75rem',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.35rem' }}>
                     <div style={{
-                      width: '30px',
-                      height: '30px',
+                      width: '22px',
+                      height: '22px',
                       borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      color: 'var(--text-primary)',
+                      backgroundColor: 'var(--text-primary)',
+                      color: 'var(--bg-surface)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.82rem',
-                      fontWeight: 700
-                    }}>8</div>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                        <BookOpen size={18} style={{ opacity: 0.9 }} />
-                        Resources &amp; Study Materials Used
-                      </h3>
-                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        Sheets, platforms, YouTube channels, and books that helped you prepare
-                      </p>
-                    </div>
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      flexShrink: 0
+                    }}>3</div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Resources &amp; Materials Used
+                    </h3>
                   </div>
 
-                  {/* Custom Resource Input */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label className="input-label">Add Resource</label>
-                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.25rem' }}>
+                  {/* Add Resource Used */}
+                  <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Add Resource Used</label>
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
                       <input 
                         type="text" 
                         className="input-field" 
-                        placeholder="Resource Name (e.g. Striver SDE Sheet, NeetCode 150, Gate Smashers)"
+                        placeholder="Resource Name (e.g. LeetCode, Striver Sheet, NeetCode)"
                         value={resourceInput.name}
                         onChange={(e) => setResourceInput({ ...resourceInput, name: e.target.value })}
                         onKeyDown={(e) => {
@@ -1957,7 +1672,7 @@ export default function Stories() {
                         className="input-field"
                         value={resourceInput.type}
                         onChange={(e) => setResourceInput({ ...resourceInput, type: e.target.value })}
-                        style={{ width: '150px' }}
+                        style={{ width: '130px' }}
                       >
                         <option value="DSA">DSA</option>
                         <option value="System Design">System Design</option>
@@ -1971,410 +1686,200 @@ export default function Stories() {
                         type="button" 
                         onClick={handleAddResource} 
                         style={{
-                          padding: '0.6rem 1.15rem',
-                          borderRadius: '999px',
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '12px',
                           backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                          border: '1px solid rgba(255, 255, 255, 0.16)',
+                          border: '1px solid var(--border-color)',
                           color: 'var(--text-primary)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                          flexShrink: 0
                         }}
                         title="Add Resource"
                       >
                         <Plus size={16} />
                       </button>
                     </div>
-                  </div>
 
-                  {/* Resources Preview Tag List */}
-                  {formData.resources.length > 0 && (
-                    <div style={{
-                      padding: '0.85rem 1rem',
-                      borderRadius: '14px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)',
-                      display: 'flex',
-                      gap: '0.5rem',
-                      flexWrap: 'wrap',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Added ({formData.resources.length}):</span>
-                      {formData.resources.map((res, index) => (
-                        <span key={index} style={{
-                          fontSize: '0.78rem',
-                          padding: '0.35rem 0.75rem',
-                          borderRadius: '999px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                          border: '1px solid rgba(255, 255, 255, 0.12)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.45rem',
-                          color: 'var(--text-primary)'
-                        }}>
-                          <strong>{res.name}</strong>
-                          <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>({res.type})</span>
-                          <button
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, resources: prev.resources.filter((_, i) => i !== index) }))}
-                            style={{
-                              background: 'rgba(255, 255, 255, 0.1)',
-                              border: '1px solid rgba(255, 255, 255, 0.18)',
-                              borderRadius: '50%',
-                              width: '18px',
-                              height: '18px',
-                              padding: 0,
-                              cursor: 'pointer',
-                              color: 'var(--text-secondary)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#ff453a';
-                              e.currentTarget.style.borderColor = 'rgba(255, 69, 58, 0.4)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
-                            }}
-                            title="Remove"
-                          >
-                            <X size={11} />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Section 9: Senior Resume Upload */}
-                <div 
-                  id="sec-resume" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {formData.resources.length > 0 && (
                       <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'var(--text-primary)',
+                        marginTop: '0.65rem',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '12px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--border-color)',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}>9</div>
-                      <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                          <FileText size={18} style={{ opacity: 0.9 }} />
-                          Senior Resume (PDF) *
-                        </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Upload your resume PDF so juniors can study your formatting and project presentation
-                        </p>
+                        gap: '0.45rem',
+                        flexWrap: 'wrap',
+                        alignItems: 'center'
+                      }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Added ({formData.resources.length}):</span>
+                        {formData.resources.map((res, index) => (
+                          <span key={index} style={{
+                            fontSize: '0.75rem',
+                            padding: '0.3rem 0.65rem',
+                            borderRadius: '999px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid var(--border-color)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            color: 'var(--text-primary)'
+                          }}>
+                            <strong>{res.name}</strong>
+                            <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>({res.type})</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, resources: prev.resources.filter((_, i) => i !== index) }))}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '50%',
+                                width: '16px',
+                                height: '16px',
+                                padding: 0,
+                                cursor: 'pointer',
+                                color: 'var(--text-secondary)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title="Remove"
+                            >
+                              <X size={10} />
+                            </button>
+                          </span>
+                        ))}
                       </div>
-                    </div>
-                    <span style={{ 
-                      fontSize: '0.72rem', 
-                      fontWeight: 600, 
-                      color: 'var(--text-muted)'
-                    }}>* Required</span>
+                    )}
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {/* Upload Senior Resume (PDF) * (from image 2) */}
+                  <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Upload Senior Resume (PDF) *</label>
                     <div 
-                      onClick={() => document.getElementById('resume-file-upload')?.click()}
                       style={{
-                        border: '1px dashed rgba(255, 255, 255, 0.18)',
-                        borderRadius: '18px',
-                        padding: resumeUploadFile ? '1.1rem 1.25rem' : '1.85rem 1.25rem',
+                        border: '1.5px dashed var(--border-color)',
+                        borderRadius: '16px',
+                        padding: '1.6rem 1.25rem',
                         textAlign: 'center',
-                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
                         cursor: 'pointer',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minHeight: '100px',
-                        color: 'var(--text-primary)'
+                        backgroundColor: 'rgba(255, 255, 255, 0.015)',
+                        transition: 'all 0.15s ease'
                       }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
-                      }}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const file = e.dataTransfer.files?.[0];
-                        if (file) processResumeFile(file);
-                      }}
+                      onClick={() => document.getElementById('resumeFileInput')?.click()}
                     >
                       <input 
+                        id="resumeFileInput"
                         type="file" 
-                        id="resume-file-upload" 
                         onChange={(e) => {
                           const file = e.target.files[0];
-                          if (!file) return;
-                          fileToBase64(file).then(base64Url => {
-                            setResumeUploadFile({
-                              fileName: file.name,
-                              fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-                              url: base64Url
-                            });
-                          }).catch(err => {
-                            console.error("Error reading file:", err);
-                            alert("Failed to read file.");
-                          });
+                          if (file) processResumeFile(file);
                         }} 
                         style={{ display: 'none' }}
                         accept=".pdf"
                       />
                       {resumeUploadFile ? (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
                             <span style={{
-                              padding: '0.65rem',
+                              padding: '0.6rem',
                               backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                              border: '1px solid rgba(255, 255, 255, 0.14)',
-                              borderRadius: '12px',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '10px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: 'var(--text-primary)'
                             }}>
-                              <FileText size={22} />
+                              <FileText size={20} />
                             </span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.94rem', fontWeight: 600, color: 'var(--text-primary)' }}>{resumeUploadFile.fileName}</span>
-                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{resumeUploadFile.fileSize} • Click to replace file</span>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>{resumeUploadFile.fileName}</span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{resumeUploadFile.fileSize} • Click to replace</span>
                             </div>
                           </div>
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (resumeUploadFile.url && resumeUploadFile.url.startsWith('blob:')) {
-                                URL.revokeObjectURL(resumeUploadFile.url);
-                              }
                               setResumeUploadFile(null);
                             }}
                             style={{
-                              width: '32px',
-                              height: '32px',
+                              width: '30px',
+                              height: '30px',
                               borderRadius: '50%',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: 'var(--text-secondary)',
-                              border: '1px solid rgba(255, 255, 255, 0.16)',
+                              border: '1px solid var(--border-color)',
                               background: 'rgba(255, 255, 255, 0.08)',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
+                              cursor: 'pointer'
                             }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#ff453a';
-                              e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.12)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-                            }}
-                            title="Remove Resume"
+                            title="Remove"
                           >
-                            <X size={16} />
+                            <X size={14} />
                           </button>
                         </div>
                       ) : (
-                        <>
-                          <div style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '12px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: '0.65rem'
-                          }}>
-                            <FileText size={20} style={{ color: 'var(--text-primary)' }} />
-                          </div>
-                          <p style={{ fontSize: '0.92rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.25rem 0' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                          <FileText size={28} style={{ color: 'var(--text-secondary)', opacity: 0.8 }} />
+                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                             Choose Resume PDF or drag &amp; drop here
                           </p>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
                             PDF up to 10MB
                           </span>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
 
-                {/* Section 10: Study Materials Upload */}
-                <div 
-                  id="sec-materials" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
-                    <div style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      color: 'var(--text-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.82rem',
-                      fontWeight: 700
-                    }}>10</div>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                        <Upload size={18} style={{ opacity: 0.9 }} />
-                        Study Materials, Cheat Sheets &amp; Notes (Optional)
-                      </h3>
-                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        Share personal roadmaps, handwritten notes, or formula cheat sheets
-                      </p>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {/* Dropzone File Selector */}
+                  {/* Upload Study Material (from image 2) */}
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Upload Study Material</label>
                     <div 
-                      onClick={() => document.getElementById('material-file-upload')?.click()}
                       style={{
-                        border: '1px dashed rgba(255, 255, 255, 0.18)',
-                        borderRadius: '18px',
-                        padding: materialInput.previewUrl ? '1.1rem 1.25rem' : '1.85rem 1.25rem',
+                        border: '1.5px dashed var(--border-color)',
+                        borderRadius: '16px',
+                        padding: '1.6rem 1.25rem',
                         textAlign: 'center',
-                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
                         cursor: 'pointer',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minHeight: '110px'
+                        backgroundColor: 'rgba(255, 255, 255, 0.015)',
+                        transition: 'all 0.15s ease',
+                        marginBottom: '0.75rem'
                       }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
-                      }}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const file = e.dataTransfer.files?.[0];
-                        if (file) processMaterialFile(file);
-                      }}
+                      onClick={() => document.getElementById('studyMaterialFileInput')?.click()}
                     >
                       <input 
+                        id="studyMaterialFileInput"
                         type="file" 
-                        id="material-file-upload" 
                         onChange={handleFileChange} 
                         style={{ display: 'none' }}
-                        accept=".pdf,.png,.jpg,.jpeg"
+                        accept=".pdf,image/png,image/jpeg,image/jpg"
                       />
-                      {materialInput.previewUrl ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', width: '100%' }}>
-                          {materialInput.type === 'Image' ? (
-                            <div style={{ position: 'relative', width: '100%', height: '100px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                              <img 
-                                src={materialInput.previewUrl} 
-                                alt="Preview" 
-                                style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px' }} 
-                              />
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                              <div style={{
-                                width: '42px',
-                                height: '52px',
-                                border: '1px solid rgba(255, 255, 255, 0.14)',
-                                borderRadius: '10px',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                                color: 'var(--text-primary)',
-                                fontWeight: 'bold',
-                                fontSize: '0.75rem'
-                              }}>
-                                {materialInput.type}
-                              </div>
-                            </div>
-                          )}
-                          <p style={{ fontSize: '0.88rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>
-                            {materialInput.fileName}
-                          </p>
-                          <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: 0 }}>
-                            {materialInput.fileSize} • Click to replace file
-                          </p>
+                      {materialInput.fileName ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <FileText size={20} />
+                            <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{materialInput.fileName} ({materialInput.fileSize})</span>
+                          </div>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Click to replace</span>
                         </div>
                       ) : (
-                        <>
-                          <div style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '12px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: '0.65rem'
-                          }}>
-                            <Upload size={20} style={{ color: 'var(--text-primary)' }} />
-                          </div>
-                          <p style={{ fontSize: '0.92rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.2rem 0' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                          <Upload size={26} style={{ color: 'var(--text-secondary)', opacity: 0.8 }} />
+                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                             Choose Material or drop file here
                           </p>
                           <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                            Supports PDF, PNG, JPG (Max 1 file)
+                            Supports PDF, PNG, JPG
                           </span>
-                        </>
+                        </div>
                       )}
                     </div>
 
@@ -2382,7 +1887,7 @@ export default function Stories() {
                       <input 
                         type="text" 
                         className="input-field" 
-                        placeholder="Material Title (e.g. Handwritten Notes, DSA Roadmap)"
+                        placeholder="Material Title (e.g. Cheat Sheet, Handwritten Notes)"
                         value={materialInput.title}
                         onChange={(e) => setMaterialInput({ ...materialInput, title: e.target.value })}
                         style={{ flexGrow: 1 }}
@@ -2391,7 +1896,7 @@ export default function Stories() {
                         className="input-field"
                         value={materialInput.type}
                         onChange={(e) => setMaterialInput({ ...materialInput, type: e.target.value })}
-                        style={{ width: '150px' }}
+                        style={{ width: '130px' }}
                       >
                         <option value="PDF">PDF</option>
                         <option value="Image">Image</option>
@@ -2403,22 +1908,17 @@ export default function Stories() {
                         type="button" 
                         onClick={handleAddMaterial} 
                         style={{
-                          padding: '0.6rem 1.15rem',
-                          borderRadius: '999px',
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '12px',
                           backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                          border: '1px solid rgba(255, 255, 255, 0.16)',
+                          border: '1px solid var(--border-color)',
                           color: 'var(--text-primary)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                          flexShrink: 0
                         }}
                         title="Add Material"
                       >
@@ -2426,36 +1926,32 @@ export default function Stories() {
                       </button>
                     </div>
 
-                    {/* Materials Preview List */}
                     {formData.studyMaterials.length > 0 && (
                       <div style={{ 
                         marginTop: '0.75rem', 
                         display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
-                        gap: '0.75rem' 
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
+                        gap: '0.65rem' 
                       }}>
                         {formData.studyMaterials.map((mat, index) => (
                           <div 
                             key={index} 
                             style={{
                               border: '1px solid var(--border-color)',
-                              borderRadius: '14px',
-                              padding: '0.85rem 0.6rem',
+                              borderRadius: '12px',
+                              padding: '0.65rem',
                               position: 'relative',
                               backgroundColor: 'rgba(255, 255, 255, 0.02)',
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
-                              gap: '0.5rem',
+                              gap: '0.35rem',
                               textAlign: 'center'
                             }}
                           >
                             <button
                               type="button"
                               onClick={() => {
-                                if (mat.url && mat.url.startsWith('blob:')) {
-                                  URL.revokeObjectURL(mat.url);
-                                }
                                 setFormData({
                                   ...formData,
                                   studyMaterials: formData.studyMaterials.filter((_, i) => i !== index)
@@ -2463,58 +1959,29 @@ export default function Stories() {
                               }}
                               style={{
                                 position: 'absolute',
-                                top: '0.35rem',
-                                right: '0.35rem',
+                                top: '0.3rem',
+                                right: '0.3rem',
                                 background: 'rgba(0,0,0,0.5)',
-                                border: '1px solid rgba(255, 255, 255, 0.25)',
+                                border: '1px solid var(--border-color)',
                                 color: '#fff',
                                 borderRadius: '50%',
-                                width: '22px',
-                                height: '22px',
+                                width: '18px',
+                                height: '18px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
+                                cursor: 'pointer'
                               }}
                               title="Remove"
                             >
-                              <X size={12} />
+                              <X size={10} />
                             </button>
-                            
-                            {mat.type === 'Image' && mat.url && mat.url !== '#' ? (
-                              <div style={{ width: '100%', height: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '8px', overflow: 'hidden' }}>
-                                <img 
-                                  src={mat.url} 
-                                  alt={mat.title} 
-                                  style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} 
-                                />
-                              </div>
-                            ) : (
-                              <div style={{ 
-                                width: '38px', 
-                                height: '48px', 
-                                border: '1px solid rgba(255, 255, 255, 0.12)', 
-                                borderRadius: '8px', 
-                                display: 'flex', 
-                                justifyContent: 'center', 
-                                alignItems: 'center', 
-                                backgroundColor: 'rgba(255, 255, 255, 0.06)', 
-                                color: 'var(--text-primary)', 
-                                fontWeight: 'bold', 
-                                fontSize: '0.65rem' 
-                              }}>
-                                {mat.type}
-                              </div>
-                            )}
-                            <span style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 0.25rem' }}>
+                            <span style={{ fontSize: '0.76rem', fontWeight: 600, display: 'block', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {mat.title}
                             </span>
-                            {mat.fileSize && (
-                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                                {mat.fileSize}
-                              </span>
-                            )}
+                            <span style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>
+                              {mat.type}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -2522,156 +1989,12 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 11: Custom Prompts / Extra Sections */}
-                <div 
-                  id="sec-custom" 
-                  style={{
-                    padding: '1.75rem',
-                    borderRadius: '24px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                    marginBottom: '2.5rem',
-                    scrollMarginTop: '80px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}>11</div>
-                      <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: 'var(--text-primary)' }}>
-                          <Plus size={18} style={{ opacity: 0.9 }} />
-                          Custom Sections &amp; Prompts (Optional)
-                        </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Add custom sections like Work Culture, Salary Negotiation, or Open Source
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAddCustomSection}
-                      style={{
-                        padding: '0.4rem 0.95rem',
-                        borderRadius: '999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.22)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-                      }}
-                    >
-                      <Plus size={14} />
-                      <span>Add Section</span>
-                    </button>
-                  </div>
-
-                  {customSections.map((sec, index) => (
-                    <div key={index} style={{
-                      padding: '1.25rem',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '16px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      marginBottom: '1rem',
-                      position: 'relative'
-                    }}>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCustomSection(index)}
-                        style={{
-                          position: 'absolute',
-                          top: '0.75rem',
-                          right: '0.75rem',
-                          background: 'rgba(255, 255, 255, 0.06)',
-                          border: '1px solid rgba(255, 255, 255, 0.16)',
-                          color: 'var(--text-secondary)',
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = '#ff453a';
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.12)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'var(--text-secondary)';
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                        }}
-                        title="Remove Section"
-                      >
-                        <X size={14} />
-                      </button>
-                      
-                      <div className="input-group" style={{ marginBottom: '0.75rem', paddingRight: '2rem' }}>
-                        <label className="input-label">Section Headline *</label>
-                        <input
-                          type="text"
-                          className="input-field"
-                          placeholder="e.g. Work Culture & Team Dynamics, Open Source Contributions..."
-                          value={sec.title}
-                          onChange={(e) => handleUpdateCustomSection(index, 'title', e.target.value)}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="input-group" style={{ marginBottom: 0 }}>
-                        <label className="input-label">Section Details *</label>
-                        <textarea
-                          className="input-field"
-                          rows={3}
-                          placeholder="Write the details for this prompt..."
-                          value={sec.content}
-                          onChange={(e) => handleUpdateCustomSection(index, 'content', e.target.value)}
-                          required
-                          style={{ resize: 'vertical', lineHeight: 1.6 }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  {customSections.length === 0 && (
-                    <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '0.85rem' }}>
-                      No additional custom sections added yet. Click &quot;Add Section&quot; above to include extra topics.
-                    </p>
-                  )}
-                </div>
-
-                {/* Modal Actions */}
+                {/* Modal Footer Actions (from image 2) */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
-                  gap: '1rem',
+                  gap: '0.85rem',
                   paddingTop: '1.25rem',
                   borderTop: '1px solid var(--border-color)'
                 }}>
@@ -2680,10 +2003,10 @@ export default function Stories() {
                     onClick={() => setIsModalOpen(false)} 
                     className="btn btn-secondary"
                     style={{
-                      padding: '0.85rem 2rem',
+                      padding: '0.75rem 1.85rem',
                       borderRadius: '999px',
                       border: '1px solid var(--border-color)',
-                      fontSize: '0.95rem',
+                      fontSize: '0.92rem',
                       fontWeight: 600
                     }}
                   >
@@ -2693,39 +2016,27 @@ export default function Stories() {
                     type="submit" 
                     disabled={submitting}
                     style={{ 
-                      padding: '0.85rem 2.5rem',
+                      padding: '0.75rem 2.25rem',
                       borderRadius: '999px',
-                      fontSize: '0.96rem',
+                      fontSize: '0.94rem',
                       fontWeight: 700,
                       backgroundColor: 'var(--text-primary)',
                       color: 'var(--bg-surface)',
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      border: '1px solid var(--border-color)',
                       opacity: submitting ? 0.7 : 1,
                       cursor: submitting ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
-                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)',
+                      transition: 'all 0.15s ease',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem'
                     }}
-                    onMouseEnter={(e) => {
-                      if (!submitting) {
-                        e.currentTarget.style.transform = 'scale(1.02)';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.35)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!submitting) {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.25)';
-                      }
-                    }}
                   >
                     {submitting ? (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem' }}>
-                        <div style={{ position: 'relative', width: '20px', height: '20px' }}>
-                          <svg width="20" height="20" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                        <div style={{ position: 'relative', width: '18px', height: '18px' }}>
+                          <svg width="18" height="18" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
                             <circle
                               cx="18"
                               cy="18"
@@ -2757,7 +2068,7 @@ export default function Stories() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '7px',
+                            fontSize: '6px',
                             fontWeight: 'bold',
                             color: 'currentColor'
                           }}>
@@ -2767,10 +2078,7 @@ export default function Stories() {
                         <span>{uploadProgress === 100 ? 'Saving...' : 'Submitting...'}</span>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>Submit Placement Journey</span>
-                        <ArrowRight size={16} />
-                      </div>
+                      <span>Submit Journey</span>
                     )}
                   </button>
                 </div>
