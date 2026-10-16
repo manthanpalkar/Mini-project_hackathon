@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar } from 'lucide-react';
+import { 
+  Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
+  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, Check
+} from 'lucide-react';
 import { getStories, addPendingStory, fileToBase64 } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
 
@@ -356,6 +359,34 @@ export default function Stories() {
   // Custom journey sections state
   const [customSections, setCustomSections] = useState([]);
 
+  // Additional structured inputs for senior advice, hackathons, and active modal section
+  const [adviceQuote, setAdviceQuote] = useState('');
+  const [adviceTips, setAdviceTips] = useState('');
+  const [hackathons, setHackathons] = useState('');
+  const [activeModalSection, setActiveModalSection] = useState('sec-profile');
+
+  const handleInsertProjectsTemplate = () => {
+    const template = `1. "Project One Title": Built a high-concurrency microservice with Node.js and PostgreSQL. Handled 3,000+ requests/sec with Redis caching.\n2. "Project Two Title": Full-stack web application with React, Express, and MongoDB featuring role-based auth and real-time WebSockets.`;
+    setFormData(prev => ({
+      ...prev,
+      journey: {
+        ...prev.journey,
+        projects: prev.journey.projects ? prev.journey.projects + '\n' + template : template
+      }
+    }));
+  };
+
+  const handleInsertRoundsTemplate = () => {
+    const template = `Round 1 (Online Assessment): 3 coding questions on arrays/graphs + 20 CS fundamentals MCQs.\nRound 2 (Technical Interview 1): Project deep-dive, live coding on Binary Search Trees, and OS virtual memory.\nRound 3 (Technical Interview 2): System design of a URL shortener, SQL optimization, and concurrency handling.\nRound 4 (HR / Behavioral): STAR behavioral questions, culture fit, and college leadership roles.`;
+    setFormData(prev => ({
+      ...prev,
+      journey: {
+        ...prev.journey,
+        howSecured: prev.journey.howSecured ? prev.journey.howSecured + '\n' + template : template
+      }
+    }));
+  };
+
   // File upload change handler
   const processMaterialFile = (file) => {
     const extension = file.name.split('.').pop().toLowerCase();
@@ -516,6 +547,38 @@ export default function Stories() {
     }
 
     const nowIso = new Date().toISOString();
+
+    // Package advice and hackathons into customSections if provided
+    const baseCustomSections = customSections.filter(sec => sec.title.trim() && sec.content.trim());
+    const finalCustomSections = [...baseCustomSections];
+
+    const adviceParts = [];
+    if (adviceQuote.trim()) {
+      adviceParts.push(`"${adviceQuote.trim()}"`);
+    }
+    if (adviceTips.trim()) {
+      adviceParts.push(adviceTips.trim());
+    }
+    if (adviceParts.length > 0) {
+      const existingAdviceIndex = finalCustomSections.findIndex(s => s.title.toLowerCase().includes('advice'));
+      if (existingAdviceIndex === -1) {
+        finalCustomSections.unshift({
+          title: 'Advice To Juniors',
+          content: adviceParts.join('\n\n')
+        });
+      }
+    }
+
+    if (hackathons.trim()) {
+      const existingHackIndex = finalCustomSections.findIndex(s => s.title.toLowerCase().includes('hackathon') || s.title.toLowerCase().includes('competition'));
+      if (existingHackIndex === -1) {
+        finalCustomSections.push({
+          title: 'Hackathons & Competitions',
+          content: hackathons.trim()
+        });
+      }
+    }
+
     const submission = {
       ...formData,
       createdAt: nowIso,
@@ -529,7 +592,7 @@ export default function Stories() {
       })),
       photo: photoUrl,
       requestType: 'add',
-      customSections: customSections.filter(sec => sec.title.trim() && sec.content.trim()),
+      customSections: finalCustomSections,
       resume: resumeUploadFile.fileName,
       resumeFile: resumeUploadFile,
       uploadedByEmail: currentUser ? currentUser.email : ''
@@ -555,6 +618,10 @@ export default function Stories() {
       setSubmitting(false);
       setCustomSections([]);
       setResumeUploadFile(null);
+      setAdviceQuote('');
+      setAdviceTips('');
+      setHackathons('');
+      setActiveModalSection('sec-profile');
       setFormData({
         name: '',
         branch: 'CSE',
@@ -1007,7 +1074,7 @@ export default function Stories() {
             ) : (
               <form onSubmit={handleFormSubmit}>
                 {/* Header Banner */}
-                <div style={{ marginBottom: '2.5rem' }}>
+                <div style={{ marginBottom: '1.75rem' }}>
                   <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1029,34 +1096,112 @@ export default function Stories() {
                     Share Your Story
                   </h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0, lineHeight: 1.5 }}>
-                    Help juniors prepare by sharing your interview prep, milestones, and materials.
+                    Help juniors prepare by sharing your interview prep, milestones, projects, and study materials.
                   </p>
                 </div>
 
-                {/* Form Fields - Step 1: Personal Details */}
-                <div style={{
-                  padding: '1.75rem',
-                  borderRadius: '20px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid var(--border-color)',
-                  marginBottom: '2rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                    <div style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--text-primary)',
-                      color: 'var(--bg-surface)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: 800
-                    }}>1</div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0 }}>
-                      Profile Details
-                    </h3>
+                {/* Sticky Section Jump Pill Bar */}
+                <div 
+                  className="custom-scrollbar"
+                  style={{
+                    position: 'sticky',
+                    top: '-3rem',
+                    zIndex: 25,
+                    backgroundColor: 'var(--bg-surface)',
+                    padding: '0.5rem 0 0.85rem 0',
+                    marginBottom: '1.75rem',
+                    borderBottom: '1px solid var(--border-color)',
+                    display: 'flex',
+                    gap: '0.4rem',
+                    overflowX: 'auto',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none'
+                  }}
+                >
+                  {[
+                    { id: 'sec-profile', label: 'Profile', icon: Briefcase },
+                    { id: 'sec-journey', label: '4-Year Journey', icon: Compass },
+                    { id: 'sec-prep', label: 'Prep Strategy', icon: Award },
+                    { id: 'sec-projects', label: 'Projects', icon: Code },
+                    { id: 'sec-secured', label: 'How Secured', icon: Layers },
+                    { id: 'sec-takeaways', label: 'Key Takeaways', icon: Sparkles },
+                    { id: 'sec-hackathons', label: 'Hackathons', icon: Trophy },
+                    { id: 'sec-resources', label: 'Resources', icon: BookOpen },
+                    { id: 'sec-resume', label: 'Resume', icon: FileText },
+                    { id: 'sec-materials', label: 'Materials', icon: Upload },
+                    { id: 'sec-custom', label: 'Custom', icon: Plus }
+                  ].map((sec) => {
+                    const Icon = sec.icon;
+                    const isActive = activeModalSection === sec.id;
+                    return (
+                      <button
+                        key={sec.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveModalSection(sec.id);
+                          const el = document.getElementById(sec.id);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        style={{
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '999px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          border: isActive ? '1px solid var(--text-primary)' : '1px solid var(--border-color)',
+                          backgroundColor: isActive ? 'var(--text-primary)' : 'var(--bg-secondary)',
+                          color: isActive ? 'var(--bg-surface)' : 'var(--text-primary)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          whiteSpace: 'nowrap',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Icon size={13} />
+                        <span>{sec.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Section 1: Profile Details */}
+                <div 
+                  id="sec-profile" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--text-primary)',
+                        color: 'var(--bg-surface)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}>1</div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Briefcase size={18} />
+                          Profile Details
+                        </h3>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Candidate credentials and placement offer overview
+                        </p>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ff3b30' }}>* Required</span>
                   </div>
 
                   <div className="input-group">
@@ -1173,39 +1318,55 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Step 2: The Journey */}
-                <div style={{
-                  padding: '1.75rem',
-                  borderRadius: '20px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid var(--border-color)',
-                  marginBottom: '2rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                {/* Section 2: 4-Year Journey */}
+                <div 
+                  id="sec-journey" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
                     <div style={{
-                      width: '24px',
-                      height: '24px',
+                      width: '28px',
+                      height: '28px',
                       borderRadius: '50%',
                       backgroundColor: 'var(--text-primary)',
                       color: 'var(--bg-surface)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.75rem',
+                      fontSize: '0.8rem',
                       fontWeight: 800
                     }}>2</div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0 }}>
-                      Your Journey (Year by Year)
-                    </h3>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Compass size={18} />
+                        4-Year Journey (Year by Year)
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Your evolution across engineering phases from orientation to campus offers
+                      </p>
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* First Year */}
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">First Year Journey</label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
+                          First Year Journey (FE)
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Foundations & Mindset</span>
+                      </div>
                       <textarea 
                         className="input-field" 
-                        rows={4} 
-                        placeholder="Exploration, core subjects, clubs joined, mindset..."
+                        rows={3} 
+                        placeholder="Exploration, foundational math & coding, clubs joined (e.g. CSI, IEEE, ACM), mindset, initial GPA focus..."
                         value={formData.journey.firstYear}
                         onChange={(e) => setFormData({
                           ...formData,
@@ -1215,12 +1376,18 @@ export default function Stories() {
                       />
                     </div>
 
+                    {/* Second Year */}
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Second Year Journey</label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
+                          Second Year Journey (SE)
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>DSA & Tech Exploration</span>
+                      </div>
                       <textarea 
                         className="input-field" 
-                        rows={4} 
-                        placeholder="DSA start, tech stack selection, core projects, hackathons..."
+                        rows={3} 
+                        placeholder="DSA commencement (LeetCode/GFG), choosing your tech stack, hackathons, initial core projects, subjects..."
                         value={formData.journey.secondYear}
                         onChange={(e) => setFormData({
                           ...formData,
@@ -1230,12 +1397,18 @@ export default function Stories() {
                       />
                     </div>
 
+                    {/* Third Year */}
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Third Year Journey</label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
+                          Third Year Journey (TE)
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Internships & Assessments</span>
+                      </div>
                       <textarea 
                         className="input-field" 
-                        rows={4} 
-                        placeholder="Internship prep, online tests, cracking placement drives, interviews..."
+                        rows={3} 
+                        placeholder="Internship preparation, online coding assessments, clearing campus drives, resume building, mock interviews..."
                         value={formData.journey.thirdYear}
                         onChange={(e) => setFormData({
                           ...formData,
@@ -1245,12 +1418,18 @@ export default function Stories() {
                       />
                     </div>
 
+                    {/* Fourth Year */}
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Fourth Year Journey</label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
+                          Fourth Year Journey (BE)
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Placements & Career Launch</span>
+                      </div>
                       <textarea 
                         className="input-field" 
-                        rows={4} 
-                        placeholder="PPO conversion, capstone project, final plans, tips for juniors..."
+                        rows={3} 
+                        placeholder="Final placement season, PPO conversion, capstone engineering project, higher studies/work plans, mentoring juniors..."
                         value={formData.journey.fourthYear}
                         onChange={(e) => setFormData({
                           ...formData,
@@ -1259,489 +1438,883 @@ export default function Stories() {
                         style={{ resize: 'vertical', lineHeight: 1.6 }}
                       />
                     </div>
-
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Preparation & Strategy</label>
-                      <textarea 
-                        className="input-field" 
-                        rows={4} 
-                        placeholder="DSA sheets, systems subjects revised, resume tips, interview prep..."
-                        value={formData.journey.prep}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          journey: { ...formData.journey, prep: e.target.value }
-                        })}
-                        style={{ resize: 'vertical', lineHeight: 1.6 }}
-                      />
-                    </div>
-
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">How You Secured the Placement</label>
-                      <textarea 
-                        className="input-field" 
-                        rows={4} 
-                        placeholder="Rounds details, interview questions asked, advice..."
-                        value={formData.journey.howSecured}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          journey: { ...formData.journey, howSecured: e.target.value }
-                        })}
-                        style={{ resize: 'vertical', lineHeight: 1.6 }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Custom Prompts Builder (Add More Columns/Sections) */}
-                  <div style={{ marginTop: '1.75rem', paddingTop: '1.5rem', borderTop: '1px dashed var(--border-color)' }}>
-                    <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '1rem' }}>
-                      Custom Sections & Prompts
-                    </h4>
-                    {customSections.map((sec, index) => (
-                      <div key={index} style={{
-                        padding: '1.25rem',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '16px',
-                        backgroundColor: 'var(--bg-primary)',
-                        marginBottom: '1rem',
-                        position: 'relative'
-                      }}>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveCustomSection(index)}
-                          style={{
-                            position: 'absolute',
-                            top: '0.75rem',
-                            right: '0.75rem',
-                            background: 'rgba(255, 59, 48, 0.1)',
-                            border: 'none',
-                            color: '#ff3b30',
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                          title="Remove Section"
-                        >
-                          <X size={14} />
-                        </button>
-                        
-                        <div className="input-group" style={{ marginBottom: '0.75rem', paddingRight: '2rem' }}>
-                          <label className="input-label">Section Headline *</label>
-                          <input
-                            type="text"
-                            className="input-field"
-                            placeholder="e.g. Hackathons & Competitions, Key Open Source Contributions..."
-                            value={sec.title}
-                            onChange={(e) => handleUpdateCustomSection(index, 'title', e.target.value)}
-                            required
-                          />
-                        </div>
-                        
-                        <div className="input-group" style={{ marginBottom: 0 }}>
-                          <label className="input-label">Section Details *</label>
-                          <textarea
-                            className="input-field"
-                            rows={3}
-                            placeholder="Write the details / strategy for this custom prompt..."
-                            value={sec.content}
-                            onChange={(e) => handleUpdateCustomSection(index, 'content', e.target.value)}
-                            required
-                            style={{ resize: 'vertical', lineHeight: 1.6 }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-
-                    <button
-                      type="button"
-                      onClick={handleAddCustomSection}
-                      className="btn btn-secondary"
-                      style={{
-                        width: '100%',
-                        padding: '0.85rem',
-                        borderRadius: '14px',
-                        border: '1px dashed var(--border-color)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        fontSize: '0.88rem',
-                        fontWeight: 600,
-                        backgroundColor: 'transparent'
-                      }}
-                    >
-                      <Plus size={16} />
-                      <span>Add Custom Prompts / Sections</span>
-                    </button>
                   </div>
                 </div>
 
-                {/* Step 3: Resources and Uploads */}
-                <div style={{
-                  padding: '1.75rem',
-                  borderRadius: '20px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid var(--border-color)',
-                  marginBottom: '2rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                {/* Section 3: Prep Strategy */}
+                <div 
+                  id="sec-prep" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
                     <div style={{
-                      width: '24px',
-                      height: '24px',
+                      width: '28px',
+                      height: '28px',
                       borderRadius: '50%',
                       backgroundColor: 'var(--text-primary)',
                       color: 'var(--bg-surface)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.75rem',
+                      fontSize: '0.8rem',
                       fontWeight: 800
                     }}>3</div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0 }}>
-                      Resources & Materials Used
-                    </h3>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Award size={18} />
+                        Preparation Strategy & Roadmaps
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        DSA routines, core computer science subjects, and interview readiness
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Resources Input */}
-                  <div style={{ marginBottom: '1.75rem' }}>
-                    <label className="input-label">Add Resource Used</label>
+                  <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+                    <label className="input-label">Preparation Strategy & Tips</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={4} 
+                      placeholder="e.g. Started DSA with Striver SDE sheet (solved 350+ questions). Dedicated 2 hours daily on LeetCode. Revised OS (threads, locks, paging), DBMS (indexes, transactions), and Computer Networks. Did 5 peer mock interviews before the on-campus drive..."
+                      value={formData.journey.prep}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        journey: { ...formData.journey, prep: e.target.value }
+                      })}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+
+                  {/* Quick Starter Chips */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Quick Add:</span>
+                    {[
+                      'Striver SDE Sheet for DSA',
+                      'Daily LeetCode (Arrays, Trees, DP)',
+                      'Core Subjects: OS, DBMS & CN',
+                      'Peer Mock Interviews'
+                    ].map((promptText, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            journey: {
+                              ...prev.journey,
+                              prep: prev.journey.prep 
+                                ? (prev.journey.prep.includes(promptText) ? prev.journey.prep : prev.journey.prep + '\n• ' + promptText)
+                                : '• ' + promptText
+                            }
+                          }));
+                        }}
+                        style={{
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        + {promptText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section 4: Key Projects */}
+                <div 
+                  id="sec-projects" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--text-primary)',
+                        color: 'var(--bg-surface)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}>4</div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Code size={18} />
+                          Key Projects & Technical Proof of Work
+                        </h3>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Practical systems, GitHub repositories, and portfolio work discussed in interviews
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleInsertProjectsTemplate}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        border: '1px dashed var(--border-color)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Insert Project Template
+                    </button>
+                  </div>
+
+                  <div className="input-group" style={{ marginBottom: '0.5rem' }}>
+                    <label className="input-label">Projects & Tech Stack</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={4} 
+                      placeholder={`1. "High-Throughput Task Queue": Distributed job processor in Go and Redis with exponential backoff and worker pools.\n2. "Campus Placement Portal": Full-stack MERN application with role-based JWT auth, real-time notifications, and ATS resume parsing.\n3. "AI Code Reviewer": Python FastAPI microservice using LangChain to review pull requests.`}
+                      value={formData.journey.projects}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        journey: { ...formData.journey, projects: e.target.value }
+                      })}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    💡 Pro-Tip: Format as <strong>1. "Project Name": Description &amp; Tech Stack</strong> so it renders into beautiful interactive cards on your public story page.
+                  </p>
+                </div>
+
+                {/* Section 5: How Secured */}
+                <div 
+                  id="sec-secured" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--text-primary)',
+                        color: 'var(--bg-surface)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}>5</div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Layers size={18} />
+                          How Secured (Recruitment Process & Rounds)
+                        </h3>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Step-by-step breakdown: OA, technical rounds, questions asked, and HR
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleInsertRoundsTemplate}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        border: '1px dashed var(--border-color)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Insert Rounds Template
+                    </button>
+                  </div>
+
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Recruitment Process & Interview Rounds</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={4} 
+                      placeholder={`Round 1 (Online Assessment): 3 coding problems on arrays/graphs + 20 CS fundamentals MCQs.\nRound 2 (Technical Interview 1): In-depth resume discussion, live coding on Binary Search Trees, and OS virtual memory.\nRound 3 (Technical Interview 2): System design of a URL shortener, SQL query optimization, and concurrency handling.\nRound 4 (HR / Behavioral): Situation-based questions (STAR method), culture fit, and college experiences.`}
+                      value={formData.journey.howSecured}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        journey: { ...formData.journey, howSecured: e.target.value }
+                      })}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Section 6: Key Takeaways & Advice */}
+                <div 
+                  id="sec-takeaways" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--text-primary)',
+                      color: 'var(--bg-surface)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.8rem',
+                      fontWeight: 800
+                    }}>6</div>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Sparkles size={18} />
+                        Key Takeaways & Advice to Juniors
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Your golden rule, mindset guidance, and lessons learned from the placement journey
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">Senior's Golden Rule / Core Takeaway</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder='e.g. Consistency beats intensity every single day. Trust your personal timeline and avoid comparing yourself to others.'
+                        value={adviceQuote}
+                        onChange={(e) => setAdviceQuote(e.target.value)}
+                      />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                        ✨ Displayed prominently as a quote badge on your public story page.
+                      </span>
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">Actionable Advice & Principles for Juniors</label>
+                      <textarea 
+                        className="input-field" 
+                        rows={4} 
+                        placeholder={`💡 Don't wait until placement season to start preparing.\n• Start DSA early and maintain a daily habit.\n• Focus on 2 deeply understood projects instead of 10 surface-level tutorial clones.\n• Practice articulating your thought process aloud while coding.\n• Avoid comparing your journey with peers; everyone progresses at a different pace.`}
+                        value={adviceTips}
+                        onChange={(e) => setAdviceTips(e.target.value)}
+                        style={{ resize: 'vertical', lineHeight: 1.6 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 7: Hackathons (Optional) */}
+                <div 
+                  id="sec-hackathons" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--text-primary)',
+                      color: 'var(--bg-surface)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.8rem',
+                      fontWeight: 800
+                    }}>7</div>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Trophy size={18} />
+                        Hackathons & Competitions (Optional)
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        High-intensity hackathons, awards won, competitive building, and open-source sprints
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Hackathons Participated & Achievements</label>
+                    <textarea 
+                      className="input-field" 
+                      rows={3} 
+                      placeholder={`🏆 Participated in national-level and college hackathons.\n• Top 10 Finalist in Smart India Hackathon\n• Winner of SPIT College Innovation Challenge\n• Built an AI-driven disaster relief dashboard in 24 hours`}
+                      value={hackathons}
+                      onChange={(e) => setHackathons(e.target.value)}
+                      style={{ resize: 'vertical', lineHeight: 1.6 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Section 8: Resources Used */}
+                <div 
+                  id="sec-resources" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--text-primary)',
+                      color: 'var(--bg-surface)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.8rem',
+                      fontWeight: 800
+                    }}>8</div>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <BookOpen size={18} />
+                        Resources & Study Materials Used
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Sheets, platforms, YouTube channels, and books that helped you prepare
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Custom Resource Input */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label className="input-label">Add Resource</label>
                     <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.25rem' }}>
                       <input 
                         type="text" 
                         className="input-field" 
-                        placeholder="Resource Name (e.g. LeetCode, Striver Sheet, NeetCode)"
+                        placeholder="Resource Name (e.g. Striver SDE Sheet, NeetCode 150, Gate Smashers)"
                         value={resourceInput.name}
                         onChange={(e) => setResourceInput({ ...resourceInput, name: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddResource();
+                          }
+                        }}
                         style={{ flexGrow: 1 }}
                       />
                       <select 
                         className="input-field"
                         value={resourceInput.type}
                         onChange={(e) => setResourceInput({ ...resourceInput, type: e.target.value })}
-                        style={{ width: '140px' }}
+                        style={{ width: '150px' }}
                       >
                         <option value="DSA">DSA</option>
-                        <option value="AI/ML">AI/ML</option>
-                        <option value="Books">Books</option>
                         <option value="System Design">System Design</option>
                         <option value="Web Dev">Web Dev</option>
+                        <option value="AI/ML">AI/ML</option>
+                        <option value="Core CS">Core CS</option>
+                        <option value="Books">Books</option>
+                        <option value="Mock Tests">Mock Tests</option>
                       </select>
                       <button 
                         type="button" 
                         onClick={handleAddResource} 
                         className="btn btn-secondary"
                         style={{ padding: '0.6rem 1.1rem', borderRadius: '12px' }}
+                        title="Add Resource"
                       >
                         <Plus size={16} />
                       </button>
                     </div>
-                    {/* Resources preview list */}
-                    {formData.resources.length > 0 && (
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.85rem' }}>
-                        {formData.resources.map((res, index) => (
-                          <span key={index} className="badge" style={{
-                            fontSize: '0.75rem',
-                            padding: '0.4rem 0.75rem',
-                            borderRadius: '999px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                            border: '1px solid var(--border-color)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem'
-                          }}>
-                            <strong>{res.name}</strong> <span style={{ opacity: 0.6 }}>({res.type})</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Dedicated Resume Upload Input */}
-                  <div style={{ marginBottom: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                      <label className="input-label" style={{ color: 'var(--text-primary)', fontWeight: 700, margin: 0 }}>
-                        Upload Senior Resume (PDF) *
-                      </label>
+                  {/* Quick Add Chips */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.4rem' }}>
+                      Popular at SPIT (Click to add):
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
-                      <div 
-                        onClick={() => document.getElementById('resume-file-upload')?.click()}
-                        style={{
-                          border: '1.5px dashed var(--border-color)',
-                          borderRadius: '16px',
-                          padding: resumeUploadFile ? '1rem 1.25rem' : '1.75rem 1.25rem',
-                          textAlign: 'center',
-                          backgroundColor: 'var(--bg-secondary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          display: 'flex',
-                          flexDirection: 'column',
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {[
+                        { name: 'Striver SDE Sheet', type: 'DSA' },
+                        { name: 'NeetCode 150', type: 'DSA' },
+                        { name: 'LeetCode Top 100', type: 'DSA' },
+                        { name: 'Gate Smashers', type: 'Core CS' },
+                        { name: 'Designing Data-Intensive Applications', type: 'System Design' },
+                        { name: 'Gaurav Sen System Design', type: 'System Design' },
+                        { name: 'TakeUforward', type: 'DSA' }
+                      ].map((res, idx) => {
+                        const isAdded = formData.resources.some(r => r.name.toLowerCase() === res.name.toLowerCase());
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              if (isAdded) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  resources: prev.resources.filter(r => r.name.toLowerCase() !== res.name.toLowerCase())
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  resources: [...prev.resources, res]
+                                }));
+                              }
+                            }}
+                            style={{
+                              padding: '0.3rem 0.75rem',
+                              borderRadius: '999px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              border: isAdded ? '1px solid var(--text-primary)' : '1px solid var(--border-color)',
+                              backgroundColor: isAdded ? 'var(--text-primary)' : 'var(--bg-secondary)',
+                              color: isAdded ? 'var(--bg-surface)' : 'var(--text-primary)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {isAdded ? <Check size={12} /> : <Plus size={12} />}
+                            <span>{res.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Resources Preview Tag List */}
+                  {formData.resources.length > 0 && (
+                    <div style={{
+                      padding: '0.85rem 1rem',
+                      borderRadius: '14px',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Added ({formData.resources.length}):</span>
+                      {formData.resources.map((res, index) => (
+                        <span key={index} className="badge" style={{
+                          fontSize: '0.78rem',
+                          padding: '0.35rem 0.7rem',
+                          borderRadius: '999px',
+                          backgroundColor: 'var(--bg-surface)',
+                          border: '1px solid var(--border-color)',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: '100px',
+                          gap: '0.45rem',
                           color: 'var(--text-primary)'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--text-primary)';
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--border-color)';
-                          e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                        }}
-                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const file = e.dataTransfer.files?.[0];
-                          if (file) processResumeFile(file);
-                        }}
-                      >
-                        <input 
-                          type="file" 
-                          id="resume-file-upload" 
-                          onChange={(e) => {
-                             const file = e.target.files[0];
-                             if (!file) return;
-                             
-                             fileToBase64(file).then(base64Url => {
-                               setResumeUploadFile({
-                                 fileName: file.name,
-                                 fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-                                 url: base64Url
-                               });
-                             }).catch(err => {
-                               console.error("Error reading file:", err);
-                               alert("Failed to read file.");
-                             });
-                           }} 
-                          style={{ display: 'none' }}
-                          accept=".pdf"
-                        />
-                        {resumeUploadFile ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left' }}>
-                              <span style={{
-                                padding: '0.6rem',
-                                backgroundColor: 'rgba(255, 59, 48, 0.12)',
-                                border: '1px solid rgba(255, 59, 48, 0.25)',
-                                borderRadius: '10px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#ff3b30'
-                              }}>
-                                <FileText size={20} />
-                              </span>
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>{resumeUploadFile.fileName}</span>
-                                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{resumeUploadFile.fileSize} • Click to replace</span>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (resumeUploadFile.url && resumeUploadFile.url.startsWith('blob:')) {
-                                  URL.revokeObjectURL(resumeUploadFile.url);
-                                }
-                                setResumeUploadFile(null);
-                              }}
-                              style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#ff453a',
-                                border: 'none',
-                                background: 'rgba(255, 69, 58, 0.1)',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                              }}
-                              title="Remove Resume"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <div style={{
-                              width: '42px',
-                              height: '42px',
-                              borderRadius: '12px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid var(--border-color)',
+                        }}>
+                          <strong>{res.name}</strong>
+                          <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>({res.type})</span>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, resources: prev.resources.filter((_, i) => i !== index) }))}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              cursor: 'pointer',
+                              color: 'var(--text-secondary)',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <X size={13} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 9: Senior Resume Upload */}
+                <div 
+                  id="sec-resume" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--text-primary)',
+                        color: 'var(--bg-surface)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}>9</div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <FileText size={18} />
+                          Senior Resume (PDF) *
+                        </h3>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Upload your resume PDF so juniors can study your formatting and project presentation
+                        </p>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ff3b30' }}>* Required</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div 
+                      onClick={() => document.getElementById('resume-file-upload')?.click()}
+                      style={{
+                        border: '1.5px dashed var(--border-color)',
+                        borderRadius: '16px',
+                        padding: resumeUploadFile ? '1rem 1.25rem' : '1.75rem 1.25rem',
+                        textAlign: 'center',
+                        backgroundColor: 'var(--bg-secondary)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '100px',
+                        color: 'var(--text-primary)'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--text-primary)';
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) processResumeFile(file);
+                      }}
+                    >
+                      <input 
+                        type="file" 
+                        id="resume-file-upload" 
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          fileToBase64(file).then(base64Url => {
+                            setResumeUploadFile({
+                              fileName: file.name,
+                              fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+                              url: base64Url
+                            });
+                          }).catch(err => {
+                            console.error("Error reading file:", err);
+                            alert("Failed to read file.");
+                          });
+                        }} 
+                        style={{ display: 'none' }}
+                        accept=".pdf"
+                      />
+                      {resumeUploadFile ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left' }}>
+                            <span style={{
+                              padding: '0.6rem',
+                              backgroundColor: 'rgba(255, 59, 48, 0.12)',
+                              border: '1px solid rgba(255, 59, 48, 0.25)',
+                              borderRadius: '10px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              marginBottom: '0.6rem'
+                              color: '#ff3b30'
                             }}>
-                              <FileText size={22} style={{ color: 'var(--text-primary)' }} />
-                            </div>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.25rem 0' }}>
-                              Choose Resume PDF or drag & drop here
-                            </p>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              PDF up to 10MB
+                              <FileText size={20} />
                             </span>
-                          </>
-                        )}
-                      </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>{resumeUploadFile.fileName}</span>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{resumeUploadFile.fileSize} • Click to replace</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (resumeUploadFile.url && resumeUploadFile.url.startsWith('blob:')) {
+                                URL.revokeObjectURL(resumeUploadFile.url);
+                              }
+                              setResumeUploadFile(null);
+                            }}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#ff453a',
+                              border: 'none',
+                              background: 'rgba(255, 69, 58, 0.1)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            title="Remove Resume"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '12px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid var(--border-color)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: '0.6rem'
+                          }}>
+                            <FileText size={22} style={{ color: 'var(--text-primary)' }} />
+                          </div>
+                          <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.25rem 0' }}>
+                            Choose Resume PDF or drag &amp; drop here
+                          </p>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            PDF up to 10MB
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 10: Study Materials Upload */}
+                <div 
+                  id="sec-materials" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--text-primary)',
+                      color: 'var(--bg-surface)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.8rem',
+                      fontWeight: 800
+                    }}>10</div>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Upload size={18} />
+                        Study Materials, Cheat Sheets &amp; Notes (Optional)
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Share personal roadmaps, handwritten notes, or formula cheat sheets
+                      </p>
                     </div>
                   </div>
 
-                  {/* Study Materials Input */}
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                      <label className="input-label" style={{ margin: 0 }}>
-                        Upload Study Material
-                      </label>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
-                      
-                      {/* Dropzone File Selector */}
-                      <div 
-                        onClick={() => document.getElementById('material-file-upload')?.click()}
-                        style={{
-                          border: '1.5px dashed var(--border-color)',
-                          borderRadius: '16px',
-                          padding: materialInput.previewUrl ? '1rem 1.25rem' : '1.75rem 1.25rem',
-                          textAlign: 'center',
-                          backgroundColor: 'var(--bg-primary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: '120px'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--text-primary)';
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--border-color)';
-                          e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
-                        }}
-                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const file = e.dataTransfer.files?.[0];
-                          if (file) processMaterialFile(file);
-                        }}
-                      >
-                        <input 
-                          type="file" 
-                          id="material-file-upload" 
-                          onChange={handleFileChange} 
-                          style={{ display: 'none' }}
-                          accept=".pdf,.png,.jpg,.jpeg"
-                        />
-                        {materialInput.previewUrl ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', width: '100%' }}>
-                            {materialInput.type === 'Image' ? (
-                              <div style={{ position: 'relative', width: '100%', height: '110px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                <img 
-                                  src={materialInput.previewUrl} 
-                                  alt="Preview" 
-                                  style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px' }} 
-                                />
-                              </div>
-                            ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                                <div style={{
-                                  width: '48px',
-                                  height: '60px',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: '8px',
-                                  display: 'flex',
-                                  justifyContent: 'center',
-                                  alignItems: 'center',
-                                  backgroundColor: materialInput.type === 'PDF' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(0, 122, 255, 0.15)',
-                                  color: materialInput.type === 'PDF' ? '#ff3b30' : '#007aff',
-                                  fontWeight: 'bold',
-                                  fontSize: '0.78rem'
-                                }}>
-                                  {materialInput.type}
-                                </div>
-                              </div>
-                            )}
-                            <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>
-                              {materialInput.fileName}
-                            </p>
-                            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0 }}>
-                              {materialInput.fileSize} • Click to replace file
-                            </p>
-                          </div>
-                        ) : (
-                          <>
-                            <div style={{
-                              width: '42px',
-                              height: '42px',
-                              borderRadius: '12px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid var(--border-color)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              marginBottom: '0.6rem'
-                            }}>
-                              <Upload size={20} style={{ color: 'var(--text-primary)' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {/* Dropzone File Selector */}
+                    <div 
+                      onClick={() => document.getElementById('material-file-upload')?.click()}
+                      style={{
+                        border: '1.5px dashed var(--border-color)',
+                        borderRadius: '16px',
+                        padding: materialInput.previewUrl ? '1rem 1.25rem' : '1.75rem 1.25rem',
+                        textAlign: 'center',
+                        backgroundColor: 'var(--bg-primary)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '110px'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--text-primary)';
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) processMaterialFile(file);
+                      }}
+                    >
+                      <input 
+                        type="file" 
+                        id="material-file-upload" 
+                        onChange={handleFileChange} 
+                        style={{ display: 'none' }}
+                        accept=".pdf,.png,.jpg,.jpeg"
+                      />
+                      {materialInput.previewUrl ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', width: '100%' }}>
+                          {materialInput.type === 'Image' ? (
+                            <div style={{ position: 'relative', width: '100%', height: '100px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                              <img 
+                                src={materialInput.previewUrl} 
+                                alt="Preview" 
+                                style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px' }} 
+                              />
                             </div>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.25rem 0' }}>
-                              Choose Material or drop file here
-                            </p>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              Supports PDF, PNG, JPG
-                            </span>
-                          </>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.6rem' }}>
-                        <input 
-                          type="text" 
-                          className="input-field" 
-                          placeholder="Material Title (e.g. Cheat Sheet, Handwritten Notes)"
-                          value={materialInput.title}
-                          onChange={(e) => setMaterialInput({ ...materialInput, title: e.target.value })}
-                          style={{ flexGrow: 1 }}
-                        />
-                        <select 
-                          className="input-field"
-                          value={materialInput.type}
-                          onChange={(e) => setMaterialInput({ ...materialInput, type: e.target.value })}
-                          style={{ width: '140px' }}
-                        >
-                          <option value="PDF">PDF</option>
-                          <option value="Image">Image</option>
-                          <option value="Roadmap">Roadmap</option>
-                          <option value="Notes">Notes</option>
-                          <option value="Interview Questions">Interview Qs</option>
-                        </select>
-                        <button 
-                          type="button" 
-                          onClick={handleAddMaterial} 
-                          className="btn btn-secondary"
-                          style={{ padding: '0.6rem 1.1rem', borderRadius: '12px' }}
-                        >
-                          <Plus size={16} />
-                        </button>
-                      </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                              <div style={{
+                                width: '44px',
+                                height: '54px',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                backgroundColor: materialInput.type === 'PDF' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(0, 122, 255, 0.15)',
+                                color: materialInput.type === 'PDF' ? '#ff3b30' : '#007aff',
+                                fontWeight: 'bold',
+                                fontSize: '0.75rem'
+                              }}>
+                                {materialInput.type}
+                              </div>
+                            </div>
+                          )}
+                          <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>
+                            {materialInput.fileName}
+                          </p>
+                          <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            {materialInput.fileSize} • Click to replace file
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '12px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid var(--border-color)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: '0.5rem'
+                          }}>
+                            <Upload size={18} style={{ color: 'var(--text-primary)' }} />
+                          </div>
+                          <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.2rem 0' }}>
+                            Choose Material or drop file here
+                          </p>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                            Supports PDF, PNG, JPG (Max 1 file)
+                          </span>
+                        </>
+                      )}
                     </div>
-                    
-                    {/* Materials preview list */}
+
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="Material Title (e.g. Handwritten Notes, DSA Roadmap)"
+                        value={materialInput.title}
+                        onChange={(e) => setMaterialInput({ ...materialInput, title: e.target.value })}
+                        style={{ flexGrow: 1 }}
+                      />
+                      <select 
+                        className="input-field"
+                        value={materialInput.type}
+                        onChange={(e) => setMaterialInput({ ...materialInput, type: e.target.value })}
+                        style={{ width: '150px' }}
+                      >
+                        <option value="PDF">PDF</option>
+                        <option value="Image">Image</option>
+                        <option value="Roadmap">Roadmap</option>
+                        <option value="Notes">Notes</option>
+                        <option value="Interview Questions">Interview Qs</option>
+                      </select>
+                      <button 
+                        type="button" 
+                        onClick={handleAddMaterial} 
+                        className="btn btn-secondary"
+                        style={{ padding: '0.6rem 1.1rem', borderRadius: '12px' }}
+                        title="Add Material"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+
+                    {/* Materials Preview List */}
                     {formData.studyMaterials.length > 0 && (
                       <div style={{ 
-                        marginTop: '1.25rem', 
+                        marginTop: '0.75rem', 
                         display: 'grid', 
                         gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
                         gap: '0.75rem' 
@@ -1831,6 +2404,131 @@ export default function Stories() {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Section 11: Custom Prompts / Extra Sections */}
+                <div 
+                  id="sec-custom" 
+                  style={{
+                    padding: '1.75rem',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '2rem',
+                    scrollMarginTop: '80px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--text-primary)',
+                        color: 'var(--bg-surface)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}>11</div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Plus size={18} />
+                          Custom Sections &amp; Prompts (Optional)
+                        </h3>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Add custom sections like Work Culture, Salary Negotiation, or Open Source
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomSection}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        border: '1px dashed var(--border-color)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <Plus size={14} />
+                      <span>Add Section</span>
+                    </button>
+                  </div>
+
+                  {customSections.map((sec, index) => (
+                    <div key={index} style={{
+                      padding: '1.25rem',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '16px',
+                      backgroundColor: 'var(--bg-primary)',
+                      marginBottom: '1rem',
+                      position: 'relative'
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCustomSection(index)}
+                        style={{
+                          position: 'absolute',
+                          top: '0.75rem',
+                          right: '0.75rem',
+                          background: 'rgba(255, 59, 48, 0.1)',
+                          border: 'none',
+                          color: '#ff3b30',
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Remove Section"
+                      >
+                        <X size={14} />
+                      </button>
+                      
+                      <div className="input-group" style={{ marginBottom: '0.75rem', paddingRight: '2rem' }}>
+                        <label className="input-label">Section Headline *</label>
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="e.g. Work Culture & Team Dynamics, Open Source Contributions..."
+                          value={sec.title}
+                          onChange={(e) => handleUpdateCustomSection(index, 'title', e.target.value)}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="input-group" style={{ marginBottom: 0 }}>
+                        <label className="input-label">Section Details *</label>
+                        <textarea
+                          className="input-field"
+                          rows={3}
+                          placeholder="Write the details for this prompt..."
+                          value={sec.content}
+                          onChange={(e) => handleUpdateCustomSection(index, 'content', e.target.value)}
+                          required
+                          style={{ resize: 'vertical', lineHeight: 1.6 }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  {customSections.length === 0 && (
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '0.75rem' }}>
+                      No additional custom sections added yet. Click &quot;Add Section&quot; above to include extra topics.
+                    </p>
+                  )}
                 </div>
 
                 {/* Modal Actions */}
