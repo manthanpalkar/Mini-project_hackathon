@@ -1585,55 +1585,6 @@ export default function Login() {
             </>
           )}
 
-          {/* Toggle Register / Login */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.75rem', fontSize: '0.88rem' }}>
-            {isRegisterMode ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegisterMode(false);
-                  setError('');
-                  setSuccessMsg('');
-                  triggerCharacterState('IDLE');
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--accent-color)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  padding: 0,
-                  textDecoration: 'underline'
-                }}
-              >
-                Back to Sign In
-              </button>
-            ) : (
-              <p style={{ color: 'var(--text-secondary)' }}>
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsRegisterMode(true);
-                    setError('');
-                    setSuccessMsg('');
-                    triggerCharacterState('IDLE');
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--accent-color)',
-                    cursor: 'pointer',
-                    fontWeight: '700',
-                    padding: 0,
-                    textDecoration: 'underline'
-                  }}
-                >
-                  Sign Up
-                </button>
-              </p>
-            )}
-          </div>
 
         </div>
       </div>
