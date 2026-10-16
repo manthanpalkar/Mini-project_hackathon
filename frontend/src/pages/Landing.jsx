@@ -5,7 +5,7 @@ import { ArrowDown, CornerRightDown } from 'lucide-react';
 const heroImage = '/images/spit-college.jpg';
 const labImage = '/images/loop-labs.png';
 
-function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px', objectFit = 'contain', backgroundColor = '#ffffff' }) {
+function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px', objectFit = 'contain', backgroundColor = '#ffffff', padding = '0' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -36,7 +36,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '1rem',
+          padding: padding,
           cursor: 'zoom-in',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           transform: isHovered ? 'scale(1.02)' : 'scale(1)',
