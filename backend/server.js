@@ -162,7 +162,7 @@ app.use('/api/', globalLimiter);
 // Apply strict rate limiting to login and registration routes
 app.use('/api/users/login', loginLimiter);
 app.use('/api/users/register-request', registerLimiter);
-app.use('/api/auth/google', loginLimiter);
+app.use(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], loginLimiter);
 
 // Apply granular rate limiting to resource downloads and file upload sessions
 app.use(['/api/resources/:id/file', '/api/pending-resources/:id/file'], fileDownloadLimiter);
@@ -886,8 +886,8 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// Google OAuth Endpoints
-app.post('/api/auth/google', async (req, res) => {
+// Google OAuth Endpoints (Supports /api/auth/google and /api/users/google)
+app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], async (req, res) => {
   try {
     const { idToken } = req.body;
     if (!idToken || typeof idToken !== 'string') {
@@ -955,7 +955,7 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-app.post('/api/auth/google/signup', async (req, res) => {
+app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/auth/google/signup'], async (req, res) => {
   try {
     const { idToken, name, username, password, confirmPassword } = req.body;
     if (!idToken || typeof idToken !== 'string') {
@@ -1054,7 +1054,7 @@ app.post('/api/auth/google/signup', async (req, res) => {
   }
 });
 
-app.post('/api/auth/google/link', async (req, res) => {
+app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/google/link'], async (req, res) => {
   try {
     const { idToken, password } = req.body;
     if (!idToken || typeof idToken !== 'string') {

@@ -35,8 +35,8 @@ async function verifyGoogleToken(idToken, overrideClientId = null) {
     throw new Error('Google ID token is required.');
   }
 
-  // Handle mock tokens in test environments or when mock prefix is passed
-  if (idToken.startsWith('mock-google-token-')) {
+  // Handle mock tokens strictly in test environments
+  if (process.env.NODE_ENV === 'test' && idToken.startsWith('mock-google-token-')) {
     const mockDataStr = Buffer.from(idToken.replace('mock-google-token-', ''), 'base64').toString('utf8');
     const mockPayload = JSON.parse(mockDataStr);
 

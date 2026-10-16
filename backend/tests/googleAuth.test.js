@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
@@ -276,5 +277,27 @@ describe('Google OAuth & Domain Restriction', () => {
     assert.ok(paths.username, 'User schema should have username path');
     assert.ok(paths.googleSub, 'User schema should have googleSub path');
     assert.ok(paths.authProvider, 'User schema should have authProvider path');
+  });
+
+  test('Google Auth Endpoint: route alias /api/users/google also resolves successfully', async () => {
+    User.findOne = async () => null;
+
+    const token = createMockGoogleToken({
+      sub: 'google-sub-alias-test-111',
+      email: 'alias.student@spit.ac.in',
+      email_verified: true,
+      name: 'Alias Test Student'
+    });
+
+    const res = await fetch(`${baseUrl}/api/users/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: token })
+    });
+
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.action, 'NEEDS_SIGNUP');
+    assert.equal(data.email, 'alias.student@spit.ac.in');
   });
 });
