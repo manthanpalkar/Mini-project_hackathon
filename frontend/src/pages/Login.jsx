@@ -217,6 +217,14 @@ export default function Login() {
 
   useEffect(() => {
     document.title = isRegisterMode ? 'LOOP | Register' : 'LOOP | Login';
+    // Ensure email and password start completely blank without browser autofill
+    setEmail('');
+    setPassword('');
+    const timer = setTimeout(() => {
+      setEmail('');
+      setPassword('');
+    }, 200);
+    return () => clearTimeout(timer);
   }, [isRegisterMode]);
 
   useEffect(() => {
@@ -1296,7 +1304,13 @@ export default function Login() {
               </div>
 
               {/* Existing Form */}
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Off-screen dummy inputs to absorb aggressive browser autofill */}
+                <div style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1, overflow: 'hidden' }} aria-hidden="true">
+                  <input type="text" name="dummy_email_autofill" tabIndex="-1" autoComplete="off" />
+                  <input type="password" name="dummy_password_autofill" tabIndex="-1" autoComplete="new-password" />
+                </div>
+
                 {/* Email Field */}
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label" htmlFor="email-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
@@ -1305,7 +1319,12 @@ export default function Login() {
                   <div style={{ position: 'relative' }}>
                     <input
                       id="email-input"
+                      name="loop_login_email"
                       type="email"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                       className="input-field"
                       placeholder="Enter your email"
                       value={email}
@@ -1333,7 +1352,9 @@ export default function Login() {
                   <div style={{ position: 'relative' }}>
                     <input
                       id="password-input"
+                      name="loop_login_password"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
                       className="input-field"
                       placeholder="Enter your password"
                       value={password}
