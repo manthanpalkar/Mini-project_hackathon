@@ -41,6 +41,7 @@ import {
   formatBytes
 } from '../utils/db';
 import { playApproveSound, playRejectSound } from '../utils/sound';
+import SystemHealthDashboard from '../components/SystemHealthDashboard';
 
 const parsePosition = (posStr) => {
   if (!posStr) return { x: 50, y: 50, zoom: 1.0 };
@@ -495,7 +496,8 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    document.title = `LOOP | Admin - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`;
+    const tabName = activeTab === 'health' ? 'System Health' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+    document.title = `LOOP | Admin - ${tabName}`;
   }, [activeTab]);
 
   const [createTab, setCreateTab] = useState('outer');
@@ -1321,6 +1323,20 @@ export default function AdminDashboard() {
           }}
         >
           Users ({usersList.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('health')}
+          className="btn"
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem',
+            borderRadius: '10px',
+            backgroundColor: activeTab === 'health' ? 'var(--text-primary)' : 'transparent',
+            color: activeTab === 'health' ? 'var(--accent-inverse)' : 'var(--text-secondary)',
+            border: activeTab === 'health' ? '1px solid var(--text-primary)' : '1px solid transparent'
+          }}
+        >
+          System Health
         </button>
       </div>
 
@@ -3175,6 +3191,11 @@ export default function AdminDashboard() {
           </div>
         )}
         </>
+      )}
+
+      {/* Tab: System Health & Diagnostics */}
+      {activeTab === 'health' && (
+        <SystemHealthDashboard />
       )}
       </>
       )}

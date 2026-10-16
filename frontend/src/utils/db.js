@@ -920,3 +920,23 @@ export const fileToBase64 = (file) => {
     }
   });
 };
+
+export const getSystemHealthDiagnostics = async (forceFresh = false) => {
+  const url = `${API_URL}/admin/diagnostics/system-health${forceFresh ? '?fresh=true' : ''}`;
+  const res = await authFetch(url, { method: 'GET' });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || 'Failed to fetch system diagnostics');
+  }
+  return res.json();
+};
+
+export const verifyDatabaseWrite = async () => {
+  const res = await authFetch(`${API_URL}/admin/diagnostics/db-probe`, { method: 'POST' });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || 'Database write verification failed');
+  }
+  return res.json();
+};
+

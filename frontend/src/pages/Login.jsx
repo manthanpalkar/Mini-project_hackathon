@@ -245,14 +245,14 @@ export default function Login() {
     setError('');
     setSuccessMsg('');
 
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) {
-      setError('Email is required');
+    const trimmedInput = email.trim();
+    if (!trimmedInput) {
+      setError('Username or email is required');
       triggerCharacterState('IDLE');
       return;
     }
 
-    if (!trimmedEmail.endsWith('@spit.ac.in')) {
+    if (trimmedInput.includes('@') && !trimmedInput.toLowerCase().endsWith('@spit.ac.in')) {
       setError('Please use your official SPIT email address (@spit.ac.in)');
       triggerCharacterState('IDLE');
       return;
@@ -269,14 +269,14 @@ export default function Login() {
 
     try {
       if (isRegisterMode) {
-        await requestRegistration(trimmedEmail, password);
+        await requestRegistration(trimmedInput.toLowerCase(), password);
         setSuccessMsg('Access request submitted successfully! Please wait for administrator approval.');
         setEmail('');
         setPassword('');
         setIsRegisterMode(false);
         triggerCharacterState('IDLE');
       } else {
-        const userData = await loginUser(trimmedEmail, password);
+        const userData = await loginUser(trimmedInput, password);
         handleLoginSuccess(userData);
       }
     } catch (err) {
@@ -1311,22 +1311,22 @@ export default function Login() {
                   <input type="password" name="dummy_password_autofill" tabIndex="-1" autoComplete="new-password" />
                 </div>
 
-                {/* Email Field */}
+                {/* Username or SPIT Email Field */}
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label" htmlFor="email-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                    Email
+                    Username or SPIT Email
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       id="email-input"
                       name="loop_login_email"
-                      type="email"
+                      type="text"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="none"
                       spellCheck="false"
                       className="input-field"
-                      placeholder="Enter your email"
+                      placeholder="Username or SPIT email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onFocus={handleEmailFocus}

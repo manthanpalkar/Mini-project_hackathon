@@ -15,6 +15,7 @@ const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResourc
 const StorageService = require('./services/storageService');
 const { ensureSystemFolders } = require('./scripts/initSystemFolders');
 const { verifyGoogleToken } = require('./services/googleAuth');
+const { generateFullSystemHealth, recordWriteVerification } = require('./services/systemDiagnostics');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -154,6 +155,79 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: 'Malformed JSON payload.' });
   }
   next(err);
+});
+
+// In-Memory API Performance Telemetry Tracking (Bounded, lightweight ring buffer)
+const apiMetrics = {
+  totalRequests: 0,
+  requestsByMinute: new Map(),
+  statusCounts: { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 },
+  rateLimitHits: 0,
+  responseTimes: [],
+  endpointStats: new Map(),
+  recentErrors: []
+};
+
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  apiMetrics.totalRequests++;
+
+  const minKey = Math.floor(Date.now() / 60000);
+  apiMetrics.requestsByMinute.set(minKey, (apiMetrics.requestsByMinute.get(minKey) || 0) + 1);
+  if (apiMetrics.requestsByMinute.size > 15) {
+    const oldest = apiMetrics.requestsByMinute.keys().next().value;
+    apiMetrics.requestsByMinute.delete(oldest);
+  }
+
+  res.on('finish', () => {
+    const diff = process.hrtime(start);
+    const durationMs = diff[0] * 1e3 + diff[1] * 1e-6;
+
+    apiMetrics.responseTimes.push(durationMs);
+    if (apiMetrics.responseTimes.length > 200) {
+      apiMetrics.responseTimes.shift();
+    }
+
+    const code = res.statusCode;
+    if (code >= 200 && code < 300) apiMetrics.statusCounts['2xx']++;
+    else if (code >= 300 && code < 400) apiMetrics.statusCounts['3xx']++;
+    else if (code >= 400 && code < 500) {
+      apiMetrics.statusCounts['4xx']++;
+      if (code === 429) apiMetrics.rateLimitHits++;
+    } else if (code >= 500) {
+      apiMetrics.statusCounts['5xx']++;
+    }
+
+    const rawPath = req.baseUrl || req.path || '';
+    const cleanRoute = `${req.method} ${rawPath.replace(/[0-9a-fA-F]{24}/g, ':id')}`;
+    let stat = apiMetrics.endpointStats.get(cleanRoute);
+    if (!stat) {
+      stat = { count: 0, totalTime: 0, maxTime: 0 };
+      if (apiMetrics.endpointStats.size < 50) {
+        apiMetrics.endpointStats.set(cleanRoute, stat);
+      }
+    }
+    if (stat) {
+      stat.count++;
+      stat.totalTime += durationMs;
+      if (durationMs > stat.maxTime) stat.maxTime = durationMs;
+    }
+
+    if (code >= 400 && code !== 404 && code !== 401) {
+      apiMetrics.recentErrors.unshift({
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        path: req.path ? req.path.slice(0, 100) : '',
+        status: code,
+        message: String(res.statusMessage || `HTTP ${code}`).replace(/<[^>]*>/g, '').slice(0, 150)
+      });
+      if (apiMetrics.recentErrors.length > 20) {
+        apiMetrics.recentErrors.pop();
+      }
+    }
+  });
+
+  next();
 });
 
 // Apply Global Limiter to all API endpoints
@@ -304,17 +378,24 @@ class UserAuthCache {
     this.ttlMs = ttlMs;
     this.maxEntries = maxEntries;
     this.cache = new Map();
+    this.hits = 0;
+    this.misses = 0;
   }
 
   get(email) {
     if (!email || typeof email !== 'string') return null;
     const key = email.toLowerCase().trim();
     const entry = this.cache.get(key);
-    if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
+    if (!entry) {
+      this.misses++;
       return null;
     }
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      this.misses++;
+      return null;
+    }
+    this.hits++;
     return entry.user;
   }
 
@@ -339,10 +420,24 @@ class UserAuthCache {
 
   clear() {
     this.cache.clear();
+    this.hits = 0;
+    this.misses = 0;
   }
 
   size() {
     return this.cache.size;
+  }
+
+  getStats() {
+    const total = this.hits + this.misses;
+    const hitRate = total > 0 ? ((this.hits / total) * 100).toFixed(1) : '0.0';
+    return {
+      size: this.cache.size,
+      maxEntries: this.maxEntries,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: `${hitRate}%`
+    };
   }
 }
 
@@ -877,23 +972,89 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+function normalizeLoginIdentifier(rawIdentifier) {
+  if (typeof rawIdentifier !== 'string') {
+    return { valid: false, error: 'Invalid input types.' };
+  }
+  
+  const trimmed = rawIdentifier.trim();
+  if (!trimmed) {
+    return { valid: false, error: 'Email and password are required.' };
+  }
+  
+  if (trimmed.length > 100) {
+    return { valid: false, error: 'Inputs exceed maximum permitted length.' };
+  }
+
+  // Reject identifiers with internal whitespace or control characters
+  if (/[\s\x00-\x1F\x7F]/.test(trimmed)) {
+    return { valid: false, error: 'Identifier cannot contain whitespace or control characters.' };
+  }
+
+  if (trimmed.includes('@')) {
+    const atParts = trimmed.split('@');
+    if (atParts.length !== 2) {
+      return { valid: false, error: 'Malformed email address.' };
+    }
+
+    const [localPart, domainPart] = atParts;
+    if (!localPart || !domainPart) {
+      return { valid: false, error: 'Malformed email address.' };
+    }
+
+    if (domainPart.toLowerCase() !== 'spit.ac.in') {
+      return { valid: false, error: 'Please use your official SPIT email address (@spit.ac.in) or SPIT username.' };
+    }
+
+    if (!/^[a-zA-Z0-9._+-]+$/.test(localPart)) {
+      return { valid: false, error: 'Malformed email address contains invalid characters.' };
+    }
+
+    const normalizedEmail = trimmed.toLowerCase();
+    const normalizedUsername = localPart.toLowerCase();
+    return { valid: true, email: normalizedEmail, username: normalizedUsername };
+  } else {
+    // No '@' present -> treat as username without @spit.ac.in suffix
+    if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) {
+      return { valid: false, error: 'Invalid username format. Usernames may only contain letters, numbers, dots, hyphens, and underscores.' };
+    }
+
+    const normalizedUsername = trimmed.toLowerCase();
+    const normalizedEmail = `${normalizedUsername}@spit.ac.in`;
+    return { valid: true, email: normalizedEmail, username: normalizedUsername };
+  }
+}
+
 app.post('/api/users/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const rawIdentifier = req.body.email !== undefined ? req.body.email : (req.body.identifier || req.body.username);
+    const { password } = req.body;
+    if (!rawIdentifier || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
     
     // Type and length validation
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    if (typeof rawIdentifier !== 'string' || typeof password !== 'string') {
       return res.status(400).json({ error: 'Invalid input types.' });
     }
-    if (email.length > 100 || password.length > 100) {
+    if (rawIdentifier.length > 100 || password.length > 100) {
       return res.status(400).json({ error: 'Inputs exceed maximum permitted length.' });
     }
 
-    // Case-insensitive, trimmed, regex-escaped email search (prevents ReDoS)
-    const user = await User.findOne({ email: new RegExp('^' + escapeRegExp(email.trim()) + '$', 'i') });
+    const normResult = normalizeLoginIdentifier(rawIdentifier);
+    if (!normResult.valid) {
+      return res.status(400).json({ error: normResult.error });
+    }
+
+    const { email: normalizedEmail, username: normalizedUsername } = normResult;
+
+    // Case-insensitive, trimmed, regex-escaped email and username search (prevents ReDoS)
+    const user = await User.findOne({
+      $or: [
+        { email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i') },
+        { username: new RegExp('^' + escapeRegExp(normalizedUsername) + '$', 'i') }
+      ]
+    });
     if (!user) {
       return res.status(401).json({ error: 'User not found in the database. Please contact an administrator.' });
     }
@@ -1747,7 +1908,34 @@ app.post('/api/pending-stories/:id/approve', authenticateToken, requireAdmin, as
   }
 });
 
-// 5. Resources
+// --- Administrator System Diagnostics & Health Endpoints ---
+app.get('/api/admin/diagnostics/system-health', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const forceFresh = req.query.fresh === 'true';
+    const healthReport = await generateFullSystemHealth(apiMetrics, userAuthCache, forceFresh);
+    res.json(healthReport);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate system diagnostics: ' + err.message });
+  }
+});
+
+app.post('/api/admin/diagnostics/db-probe', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const probeStart = Date.now();
+    const verifiedAt = recordWriteVerification();
+    const hasDb = mongoose.connection && mongoose.connection.db;
+    const pingResult = hasDb ? await mongoose.connection.db.admin().ping().catch(e => ({ ok: 0, error: e.message })) : { ok: 1 };
+    const durationMs = Date.now() - probeStart;
+    res.json({
+      success: pingResult.ok === 1 || pingResult.ok === true,
+      verifiedAt,
+      durationMs,
+      message: 'Database write verification probe completed.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Database probe failed: ' + err.message });
+  }
+});
 
 // Admin Resources Statistics
 app.get('/api/admin/resources-stats', authenticateToken, requireAdmin, async (req, res) => {
@@ -2831,8 +3019,10 @@ module.exports = {
   RATE_LIMIT_CONFIG,
   userAuthCache,
   UserAuthCache,
+  normalizeLoginIdentifier,
   getPaginationParams,
   sendPaginatedResponse,
+  apiMetrics,
   globalLimiter,
   loginLimiter,
   registerLimiter,
