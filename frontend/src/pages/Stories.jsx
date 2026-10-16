@@ -1080,61 +1080,65 @@ export default function Stories() {
             ) : (
               <form onSubmit={handleFormSubmit}>
                 {/* Header Banner */}
-                <div style={{ marginBottom: '1.75rem' }}>
+                <div style={{ marginBottom: '2rem', position: 'relative' }}>
                   <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.3rem 0.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(212, 255, 50, 0.22)',
+                    gap: '0.45rem',
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '999px',
+                    background: 'linear-gradient(135deg, rgba(212, 255, 50, 0.22) 0%, rgba(16, 185, 129, 0.18) 100%)',
                     border: '1px solid rgba(212, 255, 50, 0.45)',
                     color: 'var(--text-primary)',
-                    fontSize: '0.72rem',
+                    fontSize: '0.74rem',
                     fontWeight: 800,
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
-                    marginBottom: '0.75rem'
+                    marginBottom: '0.85rem',
+                    boxShadow: '0 2px 12px rgba(212, 255, 50, 0.15)'
                   }}>
-                    Senior Archive Contribution
+                    <Sparkles size={13} style={{ color: '#d4ff32' }} />
+                    <span>Senior Archive Contribution</span>
                   </div>
-                  <h2 style={{ fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontSize: '2.3rem', fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
                     Share Your Story
                   </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0, lineHeight: 1.5 }}>
-                    Help juniors prepare by sharing your interview prep, milestones, projects, and study materials.
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0, lineHeight: 1.6, maxWidth: '640px' }}>
+                    Inspire the next batch of SPIT engineers by documenting your interview preparation, technical milestones, key projects, and study roadmaps.
                   </p>
                 </div>
 
-                {/* Section 1: Profile Details */}
+                {/* Section 1: Profile Details (Blue Theme) */}
                 <div 
                   id="sec-profile" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(59, 130, 246, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--text-primary)',
-                        color: 'var(--bg-surface)',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                        color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 800
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        boxShadow: '0 2px 10px rgba(59, 130, 246, 0.45)'
                       }}>1</div>
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Briefcase size={18} />
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <Briefcase size={19} style={{ color: '#60a5fa' }} />
                           Profile Details
                         </h3>
                         <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -1142,7 +1146,15 @@ export default function Stories() {
                         </p>
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ff3b30' }}>* Required</span>
+                    <span style={{ 
+                      fontSize: '0.72rem', 
+                      fontWeight: 700, 
+                      color: '#ef4444',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)'
+                    }}>* Required</span>
                   </div>
 
                   <div className="input-group">
@@ -1259,34 +1271,36 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 2: 4-Year Journey */}
+                {/* Section 2: 4-Year Journey (Cyan / Teal Theme) */}
                 <div 
                   id="sec-journey" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(6, 182, 212, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(6, 182, 212, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--text-primary)',
-                      color: 'var(--bg-surface)',
+                      background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                      color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.8rem',
-                      fontWeight: 800
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      boxShadow: '0 2px 10px rgba(6, 182, 212, 0.45)'
                     }}>2</div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Compass size={18} />
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <Compass size={19} style={{ color: '#22d3ee' }} />
                         4-Year Journey (Year by Year)
                       </h3>
                       <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -1297,12 +1311,29 @@ export default function Stories() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {/* First Year */}
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
-                          First Year Journey (FE)
-                        </label>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Foundations & Mindset</span>
+                    <div style={{
+                      padding: '1.1rem',
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(99, 102, 241, 0.035)',
+                      border: '1px solid rgba(99, 102, 241, 0.2)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(99, 102, 241, 0.16)',
+                            border: '1px solid rgba(99, 102, 241, 0.35)',
+                            color: '#a5b4fc',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.03em'
+                          }}>FE</span>
+                          <label className="input-label" style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>
+                            First Year Journey
+                          </label>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#818cf8', fontWeight: 600 }}>Foundations &amp; Mindset</span>
                       </div>
                       <textarea 
                         className="input-field" 
@@ -1318,12 +1349,29 @@ export default function Stories() {
                     </div>
 
                     {/* Second Year */}
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
-                          Second Year Journey (SE)
-                        </label>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>DSA & Tech Exploration</span>
+                    <div style={{
+                      padding: '1.1rem',
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(168, 85, 247, 0.035)',
+                      border: '1px solid rgba(168, 85, 247, 0.2)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(168, 85, 247, 0.16)',
+                            border: '1px solid rgba(168, 85, 247, 0.35)',
+                            color: '#d8b4fe',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.03em'
+                          }}>SE</span>
+                          <label className="input-label" style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>
+                            Second Year Journey
+                          </label>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#c084fc', fontWeight: 600 }}>DSA &amp; Tech Exploration</span>
                       </div>
                       <textarea 
                         className="input-field" 
@@ -1339,12 +1387,29 @@ export default function Stories() {
                     </div>
 
                     {/* Third Year */}
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
-                          Third Year Journey (TE)
-                        </label>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Internships & Assessments</span>
+                    <div style={{
+                      padding: '1.1rem',
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(245, 158, 11, 0.035)',
+                      border: '1px solid rgba(245, 158, 11, 0.2)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(245, 158, 11, 0.16)',
+                            border: '1px solid rgba(245, 158, 11, 0.35)',
+                            color: '#fde68a',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.03em'
+                          }}>TE</span>
+                          <label className="input-label" style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>
+                            Third Year Journey
+                          </label>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#fbbf24', fontWeight: 600 }}>Internships &amp; Assessments</span>
                       </div>
                       <textarea 
                         className="input-field" 
@@ -1360,12 +1425,29 @@ export default function Stories() {
                     </div>
 
                     {/* Fourth Year */}
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <label className="input-label" style={{ margin: 0, fontWeight: 700 }}>
-                          Fourth Year Journey (BE)
-                        </label>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Placements & Career Launch</span>
+                    <div style={{
+                      padding: '1.1rem',
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(16, 185, 129, 0.035)',
+                      border: '1px solid rgba(16, 185, 129, 0.2)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            color: '#6ee7b7',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.03em'
+                          }}>BE</span>
+                          <label className="input-label" style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>
+                            Fourth Year Journey
+                          </label>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#34d399', fontWeight: 600 }}>Placements &amp; Career Launch</span>
                       </div>
                       <textarea 
                         className="input-field" 
@@ -1382,35 +1464,37 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 3: Prep Strategy */}
+                {/* Section 3: Prep Strategy (Amber / Gold Theme) */}
                 <div 
                   id="sec-prep" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(245, 158, 11, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(245, 158, 11, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--text-primary)',
-                      color: 'var(--bg-surface)',
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.8rem',
-                      fontWeight: 800
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      boxShadow: '0 2px 10px rgba(245, 158, 11, 0.45)'
                     }}>3</div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Award size={18} />
-                        Preparation Strategy & Roadmaps
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <Award size={19} style={{ color: '#fbbf24' }} />
+                        Preparation Strategy &amp; Roadmaps
                       </h3>
                       <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         DSA routines, core computer science subjects, and interview readiness
@@ -1419,7 +1503,7 @@ export default function Stories() {
                   </div>
 
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Preparation Strategy & Tips</label>
+                    <label className="input-label">Preparation Strategy &amp; Tips</label>
                     <textarea 
                       className="input-field" 
                       rows={4} 
@@ -1434,36 +1518,38 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 4: Key Projects */}
+                {/* Section 4: Key Projects (Purple / Violet Theme) */}
                 <div 
                   id="sec-projects" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(168, 85, 247, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(168, 85, 247, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--text-primary)',
-                        color: 'var(--bg-surface)',
+                        background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                        color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 800
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        boxShadow: '0 2px 10px rgba(168, 85, 247, 0.45)'
                       }}>4</div>
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Code size={18} />
-                          Key Projects & Technical Proof of Work
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <Code size={19} style={{ color: '#c084fc' }} />
+                          Key Projects &amp; Technical Proof of Work
                         </h3>
                         <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                           Practical systems, GitHub repositories, and portfolio work discussed in interviews
@@ -1474,22 +1560,38 @@ export default function Stories() {
                       type="button"
                       onClick={handleInsertProjectsTemplate}
                       style={{
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        border: '1px dashed var(--border-color)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer'
+                        padding: '0.45rem 0.95rem',
+                        borderRadius: '12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(124, 58, 237, 0.14) 100%)',
+                        border: '1px solid rgba(168, 85, 247, 0.45)',
+                        color: '#d8b4fe',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: '0 2px 10px rgba(168, 85, 247, 0.15)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(124, 58, 237, 0.22) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.65)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(124, 58, 237, 0.14) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.45)';
+                        e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      + Insert Project Template
+                      <Sparkles size={13} style={{ color: '#c084fc' }} />
+                      <span>+ Insert Project Template</span>
                     </button>
                   </div>
 
-                  <div className="input-group" style={{ marginBottom: '0.5rem' }}>
-                    <label className="input-label">Projects & Tech Stack</label>
+                  <div className="input-group" style={{ marginBottom: '0.65rem' }}>
+                    <label className="input-label">Projects &amp; Tech Stack</label>
                     <textarea 
                       className="input-field" 
                       rows={4} 
@@ -1502,41 +1604,51 @@ export default function Stories() {
                       style={{ resize: 'vertical', lineHeight: 1.6 }}
                     />
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    💡 Pro-Tip: Format as <strong>1. &quot;Project Name&quot;: Description &amp; Tech Stack</strong> so it renders into beautiful interactive cards on your public story page.
-                  </p>
+                  <div style={{
+                    padding: '0.6rem 0.85rem',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(168, 85, 247, 0.08)',
+                    border: '1px solid rgba(168, 85, 247, 0.2)',
+                    fontSize: '0.76rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5
+                  }}>
+                    💡 Pro-Tip: Format as <strong>1. &quot;Project Name&quot;: Description &amp; Tech Stack</strong> so it automatically converts into interactive portfolio cards on your public story page.
+                  </div>
                 </div>
 
-                {/* Section 5: How Secured */}
+                {/* Section 5: How Secured (Sky / Royal Blue Theme) */}
                 <div 
                   id="sec-secured" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(2, 132, 199, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(2, 132, 199, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(2, 132, 199, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--text-primary)',
-                        color: 'var(--bg-surface)',
+                        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                        color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 800
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        boxShadow: '0 2px 10px rgba(2, 132, 199, 0.45)'
                       }}>5</div>
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Layers size={18} />
-                          How Secured (Recruitment Process & Rounds)
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <Layers size={19} style={{ color: '#38bdf8' }} />
+                          How Secured (Recruitment Process &amp; Rounds)
                         </h3>
                         <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                           Step-by-step breakdown: OA, technical rounds, questions asked, and HR
@@ -1547,22 +1659,38 @@ export default function Stories() {
                       type="button"
                       onClick={handleInsertRoundsTemplate}
                       style={{
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        border: '1px dashed var(--border-color)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer'
+                        padding: '0.45rem 0.95rem',
+                        borderRadius: '12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(2, 132, 199, 0.14) 100%)',
+                        border: '1px solid rgba(56, 189, 248, 0.45)',
+                        color: '#7dd3fc',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: '0 2px 10px rgba(56, 189, 248, 0.15)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(56, 189, 248, 0.3) 0%, rgba(2, 132, 199, 0.22) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.65)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(2, 132, 199, 0.14) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.45)';
+                        e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      + Insert Rounds Template
+                      <Layers size={13} style={{ color: '#38bdf8' }} />
+                      <span>+ Insert Rounds Template</span>
                     </button>
                   </div>
 
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Recruitment Process & Interview Rounds</label>
+                    <label className="input-label">Recruitment Process &amp; Interview Rounds</label>
                     <textarea 
                       className="input-field" 
                       rows={4} 
@@ -1577,36 +1705,38 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 6: Key Takeaways & Advice */}
+                {/* Section 6: Key Takeaways & Advice (Emerald Theme) */}
                 <div 
                   id="sec-takeaways" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(16, 185, 129, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--text-primary)',
-                        color: 'var(--bg-surface)',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 800
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        boxShadow: '0 2px 10px rgba(16, 185, 129, 0.45)'
                       }}>6</div>
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Sparkles size={18} />
-                          Key Takeaways & Advice to Juniors
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <Sparkles size={19} style={{ color: '#34d399' }} />
+                          Key Takeaways &amp; Advice to Juniors
                         </h3>
                         <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                           Your golden rule, mindset guidance, and lessons learned from the placement journey
@@ -1617,23 +1747,47 @@ export default function Stories() {
                       type="button"
                       onClick={handleInsertAdviceTemplate}
                       style={{
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        border: '1px dashed var(--border-color)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer'
+                        padding: '0.45rem 0.95rem',
+                        borderRadius: '12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.14) 100%)',
+                        border: '1px solid rgba(16, 185, 129, 0.45)',
+                        color: '#6ee7b7',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: '0 2px 10px rgba(16, 185, 129, 0.15)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.22) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.65)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.14) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.45)';
+                        e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      + Insert Advice Template
+                      <Sparkles size={13} style={{ color: '#34d399' }} />
+                      <span>+ Insert Advice Template</span>
                     </button>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Senior's Golden Rule / Core Takeaway</label>
+                    <div style={{
+                      padding: '1.1rem',
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(16, 185, 129, 0.04)',
+                      border: '1px solid rgba(16, 185, 129, 0.22)'
+                    }}>
+                      <label className="input-label" style={{ fontWeight: 700, color: '#34d399', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span>⭐</span>
+                        <span>Senior&apos;s Golden Rule / Core Takeaway</span>
+                      </label>
                       <input 
                         type="text" 
                         className="input-field" 
@@ -1641,13 +1795,13 @@ export default function Stories() {
                         value={adviceQuote}
                         onChange={(e) => setAdviceQuote(e.target.value)}
                       />
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                        ✨ Displayed prominently as a quote badge on your public story page.
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.35rem', display: 'block' }}>
+                        ✨ Displayed prominently as a featured quote badge on your public story page.
                       </span>
                     </div>
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Actionable Advice & Principles for Juniors</label>
+                      <label className="input-label">Actionable Advice &amp; Principles for Juniors</label>
                       <textarea 
                         className="input-field" 
                         rows={4} 
@@ -1660,35 +1814,37 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 7: Hackathons (Optional) */}
+                {/* Section 7: Hackathons (Rose / Coral Theme) */}
                 <div 
                   id="sec-hackathons" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(244, 63, 94, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(244, 63, 94, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(244, 63, 94, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--text-primary)',
-                      color: 'var(--bg-surface)',
+                      background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                      color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.8rem',
-                      fontWeight: 800
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      boxShadow: '0 2px 10px rgba(244, 63, 94, 0.45)'
                     }}>7</div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Trophy size={18} />
-                        Hackathons & Competitions (Optional)
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <Trophy size={19} style={{ color: '#fb7185' }} />
+                        Hackathons &amp; Competitions (Optional)
                       </h3>
                       <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         High-intensity hackathons, awards won, competitive building, and open-source sprints
@@ -1697,7 +1853,7 @@ export default function Stories() {
                   </div>
 
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Hackathons Participated & Achievements</label>
+                    <label className="input-label">Hackathons Participated &amp; Achievements</label>
                     <textarea 
                       className="input-field" 
                       rows={3} 
@@ -1709,35 +1865,37 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 8: Resources Used */}
+                {/* Section 8: Resources Used (Indigo Theme) */}
                 <div 
                   id="sec-resources" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(139, 92, 246, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(139, 92, 246, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(139, 92, 246, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--text-primary)',
-                      color: 'var(--bg-surface)',
+                      background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                      color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.8rem',
-                      fontWeight: 800
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      boxShadow: '0 2px 10px rgba(139, 92, 246, 0.45)'
                     }}>8</div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <BookOpen size={18} />
-                        Resources & Study Materials Used
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <BookOpen size={19} style={{ color: '#c4b5fd' }} />
+                        Resources &amp; Study Materials Used
                       </h3>
                       <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         Sheets, platforms, YouTube channels, and books that helped you prepare
@@ -1780,8 +1938,18 @@ export default function Stories() {
                       <button 
                         type="button" 
                         onClick={handleAddResource} 
-                        className="btn btn-secondary"
-                        style={{ padding: '0.6rem 1.1rem', borderRadius: '12px' }}
+                        style={{
+                          padding: '0.6rem 1.15rem',
+                          borderRadius: '12px',
+                          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(109, 40, 217, 0.18) 100%)',
+                          border: '1px solid rgba(139, 92, 246, 0.45)',
+                          color: '#c4b5fd',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
                         title="Add Resource"
                       >
                         <Plus size={16} />
@@ -1789,34 +1957,34 @@ export default function Stories() {
                     </div>
                   </div>
 
-
                   {/* Resources Preview Tag List */}
                   {formData.resources.length > 0 && (
                     <div style={{
                       padding: '0.85rem 1rem',
                       borderRadius: '14px',
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'rgba(139, 92, 246, 0.05)',
+                      border: '1px solid rgba(139, 92, 246, 0.2)',
                       display: 'flex',
                       gap: '0.5rem',
                       flexWrap: 'wrap',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Added ({formData.resources.length}):</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd' }}>Added ({formData.resources.length}):</span>
                       {formData.resources.map((res, index) => (
                         <span key={index} className="badge" style={{
                           fontSize: '0.78rem',
-                          padding: '0.35rem 0.7rem',
+                          padding: '0.35rem 0.75rem',
                           borderRadius: '999px',
                           backgroundColor: 'var(--bg-surface)',
-                          border: '1px solid var(--border-color)',
+                          border: '1px solid rgba(139, 92, 246, 0.35)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.45rem',
-                          color: 'var(--text-primary)'
+                          color: 'var(--text-primary)',
+                          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)'
                         }}>
                           <strong>{res.name}</strong>
-                          <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>({res.type})</span>
+                          <span style={{ opacity: 0.7, fontSize: '0.7rem', color: '#c4b5fd' }}>({res.type})</span>
                           <button
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, resources: prev.resources.filter((_, i) => i !== index) }))}
@@ -1838,35 +2006,37 @@ export default function Stories() {
                   )}
                 </div>
 
-                {/* Section 9: Senior Resume Upload */}
+                {/* Section 9: Senior Resume Upload (Crimson Theme) */}
                 <div 
                   id="sec-resume" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(239, 68, 68, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--text-primary)',
-                        color: 'var(--bg-surface)',
+                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 800
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        boxShadow: '0 2px 10px rgba(239, 68, 68, 0.45)'
                       }}>9</div>
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <FileText size={18} />
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <FileText size={19} style={{ color: '#f87171' }} />
                           Senior Resume (PDF) *
                         </h3>
                         <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -1874,18 +2044,26 @@ export default function Stories() {
                         </p>
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ff3b30' }}>* Required</span>
+                    <span style={{ 
+                      fontSize: '0.72rem', 
+                      fontWeight: 700, 
+                      color: '#ef4444',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)'
+                    }}>* Required</span>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div 
                       onClick={() => document.getElementById('resume-file-upload')?.click()}
                       style={{
-                        border: '1.5px dashed var(--border-color)',
+                        border: '1.5px dashed rgba(239, 68, 68, 0.35)',
                         borderRadius: '16px',
-                        padding: resumeUploadFile ? '1rem 1.25rem' : '1.75rem 1.25rem',
+                        padding: resumeUploadFile ? '1.1rem 1.25rem' : '1.85rem 1.25rem',
                         textAlign: 'center',
-                        backgroundColor: 'var(--bg-secondary)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.025)',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
                         display: 'flex',
@@ -1896,12 +2074,12 @@ export default function Stories() {
                         color: 'var(--text-primary)'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--text-primary)';
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.7)';
+                        e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.06)';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--border-color)';
-                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+                        e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.025)';
                       }}
                       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       onDrop={(e) => {
@@ -1935,20 +2113,20 @@ export default function Stories() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left' }}>
                             <span style={{
-                              padding: '0.6rem',
-                              backgroundColor: 'rgba(255, 59, 48, 0.12)',
-                              border: '1px solid rgba(255, 59, 48, 0.25)',
-                              borderRadius: '10px',
+                              padding: '0.65rem',
+                              backgroundColor: 'rgba(239, 68, 68, 0.14)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              borderRadius: '12px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              color: '#ff3b30'
+                              color: '#ef4444'
                             }}>
-                              <FileText size={20} />
+                              <FileText size={22} />
                             </span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>{resumeUploadFile.fileName}</span>
-                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{resumeUploadFile.fileSize} • Click to replace</span>
+                              <span style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)' }}>{resumeUploadFile.fileName}</span>
+                              <span style={{ fontSize: '0.78rem', color: '#f87171' }}>{resumeUploadFile.fileSize} • Click to replace file</span>
                             </div>
                           </div>
                           <button
@@ -1967,9 +2145,9 @@ export default function Stories() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              color: '#ff453a',
+                              color: '#ef4444',
                               border: 'none',
-                              background: 'rgba(255, 69, 58, 0.1)',
+                              background: 'rgba(239, 68, 68, 0.12)',
                               cursor: 'pointer',
                               transition: 'all 0.15s ease'
                             }}
@@ -1981,19 +2159,19 @@ export default function Stories() {
                       ) : (
                         <>
                           <div style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '12px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid var(--border-color)',
+                            width: '46px',
+                            height: '46px',
+                            borderRadius: '14px',
+                            backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginBottom: '0.6rem'
+                            marginBottom: '0.65rem'
                           }}>
-                            <FileText size={22} style={{ color: 'var(--text-primary)' }} />
+                            <FileText size={22} style={{ color: '#ef4444' }} />
                           </div>
-                          <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.25rem 0' }}>
+                          <p style={{ fontSize: '0.92rem', color: 'var(--text-primary)', fontWeight: 700, margin: '0 0 0.25rem 0' }}>
                             Choose Resume PDF or drag &amp; drop here
                           </p>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -2005,34 +2183,36 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 10: Study Materials Upload */}
+                {/* Section 10: Study Materials Upload (Teal Theme) */}
                 <div 
                   id="sec-materials" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(20, 184, 166, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(20, 184, 166, 0.25)',
+                    boxShadow: '0 8px 30px -8px rgba(20, 184, 166, 0.15)',
                     marginBottom: '2rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.35rem' }}>
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--text-primary)',
-                      color: 'var(--bg-surface)',
+                      background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                      color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.8rem',
-                      fontWeight: 800
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      boxShadow: '0 2px 10px rgba(20, 184, 166, 0.45)'
                     }}>10</div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Upload size={18} />
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <Upload size={19} style={{ color: '#2dd4bf' }} />
                         Study Materials, Cheat Sheets &amp; Notes (Optional)
                       </h3>
                       <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -2046,11 +2226,11 @@ export default function Stories() {
                     <div 
                       onClick={() => document.getElementById('material-file-upload')?.click()}
                       style={{
-                        border: '1.5px dashed var(--border-color)',
+                        border: '1.5px dashed rgba(20, 184, 166, 0.35)',
                         borderRadius: '16px',
-                        padding: materialInput.previewUrl ? '1rem 1.25rem' : '1.75rem 1.25rem',
+                        padding: materialInput.previewUrl ? '1.1rem 1.25rem' : '1.85rem 1.25rem',
                         textAlign: 'center',
-                        backgroundColor: 'var(--bg-primary)',
+                        backgroundColor: 'rgba(20, 184, 166, 0.025)',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
                         display: 'flex',
@@ -2060,12 +2240,12 @@ export default function Stories() {
                         minHeight: '110px'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--text-primary)';
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                        e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.7)';
+                        e.currentTarget.style.backgroundColor = 'rgba(20, 184, 166, 0.06)';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--border-color)';
-                        e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                        e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.35)';
+                        e.currentTarget.style.backgroundColor = 'rgba(20, 184, 166, 0.025)';
                       }}
                       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       onDrop={(e) => {
@@ -2097,13 +2277,13 @@ export default function Stories() {
                               <div style={{
                                 width: '44px',
                                 height: '54px',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
+                                border: '1px solid rgba(20, 184, 166, 0.35)',
+                                borderRadius: '10px',
                                 display: 'flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',
-                                backgroundColor: materialInput.type === 'PDF' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(0, 122, 255, 0.15)',
-                                color: materialInput.type === 'PDF' ? '#ff3b30' : '#007aff',
+                                backgroundColor: 'rgba(20, 184, 166, 0.15)',
+                                color: '#2dd4bf',
                                 fontWeight: 'bold',
                                 fontSize: '0.75rem'
                               }}>
@@ -2111,32 +2291,32 @@ export default function Stories() {
                               </div>
                             </div>
                           )}
-                          <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>
+                          <p style={{ fontSize: '0.88rem', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>
                             {materialInput.fileName}
                           </p>
-                          <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0 }}>
+                          <p style={{ fontSize: '0.74rem', color: '#2dd4bf', margin: 0 }}>
                             {materialInput.fileSize} • Click to replace file
                           </p>
                         </div>
                       ) : (
                         <>
                           <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '12px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid var(--border-color)',
+                            width: '46px',
+                            height: '46px',
+                            borderRadius: '14px',
+                            backgroundColor: 'rgba(20, 184, 166, 0.12)',
+                            border: '1px solid rgba(20, 184, 166, 0.25)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginBottom: '0.5rem'
+                            marginBottom: '0.65rem'
                           }}>
-                            <Upload size={18} style={{ color: 'var(--text-primary)' }} />
+                            <Upload size={20} style={{ color: '#2dd4bf' }} />
                           </div>
-                          <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 0.2rem 0' }}>
+                          <p style={{ fontSize: '0.92rem', color: 'var(--text-primary)', fontWeight: 700, margin: '0 0 0.2rem 0' }}>
                             Choose Material or drop file here
                           </p>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
                             Supports PDF, PNG, JPG (Max 1 file)
                           </span>
                         </>
@@ -2167,8 +2347,18 @@ export default function Stories() {
                       <button 
                         type="button" 
                         onClick={handleAddMaterial} 
-                        className="btn btn-secondary"
-                        style={{ padding: '0.6rem 1.1rem', borderRadius: '12px' }}
+                        style={{
+                          padding: '0.6rem 1.15rem',
+                          borderRadius: '12px',
+                          background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.25) 0%, rgba(13, 148, 136, 0.18) 100%)',
+                          border: '1px solid rgba(20, 184, 166, 0.45)',
+                          color: '#2dd4bf',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
                         title="Add Material"
                       >
                         <Plus size={16} />
@@ -2187,11 +2377,11 @@ export default function Stories() {
                           <div 
                             key={index} 
                             style={{
-                              border: '1px solid var(--border-color)',
+                              border: '1px solid rgba(20, 184, 166, 0.3)',
                               borderRadius: '14px',
                               padding: '0.85rem 0.6rem',
                               position: 'relative',
-                              backgroundColor: 'var(--bg-primary)',
+                              backgroundColor: 'rgba(20, 184, 166, 0.05)',
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
@@ -2231,7 +2421,7 @@ export default function Stories() {
                             </button>
                             
                             {mat.type === 'Image' && mat.url && mat.url !== '#' ? (
-                              <div style={{ width: '100%', height: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '6px', overflow: 'hidden' }}>
+                              <div style={{ width: '100%', height: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '8px', overflow: 'hidden' }}>
                                 <img 
                                   src={mat.url} 
                                   alt={mat.title} 
@@ -2242,13 +2432,13 @@ export default function Stories() {
                               <div style={{ 
                                 width: '38px', 
                                 height: '48px', 
-                                border: '1px solid var(--border-color)', 
-                                borderRadius: '6px', 
+                                border: '1px solid rgba(20, 184, 166, 0.35)', 
+                                borderRadius: '8px', 
                                 display: 'flex', 
                                 justifyContent: 'center', 
                                 alignItems: 'center', 
-                                backgroundColor: mat.type === 'PDF' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(0, 122, 255, 0.15)', 
-                                color: mat.type === 'PDF' ? '#ff3b30' : '#007aff', 
+                                backgroundColor: 'rgba(20, 184, 166, 0.15)', 
+                                color: '#2dd4bf', 
                                 fontWeight: 'bold', 
                                 fontSize: '0.65rem' 
                               }}>
@@ -2259,7 +2449,7 @@ export default function Stories() {
                               {mat.title}
                             </span>
                             {mat.fileSize && (
-                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                              <span style={{ fontSize: '0.68rem', color: '#2dd4bf' }}>
                                 {mat.fileSize}
                               </span>
                             )}
@@ -2270,35 +2460,37 @@ export default function Stories() {
                   </div>
                 </div>
 
-                {/* Section 11: Custom Prompts / Extra Sections */}
+                {/* Section 11: Custom Prompts / Extra Sections (Lime Theme) */}
                 <div 
                   id="sec-custom" 
                   style={{
                     padding: '1.75rem',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    marginBottom: '2rem',
+                    borderRadius: '22px',
+                    background: 'linear-gradient(180deg, rgba(212, 255, 50, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%)',
+                    border: '1px solid rgba(212, 255, 50, 0.28)',
+                    boxShadow: '0 8px 30px -8px rgba(212, 255, 50, 0.12)',
+                    marginBottom: '2.5rem',
                     scrollMarginTop: '80px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.35rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--text-primary)',
-                        color: 'var(--bg-surface)',
+                        background: 'linear-gradient(135deg, #d4ff32 0%, #a3e635 100%)',
+                        color: '#000000',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 800
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        boxShadow: '0 2px 10px rgba(212, 255, 50, 0.45)'
                       }}>11</div>
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Plus size={18} />
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <Plus size={19} style={{ color: '#d4ff32' }} />
                           Custom Sections &amp; Prompts (Optional)
                         </h3>
                         <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -2310,20 +2502,32 @@ export default function Stories() {
                       type="button"
                       onClick={handleAddCustomSection}
                       style={{
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        border: '1px dashed var(--border-color)',
-                        backgroundColor: 'transparent',
+                        padding: '0.45rem 0.95rem',
+                        borderRadius: '12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, rgba(212, 255, 50, 0.2) 0%, rgba(163, 230, 53, 0.14) 100%)',
+                        border: '1px solid rgba(212, 255, 50, 0.45)',
                         color: 'var(--text-primary)',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.35rem'
+                        gap: '0.45rem',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: '0 2px 10px rgba(212, 255, 50, 0.15)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212, 255, 50, 0.3) 0%, rgba(163, 230, 53, 0.22) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(212, 255, 50, 0.65)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212, 255, 50, 0.2) 0%, rgba(163, 230, 53, 0.14) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(212, 255, 50, 0.45)';
+                        e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      <Plus size={14} />
+                      <Plus size={14} style={{ color: '#d4ff32' }} />
                       <span>Add Section</span>
                     </button>
                   </div>
@@ -2331,9 +2535,9 @@ export default function Stories() {
                   {customSections.map((sec, index) => (
                     <div key={index} style={{
                       padding: '1.25rem',
-                      border: '1px solid var(--border-color)',
+                      border: '1px solid rgba(212, 255, 50, 0.25)',
                       borderRadius: '16px',
-                      backgroundColor: 'var(--bg-primary)',
+                      backgroundColor: 'rgba(212, 255, 50, 0.03)',
                       marginBottom: '1rem',
                       position: 'relative'
                     }}>
@@ -2344,7 +2548,7 @@ export default function Stories() {
                           position: 'absolute',
                           top: '0.75rem',
                           right: '0.75rem',
-                          background: 'rgba(255, 59, 48, 0.1)',
+                          background: 'rgba(255, 59, 48, 0.12)',
                           border: 'none',
                           color: '#ff3b30',
                           width: '26px',
@@ -2389,7 +2593,7 @@ export default function Stories() {
                   ))}
 
                   {customSections.length === 0 && (
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '0.75rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '0.85rem' }}>
                       No additional custom sections added yet. Click &quot;Add Section&quot; above to include extra topics.
                     </p>
                   )}
@@ -2401,7 +2605,7 @@ export default function Stories() {
                   alignItems: 'center',
                   justifyContent: 'flex-end',
                   gap: '1rem',
-                  paddingTop: '1rem',
+                  paddingTop: '1.25rem',
                   borderTop: '1px solid var(--border-color)'
                 }}>
                   <button 
@@ -2409,7 +2613,7 @@ export default function Stories() {
                     onClick={() => setIsModalOpen(false)} 
                     className="btn btn-secondary"
                     style={{
-                      padding: '0.85rem 1.75rem',
+                      padding: '0.85rem 1.85rem',
                       borderRadius: '14px',
                       fontSize: '0.95rem',
                       fontWeight: 600
@@ -2422,17 +2626,33 @@ export default function Stories() {
                     disabled={submitting}
                     className="btn btn-primary"
                     style={{ 
-                      padding: '0.85rem 2.5rem',
+                      padding: '0.9rem 2.85rem',
                       borderRadius: '14px',
-                      fontSize: '0.95rem',
-                      fontWeight: 700,
+                      fontSize: '0.98rem',
+                      fontWeight: 800,
+                      background: 'linear-gradient(135deg, #d4ff32 0%, #10b981 100%)',
+                      color: '#000000',
+                      border: 'none',
                       opacity: submitting ? 0.7 : 1,
                       cursor: submitting ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 4px 18px rgba(0, 0, 0, 0.25)'
+                      boxShadow: '0 6px 24px rgba(212, 255, 50, 0.35)',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!submitting) {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 30px rgba(212, 255, 50, 0.45)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!submitting) {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 6px 24px rgba(212, 255, 50, 0.35)';
+                      }
                     }}
                   >
                     {submitting ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem' }}>
                         <div style={{ position: 'relative', width: '22px', height: '22px' }}>
                           <svg width="22" height="22" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
                             <circle
@@ -2440,7 +2660,7 @@ export default function Stories() {
                               cy="18"
                               r="15"
                               fill="none"
-                              stroke="rgba(255, 255, 255, 0.25)"
+                              stroke="rgba(0, 0, 0, 0.2)"
                               strokeWidth="3.5"
                             />
                             <circle
@@ -2448,7 +2668,7 @@ export default function Stories() {
                               cy="18"
                               r="15"
                               fill="none"
-                              stroke="currentColor"
+                              stroke="#000000"
                               strokeWidth="3.5"
                               strokeDasharray="94.2"
                               strokeDashoffset={94.2 - (94.2 * uploadProgress) / 100}
@@ -2467,14 +2687,19 @@ export default function Stories() {
                             justifyContent: 'center',
                             fontSize: '7px',
                             fontWeight: 'bold',
-                            color: 'currentColor'
+                            color: '#000000'
                           }}>
                             {uploadProgress}%
                           </div>
                         </div>
                         <span>{uploadProgress === 100 ? 'Saving...' : 'Submitting...'}</span>
                       </div>
-                    ) : 'Submit Journey'}
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Sparkles size={18} style={{ color: '#000000' }} />
+                        <span>Submit Placement Journey</span>
+                      </div>
+                    )}
                   </button>
                 </div>
                 {submitting && (
