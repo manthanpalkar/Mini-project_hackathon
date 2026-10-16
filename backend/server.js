@@ -1032,10 +1032,10 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
         return res.status(400).json({ error: 'Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens.' });
       }
 
-      // Verify username uniqueness
-      const existingUsername = await User.findOne({ username: new RegExp('^' + escapeRegExp(trimmedUsername) + '$', 'i') });
+      // Verify username uniqueness, appending a suffix if collision occurs
+      let existingUsername = await User.findOne({ username: new RegExp('^' + escapeRegExp(trimmedUsername) + '$', 'i') });
       if (existingUsername) {
-        return res.status(400).json({ error: 'Username is already taken. Please choose another username.' });
+        trimmedUsername = `${trimmedUsername.slice(0, 24)}_${Math.floor(1000 + Math.random() * 9000)}`;
       }
     }
 

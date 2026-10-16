@@ -444,9 +444,15 @@ export default function Login() {
     triggerCharacterState('LOGIN_SUBMITTED');
 
     try {
+      // Auto-generate username from the verified SPIT email
+      const autoUsername = googleSignupData.email
+        ? googleSignupData.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30)
+        : `spit_user_${Date.now().toString().slice(-4)}`;
+
       const result = await signupWithGoogle({
         idToken: googleIdToken,
         name: googleSignupData.name.trim(),
+        username: autoUsername,
         password: googleSignupData.password,
         confirmPassword: googleSignupData.confirmPassword
       });
@@ -778,7 +784,7 @@ export default function Login() {
                   fontWeight: 400,
                   lineHeight: 1.45
                 }}>
-                  First-time Google Sign-In with verified SPIT account. Please choose a username and password.
+                  First-time Google Sign-In with verified SPIT account. Please create a password to secure your account.
                 </p>
               </>
             ) : googleAuthStep === 'LINK' ? (
