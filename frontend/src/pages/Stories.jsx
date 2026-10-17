@@ -1926,12 +1926,12 @@ export default function Stories() {
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Upload Senior Resume (PDF) *</label>
                     <div 
                       style={{
-                        border: '1.5px dashed var(--border-color)',
+                        border: resumeUploadFile ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
                         borderRadius: '16px',
                         padding: '1.6rem 1.25rem',
                         textAlign: 'center',
                         cursor: 'pointer',
-                        backgroundColor: 'rgba(255, 255, 255, 0.015)',
+                        backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
                         transition: 'all 0.15s ease'
                       }}
                       onClick={() => document.getElementById('resumeFileInput')?.click()}
@@ -1991,7 +1991,7 @@ export default function Stories() {
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                          <FileText size={28} style={{ color: 'var(--text-secondary)', opacity: 0.8 }} />
+                          <FileText size={28} style={{ color: 'var(--text-primary)', opacity: 0.85 }} />
                           <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                             Choose Resume PDF or drag &amp; drop here
                           </p>
@@ -2008,12 +2008,12 @@ export default function Stories() {
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Upload Study Material</label>
                     <div 
                       style={{
-                        border: '1.5px dashed var(--border-color)',
+                        border: materialInput.fileName ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
                         borderRadius: '16px',
                         padding: '1.6rem 1.25rem',
                         textAlign: 'center',
                         cursor: 'pointer',
-                        backgroundColor: 'rgba(255, 255, 255, 0.015)',
+                        backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
                         transition: 'all 0.15s ease',
                         marginBottom: '0.75rem'
                       }}

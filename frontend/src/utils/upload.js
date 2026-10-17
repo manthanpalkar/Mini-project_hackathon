@@ -117,6 +117,9 @@ export const getApiBaseUrl = () => {
       return '/api';
     }
   }
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
   return 'https://loop-qnh9.onrender.com/api';
 };
 

@@ -13,8 +13,9 @@
 const { createClient } = require('redis');
 
 // Configuration from environment variables
+const isTestRunner = process.env.NODE_ENV === 'test' || process.execArgv.some(a => a.startsWith('--test'));
 const REDIS_URL = process.env.REDIS_URL || '';
-const REDIS_ENABLED = process.env.REDIS_ENABLED !== 'false' && Boolean(REDIS_URL);
+const REDIS_ENABLED = !isTestRunner && process.env.REDIS_ENABLED !== 'false' && Boolean(REDIS_URL);
 
 const DEFAULT_TTLS = {
   stories: parseInt(process.env.REDIS_TTL_STORIES || '300', 10), // 5 minutes
@@ -214,16 +215,16 @@ async function del(key) {
 async function delByPattern(pattern) {
   if (!isRedisReady()) return;
   try {
-    let cursor = 0;
+    let cursor = '0';
     do {
-      const reply = await client.scan(cursor, { MATCH: pattern, COUNT: 100 });
+      const reply = await client.scan(cursor.toString(), { MATCH: pattern, COUNT: 100 });
       cursor = reply.cursor;
       const keys = reply.keys;
       if (keys && keys.length > 0) {
         await client.del(keys);
         cacheMetrics.invalidations += keys.length;
       }
-    } while (cursor !== 0);
+    } while (cursor !== 0 && cursor !== '0');
   } catch (err) {
     cacheMetrics.errors++;
     cacheMetrics.lastError = err.message;
@@ -237,7 +238,7 @@ async function delByPattern(pattern) {
  * Invalidate all stories list caches and optional specific story detail
  */
 async function invalidateStories(storyId = null) {
-  await delByPattern('loop:stories:list:*');
+  await delByPattern('loop:stories:*');
   await del('loop:stories:list');
   if (storyId) {
     await del(makeKey('stories:detail', storyId));
@@ -245,10 +246,10 @@ async function invalidateStories(storyId = null) {
 }
 
 /**
- * Invalidate all public resources list caches and optional specific resource detail
+ * Invalidate all public and categorized resources list caches and optional specific resource detail
  */
 async function invalidateResources(resourceId = null) {
-  await delByPattern('loop:resources:list:*');
+  await delByPattern('loop:resources:*');
   await del('loop:resources:list');
   if (resourceId) {
     await del(makeKey('resources:detail', resourceId));
@@ -259,6 +260,7 @@ async function invalidateResources(resourceId = null) {
  * Invalidate achievements cache
  */
 async function invalidateAchievements(achievementId = null) {
+  await delByPattern('loop:achievements:*');
   await del('loop:achievements:list');
   if (achievementId) {
     await del(makeKey('achievements:detail', achievementId));

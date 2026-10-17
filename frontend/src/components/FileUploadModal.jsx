@@ -162,8 +162,8 @@ export default function FileUploadModal({
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
             style={{
-              border: `2px dashed ${isDragging ? 'var(--accent-primary, #0071e3)' : 'var(--border-color, rgba(255, 255, 255, 0.15))'}`,
-              backgroundColor: isDragging ? 'rgba(0, 113, 227, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+              border: `2px dashed ${isDragging ? 'var(--accent-primary, #0071e3)' : 'var(--border-dropzone, #000000)'}`,
+              backgroundColor: isDragging ? 'rgba(0, 113, 227, 0.08)' : 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
               borderRadius: '16px',
               padding: '2rem 1.5rem',
               textAlign: 'center',

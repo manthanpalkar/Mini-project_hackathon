@@ -69,4 +69,46 @@ describe('MongoDB GridFS Storage Service & Upload Validation', () => {
       assert.strictEqual(StorageService.getFileTypeCategory('text/x-python', 'main.py'), 'Code');
     });
   });
+
+  describe('GridFS Stream Handling & ID Validation', () => {
+    test('rejects malformed storageKey with HTTP 400', async () => {
+      let statusCode = null;
+      let responseBody = null;
+      const mockReq = { query: {} };
+      const mockRes = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(body) {
+          responseBody = body;
+          return this;
+        }
+      };
+
+      await StorageService.streamFromGridFS('gridfs:invalid-object-id', mockReq, mockRes, 'test.pdf', 'application/pdf');
+      assert.strictEqual(statusCode, 400);
+      assert.strictEqual(responseBody.error, 'Invalid file ID format.');
+    });
+
+    test('rejects empty or non-gridfs storageKey with HTTP 400', async () => {
+      let statusCode = null;
+      let responseBody = null;
+      const mockReq = { query: {} };
+      const mockRes = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(body) {
+          responseBody = body;
+          return this;
+        }
+      };
+
+      await StorageService.streamFromGridFS('', mockReq, mockRes, 'test.pdf', 'application/pdf');
+      assert.strictEqual(statusCode, 400);
+      assert.strictEqual(responseBody.error, 'Invalid file ID format.');
+    });
+  });
 });

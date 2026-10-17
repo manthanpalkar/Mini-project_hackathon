@@ -416,7 +416,10 @@ export default function StoryDetail() {
   const { id } = useParams();
   const resolveUrl = (url) => {
     if (typeof url === 'string' && url.startsWith('/uploads/')) {
-      return 'https://loop-qnh9.onrender.com' + url;
+      const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
+        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+        : 'https://loop-qnh9.onrender.com';
+      return baseUrl + url;
     }
     return url;
   };
@@ -2628,13 +2631,13 @@ export default function StoryDetail() {
                 <div 
                   onClick={() => document.getElementById('story-detail-resume-upload')?.click()}
                   style={{
-                    border: '1px dashed var(--border-color)',
-                    borderRadius: '12px',
+                    border: editForm.resume ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
+                    borderRadius: '16px',
                     padding: '1rem',
                     textAlign: 'center',
-                    backgroundColor: 'var(--bg-secondary)',
+                    backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
                     cursor: 'pointer',
-                    transition: 'border-color 0.2s',
+                    transition: 'all 0.2s ease',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -2642,8 +2645,8 @@ export default function StoryDetail() {
                     minHeight: '100px',
                     color: 'var(--text-primary)'
                   }}
-                  onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--text-secondary)'}
-                  onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                  onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
+                  onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
                   onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -2803,13 +2806,13 @@ export default function StoryDetail() {
                   <div 
                     onClick={() => document.getElementById('story-detail-material-upload')?.click()}
                     style={{
-                      border: '1px dashed var(--border-color)',
-                      borderRadius: '12px',
+                      border: editMaterialInput.previewUrl ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
+                      borderRadius: '16px',
                       padding: editMaterialInput.previewUrl ? '1rem' : '1.5rem',
                       textAlign: 'center',
-                      backgroundColor: 'var(--bg-primary)',
+                      backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
                       cursor: 'pointer',
-                      transition: 'border-color 0.2s',
+                      transition: 'all 0.2s ease',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -2818,8 +2821,8 @@ export default function StoryDetail() {
                       marginBottom: '1rem',
                       color: 'var(--text-primary)'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--text-secondary)'}
-                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
+                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     onDrop={(e) => {
                       e.preventDefault();

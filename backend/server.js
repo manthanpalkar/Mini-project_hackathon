@@ -1,4 +1,9 @@
-require('dotenv').config();
+const envFile = process.env.ENV_FILE;
+if (envFile) {
+  require('dotenv').config({ path: envFile });
+} else {
+  require('dotenv').config();
+}
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -11,6 +16,7 @@ const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
 const busboy = require('busboy');
 const crypto = require('crypto');
+const compression = require('compression');
 const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession } = require('./models');
 const StorageService = require('./services/storageService');
 const { ensureSystemFolders } = require('./scripts/initSystemFolders');
@@ -29,11 +35,11 @@ if (!JWT_SECRET || typeof JWT_SECRET !== 'string' || JWT_SECRET.trim().length < 
 }
 
 const RATE_LIMIT_CONFIG = {
-  GLOBAL_MAX: 1500,
-  LOGIN_MAX: 10,
-  REGISTER_MAX: 10,
-  UPLOAD_MAX: 30,
-  DOWNLOAD_MAX: 60,
+  GLOBAL_MAX: parseInt(process.env.RATE_LIMIT_GLOBAL_MAX || '1500', 10),
+  LOGIN_MAX: parseInt(process.env.RATE_LIMIT_LOGIN_MAX || '10', 10),
+  REGISTER_MAX: parseInt(process.env.RATE_LIMIT_REGISTER_MAX || '10', 10),
+  UPLOAD_MAX: parseInt(process.env.RATE_LIMIT_UPLOAD_MAX || '30', 10),
+  DOWNLOAD_MAX: parseInt(process.env.RATE_LIMIT_DOWNLOAD_MAX || '60', 10),
   WINDOW_MS: 15 * 60 * 1000
 };
 
@@ -112,6 +118,18 @@ app.use(cors({
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true
+}));
+
+// Selective HTTP Response Compression (Gzip / Deflate for JSON, skips binary file streaming)
+app.use(compression({
+  threshold: 1024, // Only compress payloads > 1KB
+  filter: (req, res) => {
+    // Skip binary files and streaming endpoints that are already compressed or chunked
+    if (req.headers['x-no-compression'] || req.path.includes('/file') || req.path.includes('/storage') || req.path.includes('/chunk')) {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
 }));
 
 // Helmet secure headers & custom Content Security Policy (CSP)
@@ -531,16 +549,28 @@ function requireAdmin(req, res, next) {
 // Database connection
 const primaryUri = process.env.MONGODB_URI;
 const fallbackUri = 'mongodb://127.0.0.1:27017/loop_db';
+const MONGODB_MAX_POOL_SIZE = parseInt(process.env.MONGODB_MAX_POOL_SIZE || '50', 10);
+const MONGODB_MIN_POOL_SIZE = parseInt(process.env.MONGODB_MIN_POOL_SIZE || '5', 10);
 
 // Disable buffering so that queries fail fast instead of hanging when database is offline
 mongoose.set('bufferCommands', false);
 
 async function connectWithFallback() {
   if (primaryUri && primaryUri !== fallbackUri) {
+    // Staging Isolation Guard: Log warning if staging points to default database path
+    if (process.env.NODE_ENV === 'staging') {
+      const rawPath = primaryUri.split('?')[0].split('/').pop();
+      if (!rawPath || rawPath === 'test') {
+        console.warn('[STAGING ISOLATION WARNING] MONGODB_URI does not specify an explicit staging database path (e.g. /loop_staging).');
+      }
+    }
+
     console.log('Attempting to connect to primary MongoDB database...');
     try {
       await mongoose.connect(primaryUri, {
         serverSelectionTimeoutMS: 4000, // fail fast
+        maxPoolSize: MONGODB_MAX_POOL_SIZE,
+        minPoolSize: MONGODB_MIN_POOL_SIZE,
         serverApi: {
           version: '1',
           strict: true,
@@ -552,13 +582,24 @@ async function connectWithFallback() {
       return;
     } catch (err) {
       console.error('Primary MongoDB connection error:', err.message);
+      if (process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'local_test') {
+        console.error(`Failing closed: silent local fallback disabled in ${process.env.NODE_ENV} environment.`);
+        return;
+      }
       console.log('Falling back to local MongoDB database...');
     }
   }
 
+  if (process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'local_test') {
+    console.error(`Failing closed: MONGODB_URI required in ${process.env.NODE_ENV} environment. Refusing local fallback.`);
+    return;
+  }
+
   try {
     await mongoose.connect(fallbackUri, {
-      serverSelectionTimeoutMS: 4000
+      serverSelectionTimeoutMS: 4000,
+      maxPoolSize: MONGODB_MAX_POOL_SIZE,
+      minPoolSize: MONGODB_MIN_POOL_SIZE
     });
     console.log('Connected to local fallback MongoDB successfully.');
     ensureSystemFolders().catch(e => console.error('System folders sync error:', e.message));
@@ -666,47 +707,32 @@ app.get('/api/folders', authenticateToken, async (req, res) => {
 
     const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
 
-    if (category === 'system') {
-      const cacheKey = cacheService.makeKey('folders:system', `${parentId || 'root'}_p_${page}_l_${limit}_pag_${isPaginated}`);
-      const payload = await cacheService.getOrSet(cacheKey, async () => {
-        if (isPaginated) {
-          const total = await Folder.countDocuments(filter);
-          const folders = await Folder.find(filter)
-            .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
-            .skip(skip)
-            .limit(limit)
-            .lean();
-          return { isPaginated: true, folders, total };
-        }
+    const roleScope = isAdmin ? 'admin' : 'public';
+    const catScope = category || 'all';
+    const parentScope = parentId !== undefined ? (parentId === 'null' || parentId === '' ? 'root' : parentId) : 'any';
+    const cacheKey = cacheService.makeKey('folders', `${roleScope}_cat_${catScope}_parent_${parentScope}_p_${page}_l_${limit}_pag_${isPaginated}`);
+
+    const payload = await cacheService.getOrSet(cacheKey, async () => {
+      if (isPaginated) {
+        const total = await Folder.countDocuments(filter);
         const folders = await Folder.find(filter)
           .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
+          .skip(skip)
+          .limit(limit)
           .lean();
-        return { isPaginated: false, folders, total: folders.length };
-      }, cacheService.DEFAULT_TTLS.folders);
-
-      if (payload.isPaginated) {
-        return sendPaginatedResponse(res, payload.folders, payload.total, page, limit);
+        return { isPaginated: true, folders, total };
       }
-      res.set('X-Total-Count', String(payload.folders.length));
-      return res.json(payload.folders);
-    }
-
-    if (isPaginated) {
-      const total = await Folder.countDocuments(filter);
       const folders = await Folder.find(filter)
         .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
-        .skip(skip)
-        .limit(limit)
         .lean();
+      return { isPaginated: false, folders, total: folders.length };
+    }, cacheService.DEFAULT_TTLS.folders);
 
-      return sendPaginatedResponse(res, folders, total, page, limit);
+    if (payload.isPaginated) {
+      return sendPaginatedResponse(res, payload.folders, payload.total, page, limit);
     }
-
-    const folders = await Folder.find(filter)
-      .sort({ isSystemFolder: -1, createdAt: 1, _id: -1 })
-      .lean();
-    res.set('X-Total-Count', String(folders.length));
-    res.json(folders);
+    res.set('X-Total-Count', String(payload.folders.length));
+    return res.json(payload.folders);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

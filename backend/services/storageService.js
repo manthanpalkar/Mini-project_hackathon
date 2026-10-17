@@ -410,8 +410,7 @@ function uploadToGridFS(readableStream, filename, mimeType, metadata = {}) {
  * Supports HTTP Range requests (206 Partial Content), ETag, and 304 caching.
  */
 async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType, isPrivate = false) {
-  const bucket = getGridFSBucket();
-  const rawId = storageKey.replace(/^gridfs:/, '');
+  const rawId = (storageKey || '').replace(/^gridfs:/, '');
   let objectId;
   try {
     objectId = new ObjectId(rawId);
@@ -419,11 +418,19 @@ async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType
     return res.status(400).json({ error: 'Invalid file ID format.' });
   }
 
+  let bucket;
+  try {
+    bucket = getGridFSBucket();
+  } catch (err) {
+    return res.status(503).json({ error: 'Database storage service unavailable.' });
+  }
+
   const files = await bucket.find({ _id: objectId }).toArray();
   if (!files || files.length === 0) {
     return res.status(404).json({ error: 'File not found in storage.' });
   }
 
+  const file = files[0];
   const fileSize = file.length;
   const filename = originalFileName || file.filename || 'download';
   const cleanExt = filename.includes('.') ? filename.split('.').pop().toLowerCase() : '';
@@ -491,7 +498,17 @@ async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType
 
     downloadStream.on('error', (err) => {
       console.error('[GridFS Stream Range] Error:', err);
-      if (!res.headersSent) res.status(500).end();
+      if (!res.headersSent) {
+        res.status(500).end();
+      } else {
+        res.destroy(err);
+      }
+    });
+
+    res.on('close', () => {
+      if (!downloadStream.destroyed) {
+        downloadStream.destroy();
+      }
     });
 
     downloadStream.pipe(res);
@@ -501,7 +518,17 @@ async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType
 
     downloadStream.on('error', (err) => {
       console.error('[GridFS Stream] Error:', err);
-      if (!res.headersSent) res.status(500).end();
+      if (!res.headersSent) {
+        res.status(500).end();
+      } else {
+        res.destroy(err);
+      }
+    });
+
+    res.on('close', () => {
+      if (!downloadStream.destroyed) {
+        downloadStream.destroy();
+      }
     });
 
     downloadStream.pipe(res);

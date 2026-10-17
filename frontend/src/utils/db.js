@@ -1,9 +1,10 @@
 import { uploadResourceStream, formatBytes, formatSpeed, formatEta } from './upload';
 import { localMockResources, localMockPendingStories, localMockPendingResources, localMockAchievements, localMockFolders, localMockStories, localMockUsers } from './localMockData';
 
-const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'https://loop-qnh9.onrender.com';
-const API_URL = `${BASE_URL}/api`;
+const envApiUrl = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : '';
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const BASE_URL = isLocal ? '' : (envApiUrl ? envApiUrl.replace(/\/api\/?$/, '') : 'https://loop-qnh9.onrender.com');
+const API_URL = isLocal ? '/api' : (envApiUrl || `${BASE_URL}/api`);
 
 const fixRelativeUrl = (url) => {
   if (!url) return url;

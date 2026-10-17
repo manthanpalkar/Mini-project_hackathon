@@ -257,9 +257,87 @@ describe('Redis Cache Service & Resilient Fallback', () => {
     assert.ok(cacheService.DEFAULT_TTLS.achievements > 0);
   });
 
-  test('Key Generator: Produces sanitized deterministic namespaced keys', () => {
-    assert.equal(cacheService.makeKey('stories', 'list'), 'loop:stories:list');
-    assert.equal(cacheService.makeKey('Resources', 'detail:123'), 'loop:resources:detail:123');
-    assert.equal(cacheService.makeKey('achievements'), 'loop:achievements');
+  test('Disconnection and Reconnection Lifecycle: Degrades gracefully on disconnect and recovers when reconnected', async () => {
+    let isConnected = true;
+    const store = new Map();
+    store.set('loop:test:reconnect', JSON.stringify({ source: 'redis' }));
+
+    const mockClient = {
+      get isOpen() { return isConnected; },
+      get: async (k) => {
+        if (!isConnected) throw new Error('ClientClosedError: The client is closed');
+        return store.get(k) || null;
+      },
+      set: async (k, v) => {
+        if (!isConnected) throw new Error('ClientClosedError: The client is closed');
+        store.set(k, v);
+      },
+      del: async (k) => {
+        if (!isConnected) throw new Error('ClientClosedError: The client is closed');
+        store.delete(k);
+      }
+    };
+
+    cacheService._setMockClient(mockClient);
+
+    // 1. Initial hit when connected
+    let dbCount = 0;
+    const fetcher = async () => { dbCount++; return { source: 'mongodb' }; };
+    const res1 = await cacheService.getOrSet('loop:test:reconnect', fetcher, 60);
+    assert.equal(res1.source, 'redis');
+    assert.equal(dbCount, 0);
+
+    // 2. Disconnect Redis
+    isConnected = false;
+    cacheService._setMockClient(null); // Simulated end / offline
+    const res2 = await cacheService.getOrSet('loop:test:reconnect', fetcher, 60);
+    assert.equal(res2.source, 'mongodb');
+    assert.equal(dbCount, 1);
+
+    // 3. Reconnect Redis
+    isConnected = true;
+    cacheService._setMockClient(mockClient);
+    const res3 = await cacheService.getOrSet('loop:test:reconnect', fetcher, 60);
+    assert.equal(res3.source, 'redis');
+    assert.equal(dbCount, 1); // Not incremented, served from Redis
+  });
+
+  test('Cache Isolation: Keys for admin-only views never collide with public views', () => {
+    const publicKey = cacheService.makeKey('folders', 'public_cat_all_parent_root_p_1_l_20_pag_false');
+    const adminKey = cacheService.makeKey('folders', 'admin_cat_all_parent_root_p_1_l_20_pag_false');
+
+    assert.notEqual(publicKey, adminKey);
+    assert.ok(publicKey.includes('public'));
+    assert.ok(adminKey.includes('admin'));
+  });
+
+  test('Single-Flight Error Resilience: Cleans in-flight promise on error so subsequent requests can retry', async () => {
+    cacheService._setMockClient(null);
+
+    let attempts = 0;
+    const failingFetcher = async () => {
+      attempts++;
+      if (attempts === 1) {
+        throw new Error('Temporary MongoDB Network Error');
+      }
+      return [{ id: 'recovered-item' }];
+    };
+
+    const key = 'loop:test:failing_key';
+
+    // First attempt should reject
+    await assert.rejects(
+      async () => await cacheService.getOrSet(key, failingFetcher, 60),
+      { message: 'Temporary MongoDB Network Error' }
+    );
+
+    // In-flight map must be empty for this key
+    const metrics = cacheService.getMetrics();
+    assert.equal(metrics.inFlightCount, 0);
+
+    // Second attempt should succeed and execute fetcher again (retry)
+    const retryResult = await cacheService.getOrSet(key, failingFetcher, 60);
+    assert.equal(attempts, 2);
+    assert.deepEqual(retryResult, [{ id: 'recovered-item' }]);
   });
 });

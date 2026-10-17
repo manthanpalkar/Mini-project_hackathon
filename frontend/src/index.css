@@ -29,6 +29,10 @@
   --glass-blur: blur(20px);
   --logo-filter: invert(1);
 
+  /* File Upload Dropzone Tokens */
+  --border-dropzone: #000000;
+  --bg-dropzone: rgba(0, 0, 0, 0.02);
+
   /* Apple Liquid Glass Floating Pill */
   --liquid-pill-bg: rgba(255, 255, 255, 0.76);
   --liquid-pill-border: rgba(255, 255, 255, 0.7);
@@ -118,6 +122,10 @@
   --glass-surface: rgba(18, 19, 22, 0.78);
   --glass-border: rgba(255, 255, 255, 0.08);
   --logo-filter: none;
+
+  /* File Upload Dropzone Tokens Dark Mode */
+  --border-dropzone: rgba(255, 255, 255, 0.5);
+  --bg-dropzone: rgba(255, 255, 255, 0.03);
 
   /* Apple Liquid Glass Floating Pill Dark Mode */
   --liquid-pill-bg: rgba(18, 19, 22, 0.78);

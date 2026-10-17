@@ -1376,11 +1376,11 @@ export default function Resources() {
                   }
                 }}
                 style={{
-                  border: uploadFile ? '2px solid var(--accent-color)' : '2px dashed var(--border-color)',
-                  borderRadius: '14px',
+                  border: uploadFile ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
+                  borderRadius: '16px',
                   padding: '2rem 1.5rem',
                   textAlign: 'center',
-                  backgroundColor: uploadFile ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
+                  backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
                   transition: 'all 0.2s ease',
                   cursor: isUploading ? 'not-allowed' : 'pointer'
                 }}
@@ -1404,22 +1404,22 @@ export default function Resources() {
 
                 {uploadFile ? (
                   <div>
-                    <CheckCircle size={32} color="var(--accent-color)" style={{ marginBottom: '0.5rem' }} />
+                    <CheckCircle size={32} color="var(--border-dropzone, #000000)" style={{ marginBottom: '0.5rem' }} />
                     <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{uploadFile.name}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                       Size: {formatBytes(uploadFile.size)}
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', marginTop: '0.5rem', display: 'inline-block' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)', fontWeight: 600, marginTop: '0.5rem', display: 'inline-block' }}>
                       Click to change file
                     </span>
                   </div>
                 ) : (
                   <div>
-                    <UploadCloud size={36} color="var(--text-secondary)" style={{ opacity: 0.6, marginBottom: '0.75rem' }} />
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                    <UploadCloud size={40} color="var(--text-primary, #000000)" style={{ opacity: 0.85, marginBottom: '0.75rem' }} />
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
                       Drag & Drop File Here
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                       or click to browse from device (Up to 200 MB)
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '6px' }}>
