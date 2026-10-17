@@ -260,6 +260,7 @@ export default function Navbar() {
   }
 
   const isActive = (path) => location.pathname === path;
+  const isForgotPasswordPage = location.pathname === '/forgot-password';
 
   return (
     <>
@@ -315,44 +316,48 @@ export default function Navbar() {
           }}
         >
           {/* COLUMN 1: LEFT NAV LINKS (Desktop only) */}
-          <div className="nav-col-left" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: isScrolled ? '1.5rem' : '2rem',
-            fontFamily: 'var(--font-sans)',
-            fontSize: isScrolled ? '0.88rem' : '0.9rem',
-            fontWeight: 600,
-            letterSpacing: '0.03em',
-            transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-            zIndex: 2
-          }}>
-            <Link to="/stories" style={{
-              color: isActive('/stories') ? 'var(--text-primary)' : 'var(--text-secondary)',
-              position: 'relative',
-              transition: 'color 0.2s ease'
+          {!isForgotPasswordPage ? (
+            <div className="nav-col-left" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isScrolled ? '1.5rem' : '2rem',
+              fontFamily: 'var(--font-sans)',
+              fontSize: isScrolled ? '0.88rem' : '0.9rem',
+              fontWeight: 600,
+              letterSpacing: '0.03em',
+              transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+              zIndex: 2
             }}>
-              Stories
-              {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
-            </Link>
-            
-            <Link to="/resources" style={{
-              color: isActive('/resources') ? 'var(--text-primary)' : 'var(--text-secondary)',
-              position: 'relative',
-              transition: 'color 0.2s ease'
-            }}>
-              Resources
-              {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
-            </Link>
+              <Link to="/stories" style={{
+                color: isActive('/stories') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                position: 'relative',
+                transition: 'color 0.2s ease'
+              }}>
+                Stories
+                {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+              </Link>
+              
+              <Link to="/resources" style={{
+                color: isActive('/resources') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                position: 'relative',
+                transition: 'color 0.2s ease'
+              }}>
+                Resources
+                {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+              </Link>
 
-            <Link to="/achievements" style={{
-              color: isActive('/achievements') ? 'var(--text-primary)' : 'var(--text-secondary)',
-              position: 'relative',
-              transition: 'color 0.2s ease'
-            }}>
-              Achievements
-              {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
-            </Link>
-          </div>
+              <Link to="/achievements" style={{
+                color: isActive('/achievements') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                position: 'relative',
+                transition: 'color 0.2s ease'
+              }}>
+                Achievements
+                {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+              </Link>
+            </div>
+          ) : (
+            <div className="nav-col-left" style={{ display: 'flex', alignItems: 'center', zIndex: 2 }} />
+          )}
 
           {/* COLUMN 2: CENTER LOGO - ALWAYS MATHEMATICALLY DEAD CENTER */}
           <div style={{
@@ -531,15 +536,19 @@ export default function Navbar() {
             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
             pointerEvents: 'auto'
           }}>
-          <Link to="/stories" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-            Stories
-          </Link>
-          <Link to="/resources" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-            Resources
-          </Link>
-          <Link to="/achievements" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-            Achievements
-          </Link>
+          {!isForgotPasswordPage && (
+            <>
+              <Link to="/stories" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                Stories
+              </Link>
+              <Link to="/resources" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                Resources
+              </Link>
+              <Link to="/achievements" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                Achievements
+              </Link>
+            </>
+          )}
 
           {user?.isAdmin && (
             <Link to="/admin" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

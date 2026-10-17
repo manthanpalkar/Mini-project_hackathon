@@ -912,5 +912,98 @@ input:-webkit-autofill:active {
   transform: scale(1.08);
 }
 
+/* ==========================================================================
+   LOOP OTP Verification & Forgot Password Keyframe Animations
+   ========================================================================== */
+
+@keyframes loop-orbit-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loop-orbit-counter-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes loop-spring-overshoot {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes loop-pulse-ring {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(0.88);
+    opacity: 0.8;
+  }
+}
+
+@keyframes loop-confetti-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+.animate-loop-orbit {
+  animation: loop-orbit-rotate 2.8s linear infinite;
+}
+
+.animate-loop-counter-orbit {
+  animation: loop-orbit-counter-rotate 2.8s linear infinite;
+}
+
+.animate-spring-overshoot {
+  animation: loop-spring-overshoot 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-pulse-ring {
+  animation: loop-pulse-ring 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-loop-orbit,
+  .animate-loop-counter-orbit,
+  .animate-spring-overshoot,
+  .animate-pulse-ring {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
 
 

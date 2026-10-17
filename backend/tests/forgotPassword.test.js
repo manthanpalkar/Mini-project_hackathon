@@ -7,7 +7,16 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { app, RESET_SECRET } = require('../server');
 const { User, PasswordResetChallenge } = require('../models');
-const { getLastMockEmail, clearMockEmails, getMockEmails } = require('../services/emailService');
+const { 
+  getLastMockEmail, 
+  clearMockEmails, 
+  getMockEmails, 
+  setMockSender, 
+  isResendConfigured, 
+  buildLoopEmailHtml, 
+  buildLoopEmailText,
+  sendPasswordResetEmail
+} = require('../services/emailService');
 
 describe('LOOP Forgot Password & Password Recovery Workflows', () => {
   let server;
@@ -557,5 +566,72 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
       confirmPassword: 'TestingTokenAbsence999!'
     });
     assert.equal(r3.data.token, undefined);
+  });
+
+  // TEST 17: Resend SDK integration and configuration detection
+  test('Resend SDK: correctly identifies valid vs invalid API key formats', () => {
+    const originalKey = process.env.RESEND_API_KEY;
+    try {
+      process.env.RESEND_API_KEY = 're_test_mock_1234567890abcdef';
+      assert.equal(isResendConfigured(), true);
+
+      process.env.RESEND_API_KEY = 'invalid_key_prefix';
+      assert.equal(isResendConfigured(), false);
+
+      delete process.env.RESEND_API_KEY;
+      assert.equal(isResendConfigured(), false);
+    } finally {
+      if (originalKey !== undefined) {
+        process.env.RESEND_API_KEY = originalKey;
+      } else {
+        delete process.env.RESEND_API_KEY;
+      }
+    }
+  });
+
+  // TEST 18: Template verification: HTML and text representations
+  test('Email Templates: HTML and text include SPIT branding, 6-digit code, and security advice', () => {
+    const testCode = '482910';
+    const recipient = 'student.audit@spit.ac.in';
+
+    const html = buildLoopEmailHtml({ to: recipient, code: testCode });
+    assert.ok(html.includes(testCode), 'HTML template must contain the OTP code');
+    assert.ok(html.includes('LOOP'), 'HTML template must contain LOOP branding');
+    assert.ok(html.includes('SPIT'), 'HTML template must contain SPIT badge');
+    assert.ok(html.includes('10 minutes'), 'HTML template must mention 10-minute expiry');
+    assert.ok(html.includes(recipient), 'HTML template should include recipient');
+
+    const text = buildLoopEmailText({ to: recipient, code: testCode });
+    assert.ok(text.includes(testCode), 'Plaintext template must contain the OTP code');
+    assert.ok(text.includes('10 minutes'), 'Plaintext template must mention 10-minute expiry');
+  });
+
+  // TEST 19: Provider error handling: handles email provider failures gracefully
+  test('Email Provider Error: propagates errors when dispatch fails', async () => {
+    try {
+      setMockSender(async () => {
+        throw new Error('Simulated upstream Resend API network outage');
+      });
+
+      await assert.rejects(
+        () => sendPasswordResetEmail({ to: testEmail, code: '999888' }),
+        /Simulated upstream Resend API network outage/
+      );
+    } finally {
+      setMockSender(null);
+    }
+  });
+
+  // TEST 20: Input validation for email service parameters
+  test('Email Service: validates mandatory recipient and code arguments', async () => {
+    await assert.rejects(
+      () => sendPasswordResetEmail({ to: '', code: '123456' }),
+      /Recipient email is required/
+    );
+
+    await assert.rejects(
+      () => sendPasswordResetEmail({ to: 'valid@spit.ac.in', code: '' }),
+      /Verification code is required/
+    );
   });
 });
