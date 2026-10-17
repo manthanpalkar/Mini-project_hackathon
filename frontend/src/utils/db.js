@@ -76,14 +76,19 @@ const authFetch = async (url, options = {}) => {
   }
   const res = await fetch(url, { ...options, headers });
 
-  // Handle sliding session token rotation
+  // Handle sliding session token rotation safely without race conditions
   try {
     const refreshedToken = res.headers ? res.headers.get('x-refreshed-token') : null;
-    if (refreshedToken && userSession) {
-      const current = JSON.parse(userSession);
-      if (current && current.email) {
-        current.token = refreshedToken;
-        localStorage.setItem('loop_current_user', JSON.stringify(current));
+    if (refreshedToken) {
+      const latestRaw = localStorage.getItem('loop_current_user');
+      if (latestRaw && userSession) {
+        const latestUser = JSON.parse(latestRaw);
+        const originalUser = JSON.parse(userSession);
+        if (latestUser && originalUser && latestUser.email && originalUser.email &&
+            latestUser.email.toLowerCase() === originalUser.email.toLowerCase()) {
+          latestUser.token = refreshedToken;
+          localStorage.setItem('loop_current_user', JSON.stringify(latestUser));
+        }
       }
     }
   } catch (tokenErr) {}
@@ -135,14 +140,19 @@ const authFetchXHR = (url, options = {}, onProgress) => {
       const responseBody = xhr.responseText;
       const ok = xhr.status >= 200 && xhr.status < 300;
 
-      // Handle sliding token refresh
+      // Handle sliding token refresh safely without race conditions
       try {
         const refreshedToken = xhr.getResponseHeader('X-Refreshed-Token');
-        if (refreshedToken && userSession) {
-          const current = JSON.parse(userSession);
-          if (current && current.email) {
-            current.token = refreshedToken;
-            localStorage.setItem('loop_current_user', JSON.stringify(current));
+        if (refreshedToken) {
+          const latestRaw = localStorage.getItem('loop_current_user');
+          if (latestRaw && userSession) {
+            const latestUser = JSON.parse(latestRaw);
+            const originalUser = JSON.parse(userSession);
+            if (latestUser && originalUser && latestUser.email && originalUser.email &&
+                latestUser.email.toLowerCase() === originalUser.email.toLowerCase()) {
+              latestUser.token = refreshedToken;
+              localStorage.setItem('loop_current_user', JSON.stringify(latestUser));
+            }
           }
         }
       } catch (tokenErr) {}
@@ -1229,6 +1239,7 @@ export const logoutUser = async () => {
   } finally {
     localStorage.removeItem('loop_current_user');
     window.dispatchEvent(new CustomEvent('loop_auth_expired'));
+    window.dispatchEvent(new CustomEvent('loop_logout'));
   }
 };
 

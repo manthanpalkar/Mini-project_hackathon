@@ -120,6 +120,18 @@ const feedbackUpload = multer({
   }
 });
 
+// Deep file content magic bytes validator for images
+function isValidImageBuffer(buffer) {
+  if (!buffer || !Buffer.isBuffer(buffer) || buffer.length < 8) return false;
+  // PNG: 89 50 4E 47
+  const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+  // JPEG: FF D8 FF
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  // WebP: RIFF at offset 0..3 and WEBP at offset 8..11
+  const isWebp = buffer.slice(0, 4).toString('ascii') === 'RIFF' && buffer.slice(8, 12).toString('ascii') === 'WEBP';
+  return isPng || isJpeg || isWebp;
+}
+
 // Middlewares
 
 // Enable CORS with restricted origin access
@@ -2216,6 +2228,20 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
     
     await user.save();
     userAuthCache.invalidate(email);
+
+    activityService.logActivity({
+      eventType: isUserAdmin && email.trim().toLowerCase() !== req.user.email.toLowerCase() ? 'ADMIN_ACTION' : 'PROFILE_UPDATE',
+      category: isUserAdmin && email.trim().toLowerCase() !== req.user.email.toLowerCase() ? 'ADMIN' : 'PROFILE',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'User',
+      targetId: user._id,
+      summary: `Updated profile for ${user.email}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { targetEmail: user.email, updatedFields: Object.keys(req.body).filter(k => k !== 'password') }
+    });
     
     res.json({ message: 'User updated successfully.', user: sanitizeUser(user) });
   } catch (err) {
@@ -2261,6 +2287,19 @@ app.put('/api/users/:email/onboard', authenticateToken, async (req, res) => {
     
     await user.save();
     userAuthCache.invalidate(email);
+
+    activityService.logActivity({
+      eventType: 'ONBOARDING_COMPLETE',
+      category: 'PROFILE',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'User',
+      targetId: user._id,
+      summary: `User completed onboarding: ${user.email} (${user.role})`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || ''
+    });
     
     const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
     res.json({
@@ -3030,6 +3069,20 @@ const handleUploadFinalize = async (req, res) => {
     session.finalGridFsId = assembledFile.gridFsFileId;
     await session.save();
 
+    activityService.logActivity({
+      eventType: 'CONTENT_RESOURCE_UPLOAD',
+      category: 'CONTENT',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: isModerated ? 'PendingResource' : 'Resource',
+      targetId: resourceId,
+      summary: `Uploaded resource: ${session.fileName} (${isModerated ? 'Pending Moderation' : 'Approved'})`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { resourceId, fileName: session.fileName, size: assembledFile.size || session.fileSize, isModerated }
+    });
+
     await cacheService.invalidateResources(resourceId).catch(() => {});
 
     res.status(200).json({
@@ -3627,6 +3680,21 @@ app.delete('/api/resources/:id', authenticateToken, requireOnboarded, async (req
 
     await Resource.deleteOne({ id: resource.id });
     await cacheService.invalidateResources(resource.id).catch(() => {});
+
+    activityService.logActivity({
+      eventType: 'CONTENT_RESOURCE_DELETE',
+      category: 'CONTENT',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'Resource',
+      targetId: resource.id,
+      summary: `Deleted resource: ${resource.title || resource.id}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { resourceId: resource.id, title: resource.title }
+    });
+
     res.json({ message: 'Resource permanently deleted.' });
   } catch (err) {
     console.error('Error in DELETE /api/resources/:id:', err);
@@ -3716,6 +3784,21 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
 
     await PendingResource.deleteOne({ _id: pending._id });
     await cacheService.invalidateResources(pending.activeId || req.params.id).catch(() => {});
+
+    activityService.logActivity({
+      eventType: 'ADMIN_APPROVE_RESOURCE',
+      category: 'ADMIN',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'Resource',
+      targetId: pending.activeId || req.params.id,
+      summary: `Admin approved resource: ${pending.title || pending.id}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { pendingId: req.params.id, title: pending.title }
+    });
+
     res.json({ message: 'Resource approved successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3884,15 +3967,35 @@ app.post('/api/sessions/my/revoke-others', authenticateToken, async (req, res) =
 // USER FEEDBACK & BUG REPORTING API
 // ==========================================
 
+const FEEDBACK_CATEGORY_MAP = {
+  'Bug / Technical Issue': 'Bug / Error',
+  'UI / Design Feedback': 'UI / Usability',
+  'Improvement Suggestion': 'Feature Request',
+  'Login / Account Issue': 'Authentication / Login Issue',
+  'Resource / Upload Issue': 'Resource / Material Issue',
+  'Performance Issue': 'Performance / Slowness',
+  'Security / Privacy Concern': 'Other',
+  'Positive Feedback': 'Other',
+  'Other': 'Other'
+};
+
 const FEEDBACK_VALID_CATEGORIES = [
   'Bug / Error',
+  'Bug / Technical Issue',
   'UI / Usability',
+  'UI / Design Feedback',
   'Placement Story Issue',
   'Resource / Material Issue',
+  'Resource / Upload Issue',
   'Authentication / Login Issue',
+  'Login / Account Issue',
   'Performance / Slowness',
+  'Performance Issue',
   'Mobile / Responsiveness',
   'Feature Request',
+  'Improvement Suggestion',
+  'Security / Privacy Concern',
+  'Positive Feedback',
   'Account / Profile Issue',
   'Other'
 ];
@@ -3907,6 +4010,7 @@ app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, 
       return res.status(400).json({ error: err.message || 'Error processing attachment.' });
     }
 
+    let screenshotFileId = null;
     try {
       const {
         title,
@@ -3921,17 +4025,23 @@ app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, 
         deviceDiagnostics = '{}'
       } = req.body;
 
-      if (!title || typeof title !== 'string' || !title.trim()) {
-        return res.status(400).json({ error: 'Feedback title is required.' });
-      }
       if (!description || typeof description !== 'string' || !description.trim()) {
         return res.status(400).json({ error: 'Feedback description is required.' });
       }
-      if (!FEEDBACK_VALID_CATEGORIES.includes(category)) {
-        return res.status(400).json({
-          error: `Invalid category. Must be one of: ${FEEDBACK_VALID_CATEGORIES.join(', ')}`
-        });
+
+      // Automatically generate summary title from user text if not explicitly provided
+      let cleanTitle = (title && typeof title === 'string' && title.trim()) ? title.trim() : '';
+      if (!cleanTitle) {
+        const firstLine = description.trim().split(/\r?\n/)[0].trim();
+        const sentenceMatch = firstLine.match(/^[^.!?]+[.!?]?/);
+        const snippet = sentenceMatch ? sentenceMatch[0].trim() : firstLine;
+        cleanTitle = snippet.length > 70 ? snippet.slice(0, 67) + '...' : snippet;
+        if (!cleanTitle) cleanTitle = 'User Feedback Report';
       }
+
+      // Normalize category to schema standard
+      const rawCategory = (category && typeof category === 'string' && category.trim()) ? category.trim() : 'Bug / Error';
+      const cleanCategory = FEEDBACK_CATEGORY_MAP[rawCategory] || (FEEDBACK_VALID_CATEGORIES.includes(rawCategory) ? rawCategory : 'Bug / Error');
 
       const cleanSeverity = FEEDBACK_VALID_SEVERITIES.includes(severity) ? severity : 'Moderate';
       const cleanPriority = FEEDBACK_VALID_PRIORITIES.includes(priority) ? priority : 'Medium';
@@ -3944,18 +4054,41 @@ app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, 
         parsedDiagnostics = {};
       }
 
+      // Prevent rapid duplicate submissions (within 30 seconds for same user and title)
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        const recentDup = await Feedback.findOne({
+          reporterEmail: req.user.email.toLowerCase().trim(),
+          title: sanitizeString(cleanTitle.slice(0, 200)),
+          createdAt: { $gt: new Date(Date.now() - 30 * 1000) }
+        }).catch(() => null);
+        if (recentDup) {
+          return res.status(409).json({
+            error: 'A feedback report with this title was already submitted recently. Please check your feedback history.',
+            code: 'DUPLICATE_FEEDBACK',
+            referenceId: recentDup.referenceId
+          });
+        }
+      }
+
       // Generate reference ID FB-YYYYMMDD-XXXX
       const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       const randPart = crypto.randomBytes(3).toString('hex').toUpperCase();
       const referenceId = `FB-${datePart}-${randPart}`;
 
-      let screenshotFileId = null;
+      screenshotFileId = null;
       let screenshotFileName = '';
       let screenshotSize = 0;
       let screenshotMime = '';
 
-      // If user uploaded a screenshot, store safely in GridFS
+      // If user uploaded a screenshot, validate content magic bytes and store safely in GridFS
       if (req.file) {
+        if (!isValidImageBuffer(req.file.buffer)) {
+          return res.status(400).json({
+            error: 'Invalid file content. Screenshot must be a genuine PNG, JPEG, or WebP image.',
+            code: 'INVALID_IMAGE_SIGNATURE'
+          });
+        }
+
         const sanitizedFilename = `feedback-${referenceId}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
         const fileStream = Readable.from(req.file.buffer);
         const uploadResult = await StorageService.uploadToGridFS(
@@ -3978,11 +4111,11 @@ app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, 
         referenceId,
         reporterEmail: req.user.email.toLowerCase().trim(),
         reporterName: req.user.name || '',
-        category,
+        category: cleanCategory,
         severity: cleanSeverity,
         priority: cleanPriority,
         status: 'New',
-        title: sanitizeString(title.trim().slice(0, 200)),
+        title: sanitizeString(cleanTitle.slice(0, 200)),
         description: sanitizeString(description.trim().slice(0, 5000)),
         expectedBehavior: sanitizeString((expectedBehavior || '').trim().slice(0, 2000)),
         actualBehavior: sanitizeString((actualBehavior || '').trim().slice(0, 2000)),
@@ -4017,11 +4150,11 @@ app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, 
         actorRole: req.user.role,
         targetType: 'Feedback',
         targetId: feedback._id,
-        summary: `Submitted feedback: [${category}] ${title.slice(0, 60)}`,
+        summary: `Submitted feedback: [${cleanCategory}] ${cleanTitle.slice(0, 60)}`,
         outcome: 'SUCCESS',
         ipAddress: req.ip || '127.0.0.1',
         userAgent: req.headers['user-agent'] || '',
-        metadata: { referenceId, category, severity: cleanSeverity }
+        metadata: { referenceId, category: cleanCategory, severity: cleanSeverity }
       });
 
       res.status(201).json({
@@ -4031,16 +4164,20 @@ app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, 
         feedback
       });
     } catch (err) {
+      if (screenshotFileId) {
+        await StorageService.deleteFile(`gridfs:${screenshotFileId}`).catch(() => {});
+      }
       console.error('[FEEDBACK_POST_ERROR]', err);
       res.status(500).json({ error: 'Failed to process feedback submission.' });
     }
   });
 });
 
-// View authenticated user's own feedback history
+// View authenticated user's own feedback history (internal adminNotes strictly redacted)
 app.get('/api/feedback/my', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const list = await Feedback.find({ reporterEmail: req.user.email.toLowerCase().trim() })
+      .select('-adminNotes')
       .sort({ createdAt: -1 })
       .lean();
     res.json(list);

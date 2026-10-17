@@ -180,7 +180,7 @@ export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_C
   return { data, loading, error, mutate, refresh: () => fetchData(false) };
 };
 
-// Global helper to clear all caches (e.g. on logout)
+// Global helper to clear all caches (e.g. on logout or account switch)
 export const clearAllCaches = () => {
   Object.keys(memoryCache).forEach(k => {
     delete memoryCache[k];
@@ -197,3 +197,14 @@ export const clearAllCaches = () => {
     // Ignore storage issues
   }
 };
+
+// Automatically listen to auth expiration and logout events to prevent cross-account cache leakage
+if (typeof window !== 'undefined') {
+  window.addEventListener('loop_auth_expired', () => {
+    clearAllCaches();
+  });
+  window.addEventListener('loop_logout', () => {
+    clearAllCaches();
+  });
+}
+

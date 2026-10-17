@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail, MessageSquare, Laptop } from 'lucide-react';
+import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail, MessageSquare } from 'lucide-react';
 import { requestProfileEdit, updateUser, logoutUser } from '../utils/db';
 import FeedbackModal from './FeedbackModal';
-import SessionManagerModal from './SessionManagerModal';
 
 // Preset palette colors for the user name badge
 const PRESET_NAME_COLORS = [
@@ -80,7 +79,6 @@ export default function Navbar() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [showSessionModal, setShowSessionModal] = useState(false);
 
   // Initialize profile form values when modal opens or user updates
   useEffect(() => {
@@ -499,17 +497,6 @@ export default function Navbar() {
                 >
                   <MessageSquare size={isScrolled ? 11 : 12} />
                   <span>Feedback</span>
-                </button>
-
-                {/* Active Devices / Sessions button */}
-                <button
-                  onClick={() => setShowSessionModal(true)}
-                  className="btn btn-secondary"
-                  style={{ padding: isScrolled ? '0.32rem 0.65rem' : '0.42rem 0.75rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: isScrolled ? '0.75rem' : '0.8rem', transition: 'all 0.35s ease' }}
-                  title="Manage Active Devices & Sessions"
-                >
-                  <Laptop size={isScrolled ? 11 : 12} />
-                  <span>Devices</span>
                 </button>
 
                 {/* Exit / Logout button */}
@@ -1375,9 +1362,6 @@ export default function Navbar() {
 
     {/* User Feedback & Bug Reporting Modal */}
     <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
-
-    {/* Multi-Device Persistent Session Manager Modal */}
-    <SessionManagerModal isOpen={showSessionModal} onClose={() => setShowSessionModal(false)} />
   </>
   );
 }

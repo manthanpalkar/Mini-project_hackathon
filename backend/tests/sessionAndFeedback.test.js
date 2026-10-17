@@ -203,4 +203,48 @@ test('Sliding Token Rotation & 401 Expiry Verification', async (t) => {
     const decodedNew = jwt.verify(refreshedHeader, SECRET);
     assert.equal(decodedNew.email, 'refresher@spit.ac.in', 'Refreshed token must contain same user email');
   });
+
+  await t.test('magic bytes validator: accepts authentic PNG and rejects executable masquerade', async () => {
+    const validPng = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+    const fakeScript = Buffer.from('#!/bin/bash\necho Malicious\n');
+
+    const studentToken = jwt.sign(
+      { email: 'uploader@spit.ac.in', role: 'Student', status: 'Active' },
+      SECRET,
+      { expiresIn: '1h' }
+    );
+    const { userAuthCache } = require('../server');
+    userAuthCache.set('uploader@spit.ac.in', {
+      email: 'uploader@spit.ac.in',
+      role: 'Student',
+      status: 'Active',
+      onboarded: true
+    });
+
+    // Test 1: Upload fake script disguised as image/png
+    const boundary = '----WebKitFormBoundaryABC123';
+    const fakeBody = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="title"\r\n\r\nFake Script Test\r\n`),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="category"\r\n\r\nBug / Error\r\n`),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="description"\r\n\r\nTesting file signature detection\r\n`),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="screenshot"; filename="malicious.png"\r\nContent-Type: image/png\r\n\r\n`),
+      fakeScript,
+      Buffer.from(`\r\n--${boundary}--\r\n`)
+    ]);
+
+    const resFake = await fetch(`${baseUrl}/api/feedback`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${studentToken}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'X-Forwarded-For': '10.99.88.90'
+      },
+      body: fakeBody
+    });
+
+    const fakeJson = await resFake.json().catch(() => ({}));
+    assert.equal(resFake.status, 400, 'Executable masquerading as PNG must be rejected with 400');
+    assert.equal(fakeJson.code, 'INVALID_IMAGE_SIGNATURE', 'Error code must be INVALID_IMAGE_SIGNATURE');
+  });
 });
+

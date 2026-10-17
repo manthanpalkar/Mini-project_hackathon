@@ -1,77 +1,100 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  MessageSquare, Bug, X, UploadCloud, AlertCircle, CheckCircle, 
-  Clock, Image, FileText, ChevronRight, Copy, Check, Sparkles, RefreshCw, Smartphone, Laptop
+  MessageSquare, X, Image as ImageIcon, CheckCircle, 
+  AlertCircle, Copy, Check, ChevronDown, Trash2, Loader2
 } from 'lucide-react';
-import { submitFeedback, getMyFeedback, getFeedbackAttachmentUrl } from '../utils/db';
+import { submitFeedback } from '../utils/db';
 
 const CATEGORIES = [
-  'Bug / Error',
-  'UI / Usability',
-  'Placement Story Issue',
-  'Resource / Material Issue',
-  'Authentication / Login Issue',
-  'Performance / Slowness',
-  'Mobile / Responsiveness',
-  'Feature Request',
-  'Account / Profile Issue',
-  'Other'
+  { id: 'Bug / Technical Issue', label: 'Bug / Technical Issue', short: 'Bug', color: '#ef4444' },
+  { id: 'Feature Request', label: 'Feature Request', short: 'Feature', color: '#8b5cf6' },
+  { id: 'Improvement Suggestion', label: 'Improvement Suggestion', short: 'Suggestion', color: '#3b82f6' },
+  { id: 'UI / Design Feedback', label: 'UI / Design Feedback', short: 'UI / Design', color: '#06b6d4' },
+  { id: 'Performance Issue', label: 'Performance Issue', short: 'Performance', color: '#f59e0b' },
+  { id: 'Login / Account Issue', label: 'Login / Account Issue', short: 'Account', color: '#ec4899' },
+  { id: 'Resource / Upload Issue', label: 'Resource / Upload Issue', short: 'Resource', color: '#10b981' },
+  { id: 'Security / Privacy Concern', label: 'Security / Privacy Concern', short: 'Security', color: '#dc2626' },
+  { id: 'Positive Feedback', label: 'Positive Feedback', short: 'Praise', color: '#16a34a' },
+  { id: 'Other', label: 'Other', short: 'Other', color: '#6b7280' }
 ];
 
-const SEVERITIES = [
-  { value: 'Minor', label: 'Minor (Visual/Cosmetic)', color: '#3b82f6' },
-  { value: 'Moderate', label: 'Moderate (Non-blocking bug)', color: '#f59e0b' },
-  { value: 'Major', label: 'Major (Broken feature)', color: '#f97316' },
-  { value: 'Critical', label: 'Critical (Cannot proceed / crash)', color: '#ef4444' }
-];
-
-export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug / Error' }) {
-  const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history'
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(initialCategory);
-  const [severity, setSeverity] = useState('Moderate');
+export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug / Technical Issue' }) {
   const [description, setDescription] = useState('');
-  const [expectedBehavior, setExpectedBehavior] = useState('');
-  const [actualBehavior, setActualBehavior] = useState('');
-  const [stepsToReproduce, setStepsToReproduce] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    return CATEGORIES.find(c => c.id === initialCategory) || CATEGORIES[0];
+  });
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const [screenshot, setScreenshot] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState('');
-
+  
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(null); // { referenceId, message }
   const [errorMessage, setErrorMessage] = useState('');
   const [copiedRef, setCopiedRef] = useState(false);
 
-  // History state
-  const [history, setHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
-
   const fileInputRef = useRef(null);
+  const selectorButtonRef = useRef(null);
+  const popoverRef = useRef(null);
+  const textareaRef = useRef(null);
 
+  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setErrorMessage('');
       setSubmitSuccess(null);
       setCopiedRef(false);
-      if (activeTab === 'history') {
-        loadHistory();
-      }
+      setPopoverOpen(false);
+      // Auto-focus textarea on open after short delay
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }, 100);
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen]);
 
-  const loadHistory = async () => {
-    try {
-      setLoadingHistory(true);
-      const items = await getMyFeedback();
-      setHistory(items || []);
-    } catch (err) {
-      console.warn('Failed to load feedback history:', err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
+  // Handle click outside popover & escape key
+  useEffect(() => {
+    if (!popoverOpen) return;
+
+    const handleClickOutside = (e) => {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target) &&
+        selectorButtonRef.current && !selectorButtonRef.current.contains(e.target)
+      ) {
+        setPopoverOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setPopoverOpen(false);
+        selectorButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [popoverOpen]);
+
+  // Handle escape key to close modal (when popover is closed)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleModalEsc = (e) => {
+      if (e.key === 'Escape' && !popoverOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleModalEsc);
+    return () => document.removeEventListener('keydown', handleModalEsc);
+  }, [isOpen, popoverOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -79,12 +102,14 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.mimetype || file.type)) {
-      setErrorMessage('Only PNG, JPEG, and WebP images are allowed for screenshots.');
+    const mime = file.type || '';
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(mime.toLowerCase())) {
+      setErrorMessage('Only PNG, JPEG, and WebP image formats are supported.');
       return;
     }
+
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage('Screenshot exceeds 5MB size limit.');
+      setErrorMessage('Image exceeds the 5MB size limit.');
       return;
     }
 
@@ -101,38 +126,11 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const getDiagnostics = () => {
-    const ua = navigator.userAgent || '';
-    let os = 'Unknown OS';
-    if (/windows/i.test(ua)) os = 'Windows';
-    else if (/macintosh|mac os x/i.test(ua)) os = 'macOS';
-    else if (/android/i.test(ua)) os = 'Android';
-    else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
-    else if (/linux/i.test(ua)) os = 'Linux';
-
-    let browser = 'Unknown Browser';
-    if (/edg/i.test(ua)) browser = 'Edge';
-    else if (/chrome|crios/i.test(ua)) browser = 'Chrome';
-    else if (/firefox|fxios/i.test(ua)) browser = 'Firefox';
-    else if (/safari/i.test(ua) && !/chrome/i.test(ua)) browser = 'Safari';
-
-    return {
-      browser,
-      os,
-      viewport: `${window.innerWidth}x${window.innerHeight}`,
-      appVersion: '2.2.0',
-      correlationId: `CLI-${Date.now()}`
-    };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setErrorMessage('Please provide a title for your report.');
-      return;
-    }
-    if (!description.trim()) {
-      setErrorMessage('Please provide a detailed description.');
+    const cleanDesc = description.trim();
+    if (!cleanDesc) {
+      setErrorMessage('Please describe your feedback or issue before submitting.');
       return;
     }
 
@@ -141,15 +139,13 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
       setErrorMessage('');
 
       const formData = new FormData();
-      formData.append('title', title.trim());
-      formData.append('category', category);
-      formData.append('severity', severity);
-      formData.append('description', description.trim());
-      formData.append('expectedBehavior', expectedBehavior.trim());
-      formData.append('actualBehavior', actualBehavior.trim());
-      formData.append('stepsToReproduce', stepsToReproduce.trim());
+      formData.append('description', cleanDesc);
+      formData.append('category', selectedCategory.id);
       formData.append('route', window.location.pathname);
-      formData.append('deviceDiagnostics', JSON.stringify(getDiagnostics()));
+      formData.append('deviceDiagnostics', JSON.stringify({
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        appVersion: '2.2.0'
+      }));
 
       if (screenshot) {
         formData.append('screenshot', screenshot);
@@ -158,15 +154,11 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
       const res = await submitFeedback(formData);
       setSubmitSuccess({
         referenceId: res.referenceId,
-        message: res.message || 'Feedback submitted successfully!'
+        message: res.message || 'Thank you! Your feedback has been submitted successfully.'
       });
 
-      // Clear form
-      setTitle('');
+      // Clear draft on successful submission
       setDescription('');
-      setExpectedBehavior('');
-      setActualBehavior('');
-      setStepsToReproduce('');
       clearScreenshot();
     } catch (err) {
       setErrorMessage(err.message || 'Failed to submit feedback. Please try again.');
@@ -176,570 +168,543 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
   };
 
   const copyRefToClipboard = (refId) => {
+    if (!refId) return;
     navigator.clipboard.writeText(refId);
     setCopiedRef(true);
     setTimeout(() => setCopiedRef(false), 2000);
   };
 
-  const isBugCategory = ['Bug / Error', 'Authentication / Login Issue', 'Performance / Slowness', 'Mobile / Responsiveness'].includes(category);
-
   return createPortal(
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.65)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '1rem'
-    }}>
-      <div style={{
-        backgroundColor: 'var(--bg-primary, #ffffff)',
-        color: 'var(--text-primary, #111827)',
-        borderRadius: '20px',
-        width: '100%',
-        maxWidth: '640px',
-        maxHeight: '90vh',
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        backdropFilter: 'blur(8px)',
         display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        border: '1px solid var(--border-color, #e5e7eb)',
-        overflow: 'hidden'
-      }}>
-        {/* Header */}
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        padding: '1rem'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div 
+        style={{
+          backgroundColor: 'var(--bg-primary, #ffffff)',
+          color: 'var(--text-primary, #111827)',
+          borderRadius: '20px',
+          width: '100%',
+          maxWidth: '520px',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+          border: '1px solid var(--border-color, #e5e7eb)',
+          position: 'relative'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header with Title, Category Selector, and Close */}
         <div style={{
-          padding: '1.25rem 1.5rem',
+          padding: '1.15rem 1.35rem',
           borderBottom: '1px solid var(--border-color, #e5e7eb)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          position: 'relative'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Title Area */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
               backgroundColor: 'rgba(0, 113, 227, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--primary-color, #0071E3)'
+              color: 'var(--primary-color, #0071E3)',
+              flexShrink: 0
             }}>
-              <MessageSquare size={22} />
+              <MessageSquare size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>Feedback & Bug Reporting</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #6b7280)', margin: '2px 0 0' }}>
-                Help us improve the SPIT placement platform experience
-              </p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, lineHeight: 1.25 }}>
+                Feedback & Bug Reporting
+              </h3>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-secondary, #6b7280)',
-              padding: '6px',
-              borderRadius: '8px'
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
 
-        {/* Tab selection */}
-        <div style={{
-          display: 'flex',
-          borderBottom: '1px solid var(--border-color, #e5e7eb)',
-          backgroundColor: 'var(--bg-secondary, #f9fafb)',
-          padding: '0 1.5rem'
-        }}>
-          <button
-            onClick={() => setActiveTab('new')}
-            style={{
-              padding: '0.75rem 1rem',
-              fontSize: '0.85rem',
-              fontWeight: activeTab === 'new' ? 600 : 500,
-              color: activeTab === 'new' ? 'var(--primary-color, #0071E3)' : 'var(--text-secondary, #6b7280)',
-              borderBottom: activeTab === 'new' ? '2px solid var(--primary-color, #0071E3)' : '2px solid transparent',
-              background: 'none',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Submit Feedback
-          </button>
-          <button
-            onClick={() => { setActiveTab('history'); loadHistory(); }}
-            style={{
-              padding: '0.75rem 1rem',
-              fontSize: '0.85rem',
-              fontWeight: activeTab === 'history' ? 600 : 500,
-              color: activeTab === 'history' ? 'var(--primary-color, #0071E3)' : 'var(--text-secondary, #6b7280)',
-              borderBottom: activeTab === 'history' ? '2px solid var(--primary-color, #0071E3)' : '2px solid transparent',
-              background: 'none',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            My Reports ({history.length})
-          </button>
-        </div>
+          {/* Top-Right Controls: Category Selector Pill + Close Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+            {/* Category Selector Pill */}
+            {!submitSuccess && (
+              <div style={{ position: 'relative' }}>
+                <button
+                  ref={selectorButtonRef}
+                  type="button"
+                  onClick={() => setPopoverOpen(prev => !prev)}
+                  aria-expanded={popoverOpen}
+                  aria-haspopup="menu"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '5px 11px',
+                    borderRadius: '20px',
+                    border: '1px solid var(--border-color, #e5e7eb)',
+                    backgroundColor: popoverOpen ? 'var(--bg-primary, #ffffff)' : 'var(--bg-secondary, #f3f4f6)',
+                    color: 'var(--text-primary, #111827)',
+                    fontSize: '0.78rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease',
+                    boxShadow: popoverOpen ? '0 0 0 2px rgba(0, 113, 227, 0.2)' : 'none'
+                  }}
+                  title="Select Feedback Category"
+                >
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: selectedCategory.color,
+                    flexShrink: 0
+                  }} />
+                  <span>{selectedCategory.short}</span>
+                  <ChevronDown 
+                    size={12} 
+                    style={{ 
+                      color: 'var(--text-secondary, #6b7280)',
+                      transform: popoverOpen ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.18s ease'
+                    }} 
+                  />
+                </button>
 
-        {/* Body content */}
-        <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
-          {activeTab === 'new' ? (
-            submitSuccess ? (
-              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                  color: '#16a34a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 1rem'
-                }}>
-                  <CheckCircle size={32} />
-                </div>
-                <h4 style={{ fontSize: '1.2rem', fontWeight: 600, margin: '0 0 0.5rem' }}>Thank You for Your Feedback!</h4>
-                <p style={{ color: 'var(--text-secondary, #6b7280)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                  {submitSuccess.message}
-                </p>
-
-                <div style={{
-                  backgroundColor: 'var(--bg-secondary, #f9fafb)',
-                  border: '1px solid var(--border-color, #e5e7eb)',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  maxWidth: '360px',
-                  margin: '0 auto 1.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #6b7280)' }}>Reference Tracking ID:</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, letterSpacing: '0.5px' }}>{submitSuccess.referenceId}</div>
-                  </div>
-                  <button
-                    onClick={() => copyRefToClipboard(submitSuccess.referenceId)}
+                {/* Popover Dropdown */}
+                {popoverOpen && (
+                  <div
+                    ref={popoverRef}
+                    role="menu"
+                    aria-label="Feedback categories"
                     style={{
-                      padding: '0.4rem 0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color, #d1d5db)',
-                      background: 'var(--bg-primary, #ffffff)',
-                      cursor: 'pointer',
+                      position: 'absolute',
+                      right: 0,
+                      top: 'calc(100% + 6px)',
+                      zIndex: 1000,
+                      backgroundColor: 'var(--bg-primary, #ffffff)',
+                      border: '1px solid var(--border-color, #e5e7eb)',
+                      borderRadius: '14px',
+                      boxShadow: '0 12px 30px -4px rgba(0, 0, 0, 0.2), 0 4px 8px -2px rgba(0, 0, 0, 0.08)',
+                      minWidth: '220px',
+                      padding: '5px',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      fontSize: '0.8rem'
+                      flexDirection: 'column',
+                      gap: '2px',
+                      animation: 'fadeIn 0.12s ease-out'
                     }}
                   >
-                    {copiedRef ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                    {copiedRef ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => { setSubmitSuccess(null); setActiveTab('new'); }}
-                    className="btn btn-secondary"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '10px' }}
-                  >
-                    Submit Another Report
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="btn btn-primary"
-                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', borderRadius: '10px' }}
-                  >
-                    Close
-                  </button>
-                </div>
+                    <div style={{
+                      padding: '4px 8px 6px',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: 'var(--text-secondary, #6b7280)'
+                    }}>
+                      Select Category
+                    </div>
+                    {CATEGORIES.map(cat => {
+                      const isSelected = cat.id === selectedCategory.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setSelectedCategory(cat);
+                            setPopoverOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '100%',
+                            padding: '7px 10px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: isSelected ? 'rgba(0, 113, 227, 0.08)' : 'transparent',
+                            color: isSelected ? 'var(--primary-color, #0071E3)' : 'var(--text-primary, #111827)',
+                            fontSize: '0.8rem',
+                            fontWeight: isSelected ? 600 : 400,
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'background-color 0.12s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-secondary, #f3f4f6)';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: cat.color,
+                              flexShrink: 0
+                            }} />
+                            <span>{cat.label}</span>
+                          </div>
+                          {isSelected && <Check size={14} style={{ color: 'var(--primary-color, #0071E3)' }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {errorMessage && (
-                  <div style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '10px',
-                    fontSize: '0.85rem',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
+            )}
+
+            {/* Modal Close Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-secondary, #6b7280)',
+                padding: '6px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.15s ease'
+              }}
+              title="Close modal (Esc)"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Body */}
+        <div style={{ padding: '1.25rem 1.35rem' }}>
+          {submitSuccess ? (
+            /* Success State */
+            <div style={{ textAlign: 'center', padding: '1.5rem 0.5rem' }}>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                color: '#16a34a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1rem'
+              }}>
+                <CheckCircle size={30} />
+              </div>
+              <h4 style={{ fontSize: '1.15rem', fontWeight: 600, margin: '0 0 0.4rem' }}>
+                Thank You!
+              </h4>
+              <p style={{ color: 'var(--text-secondary, #6b7280)', fontSize: '0.88rem', margin: '0 0 1.25rem' }}>
+                {submitSuccess.message}
+              </p>
+
+              {/* Reference ID Pill */}
+              <div style={{
+                backgroundColor: 'var(--bg-secondary, #f9fafb)',
+                border: '1px solid var(--border-color, #e5e7eb)',
+                borderRadius: '12px',
+                padding: '0.85rem 1rem',
+                maxWidth: '320px',
+                margin: '0 auto 1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    Reference ID:
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.5px' }}>
+                    {submitSuccess.referenceId}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyRefToClipboard(submitSuccess.referenceId)}
+                  style={{
+                    padding: '0.4rem 0.65rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color, #d1d5db)',
+                    background: 'var(--bg-primary, #ffffff)',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <AlertCircle size={16} />
-                    <span>{errorMessage}</span>
-                  </div>
-                )}
+                    gap: '0.35rem',
+                    fontSize: '0.75rem',
+                    color: copiedRef ? '#16a34a' : 'inherit'
+                  }}
+                  title="Copy reference ID"
+                >
+                  {copiedRef ? <Check size={13} /> : <Copy size={13} />}
+                  <span>{copiedRef ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
 
-                {/* Category & Severity Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                      Category *
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.55rem 0.75rem',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border-color, #d1d5db)',
-                        backgroundColor: 'var(--bg-primary, #ffffff)',
-                        color: 'inherit',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                      Severity Impact *
-                    </label>
-                    <select
-                      value={severity}
-                      onChange={(e) => setSeverity(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.55rem 0.75rem',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border-color, #d1d5db)',
-                        backgroundColor: 'var(--bg-primary, #ffffff)',
-                        color: 'inherit',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      {SEVERITIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                    Title / Summary *
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Brief description of the feedback or issue..."
-                    maxLength={150}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem 0.75rem',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color, #d1d5db)',
-                      backgroundColor: 'var(--bg-primary, #ffffff)',
-                      color: 'inherit',
-                      fontSize: '0.85rem'
-                    }}
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                    Details & Observations *
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Please explain what you experienced, what was expected, or what feature you'd like to see..."
-                    rows={4}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem 0.75rem',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color, #d1d5db)',
-                      backgroundColor: 'var(--bg-primary, #ffffff)',
-                      color: 'inherit',
-                      fontSize: '0.85rem',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-
-                {/* Bug Specific Context Fields */}
-                {isBugCategory && (
-                  <div style={{
-                    backgroundColor: 'var(--bg-secondary, #f9fafb)',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    border: '1px solid var(--border-color, #e5e7eb)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.75rem'
-                  }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary, #6b7280)' }}>
-                      BUG REPRODUCTION CONTEXT (OPTIONAL)
-                    </span>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem' }}>
-                        Steps to Reproduce
-                      </label>
-                      <input
-                        type="text"
-                        value={stepsToReproduce}
-                        onChange={(e) => setStepsToReproduce(e.target.value)}
-                        placeholder="e.g., 1. Go to Resources 2. Click PDF preview..."
-                        style={{
-                          width: '100%',
-                          padding: '0.45rem 0.65rem',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-color, #d1d5db)',
-                          fontSize: '0.8rem',
-                          backgroundColor: 'var(--bg-primary, #ffffff)'
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem' }}>
-                          Expected Behavior
-                        </label>
-                        <input
-                          type="text"
-                          value={expectedBehavior}
-                          onChange={(e) => setExpectedBehavior(e.target.value)}
-                          placeholder="What should have happened?"
-                          style={{
-                            width: '100%',
-                            padding: '0.45rem 0.65rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border-color, #d1d5db)',
-                            fontSize: '0.8rem',
-                            backgroundColor: 'var(--bg-primary, #ffffff)'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem' }}>
-                          Actual Behavior
-                        </label>
-                        <input
-                          type="text"
-                          value={actualBehavior}
-                          onChange={(e) => setActualBehavior(e.target.value)}
-                          placeholder="What actually occurred?"
-                          style={{
-                            width: '100%',
-                            padding: '0.45rem 0.65rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border-color, #d1d5db)',
-                            fontSize: '0.8rem',
-                            backgroundColor: 'var(--bg-primary, #ffffff)'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Screenshot Upload */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                    Screenshot / Attachment (Max 5MB)
-                  </label>
-                  {screenshotPreview ? (
-                    <div style={{
-                      position: 'relative',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      border: '1px solid var(--border-color, #e5e7eb)',
-                      maxHeight: '180px',
-                      backgroundColor: '#000000'
-                    }}>
-                      <img
-                        src={screenshotPreview}
-                        alt="Screenshot Preview"
-                        style={{ width: '100%', maxHeight: '180px', objectFit: 'contain' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={clearScreenshot}
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '50%',
-                          padding: '6px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                      style={{
-                        border: '2px dashed var(--border-color, #d1d5db)',
-                        borderRadius: '12px',
-                        padding: '1.25rem',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        backgroundColor: 'var(--bg-secondary, #f9fafb)',
-                        transition: 'border-color 0.2s'
-                      }}
-                    >
-                      <UploadCloud size={24} style={{ margin: '0 auto 0.5rem', color: 'var(--text-secondary, #6b7280)' }} />
-                      <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                        Click to attach screenshot (PNG, JPEG, WebP)
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #6b7280)', marginTop: '2px' }}>
-                        Helps developers identify and reproduce the issue rapidly
-                      </div>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/png,image/jpeg,image/webp"
-                    style={{ display: 'none' }}
-                  />
-                </div>
-
-                {/* Diagnostics Preview Pill */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-primary"
+                style={{
+                  padding: '0.55rem 2rem',
+                  borderRadius: '10px',
+                  fontSize: '0.88rem',
+                  fontWeight: 500
+                }}
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            /* Main Form */
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Error Banner */}
+              {errorMessage && (
                 <div style={{
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--bg-secondary, #f9fafb)',
-                  fontSize: '0.75rem',
-                  color: 'var(--text-secondary, #6b7280)',
+                  padding: '0.7rem 0.9rem',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#dc2626',
+                  fontSize: '0.82rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}>
-                  <Laptop size={14} />
-                  <span>
-                    Privacy note: Browser info and screen size ({window.innerWidth}x{window.innerHeight}) will be sent to help debug layout issues.
-                  </span>
-                </div>
-
-                {/* Submit button */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn btn-secondary"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '10px' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="btn btn-primary"
-                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', borderRadius: '10px' }}
-                  >
-                    {submitting ? 'Submitting Report...' : 'Submit Report'}
-                  </button>
-                </div>
-              </form>
-            )
-          ) : (
-            <div>
-              {loadingHistory ? (
-                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary, #6b7280)' }}>
-                  <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem' }} />
-                  <p style={{ fontSize: '0.85rem' }}>Loading your feedback history...</p>
-                </div>
-              ) : history.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary, #6b7280)' }}>
-                  <MessageSquare size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
-                  <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>No feedback reports submitted yet</p>
-                  <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Reports you submit will appear here with live admin resolution updates.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {history.map((item) => (
-                    <div
-                      key={item._id}
-                      style={{
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-color, #e5e7eb)',
-                        backgroundColor: 'var(--bg-secondary, #f9fafb)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.title}</span>
-                            <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              backgroundColor: item.status === 'Resolved' ? 'rgba(34, 197, 94, 0.15)' :
-                                               item.status === 'In Progress' ? 'rgba(59, 130, 246, 0.15)' :
-                                               'rgba(245, 158, 11, 0.15)',
-                              color: item.status === 'Resolved' ? '#16a34a' :
-                                     item.status === 'In Progress' ? '#2563eb' :
-                                     '#d97706'
-                            }}>
-                              {item.status}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #6b7280)', marginTop: '2px' }}>
-                            Ref: {item.referenceId} • {item.category} • {new Date(item.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-primary, #111827)', margin: '0.5rem 0' }}>
-                        {item.description}
-                      </p>
-
-                      {/* Admin Response Note if resolved or answered */}
-                      {item.adminResponse && (
-                        <div style={{
-                          marginTop: '0.75rem',
-                          padding: '0.75rem',
-                          borderRadius: '8px',
-                          backgroundColor: 'rgba(0, 113, 227, 0.05)',
-                          border: '1px solid rgba(0, 113, 227, 0.15)'
-                        }}>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-color, #0071E3)', marginBottom: '2px' }}>
-                            ADMIN RESPONSE:
-                          </div>
-                          <div style={{ fontSize: '0.8rem' }}>
-                            {item.adminResponse}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                  <span>{errorMessage}</span>
                 </div>
               )}
-            </div>
+
+              {/* 1. Main Multiline Text Area */}
+              <div>
+                <textarea
+                  ref={textareaRef}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe your feedback, bug, suggestion, or experience..."
+                  rows={5}
+                  required
+                  style={{
+                    width: '100%',
+                    minHeight: '130px',
+                    maxHeight: '260px',
+                    padding: '0.85rem',
+                    fontSize: '0.88rem',
+                    lineHeight: '1.45',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-color, #d1d5db)',
+                    backgroundColor: 'var(--bg-primary, #ffffff)',
+                    color: 'var(--text-primary, #111827)',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary-color, #0071E3)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(0, 113, 227, 0.15)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border-color, #d1d5db)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* 2. Upload Image (Optional) */}
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
+
+                {!screenshot ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      padding: '0.5rem 0.85rem',
+                      borderRadius: '10px',
+                      border: '1px dashed var(--border-color, #d1d5db)',
+                      backgroundColor: 'var(--bg-secondary, #f9fafb)',
+                      color: 'var(--text-secondary, #4b5563)',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary-color, #0071E3)';
+                      e.currentTarget.style.color = 'var(--primary-color, #0071E3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color, #d1d5db)';
+                      e.currentTarget.style.color = 'var(--text-secondary, #4b5563)';
+                    }}
+                  >
+                    <ImageIcon size={15} />
+                    <span>+ Upload Image (Optional)</span>
+                  </button>
+                ) : (
+                  /* Image Preview Thumbnail with Remove button */
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color, #e5e7eb)',
+                    backgroundColor: 'var(--bg-secondary, #f9fafb)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
+                      {screenshotPreview ? (
+                        <img 
+                          src={screenshotPreview} 
+                          alt="Attachment preview" 
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '6px',
+                            objectFit: 'cover',
+                            border: '1px solid var(--border-color, #d1d5db)'
+                          }} 
+                        />
+                      ) : (
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '6px',
+                          backgroundColor: 'rgba(0, 113, 227, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--primary-color, #0071E3)'
+                        }}>
+                          <ImageIcon size={18} />
+                        </div>
+                      )}
+                      <div style={{ overflow: 'hidden', textAlign: 'left' }}>
+                        <div style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '260px'
+                        }}>
+                          {screenshot.name}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6b7280)' }}>
+                          {(screenshot.size / 1024).toFixed(1)} KB
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={clearScreenshot}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        padding: '6px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Remove image"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Form Action Buttons: Cancel and Submit */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '0.65rem',
+                marginTop: '0.35rem',
+                paddingTop: '0.85rem',
+                borderTop: '1px solid var(--border-color, #f3f4f6)'
+              }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={submitting}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color, #d1d5db)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary, #4b5563)',
+                    fontSize: '0.84rem',
+                    fontWeight: 500,
+                    cursor: submitting ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !description.trim()}
+                  className="btn btn-primary"
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: '10px',
+                    fontSize: '0.84rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    opacity: (!description.trim() || submitting) ? 0.6 : 1,
+                    cursor: (!description.trim() || submitting) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <span>Submit Feedback</span>
+                  )}
+                </button>
+              </div>
+            </form>
           )}
         </div>
       </div>
