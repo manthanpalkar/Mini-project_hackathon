@@ -133,6 +133,12 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
         for (const [em, user] of Object.entries(mockUsers)) {
           if (query.email instanceof RegExp && query.email.test(em)) return user;
           if (typeof query.email === 'string' && query.email.toLowerCase() === em.toLowerCase()) return user;
+          if (query.email.$in) {
+            for (const item of query.email.$in) {
+              if (item instanceof RegExp && item.test(em)) return user;
+              if (typeof item === 'string' && item.toLowerCase() === em.toLowerCase()) return user;
+            }
+          }
         }
       }
       return null;
@@ -142,7 +148,11 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     PasswordResetChallenge.findOne = (query) => {
       let filtered = [...mockChallenges];
       if (query && query.email) {
-        filtered = filtered.filter(c => c.email.toLowerCase() === query.email.toLowerCase());
+        if (typeof query.email === 'string') {
+          filtered = filtered.filter(c => c.email.toLowerCase() === query.email.toLowerCase());
+        } else if (query.email.$in) {
+          filtered = filtered.filter(c => query.email.$in.some(e => e.toLowerCase() === c.email.toLowerCase()));
+        }
       }
       if (query && query.status) {
         if (typeof query.status === 'string') {

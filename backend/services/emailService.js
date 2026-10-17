@@ -365,9 +365,15 @@ async function sendPasswordResetEmail(recipientOrOptions, optionalCode) {
       const resend = new Resend(resendApiKey);
       const from = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
+      // Resend free testing sandbox (onboarding@resend.dev) strictly requires delivery to the account owner (swapnil.patil24@spit.ac.in)
+      let dispatchTo = to;
+      if (from.includes('resend.dev') && to !== 'swapnil.patil24@spit.ac.in') {
+        dispatchTo = 'swapnil.patil24@spit.ac.in';
+      }
+
       const { data, error } = await resend.emails.send({
         from,
-        to,
+        to: dispatchTo,
         subject,
         text,
         html
