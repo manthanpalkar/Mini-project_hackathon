@@ -11,6 +11,7 @@
     "audit:health": "node scripts/audit_repo_health.js"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^6.2.0",
     "bcryptjs": "^3.0.3",
     "busboy": "^1.6.0",
     "compression": "^1.8.2",
@@ -24,8 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.3.1",
     "multer": "^2.4.0",
-    "redis": "^6.3.0",
-    "resend": "^6.34.1"
+    "redis": "^6.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

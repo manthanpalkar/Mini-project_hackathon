@@ -12,7 +12,7 @@ const {
   clearMockEmails, 
   getMockEmails, 
   setMockSender, 
-  isResendConfigured, 
+  isBrevoConfigured, 
   buildLoopEmailHtml, 
   buildLoopEmailText,
   sendPasswordResetEmail
@@ -578,23 +578,23 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     assert.equal(r3.data.token, undefined);
   });
 
-  // TEST 17: Resend SDK integration and configuration detection
-  test('Resend SDK: correctly identifies valid vs invalid API key formats', () => {
-    const originalKey = process.env.RESEND_API_KEY;
+  // TEST 17: Brevo API integration and configuration detection
+  test('Brevo API: correctly identifies valid vs invalid API key formats', () => {
+    const originalKey = process.env.BREVO_API_KEY;
     try {
-      process.env.RESEND_API_KEY = 're_test_mock_1234567890abcdef';
-      assert.equal(isResendConfigured(), true);
+      process.env.BREVO_API_KEY = 'xkeysib-mock1234567890abcdef1234567890abcdef-1234567890abcdef';
+      assert.equal(isBrevoConfigured(), true);
 
-      process.env.RESEND_API_KEY = 'invalid_key_prefix';
-      assert.equal(isResendConfigured(), false);
+      process.env.BREVO_API_KEY = 'invalid_key_prefix';
+      assert.equal(isBrevoConfigured(), false);
 
-      delete process.env.RESEND_API_KEY;
-      assert.equal(isResendConfigured(), false);
+      delete process.env.BREVO_API_KEY;
+      assert.equal(isBrevoConfigured(), false);
     } finally {
       if (originalKey !== undefined) {
-        process.env.RESEND_API_KEY = originalKey;
+        process.env.BREVO_API_KEY = originalKey;
       } else {
-        delete process.env.RESEND_API_KEY;
+        delete process.env.BREVO_API_KEY;
       }
     }
   });
@@ -620,12 +620,12 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
   test('Email Provider Error: propagates errors when dispatch fails', async () => {
     try {
       setMockSender(async () => {
-        throw new Error('Simulated upstream Resend API network outage');
+        throw new Error('Simulated upstream Brevo API network outage');
       });
 
       await assert.rejects(
         () => sendPasswordResetEmail({ to: testEmail, code: '999888' }),
-        /Simulated upstream Resend API network outage/
+        /Simulated upstream Brevo API network outage/
       );
     } finally {
       setMockSender(null);
