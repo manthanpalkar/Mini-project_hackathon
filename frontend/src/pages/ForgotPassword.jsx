@@ -36,6 +36,7 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isGoogleOnly, setIsGoogleOnly] = useState(false);
 
   // 60-second cooldown timer for code resend
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -65,6 +66,7 @@ export default function ForgotPassword() {
     }
 
     setLoading(true);
+    setIsGoogleOnly(false);
     try {
       const data = await requestPasswordReset(trimmedEmail);
       setSuccessMsg(data.message || 'If an account exists, a 6-digit recovery code has been sent.');
@@ -78,7 +80,13 @@ export default function ForgotPassword() {
         }
       }, 100);
     } catch (err) {
-      setError(err.message || 'Failed to request password reset. Please try again.');
+      if (err.code === 'GOOGLE_ACCOUNT_ONLY' || err.isGoogleOnly || err.message?.includes('Continue with Google')) {
+        setError(err.message || 'Password reset isn’t available for this account. If you signed up with Google, return to Login and choose Continue with Google.');
+        setIsGoogleOnly(true);
+      } else {
+        setError(err.message || 'Failed to request password reset. Please try again.');
+        setIsGoogleOnly(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -358,7 +366,47 @@ export default function ForgotPassword() {
               </p>
             </div>
 
-            {error && (
+            {error && isGoogleOnly && (
+              <div style={{
+                backgroundColor: 'rgba(234, 67, 53, 0.08)',
+                border: '1px solid rgba(234, 67, 53, 0.25)',
+                borderRadius: '12px',
+                padding: '1rem',
+                marginBottom: '1.25rem',
+                textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <AlertCircle size={18} style={{ color: '#ea4335', flexShrink: 0, marginTop: '2px' }} />
+                  <span style={{ fontSize: '0.86rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                    {error}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/login', { state: { infoMessage: error } })}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    backgroundColor: '#ea4335',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s ease'
+                  }}
+                >
+                  Return to Login & Continue with Google
+                </button>
+              </div>
+            )}
+
+            {error && !isGoogleOnly && (
               <div style={{
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.25)',
@@ -442,6 +490,16 @@ export default function ForgotPassword() {
                 <span>{loading ? 'Sending code...' : 'Send Recovery Code'}</span>
               </button>
             </form>
+
+            <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Signed up with Google? Return to{' '}
+                <Link to="/login" style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'underline' }}>
+                  Login
+                </Link>{' '}
+                and choose Continue with Google.
+              </p>
+            </div>
           </div>
         )}
 

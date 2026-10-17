@@ -278,11 +278,13 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
   });
 
   // TEST 4: Passwordless / Google OAuth only account
-  test('Passwordless account: returns generic response, does not send reset email', async () => {
+  test('Google-only account: guided to Google sign-in and does not send reset email', async () => {
     const { status, data } = await postJson('/api/auth/forgot-password', { email: googleOnlyEmail });
 
-    assert.equal(status, 200);
-    assert.match(data.message, /If an account with that email exists/i);
+    assert.equal(status, 400);
+    assert.equal(data.code, 'GOOGLE_ACCOUNT_ONLY');
+    assert.match(data.error, /Password reset isn’t available for this account/i);
+    assert.match(data.error, /Continue with Google/i);
 
     const email = getLastMockEmail();
     assert.equal(email, null, 'No email should be dispatched for passwordless Google OAuth account');

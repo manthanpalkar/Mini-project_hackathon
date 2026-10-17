@@ -1586,6 +1586,14 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
     // Only accounts with local passwords are eligible for password recovery
     const hasLocalPassword = Boolean(user && user.password && typeof user.password === 'string' && user.password.trim());
 
+    // Case B: Account registered through Google only (no local password set)
+    if (user && !hasLocalPassword && (user.googleSub || user.authProvider === 'google')) {
+      return res.status(400).json({
+        error: 'Password reset isn’t available for this account. If you signed up with Google, return to Login and choose Continue with Google.',
+        code: 'GOOGLE_ACCOUNT_ONLY'
+      });
+    }
+
     if (user && hasLocalPassword) {
       // Check 60-second cooldown on existing pending challenges
       const activeChallenge = await PasswordResetChallenge.findOne({
@@ -1626,7 +1634,20 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
       });
 
       // Send email via Brevo email service to registered account email
-      await sendPasswordResetEmail(normalizedEmail, code);
+      try {
+        await sendPasswordResetEmail(normalizedEmail, code);
+      } catch (sendErr) {
+        // If Brevo delivery fails, invalidate challenge and report honest failure
+        await PasswordResetChallenge.updateMany(
+          { email: normalizedEmail, status: 'pending' },
+          { $set: { status: 'invalidated' } }
+        );
+        console.error('[FORGOT_PASSWORD] Brevo dispatch error:', sendErr.message);
+        return res.status(502).json({
+          error: 'Failed to deliver verification code email. Please check your network and try again later.',
+          code: 'EMAIL_DELIVERY_FAILED'
+        });
+      }
     }
 
     // Always return a generic success message to prevent user enumeration

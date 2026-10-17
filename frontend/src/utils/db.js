@@ -616,7 +616,10 @@ export const requestPasswordReset = async (email) => {
     if (res.status === 404) {
       throw new Error('Password recovery service is deploying or updating. Please try again in a few moments.');
     }
-    throw new Error(data.error || 'Failed to request password reset');
+    const err = new Error(data.error || 'Failed to request password reset');
+    err.code = data.code;
+    err.isGoogleOnly = data.code === 'GOOGLE_ACCOUNT_ONLY';
+    throw err;
   }
   return data;
 };

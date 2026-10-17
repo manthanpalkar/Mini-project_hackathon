@@ -220,6 +220,14 @@ export default function Login() {
   }, [location.state, searchParams]);
 
   useEffect(() => {
+    if (location.state?.infoMessage) {
+      setError(location.state.infoMessage);
+    } else if (location.state?.error) {
+      setError(location.state.error);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     document.title = 'LOOP | Login';
     // Ensure email and password start completely blank without browser autofill
     setEmail('');
