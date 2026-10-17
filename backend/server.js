@@ -85,6 +85,7 @@ const fileDownloadLimiter = rateLimit({
   max: RATE_LIMIT_CONFIG.DOWNLOAD_MAX,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => Boolean(req.headers.range), // Allow video/audio streaming range chunks without rate limit exhaustion
   message: { error: 'Too many file download requests from this IP, please try again after 15 minutes.' }
 });
 
@@ -545,7 +546,7 @@ function sendPaginatedResponse(res, data, total, page, limit) {
 
 async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
 
   if (!token) {
     return res.status(401).json({ error: 'Access token is required. Please login.', code: 'TOKEN_MISSING' });
@@ -2517,14 +2518,18 @@ app.get('/api/stories', authenticateToken, requireOnboarded, async (req, res) =>
   }
 });
 
-app.get('/api/stories/:id', authenticateToken, requireOnboarded, async (req, res) => {
+app.get(['/api/stories/:id', '/api/pending-stories/:id'], authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const sanitizedId = sanitizeString(id);
     const cacheKey = cacheService.makeKey('stories:detail', sanitizedId);
 
     const story = await cacheService.getOrSet(cacheKey, async () => {
-      return await Story.findOne({ id: sanitizedId }).lean();
+      let doc = await Story.findOne({ id: sanitizedId }).lean();
+      if (!doc) {
+        doc = await PendingStory.findOne({ id: sanitizedId }).lean();
+      }
+      return doc;
     }, cacheService.DEFAULT_TTLS.storyDetail);
 
     if (!story) {
@@ -3245,10 +3250,13 @@ app.get('/api/resources', authenticateToken, requireOnboarded, async (req, res) 
 });
 
 // Single Resource Metadata
-app.get('/api/resources/:id', authenticateToken, requireOnboarded, async (req, res) => {
+app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
-    const resource = await Resource.findOne({ id: sanitizeString(id) }).lean();
+    let resource = await Resource.findOne({ id: sanitizeString(id) }).lean();
+    if (!resource) {
+      resource = await PendingResource.findOne({ id: sanitizeString(id) }).lean();
+    }
     if (!resource) {
       return res.status(404).json({ error: 'Resource not found.' });
     }

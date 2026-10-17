@@ -6,11 +6,14 @@ import PreviewToolbar from '../components/preview/PreviewToolbar';
 import DocumentPreview from '../components/preview/DocumentPreview';
 import ImagePreview from '../components/preview/ImagePreview';
 import VideoPreview from '../components/preview/VideoPreview';
+import AudioPreview from '../components/preview/AudioPreview';
 import UnsupportedFilePreview from '../components/preview/UnsupportedFilePreview';
 import { 
   getResourceById, 
   getResources, 
   getStoryById, 
+  getPendingStories,
+  getPendingResources,
   getResourceFileUrl, 
   downloadResourceFile, 
   formatBytes 
@@ -24,8 +27,21 @@ export default function FilePreviewPage() {
 
   // Route query params
   const folderId = searchParams.get('folderId');
-  const storyId = searchParams.get('storyId');
+  const storyIdParam = searchParams.get('storyId');
   const isPending = searchParams.get('pending') === 'true';
+
+  // Smart derivation of storyId even if query param was omitted (e.g. direct link or refresh)
+  const derivedStoryId = useMemo(() => {
+    if (storyIdParam) return storyIdParam;
+    if (id?.startsWith('resume-')) return id.replace('resume-', '');
+    if (id?.startsWith('mat-')) {
+      const parts = id.split('-');
+      if (parts.length >= 3) {
+        return parts.slice(1, -1).join('-');
+      }
+    }
+    return null;
+  }, [id, storyIdParam]);
 
   // Component state
   const [file, setFile] = useState(location.state?.file || null);
@@ -39,6 +55,8 @@ export default function FilePreviewPage() {
 
   // Content state
   const [blobUrl, setBlobUrl] = useState(null);
+  const [pdfData, setPdfData] = useState(null);
+  const [streamUrl, setStreamUrl] = useState(null);
   const [textContent, setTextContent] = useState('');
 
   // PDF & Viewport controls
@@ -46,12 +64,12 @@ export default function FilePreviewPage() {
   const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(0);
 
-  // 1. Resolve file and sibling list (handles initial state, direct link, refresh)
+  // 1. Resolve file and sibling list (handles initial state, direct link, refresh, and pending items)
   useEffect(() => {
     let active = true;
 
     async function loadData() {
-      // If file was passed in state and matches id, just use it
+      // If file was passed in state and matches id, use it immediately
       if (location.state?.file && String(location.state.file.id) === String(id)) {
         setFile(location.state.file);
         if (location.state.files?.length) setFiles(location.state.files);
@@ -65,18 +83,31 @@ export default function FilePreviewPage() {
       setError(null);
 
       try {
-        if (storyId) {
+        if (derivedStoryId) {
           // A. Story attachments context
-          const story = await getStoryById(storyId);
+          let story = null;
+          try {
+            story = await getStoryById(derivedStoryId);
+          } catch (e) {
+            // Check pending stories if not found or if isPending
+            const pendingList = await getPendingStories();
+            story = pendingList.find(s => String(s.id) === String(derivedStoryId));
+          }
+
+          if (!story && isPending) {
+            const pendingList = await getPendingStories();
+            story = pendingList.find(s => String(s.id) === String(derivedStoryId));
+          }
+
           if (!active) return;
-          if (!story) throw new Error('Story not found.');
+          if (!story) throw new Error('Story or interview experience not found.');
 
           setStoryTitle(story.name || 'Story');
           const storyFilesList = [];
 
           // Resume doc
-          const resumeName = story.resumeFile?.fileName || story.resume || 'Resume.pdf';
-          const resumeUrl = story.resumeFile?.url || (story.resume && story.resume.startsWith('http') ? story.resume : null);
+          const resumeName = story.resumeFile?.fileName || (typeof story.resume === 'object' ? story.resume.fileName : (story.resume || 'Resume.pdf'));
+          const resumeUrl = story.resumeFile?.url || (typeof story.resume === 'object' ? story.resume.url : (story.resume && story.resume.startsWith('http') ? story.resume : null));
           const resumeDoc = {
             id: `resume-${story.id}`,
             title: `${story.name}'s Resume`,
@@ -113,9 +144,17 @@ export default function FilePreviewPage() {
           try {
             currentRes = await getResourceById(id);
           } catch (e) {
-            // Fallback: search in all resources list
-            const allRes = await getResources();
-            currentRes = allRes.find(r => String(r.id) === String(id));
+            // Check pending resources
+            if (isPending) {
+              try {
+                const pendingList = await getPendingResources();
+                currentRes = pendingList.find(r => String(r.id) === String(id));
+              } catch (pe) {}
+            }
+            if (!currentRes) {
+              const allRes = await getResources();
+              currentRes = allRes.find(r => String(r.id) === String(id));
+            }
           }
 
           if (!active) return;
@@ -152,7 +191,7 @@ export default function FilePreviewPage() {
     return () => {
       active = false;
     };
-  }, [id, storyId, folderId]);
+  }, [id, derivedStoryId, folderId, isPending]);
 
   // File identity and format detection
   const fileName = useMemo(() => {
@@ -170,7 +209,11 @@ export default function FilePreviewPage() {
   const isPdf = ext === 'pdf' || mimeType === 'application/pdf' || fileType === 'PDF';
   const isImage = !isPdf && (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext) || mimeType.startsWith('image/') || fileType === 'Image');
   const isVideo = !isPdf && !isImage && (['mp4', 'webm', 'mov'].includes(ext) || mimeType.startsWith('video/') || fileType === 'Video');
-  const isCodeOrText = !isPdf && !isImage && !isVideo && (['txt', 'csv', 'java', 'py', 'js', 'jsx', 'ts', 'tsx', 'c', 'cpp', 'h', 'css', 'html', 'json', 'xml', 'sql', 'md', 'log'].includes(ext) || mimeType.startsWith('text/'));
+  const isAudio = !isPdf && !isImage && !isVideo && (['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'].includes(ext) || mimeType.startsWith('audio/') || fileType === 'Audio');
+  const isCodeOrText = !isPdf && !isImage && !isVideo && !isAudio && (
+    ['txt', 'csv', 'java', 'py', 'js', 'jsx', 'ts', 'tsx', 'c', 'cpp', 'h', 'css', 'html', 'json', 'xml', 'sql', 'md', 'log'].includes(ext) ||
+    mimeType.startsWith('text/')
+  );
 
   // Compute format badge
   const badge = useMemo(() => {
@@ -180,10 +223,11 @@ export default function FilePreviewPage() {
     if (ext === 'xlsx' || ext === 'xls') return { label: 'SHEET', bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
     if (isImage) return { label: 'IMAGE', bg: 'rgba(168, 85, 247, 0.2)', text: '#a855f7' };
     if (isVideo) return { label: 'VIDEO', bg: 'rgba(236, 72, 153, 0.2)', text: '#ec4899' };
+    if (isAudio) return { label: 'AUDIO', bg: 'rgba(168, 85, 247, 0.2)', text: '#c084fc' };
     if (isCodeOrText) return { label: 'CODE', bg: 'rgba(6, 182, 212, 0.2)', text: '#06b6d4' };
     if (['zip', 'rar', '7z'].includes(ext)) return { label: 'ZIP', bg: 'rgba(234, 179, 8, 0.2)', text: '#eab308' };
     return { label: ext.toUpperCase() || 'FILE', bg: 'rgba(255, 255, 255, 0.1)', text: '#ffffff' };
-  }, [ext, isPdf, isImage, isVideo, isCodeOrText]);
+  }, [ext, isPdf, isImage, isVideo, isAudio, isCodeOrText]);
 
   const formattedSize = useMemo(() => {
     if (file?.fileSize) return file.fileSize;
@@ -199,10 +243,11 @@ export default function FilePreviewPage() {
 
   const totalFiles = files.length;
 
-  // 2. Load file binary into blob URL for PDF, Image, Code, or Video
+  // 2. Load file binary into blob URL or streaming URL with AbortController & instant memory cleanup
   useEffect(() => {
     let active = true;
     let objectUrl = null;
+    const abortController = new AbortController();
 
     if (!file) return;
 
@@ -213,12 +258,14 @@ export default function FilePreviewPage() {
     setTextContent('');
     setError(null);
     setBlobUrl(null);
+    setPdfData(null);
+    setStreamUrl(null);
 
     const fileUrl = getResourceFileUrl(file);
 
     if (!fileUrl || fileUrl === '#') {
-      // If it's an unsupported format like PPTX, we don't need a blobUrl to show the fallback card!
-      if (!isPdf && !isImage && !isVideo && !isCodeOrText) {
+      // If it's an unsupported format like PPTX, render fallback card directly
+      if (!isPdf && !isImage && !isVideo && !isAudio && !isCodeOrText) {
         return;
       }
       setError('File link is not available.');
@@ -228,20 +275,44 @@ export default function FilePreviewPage() {
     // Direct blobUrl or data URI
     if (fileUrl.startsWith('data:') || fileUrl.startsWith('blob:')) {
       setBlobUrl(fileUrl);
+      setStreamUrl(fileUrl);
       return;
     }
 
-    // Fetch authorized binary stream
+    // Prepare auth headers and authenticated streaming URL
     const userSession = localStorage.getItem('loop_current_user');
     const headers = {};
+    let authToken = null;
     if (userSession) {
       try {
         const { token } = JSON.parse(userSession);
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          authToken = token;
+        }
       } catch (e) {}
     }
 
-    fetch(fileUrl, { headers })
+    // Construct authenticated stream URL for native video & audio Range request streaming
+    let authenticatedStreamUrl = fileUrl;
+    if (authToken && (isVideo || isAudio)) {
+      const separator = fileUrl.includes('?') ? '&' : '?';
+      authenticatedStreamUrl = `${fileUrl}${separator}token=${encodeURIComponent(authToken)}`;
+    }
+
+    if (isVideo || isAudio) {
+      // Native audio and video support authenticated Range requests directly without RAM buffering!
+      setStreamUrl(authenticatedStreamUrl);
+      return;
+    }
+
+    // If unsupported format (PPTX, DOCX, XLSX, ZIP, etc.), no need to buffer binary; fallback card displays directly
+    if (!isPdf && !isImage && !isCodeOrText) {
+      return;
+    }
+
+    // For PDF, Image, and Code/Text: fetch stream with abort controller
+    fetch(fileUrl, { headers, signal: abortController.signal })
       .then(async (res) => {
         if (!active) return;
         if (!res.ok) {
@@ -254,33 +325,43 @@ export default function FilePreviewPage() {
           return;
         }
 
-        const blob = await res.blob();
-        if (active) {
-          objectUrl = URL.createObjectURL(blob);
-          setBlobUrl(objectUrl);
+        const arrayBuffer = await res.arrayBuffer();
+        if (!active) return;
+
+        const mime = res.headers.get('content-type') || (isPdf ? 'application/pdf' : 'application/octet-stream');
+        const blob = new Blob([arrayBuffer], { type: mime });
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+
+        if (isPdf) {
+          setPdfData(new Uint8Array(arrayBuffer));
         }
       })
       .catch((err) => {
-        if (!active) return;
+        if (!active || err.name === 'AbortError') return;
         console.warn('[FilePreviewPage] Stream load error:', err.message);
-        // Only set error for previewable formats; unsupported formats render fallback card
-        if (isPdf || isImage || isVideo || isCodeOrText) {
+        if (isPdf || isImage || isVideo || isAudio || isCodeOrText) {
           setError('Could not load preview. You can download the file directly.');
         }
       });
 
     return () => {
       active = false;
+      abortController.abort();
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
+      setPdfData(null);
     };
-  }, [file]);
+  }, [file, isVideo, isAudio, isPdf, isImage, isCodeOrText]);
 
   // Navigate between sibling files in the same folder or story
   const navigateToFile = (targetFile) => {
     if (!targetFile) return;
     const query = new URLSearchParams(searchParams);
+    if (derivedStoryId && !query.get('storyId')) {
+      query.set('storyId', derivedStoryId);
+    }
     navigate(`/preview/${targetFile.id}?${query.toString()}`, {
       state: {
         file: targetFile,
@@ -307,8 +388,8 @@ export default function FilePreviewPage() {
   const handleClose = () => {
     if (window.history.length > 1) {
       navigate(-1);
-    } else if (storyId) {
-      navigate(`/stories/${storyId}`);
+    } else if (derivedStoryId) {
+      navigate(`/stories/${derivedStoryId}`);
     } else {
       navigate('/resources');
     }
@@ -472,6 +553,8 @@ export default function FilePreviewPage() {
             {isPdf && (
               <DocumentPreview
                 blobUrl={blobUrl}
+                pdfData={pdfData}
+                fileName={fileName}
                 isPdf={true}
                 scale={scale}
                 pageNum={pageNum}
@@ -492,20 +575,29 @@ export default function FilePreviewPage() {
             {/* C. Video Player */}
             {isVideo && (
               <VideoPreview
-                src={blobUrl}
+                src={streamUrl || blobUrl}
               />
             )}
 
-            {/* D. Code & Text Viewer */}
-            {isCodeOrText && !isPdf && !isImage && !isVideo && (
+            {/* D. Audio Player */}
+            {isAudio && (
+              <AudioPreview
+                src={streamUrl || blobUrl}
+                fileName={fileName}
+                fileSize={formattedSize}
+              />
+            )}
+
+            {/* E. Code & Text Viewer */}
+            {isCodeOrText && (
               <DocumentPreview
                 isCodeOrText={true}
                 textContent={textContent}
               />
             )}
 
-            {/* E. Unsupported Format Fallback (PPTX, DOCX, XLSX, ZIP, etc.) */}
-            {!isPdf && !isImage && !isVideo && !isCodeOrText && (
+            {/* F. Unsupported Format Fallback (PPTX, DOCX, XLSX, ZIP, etc.) */}
+            {!isPdf && !isImage && !isVideo && !isAudio && !isCodeOrText && (
               <UnsupportedFilePreview
                 fileName={fileName}
                 ext={ext}

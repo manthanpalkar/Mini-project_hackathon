@@ -7,7 +7,8 @@ import {
   Users, MessageSquare, GraduationCap, 
   Rocket, Compass, Star, ArrowRight, UserCheck
 } from 'lucide-react';
-import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64 } from '../utils/db';
+import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl } from '../utils/db';
+
 
 // Intelligent parser for preparation strategy
 function parsePrepContent(prepText) {
@@ -414,15 +415,6 @@ const dataURItoBlob = (dataURI) => {
 
 export default function StoryDetail() {
   const { id } = useParams();
-  const resolveUrl = (url) => {
-    if (typeof url === 'string' && url.startsWith('/uploads/')) {
-      const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
-        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
-        : 'https://loop-qnh9.onrender.com';
-      return baseUrl + url;
-    }
-    return url;
-  };
   const navigate = useNavigate();
   const [story, setStory] = useState(null);
   const [loading, setLoading] = useState(true);

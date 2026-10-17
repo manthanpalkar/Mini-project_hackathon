@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, Bug, CheckCircle, Clock, AlertTriangle, AlertCircle, 
-  Search, Filter, ChevronRight, X, ExternalLink, User, Shield, Send, RefreshCw
+  Search, Filter, ChevronRight, X, ExternalLink, User, Shield, Send, RefreshCw, ZoomIn, Download
 } from 'lucide-react';
 import { getAdminFeedback, updateAdminFeedback, getFeedbackAttachmentUrl } from '../utils/db';
 
@@ -37,7 +37,9 @@ export default function AdminFeedbackTab() {
 
   // Selected item modal / drawer
   const [selectedItem, setSelectedItem] = useState(null);
+  const [expandedScreenshotUrl, setExpandedScreenshotUrl] = useState(null);
   const [updating, setUpdating] = useState(false);
+
   const [newStatus, setNewStatus] = useState('');
   const [statusReason, setStatusReason] = useState('');
   const [adminResponse, setAdminResponse] = useState('');
@@ -337,7 +339,10 @@ export default function AdminFeedbackTab() {
                       <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 600 }}>
                         {item.referenceId}
                       </td>
-                      <td style={{ padding: '0.75rem 1rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <td 
+                        onClick={() => openItemDetails(item)}
+                        style={{ padding: '0.75rem 1rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', fontWeight: 500 }}
+                      >
                         {item.title}
                       </td>
                       <td style={{ padding: '0.75rem 1rem' }}>
@@ -539,17 +544,43 @@ export default function AdminFeedbackTab() {
               {/* Screenshot preview */}
               {selectedItem.screenshotFileId && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Attachment Screenshot
-                  </label>
-                  <div style={{
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    border: '1px solid var(--border-color, #e5e7eb)',
-                    maxHeight: '220px',
-                    backgroundColor: '#000000',
-                    textAlign: 'center'
-                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600 }}>
+                      Attachment Screenshot
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedScreenshotUrl(getFeedbackAttachmentUrl(selectedItem.screenshotFileId))}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary-color, #0071E3)',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: 0
+                      }}
+                    >
+                      <ZoomIn size={14} /> Enlarge Fullscreen
+                    </button>
+                  </div>
+                  <div 
+                    onClick={() => setExpandedScreenshotUrl(getFeedbackAttachmentUrl(selectedItem.screenshotFileId))}
+                    style={{
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border-color, #e5e7eb)',
+                      maxHeight: '220px',
+                      backgroundColor: '#000000',
+                      textAlign: 'center',
+                      cursor: 'zoom-in',
+                      position: 'relative'
+                    }}
+                    title="Click to view full resolution"
+                  >
                     <img
                       src={getFeedbackAttachmentUrl(selectedItem.screenshotFileId)}
                       alt="Feedback Attachment"
@@ -731,6 +762,97 @@ export default function AdminFeedbackTab() {
                 {updating ? 'Saving Changes...' : 'Save Updates'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox / Fullscreen Screenshot Preview */}
+      {expandedScreenshotUrl && (
+        <div 
+          onClick={() => setExpandedScreenshotUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 100020,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '92vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+          >
+            <div style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '1rem',
+              marginBottom: '0.75rem'
+            }}>
+              <a
+                href={expandedScreenshotUrl}
+                download="feedback-attachment"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.85rem',
+                  textDecoration: 'none',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px'
+                }}
+              >
+                <Download size={15} /> Download
+              </a>
+              <button
+                type="button"
+                onClick={() => setExpandedScreenshotUrl(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.85rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px'
+                }}
+              >
+                <X size={16} /> Close
+              </button>
+            </div>
+            <img
+              src={expandedScreenshotUrl}
+              alt="Screenshot Full Preview"
+              style={{
+                maxWidth: '92vw',
+                maxHeight: '82vh',
+                borderRadius: '10px',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                objectFit: 'contain'
+              }}
+            />
           </div>
         </div>
       )}

@@ -3544,7 +3544,7 @@ export default function AdminDashboard() {
                                 url: typeof currentResume === 'object' ? currentResume.url : '#',
                                 previewUrl: typeof currentResume === 'object' ? currentResume.url : '#'
                               };
-                              navigate(`/preview/${resumeDoc.id}`, {
+                              navigate(`/preview/${resumeDoc.id}?storyId=${editingStory?.id || ''}`, {
                                 state: {
                                   file: resumeDoc,
                                   files: [resumeDoc],
@@ -3624,7 +3624,7 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                               <button 
                                 type="button"
-                                onClick={() => navigate(`/preview/mat-${editingStory?.id || 'edit'}-${idx}`, {
+                                onClick={() => navigate(`/preview/mat-${editingStory?.id || 'edit'}-${idx}?storyId=${editingStory?.id || ''}`, {
                                   state: {
                                     file: {
                                       ...material,
@@ -4656,7 +4656,7 @@ export default function AdminDashboard() {
                           url: rf?.url || (typeof cr === 'object' ? cr.url : '#'),
                           previewUrl: rf?.url || (typeof cr === 'object' ? cr.url : '#')
                         };
-                        navigate(`/preview/${resumeDoc.id}?pending=true`, {
+                        navigate(`/preview/${resumeDoc.id}?storyId=${previewingPendingStory.id}&pending=true`, {
                           state: {
                             file: resumeDoc,
                             files: [resumeDoc],
@@ -4706,7 +4706,7 @@ export default function AdminDashboard() {
                               id: `mat-${previewingPendingStory.id}-${idx}`,
                               title: mat.title || mat.fileName
                             };
-                            navigate(`/preview/${pendingMatDoc.id}?pending=true`, {
+                            navigate(`/preview/${pendingMatDoc.id}?storyId=${previewingPendingStory.id}&pending=true`, {
                               state: {
                                 file: pendingMatDoc,
                                 files: (previewingPendingStory.studyMaterials || []).map((m, i) => ({

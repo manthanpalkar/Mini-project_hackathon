@@ -6,13 +6,15 @@ const isLocal = typeof window !== 'undefined' && (window.location.hostname === '
 const BASE_URL = isLocal ? '' : (envApiUrl ? envApiUrl.replace(/\/api\/?$/, '') : 'https://loop-qnh9.onrender.com');
 const API_URL = isLocal ? '/api' : (envApiUrl || `${BASE_URL}/api`);
 
-const fixRelativeUrl = (url) => {
+export const fixRelativeUrl = (url) => {
   if (!url) return url;
-  if (url.startsWith('/uploads/')) {
+  if (typeof url === 'string' && url.startsWith('/uploads/')) {
     return `${BASE_URL}${url}`;
   }
   return url;
 };
+export const resolveUrl = fixRelativeUrl;
+
 
 const adjustUrls = (data) => {
   if (!data) return data;
@@ -1306,7 +1308,17 @@ export const getMyFeedback = async () => {
 };
 
 export const getFeedbackAttachmentUrl = (fileId) => {
-  return `${API_URL}/feedback/attachments/${fileId}`;
+  let url = `${API_URL}/feedback/attachments/${fileId}`;
+  const userSession = typeof localStorage !== 'undefined' ? localStorage.getItem('loop_current_user') : null;
+  if (userSession) {
+    try {
+      const { token } = JSON.parse(userSession);
+      if (token) {
+        url += `?token=${encodeURIComponent(token)}`;
+      }
+    } catch (e) {}
+  }
+  return url;
 };
 
 export const getAdminFeedback = async (params = {}) => {

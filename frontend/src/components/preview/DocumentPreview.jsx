@@ -1,13 +1,66 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Loader, AlertCircle } from 'lucide-react';
 
-// Configure PDF.js worker using Vite asset URL
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+// Global polyfill for Uint8Array toHex / fromHex and Promise.withResolvers
+if (typeof Uint8Array !== 'undefined') {
+  if (!Uint8Array.prototype.toHex) {
+    Uint8Array.prototype.toHex = function() {
+      let hex = '';
+      for (let i = 0; i < this.length; i++) {
+        hex += this[i].toString(16).padStart(2, '0');
+      }
+      return hex;
+    };
+  }
+  if (!Uint8Array.fromHex) {
+    Uint8Array.fromHex = function(hex) {
+      if (typeof hex !== 'string' || hex.length % 2 !== 0) {
+        throw new TypeError('Invalid hex string');
+      }
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+      }
+      return bytes;
+    };
+  }
+}
+if (typeof Promise.withResolvers === 'undefined') {
+  Promise.withResolvers = function() {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+}
+
+// Lazy singleton loader for PDF.js (uses legacy build with broad cross-browser polyfills)
+let pdfjsLibPromise = null;
+const getPdfjs = async () => {
+  if (!pdfjsLibPromise) {
+    pdfjsLibPromise = Promise.all([
+      import('pdfjs-dist/legacy/build/pdf.min.mjs'),
+      import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')
+    ]).then(([pdfjsLib, workerModule]) => {
+      if (workerModule && workerModule.default) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default;
+      }
+      return pdfjsLib;
+    }).catch(async (err) => {
+      console.warn('[DocumentPreview] Legacy worker import failed, falling back to standard loader:', err);
+      const pdfjsLib = await import('pdfjs-dist');
+      return pdfjsLib;
+    });
+  }
+  return pdfjsLibPromise;
+};
 
 export default function DocumentPreview({
   blobUrl,
+  pdfData = null,
+  fileName = 'Document',
   isPdf = false,
   isCodeOrText = false,
   textContent = '',
@@ -20,9 +73,11 @@ export default function DocumentPreview({
   const [pdfDoc, setPdfDoc] = useState(null);
   const [isPageRendered, setIsPageRendered] = useState(false);
   const [rendering, setRendering] = useState(false);
+  const [pdfJsFailed, setPdfJsFailed] = useState(false);
+  const [useNativeViewer, setUseNativeViewer] = useState(false);
   const renderTaskRef = useRef(null);
 
-  // Track window dimensions for responsive canvas sizing on window change
+  // Track window dimensions for responsive canvas sizing
   const [windowDimensions, setWindowDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1200,
     height: typeof window !== 'undefined' ? window.innerHeight : 800
@@ -46,44 +101,65 @@ export default function DocumentPreview({
     };
   }, []);
 
-  // 1. Load PDF Document when blobUrl changes
+  // 1. Load PDF Document asynchronously when blobUrl or pdfData changes
   useEffect(() => {
     let active = true;
+    let loadingTask = null;
+    let loadedDoc = null;
 
-    if (!isPdf || !blobUrl) {
+    if (!isPdf || (!blobUrl && !pdfData)) {
       setPdfDoc(null);
       setIsPageRendered(false);
+      setPdfJsFailed(false);
       return;
     }
 
     setRendering(true);
     setIsPageRendered(false);
     setPdfDoc(null);
+    setPdfJsFailed(false);
 
-    const loadingTask = pdfjsLib.getDocument({
-      url: blobUrl,
-      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist/cmaps/',
-      cMapPacked: true
-    });
+    getPdfjs()
+      .then((pdfjsLib) => {
+        if (!active) return null;
 
-    let loadedDoc = null;
+        // Prefer passing binary Uint8Array directly to bypass cross-origin worker blob fetch restrictions
+        const docConfig = pdfData
+          ? {
+              data: pdfData,
+              cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist/cmaps/',
+              cMapPacked: true
+            }
+          : {
+              url: blobUrl,
+              cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist/cmaps/',
+              cMapPacked: true
+            };
 
-    loadingTask.promise
+        loadingTask = pdfjsLib.getDocument(docConfig);
+        return loadingTask.promise;
+      })
       .then((doc) => {
+        if (!doc) return;
         if (!active) {
           try { doc.destroy(); } catch (e) {}
           return;
         }
         loadedDoc = doc;
         setPdfDoc(doc);
+        setPdfJsFailed(false);
         if (onDocLoaded) {
           onDocLoaded(doc.numPages);
         }
       })
       .catch((err) => {
         if (!active) return;
-        console.error('[DocumentPreview] PDF Load Error:', err);
-        if (onError) onError('Could not load PDF document. It may be corrupt or encrypted.');
+        console.warn('[DocumentPreview] PDF.js rendering encountered an issue, enabling native browser PDF fallback:', err);
+        // Fallback gracefully to native browser PDF viewer
+        setPdfJsFailed(true);
+        if (!blobUrl && onError) {
+          onError('Could not load PDF document. It may be corrupt or encrypted.');
+        }
       })
       .finally(() => {
         if (active) setRendering(false);
@@ -94,11 +170,11 @@ export default function DocumentPreview({
       if (loadedDoc) {
         try { loadedDoc.destroy(); } catch (e) {}
       }
-      try {
-        loadingTask.destroy();
-      } catch (e) {}
+      if (loadingTask) {
+        try { loadingTask.destroy(); } catch (e) {}
+      }
     };
-  }, [blobUrl, isPdf]);
+  }, [blobUrl, pdfData, isPdf]);
 
   // 2. Render current page automatically when pdfDoc, pageNum, scale, or window size changes
   useEffect(() => {
@@ -135,8 +211,8 @@ export default function DocumentPreview({
 
         const viewport = page.getViewport({ scale: effectiveScale });
 
-        // High-DPI support (devicePixelRatio) for sharp rendering
-        const pixelRatio = window.devicePixelRatio || 1;
+        // Memory-safe high-DPI scaling: clamp to 1.75 to prevent huge canvas bitmap allocations on low-RAM devices
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.75);
         canvas.width = Math.floor(viewport.width * pixelRatio);
         canvas.height = Math.floor(viewport.height * pixelRatio);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
@@ -173,10 +249,82 @@ export default function DocumentPreview({
         } catch (e) {}
         renderTaskRef.current = null;
       }
+      // Reclaim canvas buffer memory
+      if (canvasRef.current) {
+        canvasRef.current.width = 1;
+        canvasRef.current.height = 1;
+      }
     };
   }, [pdfDoc, pageNum, scale, isPdf, windowDimensions]);
 
+  // Safeguard: Bounded text content rendering to avoid DOM freezing on massive code/log dumps
+  const isTruncated = textContent && textContent.length > 50000;
+  const displayedText = useMemo(() => {
+    if (!textContent) return '';
+    return isTruncated ? textContent.slice(0, 50000) : textContent;
+  }, [textContent, isTruncated]);
+
   if (isPdf) {
+    if (useNativeViewer || (pdfJsFailed && blobUrl)) {
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          paddingBottom: '1rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            maxWidth: '1040px',
+            marginBottom: '0.75rem',
+            padding: '0.45rem 1rem',
+            backgroundColor: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: '8px',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            fontSize: '0.82rem',
+            color: '#a1a1aa'
+          }}>
+            <span>Displaying with Browser Native PDF Viewer</span>
+            {!pdfJsFailed && (
+              <button
+                type="button"
+                onClick={() => setUseNativeViewer(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent-color, #0a84ff)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.82rem'
+                }}
+              >
+                Switch to Canvas Viewer
+              </button>
+            )}
+          </div>
+          <iframe
+            src={`${blobUrl}#toolbar=1&navpanes=1`}
+            title={fileName || 'PDF Document'}
+            style={{
+              width: '100%',
+              maxWidth: '1040px',
+              height: 'calc(100vh - 140px)',
+              minHeight: '650px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              backgroundColor: '#525659'
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div style={{
         display: 'flex',
@@ -216,6 +364,33 @@ export default function DocumentPreview({
             transition: 'opacity 0.2s ease'
           }}
         />
+        {isPageRendered && (
+          <div style={{
+            marginTop: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.8rem',
+            color: '#71717a'
+          }}>
+            <span>Having trouble viewing?</span>
+            <button
+              type="button"
+              onClick={() => setUseNativeViewer(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent-color, #0a84ff)',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: '0.8rem',
+                textDecoration: 'underline'
+              }}
+            >
+              Open in Browser Native Viewer
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -234,6 +409,23 @@ export default function DocumentPreview({
         boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
         margin: 'auto'
       }}>
+        {isTruncated && (
+          <div style={{
+            backgroundColor: 'rgba(234, 179, 8, 0.1)',
+            border: '1px solid rgba(234, 179, 8, 0.3)',
+            borderRadius: '8px',
+            padding: '0.65rem 1rem',
+            marginBottom: '1rem',
+            color: '#facc15',
+            fontSize: '0.82rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <AlertCircle size={16} />
+            <span>File is very large. Showing first 50,000 characters for high performance. Download to view the entire file.</span>
+          </div>
+        )}
         <pre style={{
           margin: 0,
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
@@ -243,7 +435,7 @@ export default function DocumentPreview({
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word'
         }}>
-          <code>{textContent || 'Empty file content'}</code>
+          <code>{displayedText || 'Empty file content'}</code>
         </pre>
       </div>
     );

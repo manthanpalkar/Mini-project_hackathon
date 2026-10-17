@@ -899,7 +899,18 @@ export default function Resources() {
                 <tbody>
                   {searchResults.map(res => (
                     <tr key={res.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '0.85rem 1rem' }}>
+                      <td 
+                        style={{ padding: '0.85rem 1rem', cursor: 'pointer' }}
+                        onClick={() => {
+                          navigate(`/preview/${res.id}${res.folderId ? `?folderId=${res.folderId}` : ''}`, {
+                            state: {
+                              file: res,
+                              files: searchResults,
+                              folderName: 'Search Results'
+                            }
+                          });
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           {getFileIcon(res)}
                           <div>
@@ -1199,7 +1210,18 @@ export default function Resources() {
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
-                          <td style={{ padding: '1rem 1.25rem' }}>
+                          <td 
+                            style={{ padding: '1rem 1.25rem', cursor: 'pointer' }}
+                            onClick={() => {
+                              navigate(`/preview/${res.id}?folderId=${res.folderId || currentFolderId || ''}`, {
+                                state: {
+                                  file: res,
+                                  files: currentFolderResources,
+                                  folderName: currentFolder?.name || 'Folder'
+                                }
+                              });
+                            }}
+                          >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                               <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {getFileIcon(res)}
