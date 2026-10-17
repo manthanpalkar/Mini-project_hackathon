@@ -668,6 +668,23 @@ app.get(['/api/upload-route-health', '/upload-route-health'], (req, res) => {
   });
 });
 
+// Dedicated Public Diagnostic Endpoint for Email Provider Configuration Verification
+app.get(['/api/email-provider-health', '/email-provider-health'], (req, res) => {
+  const rawKey = process.env.BREVO_API_KEY || '';
+  const cleanKey = rawKey.trim().replace(/^["']|["']$/g, '');
+  const emailFrom = (process.env.EMAIL_FROM || 'swapnil.patil24@spit.ac.in').trim().replace(/^["']|["']$/g, '');
+
+  res.status(200).json({
+    status: 'ok',
+    brevoKeyConfigured: Boolean(cleanKey && cleanKey.startsWith('xkeysib-')),
+    brevoKeyLength: cleanKey.length,
+    brevoKeyPrefix: cleanKey ? cleanKey.slice(0, 10) + '...' : 'missing',
+    emailFromConfigured: Boolean(process.env.EMAIL_FROM),
+    emailFromEffective: emailFrom,
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -679,7 +696,15 @@ app.get('/', (req, res) => {
 
 // Middleware to check database connection status before handling API requests
 app.use((req, res, next) => {
-  if (req.path === '/health' || req.path === '/api/health' || req.path === '/' || req.path === '/api/upload-route-health' || req.path === '/upload-route-health') {
+  if (
+    req.path === '/health' ||
+    req.path === '/api/health' ||
+    req.path === '/' ||
+    req.path === '/api/upload-route-health' ||
+    req.path === '/upload-route-health' ||
+    req.path === '/api/email-provider-health' ||
+    req.path === '/email-provider-health'
+  ) {
     return next();
   }
   if (mongoose.connection.readyState !== 1) {
@@ -1643,8 +1668,11 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
           { $set: { status: 'invalidated' } }
         );
         console.error('[FORGOT_PASSWORD] Brevo dispatch error:', sendErr.message);
+        const isConfigError = sendErr.message.includes('not configured');
         return res.status(502).json({
-          error: 'Failed to deliver verification code email. Please check your network and try again later.',
+          error: isConfigError
+            ? 'Failed to deliver verification code email: BREVO_API_KEY is not configured in server environment variables. Please check server settings.'
+            : 'Failed to deliver verification code email. Please check your network and try again later.',
           code: 'EMAIL_DELIVERY_FAILED'
         });
       }

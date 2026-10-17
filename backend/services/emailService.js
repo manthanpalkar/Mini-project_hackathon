@@ -21,8 +21,10 @@ function isTestMode() {
  * Validate whether Brevo is configured with valid credentials
  */
 function isBrevoConfigured() {
-  const key = process.env.BREVO_API_KEY;
-  return Boolean(key && typeof key === 'string' && key.trim().startsWith('xkeysib-'));
+  const rawKey = process.env.BREVO_API_KEY;
+  if (!rawKey || typeof rawKey !== 'string') return false;
+  const key = rawKey.trim().replace(/^["']|["']$/g, '');
+  return Boolean(key.startsWith('xkeysib-'));
 }
 
 /**
@@ -204,13 +206,8 @@ async function sendPasswordResetEmail(recipientOrOptions, optionalCode) {
     throw new Error('Email service is not configured on this server. Please contact an administrator.');
   }
 
-  const apiKey = process.env.BREVO_API_KEY.trim();
-  const fromEmail = (process.env.EMAIL_FROM || '').trim();
-
-  if (!fromEmail) {
-    console.error('[EMAIL_SERVICE] EMAIL_FROM configuration is missing.');
-    throw new Error('Verified sender email is not configured on this server.');
-  }
+  const apiKey = process.env.BREVO_API_KEY.trim().replace(/^["']|["']$/g, '');
+  const fromEmail = (process.env.EMAIL_FROM || 'swapnil.patil24@spit.ac.in').trim().replace(/^["']|["']$/g, '');
 
   try {
     const payload = {
