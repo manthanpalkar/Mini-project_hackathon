@@ -69,16 +69,22 @@ export default function ForgotPassword() {
     setIsGoogleOnly(false);
     try {
       const data = await requestPasswordReset(trimmedEmail);
-      setSuccessMsg(data.message || 'If an account exists, a 6-digit recovery code has been sent.');
-      setResendCooldown(60);
-      setOtp(['', '', '', '', '', '']);
-      setOtpStage('entry');
-      setStep(2);
-      setTimeout(() => {
-        if (otpInputRefs.current[0]) {
-          otpInputRefs.current[0].focus();
-        }
-      }, 100);
+      if (data && data.emailSent) {
+        setSuccessMsg(data.message || 'If an account exists, a 6-digit recovery code has been sent.');
+        setResendCooldown(60);
+        setOtp(['', '', '', '', '', '']);
+        setOtpStage('entry');
+        setStep(2);
+        setTimeout(() => {
+          if (otpInputRefs.current[0]) {
+            otpInputRefs.current[0].focus();
+          }
+        }, 100);
+      } else {
+        // Unknown account: preserve generic enumeration-safe response on Step 1
+        setSuccessMsg(data.message || 'If an account with that email exists and has password recovery enabled, a verification code has been sent.');
+        setStep(1);
+      }
     } catch (err) {
       if (err.code === 'GOOGLE_ACCOUNT_ONLY' || err.isGoogleOnly || err.message?.includes('Continue with Google')) {
         setError(err.message || 'Password reset isn’t available for this account. If you signed up with Google, return to Login and choose Continue with Google.');

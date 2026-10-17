@@ -11,7 +11,10 @@ let mockEmails = [];
 let mockSender = null;
 
 function isTestMode() {
-  return process.env.NODE_ENV === 'test';
+  if (process.env.RENDER || process.env.VERCEL || process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+    return false;
+  }
+  return process.env.NODE_ENV === 'test' && !process.env.LOOP_FORCE_LIVE_EMAIL;
 }
 
 /**

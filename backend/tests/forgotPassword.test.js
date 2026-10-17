@@ -646,4 +646,48 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
       /Verification code is required/
     );
   });
+
+  // TEST 21: Brevo dispatch rejection or timeout isolates error and invalidates challenge
+  test('Brevo Error Isolation: dispatch failure invalidates challenge and returns HTTP 502 EMAIL_DELIVERY_FAILED', async () => {
+    try {
+      setMockSender(async () => {
+        throw new Error('Brevo API HTTP 401: Unauthorized invalid API key');
+      });
+
+      const { status, data } = await postJson('/api/auth/forgot-password', { email: testEmail });
+      assert.equal(status, 502);
+      assert.equal(data.code, 'EMAIL_DELIVERY_FAILED');
+      assert.match(data.error, /Failed to deliver verification code email/i);
+      // Ensure API key or internals are NOT leaked to client
+      assert.equal(data.error.includes('xkeysib'), false);
+      assert.equal(data.error.includes('Unauthorized'), false);
+
+      // Verify that NO pending challenge remains usable
+      const pendingChallenges = mockChallenges.filter(c => c.email === testEmail && c.status === 'pending');
+      assert.equal(pendingChallenges.length, 0, 'No challenge should remain pending after delivery failure');
+    } finally {
+      setMockSender(null);
+    }
+  });
+
+  // TEST 22: Provider acceptance returns emailSent: true and creates usable challenge
+  test('Provider Acceptance: successful dispatch returns emailSent: true and pending challenge', async () => {
+    const { status, data } = await postJson('/api/auth/forgot-password', { email: testEmail });
+    assert.equal(status, 200);
+    assert.equal(data.emailSent, true);
+
+    const pending = mockChallenges.filter(c => c.email === testEmail && c.status === 'pending');
+    assert.equal(pending.length, 1);
+  });
+
+  // TEST 23: Unknown account returns emailSent: false without creating any challenge
+  test('Unknown Account Safety: returns emailSent: false with zero stored challenges', async () => {
+    const { status, data } = await postJson('/api/auth/forgot-password', { email: 'ghost.user.999@spit.ac.in' });
+    assert.equal(status, 200);
+    assert.equal(data.emailSent, false);
+    assert.match(data.message, /If an account with that email exists/i);
+
+    const challenges = mockChallenges.filter(c => c.email === 'ghost.user.999@spit.ac.in');
+    assert.equal(challenges.length, 0);
+  });
 });

@@ -1648,10 +1648,17 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
           code: 'EMAIL_DELIVERY_FAILED'
         });
       }
+      return res.json({
+        success: true,
+        emailSent: true,
+        message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
+      });
     }
 
     // Always return a generic success message to prevent user enumeration
     return res.json({
+      success: true,
+      emailSent: false,
       message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
     });
   } catch (err) {
