@@ -1611,11 +1611,23 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
 
     const normalizedEmail = trimmedEmail.toLowerCase();
 
-    // Check if user exists
-    const user = await User.findOne({ email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i') });
+    // Dynamically lookup user in MongoDB User collection (supports all registered users)
+    const user = await User.findOne({
+      $or: [
+        { email: normalizedEmail },
+        { email: trimmedEmail },
+        { email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i') }
+      ]
+    });
 
     // Only accounts with local passwords are eligible for password recovery
-    const hasLocalPassword = Boolean(user && user.password && typeof user.password === 'string' && user.password.trim());
+    const hasLocalPassword = Boolean(
+      user && 
+      user.password && 
+      typeof user.password === 'string' && 
+      user.password.trim() &&
+      user.password !== 'null'
+    );
 
     // Case B: Account registered through Google only (no local password set)
     if (user && !hasLocalPassword && (user.googleSub || user.authProvider === 'google')) {
@@ -1626,9 +1638,11 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
     }
 
     if (user && hasLocalPassword) {
+      const targetEmail = (user.email || normalizedEmail).trim().toLowerCase();
+
       // Check 60-second cooldown on existing pending challenges
       const activeChallenge = await PasswordResetChallenge.findOne({
-        email: normalizedEmail,
+        email: targetEmail,
         status: 'pending',
         expiresAt: { $gt: new Date() }
       }).sort({ createdAt: -1 });
@@ -1647,7 +1661,7 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
 
       // Invalidate existing pending challenges for this email
       await PasswordResetChallenge.updateMany(
-        { email: normalizedEmail, status: 'pending' },
+        { email: targetEmail, status: 'pending' },
         { $set: { status: 'invalidated' } }
       );
 
@@ -1656,7 +1670,7 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
       const codeHash = crypto.createHmac('sha256', RESET_SECRET).update(code).digest('hex');
 
       await PasswordResetChallenge.create({
-        email: normalizedEmail,
+        email: targetEmail,
         codeHash,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
         attempts: 0,
@@ -1666,11 +1680,11 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
 
       // Send email via Brevo email service to registered account email
       try {
-        await sendPasswordResetEmail(normalizedEmail, code);
+        await sendPasswordResetEmail(targetEmail, code);
       } catch (sendErr) {
         // If Brevo delivery fails, invalidate challenge and report honest failure
         await PasswordResetChallenge.updateMany(
-          { email: normalizedEmail, status: 'pending' },
+          { email: targetEmail, status: 'pending' },
           { $set: { status: 'invalidated' } }
         );
         console.error('[FORGOT_PASSWORD] Brevo dispatch error:', sendErr.message);
@@ -1850,7 +1864,10 @@ app.post(['/api/auth/reset-password', '/api/users/reset-password'], async (req, 
     }
 
     const user = await User.findOne({ 
-      email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i')
+      $or: [
+        { email: normalizedEmail },
+        { email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i') }
+      ]
     });
     if (!user) {
       return res.status(404).json({ error: 'Account not found.' });

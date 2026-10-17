@@ -129,15 +129,29 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     // User.findOne mock
     User.findOne = async (query) => {
       if (!query) return null;
-      if (query.email) {
+      const checkEmail = (matcher) => {
         for (const [em, user] of Object.entries(mockUsers)) {
-          if (query.email instanceof RegExp && query.email.test(em)) return user;
-          if (typeof query.email === 'string' && query.email.toLowerCase() === em.toLowerCase()) return user;
-          if (query.email.$in) {
-            for (const item of query.email.$in) {
+          if (matcher instanceof RegExp && matcher.test(em)) return user;
+          if (typeof matcher === 'string' && matcher.toLowerCase() === em.toLowerCase()) return user;
+          if (matcher && matcher.$in) {
+            for (const item of matcher.$in) {
               if (item instanceof RegExp && item.test(em)) return user;
               if (typeof item === 'string' && item.toLowerCase() === em.toLowerCase()) return user;
             }
+          }
+        }
+        return null;
+      };
+
+      if (query.email) {
+        const found = checkEmail(query.email);
+        if (found) return found;
+      }
+      if (query.$or) {
+        for (const cond of query.$or) {
+          if (cond.email) {
+            const found = checkEmail(cond.email);
+            if (found) return found;
           }
         }
       }
@@ -689,5 +703,151 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
 
     const challenges = mockChallenges.filter(c => c.email === 'ghost.user.999@spit.ac.in');
     assert.equal(challenges.length, 0);
+  });
+
+  // TEST 24: Universal Multi-User Support: Multiple distinct accounts dynamically receive their own OTPs
+  test('Universal Multi-User: User A, User B, and User C each receive distinct OTPs at their own emails', async () => {
+    const userA = 'user.alpha@spit.ac.in';
+    const userB = 'user.beta@spit.ac.in';
+    const userC = 'user.gamma@spit.ac.in';
+
+    mockUsers[userA] = {
+      _id: 'usr_alpha_1',
+      email: userA,
+      name: 'User Alpha',
+      password: await bcrypt.hash('AlphaPass123!', 8),
+      role: 'Student',
+      status: 'Active',
+      save: async function() { return this; }
+    };
+    mockUsers[userB] = {
+      _id: 'usr_beta_2',
+      email: userB,
+      name: 'User Beta',
+      password: await bcrypt.hash('BetaPass123!', 8),
+      role: 'Student',
+      status: 'Active',
+      save: async function() { return this; }
+    };
+    mockUsers[userC] = {
+      _id: 'usr_gamma_3',
+      email: userC,
+      name: 'User Gamma',
+      password: await bcrypt.hash('GammaPass123!', 8),
+      role: 'Student',
+      status: 'Active',
+      save: async function() { return this; }
+    };
+
+    clearMockEmails();
+
+    // 1. Request OTP for User A
+    const resA = await postJson('/api/auth/forgot-password', { email: userA });
+    assert.equal(resA.status, 200);
+    assert.equal(resA.data.emailSent, true);
+
+    // 2. Request OTP for User B
+    const resB = await postJson('/api/auth/forgot-password', { email: userB });
+    assert.equal(resB.status, 200);
+    assert.equal(resB.data.emailSent, true);
+
+    // 3. Request OTP for User C
+    const resC = await postJson('/api/auth/forgot-password', { email: userC });
+    assert.equal(resC.status, 200);
+    assert.equal(resC.data.emailSent, true);
+
+    // Verify all 3 received emails to their own distinct recipient addresses
+    const emails = getMockEmails();
+    assert.equal(emails.length, 3);
+    assert.equal(emails[0].to, userA);
+    assert.equal(emails[1].to, userB);
+    assert.equal(emails[2].to, userC);
+
+    // Verify OTP codes are distinct
+    assert.notEqual(emails[0].code, emails[1].code);
+    assert.notEqual(emails[1].code, emails[2].code);
+  });
+
+  // TEST 25: Cross-User Account Isolation: OTP from User A cannot reset User B
+  test('Cross-User Account Isolation: OTP A cannot verify for User B, and reset updates only intended user', async () => {
+    const userA = 'user.alpha@spit.ac.in';
+    const userB = 'user.beta@spit.ac.in';
+
+    mockUsers[userA] = {
+      _id: 'usr_alpha_1',
+      email: userA,
+      name: 'User Alpha',
+      password: await bcrypt.hash('AlphaPass123!', 8),
+      role: 'Student',
+      status: 'Active',
+      save: async function() { return this; }
+    };
+    mockUsers[userB] = {
+      _id: 'usr_beta_2',
+      email: userB,
+      name: 'User Beta',
+      password: await bcrypt.hash('BetaPass123!', 8),
+      role: 'Student',
+      status: 'Active',
+      save: async function() { return this; }
+    };
+
+    const originalHashB = mockUsers[userB].password;
+
+    clearMockEmails();
+    await postJson('/api/auth/forgot-password', { email: userA });
+    const emailA = getLastMockEmail();
+    assert.equal(emailA.to, userA);
+    const codeA = emailA.code;
+
+    // Attempt to verify codeA against User B's email -> must fail
+    const crossVerify = await postJson('/api/auth/verify-reset-code', { email: userB, code: codeA });
+    assert.equal(crossVerify.status, 400);
+
+    // Verify codeA correctly for User A
+    const validVerifyA = await postJson('/api/auth/verify-reset-code', { email: userA, code: codeA });
+    assert.equal(validVerifyA.status, 200);
+    const { resetToken } = validVerifyA.data;
+    assert.ok(resetToken);
+
+    // Reset password for User A
+    const resetRes = await postJson('/api/auth/reset-password', {
+      email: userA,
+      resetToken,
+      newPassword: 'BrandNewPassword123!',
+      confirmPassword: 'BrandNewPassword123!'
+    });
+    assert.equal(resetRes.status, 200);
+
+    // User A's password updated, User B's password strictly unchanged
+    assert.notEqual(mockUsers[userA].password, initialPasswordHash);
+    assert.equal(mockUsers[userB].password, originalHashB);
+  });
+
+  // TEST 26: Automatic Eligibility for Newly Registered Users
+  test('Automatic Eligibility: Newly created user dynamically supports recovery without manual configuration', async () => {
+    const newStudent = 'fresh.student.2026@spit.ac.in';
+    const initialPass = await bcrypt.hash('FreshPassword123!', 8);
+
+    // Simulate newly registered student entering MongoDB
+    mockUsers[newStudent] = {
+      _id: 'usr_fresh_99',
+      email: newStudent,
+      name: 'Fresh Student',
+      password: initialPass,
+      role: 'Student',
+      status: 'Active',
+      save: async function() { return this; }
+    };
+
+    clearMockEmails();
+    const res = await postJson('/api/auth/forgot-password', { email: newStudent });
+    assert.equal(res.status, 200);
+    assert.equal(res.data.emailSent, true);
+
+    const emailSent = getLastMockEmail();
+    assert.ok(emailSent);
+    assert.equal(emailSent.to, newStudent);
+    assert.match(emailSent.code, /^\d{6}$/);
   });
 });

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Mail, KeyRound, Lock, Eye, EyeOff, 
   CheckCircle2, AlertCircle, RefreshCw, Shield, 
-  Check 
+  Check, Info 
 } from 'lucide-react';
 import { requestPasswordReset, verifyPasswordResetCode, resetPassword } from '../utils/db';
 
@@ -35,6 +35,7 @@ export default function ForgotPassword() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isGoogleOnly, setIsGoogleOnly] = useState(false);
 
@@ -57,6 +58,7 @@ export default function ForgotPassword() {
   const handleRequestCode = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setSuccessMsg('');
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -81,8 +83,8 @@ export default function ForgotPassword() {
           }
         }, 100);
       } else {
-        // Unknown account: preserve generic enumeration-safe response on Step 1
-        setSuccessMsg(data.message || 'If an account with that email exists and has password recovery enabled, a verification code has been sent.');
+        // Unknown / unregistered account: display helpful guidance on Step 1
+        setNotice('We couldn’t find an account associated with this email. Please check your email address or create an account first.');
         setStep(1);
       }
     } catch (err) {
@@ -427,6 +429,37 @@ export default function ForgotPassword() {
               }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <span>{error}</span>
+              </div>
+            )}
+
+            {notice && (
+              <div style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                borderRadius: '12px',
+                padding: '1rem',
+                marginBottom: '1.25rem',
+                textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginBottom: '0.65rem' }}>
+                  <Info size={18} style={{ color: '#3b82f6', flexShrink: 0, marginTop: '2px' }} />
+                  <span style={{ fontSize: '0.86rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                    {notice}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', paddingLeft: '1.75rem' }}>
+                  <Link
+                    to="/login"
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      color: '#3b82f6',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Go to Login
+                  </Link>
+                </div>
               </div>
             )}
 
