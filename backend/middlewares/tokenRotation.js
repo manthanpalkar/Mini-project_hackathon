@@ -1,6 +1,12 @@
 const crypto = require("crypto");
 
-const JWT_SECRET = process.env.JWT_SECRET || "spit_loop_super_secret_jwt_key_2026";
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || typeof secret !== "string" || secret.trim().length < 32) {
+    throw new Error("JWT_SECRET environment variable is missing or less than 32 characters.");
+  }
+  return secret.trim();
+}
 
 function base64UrlEncode(str) {
   return Buffer.from(str).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
@@ -22,8 +28,9 @@ function createToken(payload, expiresInSec = 3600) {
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
   const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
 
+  const secret = getJwtSecret();
   const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", secret)
     .update(`${encodedHeader}.${encodedPayload}`)
     .digest("base64")
     .replace(/=/g, "")
@@ -46,8 +53,15 @@ function verifyAndRotateToken(req, res, next) {
   }
 
   const [headerB64, payloadB64, signature] = parts;
+  let secret;
+  try {
+    secret = getJwtSecret();
+  } catch (err) {
+    return res.status(500).json({ error: "Internal server authentication configuration error." });
+  }
+
   const expectedSig = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", secret)
     .update(`${headerB64}.${payloadB64}`)
     .digest("base64")
     .replace(/=/g, "")
@@ -80,4 +94,4 @@ function verifyAndRotateToken(req, res, next) {
   }
 }
 
-module.exports = { verifyAndRotateToken, createToken };
+module.exports = { verifyAndRotateToken, createToken, getJwtSecret };

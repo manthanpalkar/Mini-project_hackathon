@@ -53,6 +53,7 @@ const globalLimiter = rateLimit({
   max: RATE_LIMIT_CONFIG.GLOBAL_MAX, 
   standardHeaders: true, 
   legacyHeaders: false, 
+  skip: (req) => req.path === '/health' || req.path === '/api/health',
   message: { error: 'Too many requests from this IP address. Please slow down and try again after a few minutes.' }
 });
 
@@ -1698,15 +1699,13 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
       }
       return res.json({
         success: true,
-        emailSent: true,
         message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
       });
     }
 
-    // Always return a generic success message to prevent user enumeration
+    // Always return an identical generic response to prevent user enumeration
     return res.json({
       success: true,
-      emailSent: false,
       message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
     });
   } catch (err) {

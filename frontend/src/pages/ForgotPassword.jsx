@@ -71,7 +71,7 @@ export default function ForgotPassword() {
     setIsGoogleOnly(false);
     try {
       const data = await requestPasswordReset(trimmedEmail);
-      if (data && data.emailSent) {
+      if (data && (data.success || data.emailSent)) {
         setSuccessMsg(data.message || 'If an account exists, a 6-digit recovery code has been sent.');
         setResendCooldown(60);
         setOtp(['', '', '', '', '', '']);
