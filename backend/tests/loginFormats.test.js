@@ -90,10 +90,11 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
       assert.equal(resEmail.username, 'swapnil.patil24');
     });
 
-    test('rejects non-SPIT email domains', () => {
+    test('accepts valid non-SPIT email domains (e.g. gmail.com)', () => {
       const res = normalizeLoginIdentifier('swapnil.patil24@gmail.com');
-      assert.equal(res.valid, false);
-      assert.match(res.error, /@spit\.ac\.in/i);
+      assert.equal(res.valid, true);
+      assert.equal(res.email, 'swapnil.patil24@gmail.com');
+      assert.equal(res.username, 'swapnil.patil24');
     });
 
     test('rejects malformed email formats (multiple @, missing parts)', () => {
@@ -221,14 +222,15 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
       assert.equal(data.error, 'Invalid username/email or password. Please try again.');
     });
 
-    test('rejects non-SPIT email domains with 400', async () => {
+    test('allows non-SPIT email domains during login attempt', async () => {
       const { status, data } = await makeLoginRequest({
         email: 'external@gmail.com',
         password: plainPassword
       });
 
-      assert.equal(status, 400);
-      assert.match(data.error, /@spit\.ac\.in/i);
+      // Valid email domain format accepted by normalizer; returns 401 because user does not exist in DB
+      assert.equal(status, 401);
+      assert.equal(data.error, 'Invalid username/email or password. Please try again.');
     });
 
     test('rejects malformed identifier with 400', async () => {
@@ -330,7 +332,7 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
       );
     });
 
-    test('Administrator creation without password stores password as null (no spit123 default)', async () => {
+    test('Administrator creation without password hashes default password spit123', async () => {
       let createdUserData = null;
       const origCreate = User.create;
       User.create = async (data) => {
@@ -359,7 +361,9 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
         assert.equal(res.status, 201);
         const data = await res.json();
         assert.equal(data.email, 'new.nopass@spit.ac.in');
-        assert.equal(createdUserData.password, null, 'Must not assign default password like spit123');
+        assert.ok(createdUserData.password, 'Must assign hashed default password');
+        const matchesDefault = await bcrypt.compare('spit123', createdUserData.password);
+        assert.equal(matchesDefault, true, 'Default password must match spit123');
       } finally {
         User.create = origCreate;
       }

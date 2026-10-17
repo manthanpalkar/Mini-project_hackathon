@@ -5,7 +5,7 @@ import {
   Check, X, ShieldAlert, Plus, Trash2, Users, Clock, Edit, FileText, 
   ChevronDown, ChevronUp, ChevronRight, Search, Folder, HardDrive, 
   ShieldCheck, ExternalLink, GitBranch, FolderPlus, Sparkles, AlertTriangle,
-  Globe, Lock, FolderInput, Eye
+  Globe, Lock, FolderInput, Eye, Copy, History
 } from 'lucide-react';
 import { useCachedData } from '../hooks/useCachedData';
 import {
@@ -45,6 +45,7 @@ import { playApproveSound, playRejectSound } from '../utils/sound';
 import SystemHealthDashboard from '../components/SystemHealthDashboard';
 import AdminFeedbackTab from '../components/AdminFeedbackTab';
 import AdminAuditLogsTab from '../components/AdminAuditLogsTab';
+import AdminUserAuditModal from '../components/AdminUserAuditModal';
 
 const parsePosition = (posStr) => {
   if (!posStr) return { x: 50, y: 50, zoom: 1.0 };
@@ -682,6 +683,10 @@ export default function AdminDashboard() {
   // New User form state
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState('Student');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [copiedDefaultPassword, setCopiedDefaultPassword] = useState(false);
+  const [auditModalUser, setAuditModalUser] = useState(null);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   
   // Add Achievement form state
   const [achievementForm, setAchievementForm] = useState({
@@ -1021,8 +1026,13 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newUserEmail.trim()) return;
     try {
-      await addUser({ email: newUserEmail.trim(), role: newUserRole });
+      await addUser({ 
+        email: newUserEmail.trim(), 
+        role: newUserRole,
+        password: newUserPassword.trim() || 'spit123'
+      });
       setNewUserEmail('');
+      setNewUserPassword('');
       await refreshData();
     } catch (err) {
       alert(err.message);
@@ -2982,7 +2992,7 @@ export default function AdminDashboard() {
                 <input 
                   type="email" 
                   className="input-field" 
-                  placeholder="name.surname@spit.ac.in" 
+                  placeholder="user@example.com or user@spit.ac.in" 
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   required
@@ -3002,7 +3012,73 @@ export default function AdminDashboard() {
                   <option value="Administrator">Administrator</option>
                 </select>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+
+              {/* Default Password Display & Override */}
+              <div style={{
+                marginBottom: '1rem',
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.82rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Default Initial Password:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <code style={{
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-color)',
+                      fontWeight: 700,
+                      color: '#0071e3',
+                      letterSpacing: '0.05em'
+                    }}>spit123</code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText('spit123');
+                        setCopiedDefaultPassword(true);
+                        setTimeout(() => setCopiedDefaultPassword(false), 2000);
+                      }}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '0.2rem 0.45rem',
+                        fontSize: '0.72rem',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                        cursor: 'pointer'
+                      }}
+                      title="Copy default password"
+                      aria-label="Copy default password spit123"
+                    >
+                      {copiedDefaultPassword ? <Check size={12} style={{ color: '#30d158' }} /> : <Copy size={12} />}
+                      <span>{copiedDefaultPassword ? 'Copied!' : 'Copy'}</span>
+                    </button>
+                  </div>
+                </div>
+                <p style={{ margin: '0 0 0.65rem 0', color: 'var(--text-secondary)', fontSize: '0.76rem', lineHeight: 1.4 }}>
+                  New accounts can immediately log in with this initial password and should change it on first sign-in.
+                </p>
+
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Initial Password Override (Optional)
+                  </label>
+                  <input
+                    type="password"
+                    className="input-field"
+                    placeholder="Leave empty to use spit123"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    style={{ fontSize: '0.82rem', height: '36px' }}
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
                 <Plus size={14} /> Add User
               </button>
             </form>
@@ -3051,6 +3127,7 @@ export default function AdminDashboard() {
                     <th style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)' }}>Assigned Role</th>
                     <th style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)' }}>Profile Details</th>
                     <th style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)' }}>Status</th>
+                    <th style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Activity / Audit</th>
                     <th style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
@@ -3066,7 +3143,7 @@ export default function AdminDashboard() {
                     );
                   }).length === 0 ? (
                     <tr>
-                      <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                      <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
                         No users found
                       </td>
                     </tr>
@@ -3099,6 +3176,32 @@ export default function AdminDashboard() {
                           }}>
                             {u.status}
                           </span>
+                        </td>
+                        <td style={{ padding: '0.85rem 1.25rem', textAlign: 'center' }}>
+                          <button 
+                            onClick={() => {
+                              setAuditModalUser(u);
+                              setIsAuditModalOpen(true);
+                            }}
+                            className="btn btn-secondary" 
+                            style={{ 
+                              padding: '0.35rem 0.65rem', 
+                              color: 'var(--text-primary)', 
+                              border: '1px solid var(--border-color)', 
+                              backgroundColor: 'var(--bg-secondary)',
+                              borderRadius: '8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                            title="View activity for this user"
+                            aria-label={`View activity audit trail for ${u.email}`}
+                          >
+                            <History size={14} style={{ color: '#0071e3' }} />
+                            <span>Audit</span>
+                          </button>
                         </td>
                         <td style={{ padding: '0.85rem 1.25rem', textAlign: 'center' }}>
                           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
@@ -5243,6 +5346,17 @@ export default function AdminDashboard() {
         document.body
       )}
 
+
+      {isAuditModalOpen && auditModalUser && (
+        <AdminUserAuditModal
+          isOpen={isAuditModalOpen}
+          onClose={() => {
+            setIsAuditModalOpen(false);
+            setAuditModalUser(null);
+          }}
+          user={auditModalUser}
+        />
+      )}
 
     </>
   );

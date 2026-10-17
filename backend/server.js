@@ -1126,13 +1126,24 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid branch.' });
     }
 
-    let hashedPassword = null;
-    if (password && typeof password === 'string' && password.trim()) {
-      hashedPassword = await bcrypt.hash(password.trim(), 10);
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
 
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: new RegExp('^' + escapeRegExp(cleanEmail) + '$', 'i') });
+    if (existingUser) {
+      return res.status(400).json({ error: 'A user with this email address already exists.' });
+    }
+
+    // Set default password 'spit123' if not provided or empty, and hash with bcrypt
+    const initialPassword = (password && typeof password === 'string' && password.trim()) ? password.trim() : 'spit123';
+    const hashedPassword = await bcrypt.hash(initialPassword, 10);
+
     const userData = {
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       role: sanitizeString(role.trim()),
       password: hashedPassword,
       name: name ? sanitizeString(name.trim()) : '',
@@ -1142,7 +1153,23 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
     };
 
     const user = await User.create(userData);
-    userAuthCache.invalidate(email);
+    userAuthCache.invalidate(cleanEmail);
+
+    activityService.logActivity({
+      eventType: 'USER_CREATE',
+      category: 'ADMIN',
+      actorEmail: req.user?.email || 'admin@spit.ac.in',
+      actorRole: req.user?.role || 'Administrator',
+      targetType: 'User',
+      targetId: String(user._id),
+      targetUserEmail: user.email,
+      summary: `Admin created platform user ${user.email} (${user.role}) with initial credentials`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.get('user-agent') || '',
+      metadata: { role: user.role, status: user.status, branch: user.branch, currentYear: user.currentYear }
+    });
+
     res.status(201).json(sanitizeUser(user));
   } catch (err) {
     if (isDatabaseStorageOrConnectionError(err)) {
@@ -1188,11 +1215,12 @@ function normalizeLoginIdentifier(rawIdentifier) {
       return { valid: false, error: 'Malformed email address.' };
     }
 
-    if (domainPart.toLowerCase() !== 'spit.ac.in') {
-      return { valid: false, error: 'Please use your official SPIT email address (@spit.ac.in) or SPIT username.' };
+    // Validate domain structure: must have at least one period and valid domain characters
+    if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domainPart)) {
+      return { valid: false, error: 'Invalid email domain format.' };
     }
 
-    if (!/^[a-zA-Z0-9._+-]+$/.test(localPart)) {
+    if (!/^[a-zA-Z0-9._%+-]+$/.test(localPart)) {
       return { valid: false, error: 'Malformed email address contains invalid characters.' };
     }
 
@@ -1200,7 +1228,7 @@ function normalizeLoginIdentifier(rawIdentifier) {
     const normalizedUsername = localPart.toLowerCase();
     return { valid: true, email: normalizedEmail, username: normalizedUsername };
   } else {
-    // No '@' present -> treat as username without @spit.ac.in suffix
+    // No '@' present -> treat as campus username without @spit.ac.in suffix
     if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) {
       return { valid: false, error: 'Invalid username format. Usernames may only contain letters, numbers, dots, hyphens, and underscores.' };
     }
@@ -1901,6 +1929,19 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
           code: 'EMAIL_DELIVERY_FAILED'
         });
       }
+
+      activityService.logActivity({
+        eventType: 'AUTH_PASSWORD_RESET_REQ',
+        category: 'AUTH',
+        actorEmail: targetEmail,
+        actorRole: user.role || 'Student',
+        targetUserEmail: targetEmail,
+        summary: `Password reset verification challenge requested for ${targetEmail}`,
+        outcome: 'SUCCESS',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.get('user-agent') || ''
+      });
+
       return res.json({
         success: true,
         message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
@@ -2082,6 +2123,18 @@ app.post(['/api/auth/reset-password', '/api/users/reset-password'], async (req, 
 
     userAuthCache.invalidate(normalizedEmail);
 
+    activityService.logActivity({
+      eventType: 'AUTH_PASSWORD_RESET_SUCCESS',
+      category: 'AUTH',
+      actorEmail: normalizedEmail,
+      actorRole: user.role || 'Student',
+      targetUserEmail: normalizedEmail,
+      summary: `Password successfully reset via recovery token for ${normalizedEmail}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.get('user-agent') || ''
+    });
+
     return res.json({
       message: 'Password reset successfully. You may now log in with your new password.'
     });
@@ -2107,8 +2160,9 @@ app.post('/api/users/register-request', async (req, res) => {
     }
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail.endsWith('@spit.ac.in')) {
-      return res.status(400).json({ error: 'Please use your official SPIT email address (@spit.ac.in).' });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
     
     const existingUser = await User.findOne({ email: new RegExp('^' + escapeRegExp(trimmedEmail) + '$', 'i') });
@@ -2213,8 +2267,10 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
     }
     
     // Hash password if modified
+    let passwordChanged = false;
     if (password !== undefined && password.trim()) {
       user.password = await bcrypt.hash(password.trim(), 10);
+      passwordChanged = true;
     }
     
     // Prevent changing admin's role, and only allow Admins to change user roles
@@ -2230,6 +2286,23 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
     await user.save();
     userAuthCache.invalidate(email);
 
+    if (passwordChanged) {
+      activityService.logActivity({
+        eventType: 'AUTH_PASSWORD_CHANGE',
+        category: 'AUTH',
+        actorEmail: req.user.email,
+        actorRole: req.user.role,
+        targetType: 'User',
+        targetId: user._id,
+        targetUserEmail: user.email,
+        summary: `${req.user.email} changed password for ${user.email}`,
+        outcome: 'SUCCESS',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || '',
+        metadata: { targetEmail: user.email }
+      });
+    }
+
     activityService.logActivity({
       eventType: isUserAdmin && email.trim().toLowerCase() !== req.user.email.toLowerCase() ? 'ADMIN_ACTION' : 'PROFILE_UPDATE',
       category: isUserAdmin && email.trim().toLowerCase() !== req.user.email.toLowerCase() ? 'ADMIN' : 'PROFILE',
@@ -2237,6 +2310,7 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
       actorRole: req.user.role,
       targetType: 'User',
       targetId: user._id,
+      targetUserEmail: user.email,
       summary: `Updated profile for ${user.email}`,
       outcome: 'SUCCESS',
       ipAddress: req.ip || '127.0.0.1',
@@ -2325,8 +2399,25 @@ app.delete('/api/users/:email', authenticateToken, requireAdmin, async (req, res
     if (email.trim().toLowerCase() === 'admin@spit.ac.in') {
       return res.status(400).json({ error: 'Root administrator account cannot be deleted.' });
     }
-    await User.deleteOne({ email: new RegExp('^' + escapeRegExp(email.trim()) + '$', 'i') });
-    userAuthCache.invalidate(email);
+    const cleanEmail = email.trim().toLowerCase();
+    await User.deleteOne({ email: new RegExp('^' + escapeRegExp(cleanEmail) + '$', 'i') });
+    userAuthCache.invalidate(cleanEmail);
+
+    activityService.logActivity({
+      eventType: 'USER_DELETE',
+      category: 'ADMIN',
+      actorEmail: req.user?.email || 'admin@spit.ac.in',
+      actorRole: req.user?.role || 'Administrator',
+      targetType: 'User',
+      targetId: '',
+      targetUserEmail: cleanEmail,
+      summary: `Admin deleted platform user ${cleanEmail}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.get('user-agent') || '',
+      metadata: { deletedEmail: cleanEmail }
+    });
+
     res.json({ message: 'User deleted.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2646,6 +2737,22 @@ app.post('/api/pending-stories', authenticateToken, requireOnboarded, async (req
     }
 
     const pending = await PendingStory.create(pendingData);
+
+    activityService.logActivity({
+      eventType: 'CONTENT_STORY_SUBMIT',
+      category: 'CONTENT',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'Story',
+      targetId: pending.id,
+      targetUserEmail: req.user.email,
+      summary: `Submitted story for ${pending.company || 'Company'} (${pending.name || 'Placement'})`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { company: pending.company, role: pending.role, requestType: pending.requestType }
+    });
+
     res.status(201).json(pending);
   } catch (err) {
     console.error("Error in POST /api/pending-stories:", err);
@@ -2659,7 +2766,26 @@ app.delete('/api/pending-stories/:id', authenticateToken, requireAdmin, async (r
     const query = mongoose.Types.ObjectId.isValid(id)
       ? { $or: [{ id }, { _id: id }] }
       : { id };
+    const pending = await PendingStory.findOne(query);
     await PendingStory.deleteOne(query);
+
+    if (pending) {
+      activityService.logActivity({
+        eventType: 'CONTENT_STORY_REJECT',
+        category: 'ADMIN',
+        actorEmail: req.user.email,
+        actorRole: req.user.role,
+        targetType: 'Story',
+        targetId: pending.id || id,
+        targetUserEmail: pending.uploadedByEmail || '',
+        summary: `Admin rejected pending story for ${pending.company || 'Company'} by ${pending.uploadedByEmail || 'user'}`,
+        outcome: 'SUCCESS',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || '',
+        metadata: { company: pending.company, uploadedByEmail: pending.uploadedByEmail }
+      });
+    }
+
     res.json({ message: 'Pending story rejected/deleted.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2701,6 +2827,22 @@ app.post('/api/pending-stories/:id/approve', authenticateToken, requireAdmin, as
 
     await PendingStory.deleteOne({ _id: pending._id });
     await cacheService.invalidateStories(pending.activeId).catch(() => {});
+
+    activityService.logActivity({
+      eventType: 'CONTENT_STORY_APPROVE',
+      category: 'ADMIN',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'Story',
+      targetId: pending.activeId || pending.id,
+      targetUserEmail: pending.uploadedByEmail || '',
+      summary: `Admin approved story for ${pending.company || 'Company'} (${pending.name || 'Placement'})`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { company: pending.company, uploadedByEmail: pending.uploadedByEmail }
+    });
+
     res.json({ message: 'Story approved successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3737,6 +3879,22 @@ app.post('/api/pending-resources', authenticateToken, requireOnboarded, async (r
     pendingData.uploadedByEmail = req.user.email;
 
     const pending = await PendingResource.create(pendingData);
+
+    activityService.logActivity({
+      eventType: 'CONTENT_RESOURCE_SUBMIT',
+      category: 'CONTENT',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'Resource',
+      targetId: pending.id,
+      targetUserEmail: req.user.email,
+      summary: `Submitted resource for moderation: ${pending.title || pending.id}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { resourceId: pending.id, title: pending.title, requestType: pending.requestType }
+    });
+
     res.status(201).json(pending);
   } catch (err) {
     console.error("Error in POST /api/pending-resources:", err);
@@ -3750,7 +3908,26 @@ app.delete('/api/pending-resources/:id', authenticateToken, requireAdmin, async 
     const query = mongoose.Types.ObjectId.isValid(id)
       ? { $or: [{ id }, { _id: id }] }
       : { id };
+    const pending = await PendingResource.findOne(query);
     await PendingResource.deleteOne(query);
+
+    if (pending) {
+      activityService.logActivity({
+        eventType: 'CONTENT_RESOURCE_REJECT',
+        category: 'ADMIN',
+        actorEmail: req.user.email,
+        actorRole: req.user.role,
+        targetType: 'Resource',
+        targetId: pending.id || id,
+        targetUserEmail: pending.uploadedByEmail || '',
+        summary: `Admin rejected pending resource: ${pending.title || pending.id}`,
+        outcome: 'SUCCESS',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || '',
+        metadata: { pendingId: id, title: pending.title, uploadedByEmail: pending.uploadedByEmail }
+      });
+    }
+
     res.json({ message: 'Pending resource rejected/deleted.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3800,11 +3977,12 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
       actorRole: req.user.role,
       targetType: 'Resource',
       targetId: pending.activeId || req.params.id,
+      targetUserEmail: pending.uploadedByEmail || '',
       summary: `Admin approved resource: ${pending.title || pending.id}`,
       outcome: 'SUCCESS',
       ipAddress: req.ip || '127.0.0.1',
       userAgent: req.headers['user-agent'] || '',
-      metadata: { pendingId: req.params.id, title: pending.title }
+      metadata: { pendingId: req.params.id, title: pending.title, uploadedByEmail: pending.uploadedByEmail }
     });
 
     res.json({ message: 'Resource approved successfully.' });
@@ -4392,6 +4570,92 @@ app.get('/api/admin/audit-logs', authenticateToken, requireAdmin, async (req, re
   } catch (err) {
     console.error('[ADMIN_AUDIT_LOGS_GET_ERROR]', err);
     res.status(500).json({ error: 'Failed to retrieve audit logs.' });
+  }
+});
+
+// Helper to resolve user by userId param (accepts MongoDB _id or email)
+async function resolveUserFromParam(userParam) {
+  if (!userParam || typeof userParam !== 'string') return null;
+  const trimmed = userParam.trim();
+  
+  if (mongoose.Types.ObjectId.isValid(trimmed)) {
+    const byIdQuery = User.findById(trimmed);
+    const byId = typeof byIdQuery?.lean === 'function' ? await byIdQuery.lean() : await byIdQuery;
+    if (byId) return byId;
+  }
+  
+  const byEmailQuery = User.findOne({
+    email: new RegExp('^' + escapeRegExp(trimmed.toLowerCase()) + '$', 'i')
+  });
+  const byEmail = typeof byEmailQuery?.lean === 'function' ? await byEmailQuery.lean() : await byEmailQuery;
+  if (byEmail) return byEmail;
+
+  const byUsernameQuery = User.findOne({
+    username: new RegExp('^' + escapeRegExp(trimmed.toLowerCase()) + '$', 'i')
+  });
+  const byUsername = typeof byUsernameQuery?.lean === 'function' ? await byUsernameQuery.lean() : await byUsernameQuery;
+  return byUsername;
+}
+
+// Admin: Individual User Activity Audit Trail (Actions BY and ON user)
+app.get('/api/admin/users/:userId/activity', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userParam = req.params.userId;
+    const targetUser = await resolveUserFromParam(userParam);
+
+    const userEmail = targetUser ? targetUser.email : (userParam.includes('@') ? userParam.toLowerCase().trim() : '');
+    const userId = targetUser ? String(targetUser._id) : (mongoose.Types.ObjectId.isValid(userParam) ? userParam : '');
+
+    if (!userEmail && !userId) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const { page, limit, category, search } = req.query;
+    const result = await activityService.getUserActivity({
+      userEmail,
+      userId,
+      page: parseInt(page, 10) || 1,
+      limit: parseInt(limit, 10) || 20,
+      category,
+      search
+    });
+
+    res.json({
+      user: targetUser ? sanitizeUser(targetUser) : { email: userEmail, role: 'Unknown', status: 'Deleted / Inactive' },
+      events: result.events,
+      pagination: result.pagination
+    });
+  } catch (err) {
+    console.error('[ADMIN_USER_ACTIVITY_ERROR]', err);
+    res.status(500).json({ error: 'Failed to retrieve user activity history.' });
+  }
+});
+
+// Admin: Individual User Activity Intelligence Summary
+app.get('/api/admin/users/:userId/activity/summary', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userParam = req.params.userId;
+    const targetUser = await resolveUserFromParam(userParam);
+
+    const userEmail = targetUser ? targetUser.email : (userParam.includes('@') ? userParam.toLowerCase().trim() : '');
+    const userId = targetUser ? String(targetUser._id) : (mongoose.Types.ObjectId.isValid(userParam) ? userParam : '');
+
+    if (!userEmail && !userId) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const summary = await activityService.getUserActivitySummary({
+      userEmail,
+      userId
+    });
+
+    res.json({
+      user: targetUser ? sanitizeUser(targetUser) : { email: userEmail, role: 'Unknown', status: 'Deleted / Inactive' },
+      summary
+    });
+  } catch (err) {
+    console.error('[ADMIN_USER_ACTIVITY_SUMMARY_ERROR]', err);
+    res.status(500).json({ error: 'Failed to retrieve user activity summary.' });
   }
 });
 

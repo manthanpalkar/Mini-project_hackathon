@@ -5,7 +5,7 @@ const { ActivityLog } = require('../models');
 // Sensitive field names that must never be recorded in audit logs
 const SENSITIVE_KEYS = new Set([
   'password', 'newpassword', 'confirmpassword', 'token', 'refreshtoken', 'idtoken',
-  'jwt', 'secret', 'jwt_secret', 'code', 'otp', 'codehash', 'resettotoken', 'resettotokenhash',
+  'jwt', 'secret', 'jwt_secret', 'code', 'otp', 'codehash', 'resettoken', 'resettokenhash', 'resettotoken', 'resettotokenhash',
   'authorization', 'cookie', 'cookies', 'apikey', 'privatekey', 'key'
 ]);
 
@@ -44,6 +44,7 @@ async function logActivity({
   category = 'AUTH',
   actorEmail = 'anonymous',
   actorRole = 'Student',
+  targetUserEmail = '',
   targetType = '',
   targetId = '',
   summary = '',
@@ -62,6 +63,7 @@ async function logActivity({
       category,
       actorEmail: (actorEmail || 'anonymous').toLowerCase().trim(),
       actorRole: actorRole || 'Student',
+      targetUserEmail: (targetUserEmail || '').toLowerCase().trim(),
       targetType: targetType || '',
       targetId: targetId ? String(targetId) : '',
       summary: summary || `${eventType} - ${outcome}`,
@@ -145,8 +147,177 @@ async function getAuditLogs({
   };
 }
 
+/**
+ * Retrieve dedicated paginated audit events for a specific user
+ * (Both actions performed BY user and actions performed ON user by admin)
+ */
+async function getUserActivity({
+  userEmail = '',
+  userId = '',
+  page = 1,
+  limit = 20,
+  category = '',
+  search = ''
+}) {
+  const safeEmail = (userEmail || '').toLowerCase().trim();
+  const safeId = userId ? String(userId).trim() : '';
+
+  if (!safeEmail && !safeId) {
+    return { events: [], pagination: { total: 0, page: 1, limit: 20, pages: 1 } };
+  }
+
+  const userConditions = [];
+  if (safeEmail) {
+    userConditions.push({ actorEmail: safeEmail });
+    userConditions.push({ targetUserEmail: safeEmail });
+  }
+  if (safeId) {
+    userConditions.push({ targetId: safeId });
+  }
+
+  const query = { $or: userConditions };
+
+  if (category && category !== 'All' && category !== 'ALL') {
+    query.category = category.toUpperCase();
+  }
+
+  if (search && typeof search === 'string' && search.trim()) {
+    const safeRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    query.$and = [
+      {
+        $or: [
+          { summary: safeRegex },
+          { eventType: safeRegex },
+          { targetType: safeRegex },
+          { outcome: safeRegex },
+          { actorEmail: safeRegex },
+          { targetUserEmail: safeRegex }
+        ]
+      }
+    ];
+  }
+
+  const safePage = Math.max(1, parseInt(page, 10) || 1);
+  const safeLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+  const skip = (safePage - 1) * safeLimit;
+
+  const [total, rawEvents] = await Promise.all([
+    ActivityLog.countDocuments(query),
+    ActivityLog.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .lean()
+  ]);
+
+  const events = rawEvents.map(evt => {
+    const isActor = safeEmail && evt.actorEmail === safeEmail;
+    return {
+      ...evt,
+      actionDirection: isActor ? 'BY_USER' : 'ON_USER_BY_ADMIN'
+    };
+  });
+
+  return {
+    events,
+    pagination: {
+      total,
+      page: safePage,
+      limit: safeLimit,
+      pages: Math.ceil(total / safeLimit) || 1
+    }
+  };
+}
+
+/**
+ * Retrieve comprehensive activity intelligence summary counts for a specific user
+ */
+async function getUserActivitySummary({ userEmail = '', userId = '' }) {
+  const safeEmail = (userEmail || '').toLowerCase().trim();
+  const safeId = userId ? String(userId).trim() : '';
+
+  const userConditions = [];
+  if (safeEmail) {
+    userConditions.push({ actorEmail: safeEmail });
+    userConditions.push({ targetUserEmail: safeEmail });
+  }
+  if (safeId) {
+    userConditions.push({ targetId: safeId });
+  }
+
+  const baseQuery = userConditions.length ? { $or: userConditions } : {};
+
+  const [
+    totalEvents,
+    successfulLogins,
+    failedLogins,
+    resourceUploads,
+    resourceDeletions,
+    profileUpdates,
+    storySubmissions,
+    passwordEvents,
+    adminInterventions,
+    mostRecentLog
+  ] = await Promise.all([
+    ActivityLog.countDocuments(baseQuery),
+    safeEmail ? ActivityLog.countDocuments({ actorEmail: safeEmail, eventType: 'AUTH_LOGIN_SUCCESS' }) : 0,
+    safeEmail ? ActivityLog.countDocuments({ actorEmail: safeEmail, eventType: 'AUTH_LOGIN_FAIL' }) : 0,
+    safeEmail ? ActivityLog.countDocuments({
+      $or: [
+        { actorEmail: safeEmail, eventType: { $in: ['CONTENT_RESOURCE_UPLOAD', 'CONTENT_RESOURCE_SUBMIT'] } },
+        { targetUserEmail: safeEmail, eventType: 'CONTENT_RESOURCE_APPROVE' }
+      ]
+    }) : 0,
+    safeEmail ? ActivityLog.countDocuments({
+      actorEmail: safeEmail,
+      eventType: 'CONTENT_RESOURCE_DELETE'
+    }) : 0,
+    safeEmail ? ActivityLog.countDocuments({
+      $or: [
+        { actorEmail: safeEmail, eventType: 'PROFILE_UPDATE' },
+        { targetUserEmail: safeEmail, eventType: 'PROFILE_UPDATE' }
+      ]
+    }) : 0,
+    safeEmail ? ActivityLog.countDocuments({
+      $or: [
+        { actorEmail: safeEmail, eventType: { $in: ['CONTENT_STORY_ADD', 'CONTENT_STORY_SUBMIT'] } },
+        { targetUserEmail: safeEmail, eventType: 'CONTENT_STORY_APPROVE' }
+      ]
+    }) : 0,
+    safeEmail ? ActivityLog.countDocuments({
+      $or: [
+        { actorEmail: safeEmail, eventType: { $in: ['AUTH_PASSWORD_RESET_REQ', 'AUTH_PASSWORD_RESET_SUCCESS', 'AUTH_PASSWORD_CHANGE'] } },
+        { targetUserEmail: safeEmail, eventType: { $in: ['AUTH_PASSWORD_RESET_REQ', 'AUTH_PASSWORD_RESET_SUCCESS', 'AUTH_PASSWORD_CHANGE'] } }
+      ]
+    }) : 0,
+    safeEmail ? ActivityLog.countDocuments({
+      targetUserEmail: safeEmail,
+      actorEmail: { $ne: safeEmail }
+    }) : 0,
+    ActivityLog.findOne(baseQuery).sort({ createdAt: -1 }).select('createdAt eventType summary').lean()
+  ]);
+
+  return {
+    totalEvents,
+    successfulLogins,
+    failedLogins,
+    resourceUploads,
+    resourceDeletions,
+    profileUpdates,
+    storySubmissions,
+    passwordEvents,
+    adminInterventions,
+    recentActivityAt: mostRecentLog ? mostRecentLog.createdAt : null,
+    recentEventSummary: mostRecentLog ? mostRecentLog.summary : null,
+    hasActivityLogs: totalEvents > 0,
+    isHistoricalDataAvailable: true
+  };
+}
+
 module.exports = {
   logActivity,
   getAuditLogs,
+  getUserActivity,
+  getUserActivitySummary,
   sanitizeMetadata
 };

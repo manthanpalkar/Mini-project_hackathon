@@ -264,10 +264,13 @@ export default function Login() {
       return;
     }
 
-    if (trimmedInput.includes('@') && !trimmedInput.toLowerCase().endsWith('@spit.ac.in')) {
-      setError('Please use your official SPIT email address (@spit.ac.in)');
-      triggerCharacterState('IDLE');
-      return;
+    if (trimmedInput.includes('@')) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedInput)) {
+        setError('Please enter a valid email address');
+        triggerCharacterState('IDLE');
+        return;
+      }
     }
 
     if (!password) {
@@ -870,7 +873,7 @@ export default function Login() {
                   fontWeight: 400,
                   lineHeight: 1.45
                 }}>
-                  Sign in with your verified @spit.ac.in account
+                  Sign in with your verified account or SPIT ID
                 </p>
               </>
             )}
@@ -1303,7 +1306,7 @@ export default function Login() {
                 {/* Username or SPIT Email Field */}
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label" htmlFor="email-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                    Username or SPIT Email
+                    Email Address or SPIT Username
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -1315,7 +1318,7 @@ export default function Login() {
                       autoCapitalize="none"
                       spellCheck="false"
                       className="input-field"
-                      placeholder="Username or SPIT email"
+                      placeholder="Email address or SPIT username"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onFocus={handleEmailFocus}

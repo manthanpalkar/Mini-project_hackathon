@@ -1379,4 +1379,28 @@ export const getAdminAuditLogs = async (params = {}) => {
   return await res.json();
 };
 
+export const getAdminUserActivity = async (userId, params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.category && params.category !== 'All') query.set('category', params.category);
+  if (params.search) query.set('search', params.search);
+
+  const res = await authFetch(`${API_URL}/admin/users/${encodeURIComponent(userId)}/activity?${query.toString()}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch user activity history.');
+  }
+  return await res.json();
+};
+
+export const getAdminUserActivitySummary = async (userId) => {
+  const res = await authFetch(`${API_URL}/admin/users/${encodeURIComponent(userId)}/activity/summary`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch user activity summary.');
+  }
+  return await res.json();
+};
+
 

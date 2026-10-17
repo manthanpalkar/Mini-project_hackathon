@@ -376,17 +376,28 @@ const ActivityLogSchema = new mongoose.Schema({
       'AUTH_SESSION_REVOKED',
       'AUTH_PASSWORD_RESET_REQ',
       'AUTH_PASSWORD_RESET_SUCCESS',
+      'AUTH_PASSWORD_CHANGE',
       'PROFILE_UPDATE',
       'ONBOARDING_COMPLETE',
       'CONTENT_STORY_ADD',
       'CONTENT_STORY_EDIT',
       'CONTENT_STORY_DELETE',
+      'CONTENT_STORY_SUBMIT',
+      'CONTENT_STORY_APPROVE',
+      'CONTENT_STORY_REJECT',
       'CONTENT_RESOURCE_UPLOAD',
+      'CONTENT_RESOURCE_SUBMIT',
+      'CONTENT_RESOURCE_APPROVE',
+      'CONTENT_RESOURCE_REJECT',
       'CONTENT_RESOURCE_DELETE',
       'CONTENT_FOLDER_CREATE',
       'FEEDBACK_SUBMIT',
       'FEEDBACK_STATUS_CHANGE',
+      'USER_CREATE',
+      'USER_UPDATE',
+      'USER_DELETE',
       'ADMIN_ACTION',
+      'ADMIN_APPROVE_RESOURCE',
       'SECURITY_WARN'
     ],
     index: true
@@ -394,11 +405,12 @@ const ActivityLogSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['AUTH', 'PROFILE', 'CONTENT', 'FEEDBACK', 'ADMIN', 'SECURITY'],
+    enum: ['AUTH', 'PROFILE', 'CONTENT', 'FEEDBACK', 'ADMIN', 'SECURITY', 'USER'],
     index: true
   },
   actorEmail: { type: String, required: true, lowercase: true, trim: true, index: true },
   actorRole: { type: String, default: 'Student' },
+  targetUserEmail: { type: String, lowercase: true, trim: true, index: true, default: '' },
   targetType: { type: String, default: '' },
   targetId: { type: String, default: '' },
   summary: { type: String, required: true },
@@ -409,6 +421,7 @@ const ActivityLogSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 ActivityLogSchema.index({ actorEmail: 1, createdAt: -1 });
+ActivityLogSchema.index({ targetUserEmail: 1, createdAt: -1 });
 ActivityLogSchema.index({ category: 1, createdAt: -1 });
 ActivityLogSchema.index({ eventType: 1, createdAt: -1 });
 ActivityLogSchema.index({ createdAt: -1 });
