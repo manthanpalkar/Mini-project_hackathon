@@ -672,7 +672,11 @@ app.get(['/api/upload-route-health', '/upload-route-health'], (req, res) => {
 app.get(['/api/email-provider-health', '/email-provider-health'], (req, res) => {
   const rawKey = process.env.BREVO_API_KEY || '';
   const cleanKey = rawKey.trim().replace(/^["']|["']$/g, '');
-  const emailFrom = (process.env.EMAIL_FROM || 'swapnil.patil24@spit.ac.in').trim().replace(/^["']|["']$/g, '');
+  let emailFrom = (process.env.EMAIL_FROM || '').trim().replace(/^["']|["']$/g, '');
+  const hasResendStaleSender = emailFrom.toLowerCase().includes('resend.dev');
+  if (!emailFrom || hasResendStaleSender) {
+    emailFrom = 'swapnil.patil24@spit.ac.in';
+  }
 
   res.status(200).json({
     status: 'ok',
@@ -680,7 +684,9 @@ app.get(['/api/email-provider-health', '/email-provider-health'], (req, res) => 
     brevoKeyLength: cleanKey.length,
     brevoKeyPrefix: cleanKey ? cleanKey.slice(0, 10) + '...' : 'missing',
     emailFromConfigured: Boolean(process.env.EMAIL_FROM),
+    emailFromRaw: process.env.EMAIL_FROM || 'unset',
     emailFromEffective: emailFrom,
+    hasResendStaleSender,
     timestamp: new Date().toISOString()
   });
 });

@@ -207,7 +207,10 @@ async function sendPasswordResetEmail(recipientOrOptions, optionalCode) {
   }
 
   const apiKey = process.env.BREVO_API_KEY.trim().replace(/^["']|["']$/g, '');
-  const fromEmail = (process.env.EMAIL_FROM || 'swapnil.patil24@spit.ac.in').trim().replace(/^["']|["']$/g, '');
+  let fromEmail = (process.env.EMAIL_FROM || '').trim().replace(/^["']|["']$/g, '');
+  if (!fromEmail || fromEmail.toLowerCase().includes('resend.dev')) {
+    fromEmail = 'swapnil.patil24@spit.ac.in';
+  }
 
   try {
     const payload = {
