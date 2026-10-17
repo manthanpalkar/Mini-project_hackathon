@@ -53,7 +53,8 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
       body: JSON.stringify(payload)
     });
     const data = await res.json().catch(() => ({}));
-    return { status: res.status, data };
+    const headers = Object.fromEntries(res.headers.entries());
+    return { status: res.status, data, headers };
   }
 
   before(async () => {
@@ -684,25 +685,42 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     }
   });
 
-  // TEST 22: Provider acceptance returns emailSent: true and creates usable challenge
-  test('Provider Acceptance: successful dispatch returns emailSent: true and pending challenge', async () => {
+  // TEST 22: Provider acceptance returns success: true and creates usable challenge
+  test('Provider Acceptance: successful dispatch returns success: true and pending challenge', async () => {
     const { status, data } = await postJson('/api/auth/forgot-password', { email: testEmail });
     assert.equal(status, 200);
-    assert.equal(data.emailSent, true);
+    assert.equal(data.success, true);
+    assert.match(data.message, /If an account with that email exists/i);
 
     const pending = mockChallenges.filter(c => c.email === testEmail && c.status === 'pending');
     assert.equal(pending.length, 1);
   });
 
-  // TEST 23: Unknown account returns emailSent: false without creating any challenge
-  test('Unknown Account Safety: returns emailSent: false with zero stored challenges', async () => {
+  // TEST 23: Unknown account returns identical generic response without creating any challenge
+  test('Unknown Account Safety: returns identical generic response with zero stored challenges', async () => {
     const { status, data } = await postJson('/api/auth/forgot-password', { email: 'ghost.user.999@spit.ac.in' });
     assert.equal(status, 200);
-    assert.equal(data.emailSent, false);
+    assert.equal(data.success, true);
     assert.match(data.message, /If an account with that email exists/i);
 
     const challenges = mockChallenges.filter(c => c.email === 'ghost.user.999@spit.ac.in');
     assert.equal(challenges.length, 0);
+  });
+
+  // TEST 23b: Response Anti-Enumeration: complete status code, response body, and headers match identically
+  test('Anti-Enumeration Equality: existing account and nonexistent account receive identical status, body, and headers', async () => {
+    const resValid = await postJson('/api/auth/forgot-password', { email: testEmail });
+    const resGhost = await postJson('/api/auth/forgot-password', { email: 'nonexistent.probe@spit.ac.in' });
+
+    assert.equal(resValid.status, 200);
+    assert.equal(resGhost.status, 200);
+    assert.deepStrictEqual(resValid.data, resGhost.data);
+    assert.equal(resValid.headers['content-type'], resGhost.headers['content-type']);
+
+    // Ensure response fields do not leak account existence
+    assert.deepStrictEqual(Object.keys(resValid.data).sort(), ['message', 'success']);
+    assert.equal(resValid.data.emailSent, undefined);
+    assert.equal(resGhost.data.emailSent, undefined);
   });
 
   // TEST 24: Universal Multi-User Support: Multiple distinct accounts dynamically receive their own OTPs
@@ -744,17 +762,17 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     // 1. Request OTP for User A
     const resA = await postJson('/api/auth/forgot-password', { email: userA });
     assert.equal(resA.status, 200);
-    assert.equal(resA.data.emailSent, true);
+    assert.equal(resA.data.success, true);
 
     // 2. Request OTP for User B
     const resB = await postJson('/api/auth/forgot-password', { email: userB });
     assert.equal(resB.status, 200);
-    assert.equal(resB.data.emailSent, true);
+    assert.equal(resB.data.success, true);
 
     // 3. Request OTP for User C
     const resC = await postJson('/api/auth/forgot-password', { email: userC });
     assert.equal(resC.status, 200);
-    assert.equal(resC.data.emailSent, true);
+    assert.equal(resC.data.success, true);
 
     // Verify all 3 received emails to their own distinct recipient addresses
     const emails = getMockEmails();
@@ -843,7 +861,7 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     clearMockEmails();
     const res = await postJson('/api/auth/forgot-password', { email: newStudent });
     assert.equal(res.status, 200);
-    assert.equal(res.data.emailSent, true);
+    assert.equal(res.data.success, true);
 
     const emailSent = getLastMockEmail();
     assert.ok(emailSent);

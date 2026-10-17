@@ -25,11 +25,24 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:5001',
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
+        changeOrigin: true,
+      }
+    }
+  },
+  preview: {
+    allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
         changeOrigin: true,
       }
     }

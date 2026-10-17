@@ -3,398 +3,556 @@
     {
       "concurrency": 10,
       "totalRequests": 200,
-      "durationSec": 0.02,
-      "rps": 10182.2,
+      "durationSec": 0.037,
+      "rps": 5473.8,
       "successCount": 200,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 200
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 0.18,
-        "p50": 0.72,
-        "p95": 2.76,
-        "p99": 3.1,
-        "max": 3.68,
-        "avg": 0.9
+        "min": 0.22,
+        "p50": 1.02,
+        "p95": 11.36,
+        "p99": 12.08,
+        "max": 15,
+        "avg": 1.73
       },
       "eventLoopDelayMs": {
-        "mean": null,
-        "p50": 0,
-        "p95": 0,
-        "p99": 0,
-        "max": 0
+        "mean": 10.01,
+        "p50": 9.91,
+        "p95": 10.12,
+        "p99": 10.12,
+        "max": 10.12
       },
-      "rssDeltaMB": 1.7,
-      "cpuUserMs": 21.3,
-      "cpuSystemMs": 2.6
+      "rssDeltaMB": 1.84,
+      "cpuUserMs": 31.5,
+      "cpuSystemMs": 3.4
     },
     {
       "concurrency": 50,
       "totalRequests": 500,
-      "durationSec": 0.05,
-      "rps": 10086.1,
+      "durationSec": 0.039,
+      "rps": 12661.6,
       "successCount": 500,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 500
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 0.33,
-        "p50": 2.31,
-        "p95": 22.17,
-        "p99": 47.46,
-        "max": 47.52,
-        "avg": 4.7
+        "min": 0.58,
+        "p50": 2.32,
+        "p95": 7.49,
+        "p99": 37.93,
+        "max": 38.16,
+        "avg": 3.7
       },
       "eventLoopDelayMs": {
-        "mean": 10.02,
-        "p50": 10.01,
-        "p95": 10.07,
-        "p99": 10.07,
-        "max": 10.07
+        "mean": 10,
+        "p50": 9.76,
+        "p95": 10.25,
+        "p99": 10.25,
+        "max": 10.25
       },
-      "rssDeltaMB": 8.95,
-      "cpuUserMs": 56,
-      "cpuSystemMs": 8
+      "rssDeltaMB": 8.48,
+      "cpuUserMs": 50.5,
+      "cpuSystemMs": 6.9
     },
     {
       "concurrency": 100,
       "totalRequests": 1000,
-      "durationSec": 0.061,
-      "rps": 16525.5,
+      "durationSec": 0.045,
+      "rps": 22439.6,
       "successCount": 1000,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 1000
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 2.03,
-        "p50": 3,
-        "p95": 11.38,
-        "p99": 58.27,
-        "max": 58.58,
-        "avg": 5.6
+        "min": 0.57,
+        "p50": 2.81,
+        "p95": 7.72,
+        "p99": 42.62,
+        "max": 42.91,
+        "avg": 4.18
       },
       "eventLoopDelayMs": {
-        "mean": 10.01,
-        "p50": 9.99,
-        "p95": 10.21,
-        "p99": 10.21,
-        "max": 10.21
+        "mean": 9.86,
+        "p50": 9.98,
+        "p95": 10.05,
+        "p99": 10.05,
+        "max": 10.05
       },
-      "rssDeltaMB": 1.14,
-      "cpuUserMs": 54.9,
-      "cpuSystemMs": 8.4
+      "rssDeltaMB": 2.83,
+      "cpuUserMs": 54.2,
+      "cpuSystemMs": 7.6
     },
     {
       "concurrency": 250,
       "totalRequests": 2000,
-      "durationSec": 0.112,
-      "rps": 17911.4,
-      "successCount": 1968,
-      "failCount": 32,
+      "durationSec": 0.101,
+      "rps": 19817.3,
+      "successCount": 2000,
+      "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
-      "errorRate": 1.6,
+      "statusCodes": {
+        "200": 2000
+      },
+      "clientErrors": {},
+      "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 2.58,
-        "p50": 7.69,
-        "p95": 38.57,
-        "p99": 104.38,
-        "max": 105.09,
-        "avg": 12.66
+        "min": 2.87,
+        "p50": 8.71,
+        "p95": 22.23,
+        "p99": 96.71,
+        "max": 97.5,
+        "avg": 11.29
       },
       "eventLoopDelayMs": {
-        "mean": 11.25,
-        "p50": 10.01,
-        "p95": 19.3,
-        "p99": 19.3,
-        "max": 19.3
+        "mean": 11.73,
+        "p50": 10.02,
+        "p95": 15.86,
+        "p99": 15.86,
+        "max": 15.86
       },
-      "rssDeltaMB": 22.56,
-      "cpuUserMs": 114.5,
-      "cpuSystemMs": 19.3
+      "rssDeltaMB": 25.69,
+      "cpuUserMs": 110.1,
+      "cpuSystemMs": 20.4
     },
     {
       "concurrency": 500,
       "totalRequests": 3000,
-      "durationSec": 0.163,
-      "rps": 18367.7,
-      "successCount": 2823,
-      "failCount": 177,
+      "durationSec": 0.159,
+      "rps": 18811.8,
+      "successCount": 2849,
+      "failCount": 151,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 151,
       "timeoutCount": 0,
-      "errorRate": 5.9,
+      "statusCodes": {
+        "200": 2849
+      },
+      "clientErrors": {
+        "ECONNRESET": 151
+      },
+      "errorRate": 5.03,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 0.12,
-        "p50": 16.15,
-        "p95": 43.68,
-        "p99": 145.94,
-        "max": 147.08,
-        "avg": 23.87
+        "min": 4.34,
+        "p50": 17.08,
+        "p95": 73.4,
+        "p99": 125.67,
+        "max": 145.11,
+        "avg": 23.49
       },
       "eventLoopDelayMs": {
-        "mean": 10.38,
-        "p50": 10,
-        "p95": 12.01,
-        "p99": 12.68,
-        "max": 12.68
+        "mean": 16.28,
+        "p50": 15.05,
+        "p95": 25.31,
+        "p99": 25.31,
+        "max": 25.31
       },
-      "rssDeltaMB": 35.02,
-      "cpuUserMs": 162.5,
-      "cpuSystemMs": 33.9
+      "rssDeltaMB": 30.13,
+      "cpuUserMs": 175.9,
+      "cpuSystemMs": 36.6
     }
   ],
   "Folders Hierarchy (Cached Hierarchy)": [
     {
       "concurrency": 10,
       "totalRequests": 200,
-      "durationSec": 0.308,
-      "rps": 648.4,
+      "durationSec": 0.444,
+      "rps": 450.7,
       "successCount": 200,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 200
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 11.39,
-        "p50": 15.02,
-        "p95": 20.05,
-        "p99": 20.38,
-        "max": 20.4,
-        "avg": 15.2
+        "min": 17.55,
+        "p50": 19.87,
+        "p95": 39.96,
+        "p99": 49.51,
+        "max": 50.96,
+        "avg": 21.89
       },
       "eventLoopDelayMs": {
-        "mean": 10.1,
-        "p50": 10.04,
-        "p95": 10.94,
-        "p99": 10.97,
-        "max": 10.97
+        "mean": 10.56,
+        "p50": 10.49,
+        "p95": 11.49,
+        "p99": 12.85,
+        "max": 12.85
       },
-      "rssDeltaMB": 51.59,
-      "cpuUserMs": 68.8,
-      "cpuSystemMs": 10.3
+      "rssDeltaMB": 54.19,
+      "cpuUserMs": 74.1,
+      "cpuSystemMs": 16.4
     },
     {
       "concurrency": 50,
       "totalRequests": 500,
-      "durationSec": 0.547,
-      "rps": 913.6,
+      "durationSec": 0.699,
+      "rps": 715.4,
       "successCount": 500,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 500
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 13.28,
-        "p50": 52.8,
-        "p95": 59.29,
-        "p99": 67.22,
-        "max": 67.42,
-        "avg": 52.47
+        "min": 9.12,
+        "p50": 69.06,
+        "p95": 78.25,
+        "p99": 81.11,
+        "max": 81.28,
+        "avg": 66.73
       },
       "eventLoopDelayMs": {
-        "mean": 10.07,
-        "p50": 9.96,
-        "p95": 10.79,
-        "p99": 10.98,
-        "max": 11.16
+        "mean": 10.16,
+        "p50": 10.18,
+        "p95": 10.96,
+        "p99": 11.06,
+        "max": 11.32
       },
-      "rssDeltaMB": 20.73,
-      "cpuUserMs": 93.5,
-      "cpuSystemMs": 24.5
+      "rssDeltaMB": 12.48,
+      "cpuUserMs": 124,
+      "cpuSystemMs": 29.8
     },
     {
       "concurrency": 100,
       "totalRequests": 1000,
-      "durationSec": 1.014,
-      "rps": 986.4,
+      "durationSec": 1.411,
+      "rps": 708.7,
       "successCount": 1000,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 1000
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 16.18,
-        "p50": 99.4,
-        "p95": 105.96,
-        "p99": 106.3,
-        "max": 107.64,
-        "avg": 96.9
+        "min": 11.83,
+        "p50": 143.83,
+        "p95": 159.45,
+        "p99": 162.24,
+        "max": 164.7,
+        "avg": 134.46
       },
       "eventLoopDelayMs": {
-        "mean": 10.07,
-        "p50": 9.95,
+        "mean": 10.13,
+        "p50": 10.09,
         "p95": 10.85,
-        "p99": 11.03,
-        "max": 11.14
+        "p99": 11.05,
+        "max": 11.26
       },
-      "rssDeltaMB": 34.22,
-      "cpuUserMs": 199.6,
-      "cpuSystemMs": 45.1
+      "rssDeltaMB": 41.89,
+      "cpuUserMs": 319.8,
+      "cpuSystemMs": 54.5
     },
     {
       "concurrency": 250,
       "totalRequests": 2000,
-      "durationSec": 2.022,
-      "rps": 988.9,
-      "successCount": 1956,
-      "failCount": 44,
+      "durationSec": 0.474,
+      "rps": 4216.9,
+      "successCount": 330,
+      "failCount": 1670,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 1670,
       "timeoutCount": 0,
-      "errorRate": 2.2,
+      "statusCodes": {
+        "200": 330
+      },
+      "clientErrors": {
+        "ECONNRESET": 1670
+      },
+      "errorRate": 83.5,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 0.95,
-        "p50": 242.47,
-        "p95": 317.26,
-        "p99": 970.5,
-        "max": 980.04,
-        "avg": 236.87
+        "min": 0.15,
+        "p50": 0.44,
+        "p95": 321.42,
+        "p99": 453.48,
+        "max": 462,
+        "avg": 36.49
       },
       "eventLoopDelayMs": {
-        "mean": 10.08,
-        "p50": 10.01,
-        "p95": 10.84,
-        "p99": 11.14,
-        "max": 11.7
+        "mean": 10.07,
+        "p50": 10,
+        "p95": 10.82,
+        "p99": 11.32,
+        "max": 11.32
       },
-      "rssDeltaMB": 14.89,
-      "cpuUserMs": 408.7,
-      "cpuSystemMs": 91
+      "rssDeltaMB": 5.66,
+      "cpuUserMs": 197.6,
+      "cpuSystemMs": 48
     },
     {
       "concurrency": 500,
       "totalRequests": 3000,
-      "durationSec": 0.525,
-      "rps": 5711.9,
-      "successCount": 504,
-      "failCount": 2496,
+      "durationSec": 0.666,
+      "rps": 4503.8,
+      "successCount": 379,
+      "failCount": 2621,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 2621,
       "timeoutCount": 0,
-      "errorRate": 83.2,
+      "statusCodes": {
+        "200": 379
+      },
+      "clientErrors": {
+        "ECONNRESET": 2621
+      },
+      "errorRate": 87.37,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 5.41,
-        "p50": 9.69,
-        "p95": 264.04,
-        "p99": 465.22,
-        "max": 498.43,
-        "avg": 49.45
+        "min": 13.97,
+        "p50": 27.42,
+        "p95": 378.85,
+        "p99": 576.71,
+        "max": 626.36,
+        "avg": 62.17
       },
       "eventLoopDelayMs": {
-        "mean": 10.93,
-        "p50": 9.95,
-        "p95": 17.56,
-        "p99": 17.96,
-        "max": 17.96
+        "mean": 13.65,
+        "p50": 10.31,
+        "p95": 29.47,
+        "p99": 53.51,
+        "max": 53.51
       },
-      "rssDeltaMB": 34,
-      "cpuUserMs": 281.8,
-      "cpuSystemMs": 75.1
+      "rssDeltaMB": 30.61,
+      "cpuUserMs": 350.7,
+      "cpuSystemMs": 88
     }
   ],
   "Resources Filtered Query (15k docs, compound index)": [
     {
       "concurrency": 10,
       "totalRequests": 200,
-      "durationSec": 0.333,
-      "rps": 601.3,
+      "durationSec": 0.501,
+      "rps": 398.9,
       "successCount": 200,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 200
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 13.31,
-        "p50": 15.2,
-        "p95": 25.73,
-        "p99": 33.01,
-        "max": 33.94,
-        "avg": 16.41
+        "min": 16.38,
+        "p50": 22.86,
+        "p95": 39.19,
+        "p99": 41.92,
+        "max": 42.57,
+        "avg": 24.72
       },
       "eventLoopDelayMs": {
-        "mean": 10.12,
-        "p50": 10.15,
-        "p95": 10.67,
-        "p99": 10.95,
-        "max": 10.95
+        "mean": 10.34,
+        "p50": 10.32,
+        "p95": 11.49,
+        "p99": 13.46,
+        "max": 13.46
       },
-      "rssDeltaMB": 5.27,
-      "cpuUserMs": 40,
-      "cpuSystemMs": 8.5
+      "rssDeltaMB": -4.52,
+      "cpuUserMs": 75.3,
+      "cpuSystemMs": 11.9
     },
     {
       "concurrency": 50,
       "totalRequests": 500,
-      "durationSec": 0.686,
-      "rps": 729.1,
+      "durationSec": 0.878,
+      "rps": 569.7,
       "successCount": 500,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 500
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 45.81,
-        "p50": 63.17,
-        "p95": 92.6,
-        "p99": 107.87,
-        "max": 111.81,
-        "avg": 66.14
+        "min": 19.16,
+        "p50": 85.63,
+        "p95": 107.31,
+        "p99": 126.34,
+        "max": 133.73,
+        "avg": 84.31
       },
       "eventLoopDelayMs": {
-        "mean": 10.21,
-        "p50": 10.11,
-        "p95": 11.39,
-        "p99": 11.63,
-        "max": 12.13
+        "mean": 10.31,
+        "p50": 10.2,
+        "p95": 11.04,
+        "p99": 13.67,
+        "max": 14.41
       },
-      "rssDeltaMB": 7.06,
-      "cpuUserMs": 158.8,
-      "cpuSystemMs": 23.5
+      "rssDeltaMB": 5.75,
+      "cpuUserMs": 158.1,
+      "cpuSystemMs": 29.6
     },
     {
       "concurrency": 100,
       "totalRequests": 1000,
-      "durationSec": 1.137,
-      "rps": 879.7,
+      "durationSec": 1.989,
+      "rps": 502.7,
       "successCount": 1000,
       "failCount": 0,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 0,
       "timeoutCount": 0,
+      "statusCodes": {
+        "200": 1000
+      },
+      "clientErrors": {},
       "errorRate": 0,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 26.17,
-        "p50": 111.34,
-        "p95": 126.01,
-        "p99": 162.29,
-        "max": 173.01,
-        "avg": 109.07
+        "min": 37.43,
+        "p50": 188.62,
+        "p95": 286.74,
+        "p99": 304.41,
+        "max": 390.07,
+        "avg": 189.65
       },
       "eventLoopDelayMs": {
-        "mean": 10.11,
-        "p50": 10.05,
-        "p95": 10.95,
-        "p99": 11.03,
-        "max": 11.04
+        "mean": 10.32,
+        "p50": 10.18,
+        "p95": 11.08,
+        "p99": 15.38,
+        "max": 17.47
       },
-      "rssDeltaMB": 2.63,
-      "cpuUserMs": 207.7,
-      "cpuSystemMs": 39.9
+      "rssDeltaMB": 41.89,
+      "cpuUserMs": 404,
+      "cpuSystemMs": 66.6
     },
     {
       "concurrency": 250,
       "totalRequests": 2000,
-      "durationSec": 0.375,
-      "rps": 5334.8,
-      "successCount": 321,
-      "failCount": 1679,
+      "durationSec": 2.956,
+      "rps": 676.7,
+      "successCount": 1754,
+      "failCount": 246,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 246,
       "timeoutCount": 0,
-      "errorRate": 83.95,
+      "statusCodes": {
+        "200": 1754
+      },
+      "clientErrors": {
+        "ECONNRESET": 246
+      },
+      "errorRate": 12.3,
+      "serverErrorRate": 0,
       "latencies": {
-        "min": 0.05,
-        "p50": 0.09,
-        "p95": 260.1,
-        "p99": 351.45,
-        "max": 370.58,
-        "avg": 29.58
+        "min": 0.07,
+        "p50": 310.37,
+        "p95": 485.62,
+        "p99": 2111.47,
+        "max": 2490.34,
+        "avg": 337.72
       },
       "eventLoopDelayMs": {
-        "mean": 10.04,
-        "p50": 10.03,
-        "p95": 10.58,
-        "p99": 11.3,
-        "max": 11.3
+        "mean": 10.23,
+        "p50": 10.17,
+        "p95": 11.05,
+        "p99": 11.82,
+        "max": 15.92
       },
-      "rssDeltaMB": 2.36,
-      "cpuUserMs": 147.4,
-      "cpuSystemMs": 40.4
+      "rssDeltaMB": 22.7,
+      "cpuUserMs": 459.4,
+      "cpuSystemMs": 106.7
+    },
+    {
+      "concurrency": 500,
+      "totalRequests": 3000,
+      "durationSec": 0.633,
+      "rps": 4737.2,
+      "successCount": 377,
+      "failCount": 2623,
+      "rateLimitedCount": 0,
+      "serverErrorCount": 0,
+      "clientSocketErrorCount": 2623,
+      "timeoutCount": 0,
+      "statusCodes": {
+        "200": 377
+      },
+      "clientErrors": {
+        "ECONNRESET": 2623
+      },
+      "errorRate": 87.43,
+      "serverErrorRate": 0,
+      "latencies": {
+        "min": 5.21,
+        "p50": 17.21,
+        "p95": 218.52,
+        "p99": 603.34,
+        "max": 611.48,
+        "avg": 51.76
+      },
+      "eventLoopDelayMs": {
+        "mean": 11.61,
+        "p50": 10.26,
+        "p95": 20.07,
+        "p99": 20.58,
+        "max": 21.02
+      },
+      "rssDeltaMB": 20.41,
+      "cpuUserMs": 256,
+      "cpuSystemMs": 74.2
     }
   ]
 }

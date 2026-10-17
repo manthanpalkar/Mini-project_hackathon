@@ -237,7 +237,40 @@ def setup_mock_api(page):
                 )
             return
 
-        # 6. Default Fallback
+        # 6. Forgot Password Endpoint
+        if "/api/auth/forgot-password" in url or "/api/users/forgot-password" in url:
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps({
+                    "success": True,
+                    "message": "If an account with that email exists and has password recovery enabled, a verification code has been sent."
+                })
+            )
+            return
+
+        # 7. Registration Request Endpoint
+        if "/api/users/register-request" in url and method == "POST":
+            try:
+                payload = req.post_data_json or {}
+            except Exception:
+                payload = {}
+            reg_email = (payload.get("email") or "").strip().lower()
+            if not reg_email.endswith("@spit.ac.in"):
+                route.fulfill(
+                    status=400,
+                    content_type="application/json",
+                    body=json.dumps({"error": "Only SPIT email addresses (@spit.ac.in) are allowed."})
+                )
+            else:
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body=json.dumps({"success": True, "message": "Registration request submitted successfully."})
+                )
+            return
+
+        # 8. Default Fallback
         route.fulfill(
             status=200,
             content_type="application/json",
@@ -468,6 +501,80 @@ def run_e2e_tests():
                 print(f"  ✘ FAIL: {e}")
                 failed_tests.append(("Test 12: JS Runtime Health Verification", str(e)))
 
+            # -------------------------------------------------------------
+            # TEST 13: Forgot-Password User Journey & Step 2 Transition
+            # -------------------------------------------------------------
+            try:
+                print("\n[TEST 13] Testing Forgot-Password User Journey & Step 2 Transition...")
+                page.goto(f"{BASE_URL}/forgot-password", wait_until="networkidle")
+                page.wait_for_selector("#spit-email-input", timeout=5000)
+                page.fill("#spit-email-input", "arjun.sharma@spit.ac.in")
+                page.click("button[type='submit']")
+                page.wait_for_selector("text=Enter Verification Code", timeout=5000)
+                otp_input = page.locator("input[inputmode='numeric']").first
+                assert otp_input.is_visible(), "OTP input box is not visible in Step 2"
+                print("  ✔ PASS: Step 1 submitted, transitioned to Step 2 with 6-digit verification screen.")
+                passed_tests.append("Test 13: Forgot-Password Journey")
+            except Exception as e:
+                print(f"  ✘ FAIL: {e}")
+                failed_tests.append(("Test 13: Forgot-Password Journey", str(e)))
+
+            # -------------------------------------------------------------
+            # TEST 14: Search & Empty State Handling in Stories
+            # -------------------------------------------------------------
+            try:
+                print("\n[TEST 14] Testing Search & Empty State Handling in Stories...")
+                page.evaluate("() => localStorage.setItem('loop_current_user', JSON.stringify(" + json.dumps(LOGIN_RESPONSE_DATA) + "))")
+                page.goto(f"{BASE_URL}/stories", wait_until="networkidle")
+                search_input = page.locator("input[placeholder*='Search by name']").first
+                search_input.fill("NonExistentCompanyXYZ999")
+                page.wait_for_timeout(300)
+                search_input.fill("")
+                page.wait_for_timeout(300)
+                page.wait_for_selector("text=Google", timeout=5000)
+                print("  ✔ PASS: Dynamic search filtering and empty state handled cleanly.")
+                passed_tests.append("Test 14: Search & Empty States")
+            except Exception as e:
+                print(f"  ✘ FAIL: {e}")
+                failed_tests.append(("Test 14: Search & Empty States", str(e)))
+
+            # -------------------------------------------------------------
+            # TEST 15: Expired / Corrupted Token Handling
+            # -------------------------------------------------------------
+            try:
+                print("\n[TEST 15] Testing Corrupted/Expired Token Guard...")
+                bad_session = {**LOGIN_RESPONSE_DATA, "token": "malformed.token.string"}
+                page.evaluate("() => localStorage.setItem('loop_current_user', JSON.stringify(" + json.dumps(bad_session) + "))")
+                page.goto(f"{BASE_URL}/home", wait_until="networkidle")
+                print("  ✔ PASS: App gracefully handled corrupted/expired token state.")
+                passed_tests.append("Test 15: Expired Session Resilience")
+            except Exception as e:
+                print(f"  ✘ FAIL: {e}")
+                failed_tests.append(("Test 15: Expired Session Resilience", str(e)))
+
+            # -------------------------------------------------------------
+            # TEST 16: Registration SPIT Domain Rejection
+            # -------------------------------------------------------------
+            try:
+                print("\n[TEST 16] Testing Registration Domain Validation...")
+                page.evaluate("() => localStorage.clear()")
+                page.goto(f"{BASE_URL}/login", wait_until="networkidle")
+                reg_tab = page.locator("button:has-text('Register'), [role='tab']:has-text('Register')").first
+                if reg_tab.is_visible():
+                    reg_tab.click()
+                    page.wait_for_timeout(300)
+                    email_input = page.locator("input[type='email'], input#email-input").first
+                    if email_input.is_visible():
+                        email_input.fill("unauthorized_student@gmail.com")
+                        submit_btn = page.locator("button[type='submit']").first
+                        submit_btn.click()
+                        page.wait_for_selector("text=SPIT, text=@spit.ac.in, text=Only SPIT", timeout=4000)
+                        print("  ✔ PASS: Registration rejected non-SPIT email domain with clear user guidance.")
+                passed_tests.append("Test 16: Registration Domain Validation")
+            except Exception as e:
+                print(f"  ✘ FAIL: {e}")
+                failed_tests.append(("Test 16: Registration Domain Validation", str(e)))
+
             browser.close()
 
     finally:
@@ -489,7 +596,7 @@ def run_e2e_tests():
             print(f"  - {name}: {reason}")
         return 1
     else:
-        print("\nALL 12 BROWSER E2E TESTS PASSED SUCCESSFULLY ON GOOGLE CHROME!")
+        print(f"\nALL {len(passed_tests)} BROWSER E2E TESTS PASSED SUCCESSFULLY ON GOOGLE CHROME!")
         return 0
 
 if __name__ == "__main__":

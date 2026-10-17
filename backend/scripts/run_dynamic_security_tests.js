@@ -76,7 +76,7 @@ async function runDastSuite() {
 
   await usersColl.updateOne(
     { email: 'sec_student@spit.ac.in' },
-    { $set: { email: 'sec_student@spit.ac.in', name: 'Security Student', role: 'Student', status: 'Active', department: 'Comps', passingYear: 2026 } },
+    { $set: { email: 'sec_student@spit.ac.in', name: 'Security Student', role: 'Student', status: 'Active', department: 'Comps', passingYear: 2026, onboarded: true } },
     { upsert: true }
   );
 
@@ -273,10 +273,13 @@ async function runDastSuite() {
   });
 
   // 11. RATE LIMITING
-  await test('11.1 Rate limiting telemetry headers present', async () => {
-    const res = await sendRequest({ path: '/api/health' });
-    assert.ok(res.headers['ratelimit-limit']);
-    assert.ok(res.headers['ratelimit-remaining']);
+  await test('11.1 Rate limiting telemetry headers present on protected routes & health exempt', async () => {
+    const healthRes = await sendRequest({ path: '/api/health' });
+    assert.strictEqual(healthRes.headers['ratelimit-limit'], undefined, 'Health probes must be exempt from rate limits');
+
+    const protectedRes = await sendRequest({ path: '/api/stories', headers: { Authorization: `Bearer ${studentToken}` } });
+    assert.ok(protectedRes.headers['ratelimit-limit'], 'Missing ratelimit-limit header on non-exempt route');
+    assert.ok(protectedRes.headers['ratelimit-remaining'], 'Missing ratelimit-remaining header on non-exempt route');
   });
 
   // 12. ERROR MASKING

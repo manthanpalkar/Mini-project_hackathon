@@ -52,6 +52,19 @@ test('Rate Limiter: Sensitive routes maintain strict abuse protection', () => {
   assert.strictEqual(RATE_LIMIT_CONFIG.DOWNLOAD_MAX, 60, 'File download limiter must cap downloads to 60 per 15 min');
 });
 
+test('Rate Limiter: Global limiter exempts health check probes from rate limits', (t, done) => {
+  let nextCalled = false;
+  const mockReq = { path: '/api/health', headers: {}, socket: { remoteAddress: '127.0.0.1' } };
+  const mockRes = { setHeader: () => {}, getHeader: () => {} };
+
+  globalLimiter(mockReq, mockRes, (err) => {
+    assert.strictEqual(err, undefined);
+    nextCalled = true;
+    assert.strictEqual(nextCalled, true);
+    done();
+  });
+});
+
 // =========================================================================
 // 2. In-Memory User Auth Cache Tests
 // =========================================================================

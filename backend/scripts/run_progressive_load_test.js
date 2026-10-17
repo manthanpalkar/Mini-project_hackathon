@@ -91,7 +91,8 @@ function executeRequest(urlPath) {
     req.on('error', (err) => {
       const diff = process.hrtime(start);
       resolve({
-        statusCode: 500,
+        statusCode: 0, // Client network/socket error (NOT a server HTTP response)
+        clientError: err.code || err.message,
         durationMs: diff[0] * 1000 + diff[1] / 1e6,
         success: false,
         error: err.message
@@ -114,6 +115,11 @@ async function runStep(concurrency, totalRequests, endpoint) {
   let successCount = 0;
   let failCount = 0;
   let timeoutCount = 0;
+  let rateLimitedCount = 0;
+  let serverErrorCount = 0;
+  let clientSocketErrorCount = 0;
+  const statusCodes = {};
+  const clientErrors = {};
 
   let remaining = totalRequests;
   const worker = async () => {
@@ -121,9 +127,19 @@ async function runStep(concurrency, totalRequests, endpoint) {
       remaining--;
       const res = await executeRequest(endpoint);
       latencies.push(res.durationMs);
-      if (res.success) successCount++;
-      else {
+      if (res.statusCode > 0) {
+        statusCodes[res.statusCode] = (statusCodes[res.statusCode] || 0) + 1;
+      } else if (res.clientError) {
+        clientErrors[res.clientError] = (clientErrors[res.clientError] || 0) + 1;
+      }
+
+      if (res.success) {
+        successCount++;
+      } else {
         failCount++;
+        if (res.statusCode === 429) rateLimitedCount++;
+        if (res.statusCode >= 500) serverErrorCount++;
+        if (res.clientError) clientSocketErrorCount++;
         if (res.timeout) timeoutCount++;
       }
     }
@@ -144,6 +160,7 @@ async function runStep(concurrency, totalRequests, endpoint) {
   const rps = parseFloat((totalRequests / durationSec).toFixed(1));
   const stats = calculateStats(latencies);
   const errorRate = parseFloat(((failCount / totalRequests) * 100).toFixed(2));
+  const serverErrorRate = parseFloat(((serverErrorCount / totalRequests) * 100).toFixed(2));
 
   return {
     concurrency,
@@ -152,8 +169,14 @@ async function runStep(concurrency, totalRequests, endpoint) {
     rps,
     successCount,
     failCount,
+    rateLimitedCount,
+    serverErrorCount,
+    clientSocketErrorCount,
     timeoutCount,
+    statusCodes,
+    clientErrors,
     errorRate,
+    serverErrorRate,
     latencies: stats,
     eventLoopDelayMs: {
       mean: parseFloat((eld.mean / 1e6).toFixed(2)),
@@ -208,11 +231,11 @@ async function runProgressiveSuite() {
       const res = await runStep(step.vu, step.reqs, ep.path);
       overallResults[ep.name].push(res);
 
-      console.log(`RPS: ${res.rps.toFixed(1).padStart(7)} | p50: ${res.latencies.p50}ms | p95: ${res.latencies.p95}ms | p99: ${res.latencies.p99}ms | ELD p99: ${res.eventLoopDelayMs.p99}ms | Errors: ${res.errorRate}%`);
+      console.log(`RPS: ${res.rps.toFixed(1).padStart(7)} | p50: ${res.latencies.p50}ms | p95: ${res.latencies.p95}ms | p99: ${res.latencies.p99}ms | Status: ${JSON.stringify(res.statusCodes)} | ClientErrors: ${JSON.stringify(res.clientErrors)} | Server5xx: ${res.serverErrorRate}% | Throttled429: ${res.rateLimitedCount}`);
 
-      // Circuit Breaker
-      if (res.errorRate > 5.0 || res.latencies.p99 > 3000) {
-        console.warn(`\n  ⚠ CIRCUIT BREAKER TRIGGERED: Error rate (${res.errorRate}%) or p99 latency (${res.latencies.p99}ms) exceeded safety threshold.`);
+      // Circuit Breaker (halts only on genuine application/database failures or catastrophic latency)
+      if (res.serverErrorRate > 5.0 || res.latencies.p99 > 3000) {
+        console.warn(`\n  ⚠ CIRCUIT BREAKER TRIGGERED: Server error rate (${res.serverErrorRate}%) or p99 latency (${res.latencies.p99}ms) exceeded safety threshold.`);
         console.warn(`  Halting higher concurrency steps for this endpoint to preserve host stability.`);
         break;
       }
