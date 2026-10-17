@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft } from 'lucide-react';
 import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 
@@ -1375,6 +1375,37 @@ export default function Login() {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                </div>
+
+                {/* Forgot Password Link */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.35rem', marginBottom: '0.1rem' }}>
+                  <Link
+                    to="/forgot-password"
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 500,
+                      color: 'var(--text-secondary)',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'color 0.2s ease, outline 0.2s ease',
+                      borderRadius: '4px',
+                      padding: '2px 4px',
+                      outline: 'none'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.color = '#ef4444';
+                      e.currentTarget.style.outline = '2px solid rgba(239, 68, 68, 0.4)';
+                      e.currentTarget.style.outlineOffset = '2px';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                  >
+                    Forgot Password?
+                  </Link>
                 </div>
 
                 {/* Remember me & Notice Row */}

@@ -17,12 +17,13 @@ const helmet = require('helmet');
 const busboy = require('busboy');
 const crypto = require('crypto');
 const compression = require('compression');
-const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession } = require('./models');
+const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession, PasswordResetChallenge } = require('./models');
 const StorageService = require('./services/storageService');
 const { ensureSystemFolders } = require('./scripts/initSystemFolders');
-const { verifyGoogleToken } = require('./services/googleAuth');
+const { verifyGoogleToken, isSpitDomain, RESTRICTED_MESSAGE } = require('./services/googleAuth');
 const { generateFullSystemHealth, recordWriteVerification } = require('./services/systemDiagnostics');
 const cacheService = require('./services/cacheService');
+const { sendPasswordResetEmail } = require('./services/emailService');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -33,6 +34,7 @@ if (!JWT_SECRET || typeof JWT_SECRET !== 'string' || JWT_SECRET.trim().length < 
   console.error('FATAL ERROR: JWT_SECRET environment variable is missing or less than 32 characters.');
   process.exit(1);
 }
+const RESET_SECRET = process.env.RESET_SECRET || JWT_SECRET;
 
 const RATE_LIMIT_CONFIG = {
   GLOBAL_MAX: parseInt(process.env.RATE_LIMIT_GLOBAL_MAX || '1500', 10),
@@ -100,19 +102,19 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://127.0.0.1:5173',
 ];
 
-const envAllowed = (process.env.ALLOWED_ORIGIN || '')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
-
-const ALLOWED_ORIGINS = Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...envAllowed]));
+function parseConfiguredOrigins(env = process.env) {
+  const singular = (env.ALLOWED_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+  const plural = (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...singular, ...plural]));
+}
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow non-browser requests with no origin (mobile clients, curl, server-to-server)
     if (!origin) return callback(null, true);
 
-    if (ALLOWED_ORIGINS.includes(origin)) {
+    const allowed = parseConfiguredOrigins();
+    if (allowed.includes(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
@@ -256,6 +258,14 @@ app.use('/api/', globalLimiter);
 app.use('/api/users/login', loginLimiter);
 app.use('/api/users/register-request', registerLimiter);
 app.use(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], loginLimiter);
+app.use([
+  '/api/auth/forgot-password',
+  '/api/users/forgot-password',
+  '/api/auth/verify-reset-code',
+  '/api/users/verify-reset-code',
+  '/api/auth/reset-password',
+  '/api/users/reset-password'
+], loginLimiter);
 
 // Apply granular rate limiting to resource downloads and file upload sessions
 app.use(['/api/resources/:id/file', '/api/pending-resources/:id/file'], fileDownloadLimiter);
@@ -545,6 +555,21 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireOnboarded(req, res, next) {
+  // Allow administrators unconditionally
+  if (isUserAdmin(req.user)) {
+    return next();
+  }
+  // Check onboarded flag
+  if (!req.user || !req.user.onboarded) {
+    return res.status(403).json({
+      error: 'Onboarding required. Please complete your profile before accessing platform resources.',
+      code: 'ONBOARDING_REQUIRED'
+    });
+  }
+  next();
+}
+
 
 // Database connection
 const primaryUri = process.env.MONGODB_URI;
@@ -668,7 +693,7 @@ app.use((req, res, next) => {
 // Routes
 
 // 1. Folders
-app.get('/api/folders', authenticateToken, async (req, res) => {
+app.get('/api/folders', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { category, parentId } = req.query;
     const isAdmin = isUserAdmin(req.user);
@@ -738,7 +763,7 @@ app.get('/api/folders', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/folders', authenticateToken, async (req, res) => {
+app.post('/api/folders', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { name, description, parentId, visibility, allowContributions, isSystemFolder } = req.body;
     const isAdmin = isUserAdmin(req.user);
@@ -796,7 +821,7 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
   }
 });
 
-app.patch('/api/folders/:id', authenticateToken, async (req, res) => {
+app.patch('/api/folders/:id', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const folder = await Folder.findOne({ id });
@@ -832,7 +857,7 @@ app.patch('/api/folders/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
+app.delete('/api/folders/:id', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const folder = await Folder.findOne({ id });
@@ -993,8 +1018,10 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid branch.' });
     }
 
-    const passwordVal = (password && typeof password === 'string') ? password.trim() : 'spit123';
-    const hashedPassword = await bcrypt.hash(passwordVal, 10);
+    let hashedPassword = null;
+    if (password && typeof password === 'string' && password.trim()) {
+      hashedPassword = await bcrypt.hash(password.trim(), 10);
+    }
 
     const userData = {
       email: email.trim().toLowerCase(),
@@ -1118,6 +1145,11 @@ app.post('/api/users/login', async (req, res) => {
       return res.status(403).json({ error: 'Your account is currently inactive. Please contact an administrator.' });
     }
     
+    // Verify account has a usable password hash before comparing
+    if (!user.password || typeof user.password !== 'string' || !user.password.trim()) {
+      return res.status(401).json({ error: 'Invalid username/email or password. Please try again.' });
+    }
+
     // Compare bcrypt passwords
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -1160,12 +1192,35 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
     }
 
     const payload = await verifyGoogleToken(idToken);
-    const { sub, email, name } = payload;
+    const { sub, email, name, emailVerified } = payload;
+
+    // Defense-in-depth: enforce email verification, institutional domain, and valid identity
+    if (!emailVerified) {
+      return res.status(403).json({ error: 'Google email is not verified.' });
+    }
+    if (!isSpitDomain(email)) {
+      return res.status(403).json({ error: RESTRICTED_MESSAGE });
+    }
+    if (!sub || typeof sub !== 'string' || !sub.trim()) {
+      return res.status(400).json({ error: 'Invalid Google identity subject.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Defense-in-depth: reject request if client explicitly supplied an email mismatching the verified token
+    if (req.body.email && typeof req.body.email === 'string' && req.body.email.trim().toLowerCase() !== normalizedEmail) {
+      return res.status(400).json({ error: 'Email mismatch between request body and Google identity token.' });
+    }
 
     // 1. Check if user already exists with this googleSub
     let user = await User.findOne({ googleSub: sub });
 
     if (user) {
+      // Reject if Google identity subject is associated with a different email address
+      if (user.email.trim().toLowerCase() !== normalizedEmail) {
+        return res.status(409).json({ error: 'This Google identity is associated with a different email address.' });
+      }
+
       if (user.status === 'Pending') {
         return res.status(403).json({ error: 'Your registration request is pending administrator approval.' });
       }
@@ -1198,13 +1253,114 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
     }
 
     // 2. Check if a user with this email exists without linked googleSub
-    const existingByEmail = await User.findOne({ email: new RegExp('^' + escapeRegExp(email.trim()) + '$', 'i') });
+    const existingByEmail = await User.findOne({ email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i') });
     if (existingByEmail) {
+      // Strict normalization validation
+      if (existingByEmail.email.trim().toLowerCase() !== normalizedEmail) {
+        return res.status(400).json({ error: 'Google identity email does not match account email.' });
+      }
+
+      // If account has an existing, different googleSub, do not overwrite silently
+      if (existingByEmail.googleSub && existingByEmail.googleSub !== sub) {
+        return res.status(409).json({ error: 'This account is already linked to a different Google identity.' });
+      }
+
+      // Check whether the Google subject is already associated with another account
+      const conflictingSubUser = await User.findOne({ googleSub: sub, _id: { $ne: existingByEmail._id } });
+      if (conflictingSubUser) {
+        return res.status(409).json({ error: 'This Google identity is already linked to another account.' });
+      }
+
+      // Check account status before proceeding
+      if (existingByEmail.status === 'Pending') {
+        return res.status(403).json({ error: 'Your registration request is pending administrator approval.' });
+      }
+      if (existingByEmail.status !== 'Active') {
+        return res.status(403).json({ error: 'Your account is currently inactive. Please contact an administrator.' });
+      }
+
+      // Determine whether account has an established local password
+      const hasLocalPassword = Boolean(
+        existingByEmail.password &&
+        typeof existingByEmail.password === 'string' &&
+        existingByEmail.password.trim() !== ''
+      );
+
+      if (hasLocalPassword) {
+        return res.json({
+          action: 'LINK_REQUIRED',
+          email: existingByEmail.email,
+          name: existingByEmail.name,
+          message: 'An account with this SPIT email already exists. Please enter your account password to securely link your Google account.'
+        });
+      }
+
+      // Passwordless administrator-created account onboarding:
+      // Bind verified Google identity while preserving role, permissions, status, and ID
+      existingByEmail.googleSub = sub;
+      if (!existingByEmail.authProvider || existingByEmail.authProvider === 'local') {
+        existingByEmail.authProvider = 'google';
+      }
+      if ((!existingByEmail.name || !existingByEmail.name.trim()) && name && name.trim()) {
+        existingByEmail.name = sanitizeString(name.trim());
+      }
+
+      if (typeof existingByEmail.save === 'function') {
+        await existingByEmail.save();
+      } else if (typeof User.findOneAndUpdate === 'function') {
+        await User.findOneAndUpdate(
+          {
+            _id: existingByEmail._id,
+            $and: [
+              {
+                $or: [
+                  { password: null },
+                  { password: '' },
+                  { password: { $exists: false } }
+                ]
+              },
+              {
+                $or: [
+                  { googleSub: null },
+                  { googleSub: { $exists: false } },
+                  { googleSub: sub }
+                ]
+              }
+            ]
+          },
+          {
+            $set: {
+              googleSub: sub,
+              authProvider: 'google',
+              name: existingByEmail.name
+            }
+          }
+        );
+      }
+
+      userAuthCache.invalidate(existingByEmail.email);
+
+      // Issue session token using existing user's role and status
+      const token = jwt.sign(
+        { email: existingByEmail.email, role: existingByEmail.role, status: existingByEmail.status },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      const isUserAdmin = existingByEmail.email.toLowerCase() === 'admin@spit.ac.in' || existingByEmail.role === 'Administrator' || existingByEmail.role === 'Admin';
       return res.json({
-        action: 'LINK_REQUIRED',
+        action: 'LOGIN_SUCCESS',
         email: existingByEmail.email,
+        role: isUserAdmin ? 'Administrator' : existingByEmail.role,
+        status: existingByEmail.status,
         name: existingByEmail.name,
-        message: 'An account with this SPIT email already exists. Please enter your account password to securely link your Google account.'
+        username: existingByEmail.username || '',
+        branch: existingByEmail.branch,
+        currentYear: existingByEmail.currentYear,
+        onboarded: isUserAdmin ? true : existingByEmail.onboarded,
+        isAdmin: isUserAdmin,
+        nameColor: existingByEmail.nameColor || '',
+        token
       });
     }
 
@@ -1215,7 +1371,10 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
       name
     });
   } catch (err) {
-    const status = err.status || 500;
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'This Google identity is already linked to another account.' });
+    }
+    const status = err.status || (err.message && err.message.toLowerCase().includes('not verified') ? 403 : 500);
     return res.status(status).json({ error: err.message });
   }
 });
@@ -1340,16 +1499,26 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
       return res.status(404).json({ error: 'Account not found for this SPIT email.' });
     }
 
+    // Verify existing account has a usable password hash before comparing
+    if (!user.password || typeof user.password !== 'string' || !user.password.trim()) {
+      return res.status(400).json({ error: 'This account does not have a local password configured. Unable to link via password verification.' });
+    }
+
     // Verify existing password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Incorrect password. Unable to link Google account.' });
     }
 
+    // Do not replace a different existing googleSub silently
+    if (user.googleSub && user.googleSub !== sub) {
+      return res.status(409).json({ error: 'This account is already linked to a different Google identity.' });
+    }
+
     // Ensure googleSub is not linked to another user
     const otherUser = await User.findOne({ googleSub: sub, _id: { $ne: user._id } });
     if (otherUser) {
-      return res.status(400).json({ error: 'This Google account is already linked to another user.' });
+      return res.status(409).json({ error: 'This Google account is already linked to another user.' });
     }
 
     user.googleSub = sub;
@@ -1391,6 +1560,250 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
       return res.status(err.status).json({ error: err.message });
     }
     return res.status(503).json({ error: 'Account linking is temporarily unavailable. Please try again later.' });
+  }
+});
+
+// --- Password Recovery Endpoints ---
+
+// 1. Request Password Reset Code
+app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ error: 'Valid email address is required.' });
+    }
+
+    const trimmedEmail = email.trim();
+    if (trimmedEmail.length > 100) {
+      return res.status(400).json({ error: 'Email exceeds maximum permitted length.' });
+    }
+
+    const normalizedEmail = trimmedEmail.toLowerCase();
+
+    // Check if user exists
+    const user = await User.findOne({ email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i') });
+
+    // Only accounts with local passwords are eligible for password recovery
+    const hasLocalPassword = Boolean(user && user.password && typeof user.password === 'string' && user.password.trim());
+
+    if (user && hasLocalPassword) {
+      // Check 60-second cooldown on existing pending challenges
+      const activeChallenge = await PasswordResetChallenge.findOne({
+        email: normalizedEmail,
+        status: 'pending',
+        expiresAt: { $gt: new Date() }
+      }).sort({ createdAt: -1 });
+
+      if (activeChallenge && activeChallenge.lastIssuedAt) {
+        const elapsedMs = Date.now() - new Date(activeChallenge.lastIssuedAt).getTime();
+        if (elapsedMs < 60000) {
+          const remainingSeconds = Math.ceil((60000 - elapsedMs) / 1000);
+          return res.status(429).json({
+            error: `A reset code was recently sent. Please wait ${remainingSeconds} second(s) before requesting another code.`,
+            code: 'COOLDOWN_ACTIVE',
+            retryAfter: remainingSeconds
+          });
+        }
+      }
+
+      // Invalidate existing pending challenges for this email
+      await PasswordResetChallenge.updateMany(
+        { email: normalizedEmail, status: 'pending' },
+        { $set: { status: 'invalidated' } }
+      );
+
+      // Generate cryptographically secure 6-digit code
+      const code = crypto.randomInt(100000, 1000000).toString();
+      const codeHash = crypto.createHmac('sha256', RESET_SECRET).update(code).digest('hex');
+
+      await PasswordResetChallenge.create({
+        email: normalizedEmail,
+        codeHash,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        attempts: 0,
+        lastIssuedAt: new Date(),
+        status: 'pending'
+      });
+
+      // Send email via email service
+      await sendPasswordResetEmail(normalizedEmail, code);
+    }
+
+    // Always return a generic success message to prevent user enumeration
+    return res.json({
+      message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ error: 'A server error occurred while processing your request. Please try again later.' });
+  }
+});
+
+// 2. Verify 6-digit Reset Code
+app.post(['/api/auth/verify-reset-code', '/api/users/verify-reset-code'], async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ error: 'Email address is required.' });
+    }
+    if (!code || (typeof code !== 'string' && typeof code !== 'number')) {
+      return res.status(400).json({ error: 'Verification code is required.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const cleanCode = String(code).trim();
+
+    if (!/^\d{6}$/.test(cleanCode)) {
+      return res.status(400).json({ error: 'Verification code must be exactly 6 digits.', code: 'INVALID_FORMAT' });
+    }
+
+    // Find active challenge (pending or recently locked)
+    const challenge = await PasswordResetChallenge.findOne({
+      email: normalizedEmail,
+      status: { $in: ['pending', 'locked'] }
+    }).sort({ createdAt: -1 });
+
+    if (!challenge) {
+      return res.status(400).json({
+        error: 'Verification code has expired or is invalid. Please request a new code.',
+        code: 'CODE_EXPIRED'
+      });
+    }
+
+    // Check if attempts already exhausted or locked
+    if (challenge.status === 'locked' || challenge.attempts >= 5) {
+      challenge.status = 'locked';
+      await challenge.save();
+      return res.status(429).json({
+        error: 'Too many incorrect attempts. This code is locked. Please request a new code.',
+        code: 'MAX_ATTEMPTS_EXCEEDED'
+      });
+    }
+
+    // Check expiration
+    if (new Date() > new Date(challenge.expiresAt)) {
+      challenge.status = 'expired';
+      await challenge.save();
+      return res.status(400).json({
+        error: 'Verification code has expired. Please request a new code.',
+        code: 'CODE_EXPIRED'
+      });
+    }
+
+    // Validate HMAC of code
+    const calculatedHash = crypto.createHmac('sha256', RESET_SECRET).update(cleanCode).digest('hex');
+    const calcBuf = Buffer.from(calculatedHash, 'hex');
+    const expBuf = Buffer.from(challenge.codeHash, 'hex');
+
+    const isMatch = calcBuf.length === expBuf.length && crypto.timingSafeEqual(calcBuf, expBuf);
+
+    if (!isMatch) {
+      challenge.attempts += 1;
+      if (challenge.attempts >= 5) {
+        challenge.status = 'locked';
+      }
+      await challenge.save();
+
+      const remaining = Math.max(0, 5 - challenge.attempts);
+      if (remaining === 0) {
+        return res.status(429).json({
+          error: 'Too many incorrect attempts. This code has been locked. Please request a new code.',
+          code: 'MAX_ATTEMPTS_EXCEEDED',
+          remainingAttempts: 0
+        });
+      }
+      return res.status(400).json({
+        error: `Invalid verification code. ${remaining} attempt(s) remaining.`,
+        code: 'INVALID_CODE',
+        remainingAttempts: remaining
+      });
+    }
+
+    // Code matched! Generate single-use reset authorization token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    challenge.status = 'verified';
+    challenge.resetTokenHash = resetTokenHash;
+    challenge.resetTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins to set password
+    await challenge.save();
+
+    return res.json({
+      message: 'Code verified successfully.',
+      resetToken
+    });
+  } catch (err) {
+    console.error('Verify reset code error:', err);
+    return res.status(500).json({ error: 'A server error occurred while verifying the code. Please try again later.' });
+  }
+});
+
+// 3. Reset Password with Authorized Token
+app.post(['/api/auth/reset-password', '/api/users/reset-password'], async (req, res) => {
+  try {
+    const { email, resetToken, newPassword, confirmPassword } = req.body;
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ error: 'Email address is required.' });
+    }
+    if (!resetToken || typeof resetToken !== 'string' || !resetToken.trim()) {
+      return res.status(400).json({ error: 'Reset authorization token is required.' });
+    }
+    if (!newPassword || typeof newPassword !== 'string') {
+      return res.status(400).json({ error: 'New password is required.' });
+    }
+    if (newPassword.length < 6 || newPassword.length > 100) {
+      return res.status(400).json({ error: 'Password must be between 6 and 100 characters.' });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const cleanToken = resetToken.trim();
+    const resetTokenHash = crypto.createHash('sha256').update(cleanToken).digest('hex');
+
+    // Atomically find and consume the token to prevent race conditions or replay attacks
+    const challenge = await PasswordResetChallenge.findOneAndUpdate(
+      {
+        email: normalizedEmail,
+        resetTokenHash,
+        consumed: false,
+        status: 'verified',
+        resetTokenExpiresAt: { $gt: new Date() }
+      },
+      {
+        $set: {
+          consumed: true,
+          status: 'consumed'
+        }
+      },
+      { new: true }
+    );
+
+    if (!challenge) {
+      return res.status(400).json({
+        error: 'Invalid, expired, or already used reset authorization token. Please restart password recovery.',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    const user = await User.findOne({ email: new RegExp('^' + escapeRegExp(normalizedEmail) + '$', 'i') });
+    if (!user) {
+      return res.status(404).json({ error: 'Account not found.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    userAuthCache.invalidate(normalizedEmail);
+
+    return res.json({
+      message: 'Password reset successfully. You may now log in with your new password.'
+    });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ error: 'A server error occurred while resetting your password. Please try again later.' });
   }
 });
 
@@ -1758,7 +2171,7 @@ function validateStoryFiles(payload) {
 }
 
 // 3. Stories
-app.get('/api/stories', authenticateToken, async (req, res) => {
+app.get('/api/stories', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
 
@@ -1794,7 +2207,7 @@ app.get('/api/stories', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/stories/:id', authenticateToken, async (req, res) => {
+app.get('/api/stories/:id', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const sanitizedId = sanitizeString(id);
@@ -1813,7 +2226,7 @@ app.get('/api/stories/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/stories', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/stories', authenticateToken, requireOnboarded, requireAdmin, async (req, res) => {
   try {
     const { name, branch } = req.body;
     // Required field check
@@ -1846,7 +2259,7 @@ app.post('/api/stories', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-app.put('/api/stories/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/stories/:id', authenticateToken, requireOnboarded, requireAdmin, async (req, res) => {
   try {
     const fileError = validateStoryFiles(req.body);
     if (fileError) {
@@ -1864,7 +2277,7 @@ app.put('/api/stories/:id', authenticateToken, requireAdmin, async (req, res) =>
   }
 });
 
-app.delete('/api/stories/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.delete('/api/stories/:id', authenticateToken, requireOnboarded, requireAdmin, async (req, res) => {
   try {
     await Story.deleteOne({ id: req.params.id });
     await cacheService.invalidateStories(req.params.id).catch(() => {});
@@ -1884,7 +2297,7 @@ app.get('/api/pending-stories', authenticateToken, requireAdmin, async (req, res
   }
 });
 
-app.post('/api/pending-stories', authenticateToken, async (req, res) => {
+app.post('/api/pending-stories', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const fileError = validateStoryFiles(req.body);
     if (fileError) {
@@ -2375,31 +2788,31 @@ const handleUploadCancel = async (req, res) => {
 };
 
 // 1. Initialize Chunked Upload
-app.post('/api/resources/upload/init', authenticateToken, handleUploadInit);
-app.post('/api/pending-resources/upload/init', authenticateToken, handleUploadInit);
-app.post(['/api/resources/upload/init', '/api/pending-resources/upload/init'], authenticateToken, handleUploadInit);
+app.post('/api/resources/upload/init', authenticateToken, requireOnboarded, handleUploadInit);
+app.post('/api/pending-resources/upload/init', authenticateToken, requireOnboarded, handleUploadInit);
+app.post(['/api/resources/upload/init', '/api/pending-resources/upload/init'], authenticateToken, requireOnboarded, handleUploadInit);
 
 // 2. Parallel Chunk Transfer (PUT and POST)
-app.put('/api/resources/upload/chunk', authenticateToken, handleUploadChunkPut);
-app.put('/api/pending-resources/upload/chunk', authenticateToken, handleUploadChunkPut);
-app.post('/api/resources/upload/chunk', authenticateToken, handleUploadChunkPost);
-app.post('/api/pending-resources/upload/chunk', authenticateToken, handleUploadChunkPost);
+app.put('/api/resources/upload/chunk', authenticateToken, requireOnboarded, handleUploadChunkPut);
+app.put('/api/pending-resources/upload/chunk', authenticateToken, requireOnboarded, handleUploadChunkPut);
+app.post('/api/resources/upload/chunk', authenticateToken, requireOnboarded, handleUploadChunkPost);
+app.post('/api/pending-resources/upload/chunk', authenticateToken, requireOnboarded, handleUploadChunkPost);
 
 // 3. Finalize Chunked Upload
-app.post('/api/resources/upload/finalize', authenticateToken, handleUploadFinalize);
-app.post('/api/pending-resources/upload/finalize', authenticateToken, handleUploadFinalize);
-app.post(['/api/resources/upload/finalize', '/api/pending-resources/upload/finalize'], authenticateToken, handleUploadFinalize);
+app.post('/api/resources/upload/finalize', authenticateToken, requireOnboarded, handleUploadFinalize);
+app.post('/api/pending-resources/upload/finalize', authenticateToken, requireOnboarded, handleUploadFinalize);
+app.post(['/api/resources/upload/finalize', '/api/pending-resources/upload/finalize'], authenticateToken, requireOnboarded, handleUploadFinalize);
 
 // 4. Query Upload State / Resumability
-app.get('/api/resources/upload/:uploadId', authenticateToken, handleUploadStatus);
-app.get('/api/pending-resources/upload/:uploadId', authenticateToken, handleUploadStatus);
+app.get('/api/resources/upload/:uploadId', authenticateToken, requireOnboarded, handleUploadStatus);
+app.get('/api/pending-resources/upload/:uploadId', authenticateToken, requireOnboarded, handleUploadStatus);
 
 // 5. Cancel / Abort Upload Session
-app.delete('/api/resources/upload/:uploadId', authenticateToken, handleUploadCancel);
-app.delete('/api/pending-resources/upload/:uploadId', authenticateToken, handleUploadCancel);
+app.delete('/api/resources/upload/:uploadId', authenticateToken, requireOnboarded, handleUploadCancel);
+app.delete('/api/pending-resources/upload/:uploadId', authenticateToken, requireOnboarded, handleUploadCancel);
 
 // List Resources with folder privacy & permission checks
-app.get('/api/resources', authenticateToken, async (req, res) => {
+app.get('/api/resources', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { folderId, search, type, visibility } = req.query;
     const isAdmin = isUserAdmin(req.user);
@@ -2508,7 +2921,7 @@ app.get('/api/resources', authenticateToken, async (req, res) => {
 });
 
 // Single Resource Metadata
-app.get('/api/resources/:id', authenticateToken, async (req, res) => {
+app.get('/api/resources/:id', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const resource = await Resource.findOne({ id: sanitizeString(id) }).lean();
@@ -2535,7 +2948,7 @@ app.get('/api/resources/:id', authenticateToken, async (req, res) => {
 });
 
 // Secure File Streaming / Download / Preview
-app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenticateToken, async (req, res) => {
+app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     let resource = await Resource.findOne({ id: sanitizeString(id) });
@@ -2606,12 +3019,12 @@ app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenti
 });
 
 // Backward-compatible redirect for download-url
-app.get('/api/resources/:id/download-url', authenticateToken, async (req, res) => {
+app.get('/api/resources/:id/download-url', authenticateToken, requireOnboarded, async (req, res) => {
   res.json({ url: `/api/resources/${req.params.id}/file`, provider: 'gridfs' });
 });
 
 // Direct Resource Creation Endpoint (Backward compatible with JSON/Base64 and direct posting)
-app.post('/api/resources', authenticateToken, async (req, res) => {
+app.post('/api/resources', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { title, folderId, link, category, semester, year, tags, description } = req.body;
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
@@ -2853,13 +3266,13 @@ const handleStreamingUpload = (req, res, { isPending = false } = {}) => {
 };
 
 // Direct Resource Upload Endpoints (Single-file multipart fallback)
-app.post('/api/resources/upload', authenticateToken, (req, res) => {
+app.post('/api/resources/upload', authenticateToken, requireOnboarded, (req, res) => {
   const isAdmin = isUserAdmin(req.user);
   handleStreamingUpload(req, res, { isPending: !isAdmin });
 });
 
 // Student & Community Resource Submission Upload Endpoints (Single-file multipart fallback)
-app.post('/api/pending-resources/upload', authenticateToken, (req, res) => {
+app.post('/api/pending-resources/upload', authenticateToken, requireOnboarded, (req, res) => {
   handleStreamingUpload(req, res, { isPending: true });
 });
 
@@ -2912,11 +3325,11 @@ const handleUpdateResource = async (req, res) => {
   }
 };
 
-app.patch('/api/resources/:id', authenticateToken, handleUpdateResource);
-app.put('/api/resources/:id', authenticateToken, handleUpdateResource);
+app.patch('/api/resources/:id', authenticateToken, requireOnboarded, handleUpdateResource);
+app.put('/api/resources/:id', authenticateToken, requireOnboarded, handleUpdateResource);
 
 // Delete Resource (Safe Deletion with Cloud/GridFS cleanup)
-app.delete('/api/resources/:id', authenticateToken, async (req, res) => {
+app.delete('/api/resources/:id', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const resource = await Resource.findOne({ id: sanitizeString(id) });
@@ -2960,7 +3373,7 @@ app.get('/api/pending-resources', authenticateToken, requireAdmin, async (req, r
   }
 });
 
-app.post('/api/pending-resources', authenticateToken, async (req, res) => {
+app.post('/api/pending-resources', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const processedBody = processResourceFiles(req.body);
     const pendingData = sanitizeObject({ ...processedBody });
@@ -3039,7 +3452,7 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
 });
 
 // 7. Achievements
-app.get('/api/achievements', authenticateToken, async (req, res) => {
+app.get('/api/achievements', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const cacheKey = cacheService.makeKey('achievements:list');
     const achievements = await cacheService.getOrSet(cacheKey, async () => {
@@ -3052,7 +3465,7 @@ app.get('/api/achievements', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/achievements', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/achievements', authenticateToken, requireOnboarded, requireAdmin, async (req, res) => {
   try {
     const { title, description, image } = req.body;
     // Required field check
@@ -3083,7 +3496,7 @@ app.post('/api/achievements', authenticateToken, requireAdmin, async (req, res) 
   }
 });
 
-app.put('/api/achievements/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/achievements/:id', authenticateToken, requireOnboarded, requireAdmin, async (req, res) => {
   try {
     const { image } = req.body;
     if (image && !validateFileUri(image, ALLOWED_IMAGE_PREFIXES)) {
@@ -3100,7 +3513,7 @@ app.put('/api/achievements/:id', authenticateToken, requireAdmin, async (req, re
   }
 });
 
-app.delete('/api/achievements/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.delete('/api/achievements/:id', authenticateToken, requireOnboarded, requireAdmin, async (req, res) => {
   try {
     await Achievement.deleteOne({ id: req.params.id });
     await cacheService.invalidateAchievements(req.params.id).catch(() => {});
@@ -3141,5 +3554,9 @@ module.exports = {
   loginLimiter,
   registerLimiter,
   uploadLimiter,
-  fileDownloadLimiter
+  fileDownloadLimiter,
+  requireOnboarded,
+  parseConfiguredOrigins,
+  DEFAULT_ALLOWED_ORIGINS,
+  RESET_SECRET
 };

@@ -598,6 +598,45 @@ export const linkGoogleAccount = async ({ idToken, password }) => {
   return data;
 };
 
+export const requestPasswordReset = async (email) => {
+  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to request password reset');
+  }
+  return data;
+};
+
+export const verifyPasswordResetCode = async ({ email, code }) => {
+  const res = await fetch(`${API_URL}/auth/verify-reset-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to verify reset code');
+  }
+  return data;
+};
+
+export const resetPassword = async ({ email, resetToken, newPassword, confirmPassword }) => {
+  const res = await fetch(`${API_URL}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, resetToken, newPassword, confirmPassword })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to reset password');
+  }
+  return data;
+};
+
 export const onboardUser = async (email, profileData) => {
   const res = await authFetch(`${API_URL}/users/${email}/onboard`, {
     method: 'PUT',

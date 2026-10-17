@@ -5,7 +5,7 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   role: { type: String, required: true, index: true },
   status: { type: String, default: 'Active', index: true },
-  password: { type: String, default: 'spit123' },
+  password: { type: String, default: null },
   name: { type: String, default: '' },
   branch: { type: String, default: '', index: true },
   currentYear: { type: String, default: '' },
@@ -236,6 +236,22 @@ const UploadSessionSchema = new mongoose.Schema({
   expiresAt: { type: Date, default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), index: { expires: 0 } }
 }, { timestamps: true });
 
+// Password Reset Challenge Schema for Secure Password Recovery
+const PasswordResetChallengeSchema = new mongoose.Schema({
+  email: { type: String, required: true, lowercase: true, trim: true, index: true },
+  codeHash: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+  attempts: { type: Number, default: 0 },
+  lastIssuedAt: { type: Date, default: Date.now },
+  resetTokenHash: { type: String, default: null, index: true },
+  resetTokenExpiresAt: { type: Date, default: null },
+  consumed: { type: Boolean, default: false, index: true },
+  status: { type: String, enum: ['pending', 'verified', 'consumed', 'invalidated', 'locked', 'expired', 'superseded'], default: 'pending', index: true }
+}, { timestamps: true });
+
+PasswordResetChallengeSchema.index({ email: 1, status: 1 });
+PasswordResetChallengeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 86400 });
+
 module.exports = {
   User: mongoose.model('User', UserSchema),
   Story: mongoose.model('Story', StorySchema),
@@ -244,5 +260,6 @@ module.exports = {
   PendingResource: mongoose.model('PendingResource', PendingResourceSchema),
   Achievement: mongoose.model('Achievement', AchievementSchema),
   Folder: mongoose.model('Folder', FolderSchema),
-  UploadSession: mongoose.model('UploadSession', UploadSessionSchema)
+  UploadSession: mongoose.model('UploadSession', UploadSessionSchema),
+  PasswordResetChallenge: mongoose.model('PasswordResetChallenge', PasswordResetChallengeSchema)
 };

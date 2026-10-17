@@ -134,8 +134,16 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
     before(() => {
       mockUser.password = hashedPassword;
 
-      // Mock User.findOne to match either email or username in the $or array
+      // Mock User.findOne to match either email or username in the $or array or direct admin lookup
       User.findOne = async (query) => {
+        if (query && query.email) {
+          if (typeof query.email === 'string' && query.email.toLowerCase() === 'admin@spit.ac.in') {
+            return { email: 'admin@spit.ac.in', role: 'Administrator', status: 'Active', isAdmin: true };
+          }
+          if (query.email.test && query.email.test('admin@spit.ac.in')) {
+            return { email: 'admin@spit.ac.in', role: 'Administrator', status: 'Active', isAdmin: true };
+          }
+        }
         if (!query || !query.$or) return null;
         for (const condition of query.$or) {
           if (condition.email && condition.email.test(mockUser.email)) {
@@ -260,5 +268,140 @@ describe('Login Formats & Flexible Identifier Authentication', () => {
       assert.equal(status, 403);
       assert.match(data.error, /pending/i);
     });
+
+    test('rejects passwordless accounts (undefined password) with controlled 401 without issuing a token', async () => {
+      const savedPassword = mockUser.password;
+      delete mockUser.password;
+
+      const { status, data } = await makeLoginRequest({
+        email: 'swapnil.patil24',
+        password: plainPassword
+      });
+
+      mockUser.password = savedPassword; // restore
+      assert.equal(status, 401);
+      assert.equal(data.error, 'Invalid username/email or password. Please try again.');
+      assert.equal(data.token, undefined, 'Must not issue a token for passwordless accounts');
+    });
+
+    test('rejects passwordless accounts (null or empty string password) with controlled 401', async () => {
+      const savedPassword = mockUser.password;
+      
+      mockUser.password = null;
+      const resNull = await makeLoginRequest({
+        email: 'swapnil.patil24',
+        password: plainPassword
+      });
+      assert.equal(resNull.status, 401);
+      assert.equal(resNull.data.error, 'Invalid username/email or password. Please try again.');
+      assert.equal(resNull.data.token, undefined);
+
+      mockUser.password = '   ';
+      const resEmpty = await makeLoginRequest({
+        email: 'swapnil.patil24',
+        password: plainPassword
+      });
+      assert.equal(resEmpty.status, 401);
+      assert.equal(resEmpty.data.error, 'Invalid username/email or password. Please try again.');
+      assert.equal(resEmpty.data.token, undefined);
+
+      mockUser.password = savedPassword; // restore
+    });
+
+    test('ensures incorrect password attempt does not issue a session token', async () => {
+      const { status, data } = await makeLoginRequest({
+        email: 'swapnil.patil24',
+        password: 'DefinitivelyIncorrectPassword!'
+      });
+
+      assert.equal(status, 401);
+      assert.equal(data.token, undefined, 'Must not issue a token on failed authentication');
+    });
+  });
+
+  describe('POST /api/users: Administrator Provisioning & Password Handling', () => {
+    const jwt = require('jsonwebtoken');
+    let adminToken;
+
+    before(() => {
+      adminToken = jwt.sign(
+        { email: 'admin@spit.ac.in', role: 'Administrator', status: 'Active' },
+        process.env.JWT_SECRET || 'test_jwt_secret_for_signing_tokens_min_32_chars'
+      );
+    });
+
+    test('Administrator creation without password stores password as null (no spit123 default)', async () => {
+      let createdUserData = null;
+      const origCreate = User.create;
+      User.create = async (data) => {
+        createdUserData = data;
+        return {
+          ...data,
+          _id: new mongoose.Types.ObjectId(),
+          toObject: () => ({ ...data })
+        };
+      };
+
+      try {
+        const res = await fetch(`${baseUrl}/api/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({
+            email: 'new.nopass@spit.ac.in',
+            role: 'Student',
+            name: 'No Pass Student'
+          })
+        });
+
+        assert.equal(res.status, 201);
+        const data = await res.json();
+        assert.equal(data.email, 'new.nopass@spit.ac.in');
+        assert.equal(createdUserData.password, null, 'Must not assign default password like spit123');
+      } finally {
+        User.create = origCreate;
+      }
+    });
+
+    test('Administrator creation with explicit password hashes it before storage', async () => {
+      let createdUserData = null;
+      const origCreate = User.create;
+      User.create = async (data) => {
+        createdUserData = data;
+        return {
+          ...data,
+          _id: new mongoose.Types.ObjectId(),
+          toObject: () => ({ ...data })
+        };
+      };
+
+      try {
+        const plainAdminSetPassword = 'CustomSecurePassword123!';
+        const res = await fetch(`${baseUrl}/api/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({
+            email: 'custom.pass@spit.ac.in',
+            role: 'Student',
+            password: plainAdminSetPassword
+          })
+        });
+
+        assert.equal(res.status, 201);
+        assert.notEqual(createdUserData.password, plainAdminSetPassword, 'Must not store plaintext password');
+        assert.notEqual(createdUserData.password, 'spit123');
+        const matches = await bcrypt.compare(plainAdminSetPassword, createdUserData.password);
+        assert.equal(matches, true, 'Stored password must be a valid bcrypt hash of the provided password');
+      } finally {
+        User.create = origCreate;
+      }
+    });
   });
 });
+
+

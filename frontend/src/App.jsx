@@ -18,6 +18,7 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 const FilePreviewPage = lazy(() => import('./pages/FilePreviewPage'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 
 // Lightweight Apple-style Route Loading Fallback
 function RouteLoadingFallback() {
@@ -72,7 +73,7 @@ function ProtectedRoute({ children }) {
 // Layout wrapper to easily render footer and manage pages
 function AppLayout() {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/onboarding';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/onboarding' || location.pathname === '/forgot-password';
   const isPreviewPage = location.pathname.startsWith('/preview');
 
   // Scroll to top on route change
@@ -95,6 +96,7 @@ function AppLayout() {
           <Routes>
             {/* Public Login & Auth Redirection Routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/register" element={<Navigate to="/login" replace />} />
             <Route path="/request-account" element={<Navigate to="/login" replace />} />
 

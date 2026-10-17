@@ -41,7 +41,9 @@ async function verifyGoogleToken(idToken, overrideClientId = null) {
     const mockPayload = JSON.parse(mockDataStr);
 
     if (!mockPayload.email_verified) {
-      throw new Error('Google email is not verified.');
+      const err = new Error('Google email is not verified.');
+      err.status = 403;
+      throw err;
     }
     if (!isSpitDomain(mockPayload.email)) {
       const err = new Error(RESTRICTED_MESSAGE);
