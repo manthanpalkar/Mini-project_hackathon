@@ -3,15 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Mail, KeyRound, Lock, Eye, EyeOff, 
   CheckCircle2, AlertCircle, RefreshCw, Shield, 
-  Sun, Moon, Check 
+  Check 
 } from 'lucide-react';
 import { requestPasswordReset, verifyPasswordResetCode, resetPassword } from '../utils/db';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
-
-  // Theme: dark by default as specified in design requirement
-  const [isDark, setIsDark] = useState(true);
 
   // Recovery flow step:
   // 1 = Enter Email
@@ -55,23 +52,6 @@ export default function ForgotPassword() {
     };
   }, [resendCooldown]);
 
-  // Color theme tokens
-  const theme = {
-    pageBg: isDark ? '#0b0b0e' : '#f4f4f6',
-    cardBg: isDark ? '#16161b' : '#ffffff',
-    inputBg: isDark ? '#1f1f27' : '#f9f9fb',
-    border: isDark ? '#3f3f46' : '#e4e4e7',
-    guideRing: isDark ? '#272732' : '#e2e2ea',
-    badgeBg: isDark ? '#1c1c24' : '#f1f1f5',
-    textPrimary: isDark ? '#ffffff' : '#111827',
-    textSecondary: isDark ? '#71717a' : '#6b7280',
-    redAccent: '#ef4444',
-    successGreen: '#10b981',
-    cardShadow: isDark 
-      ? '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-      : '0 20px 40px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)'
-  };
-
   // STEP 1: Request 6-digit OTP to SPIT email
   const handleRequestCode = async (e) => {
     e.preventDefault();
@@ -98,7 +78,7 @@ export default function ForgotPassword() {
         }
       }, 100);
     } catch (err) {
-      setError(err.message || 'Failed to request verification code. Please try again.');
+      setError(err.message || 'Failed to request password reset. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -138,7 +118,6 @@ export default function ForgotPassword() {
     setOtpStage('verifying'); // State B: Orbital Animation starts
 
     try {
-      const startTime = Date.now();
       const verifyPromise = verifyPasswordResetCode({
         email: email.trim().toLowerCase(),
         code: codeToVerify
@@ -291,32 +270,30 @@ export default function ForgotPassword() {
   return (
     <div 
       style={{
-        minHeight: '100vh',
+        minHeight: '85vh',
         width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '2.5rem 1rem',
-        backgroundColor: theme.pageBg,
-        transition: 'background-color 0.3s ease',
+        padding: '2rem 1rem',
+        backgroundColor: 'var(--bg-primary)',
         fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)'
       }}
     >
       <div 
         style={{
           width: '100%',
-          maxWidth: '380px',
-          backgroundColor: theme.cardBg,
-          borderRadius: '26px',
-          border: `1px solid ${theme.border}`,
-          padding: '32px',
-          boxShadow: theme.cardShadow,
+          maxWidth: '420px',
+          backgroundColor: 'var(--bg-surface, #ffffff)',
+          borderRadius: '24px',
+          border: '1px solid var(--border-color)',
+          padding: '2.5rem 2.25rem',
+          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)',
           position: 'relative',
-          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           boxSizing: 'border-box'
         }}
       >
-        {/* Top Bar: Back Link & Theme Toggle */}
+        {/* Top Bar: Back Link */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -328,50 +305,19 @@ export default function ForgotPassword() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              color: theme.textSecondary,
-              fontSize: '0.85rem',
+              gap: '0.45rem',
+              color: 'var(--text-secondary)',
+              fontSize: '0.86rem',
               fontWeight: 500,
               textDecoration: 'none',
               transition: 'color 0.2s ease'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = theme.textPrimary; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = theme.textSecondary; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
           >
             <ArrowLeft size={16} />
-            <span>Sign in</span>
+            <span>Back to sign in</span>
           </Link>
-
-          {/* Accessible Theme Toggle */}
-          <button
-            type="button"
-            onClick={() => setIsDark(!isDark)}
-            aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-            title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: theme.inputBg,
-              border: `1px solid ${theme.border}`,
-              color: theme.textSecondary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = theme.textPrimary;
-              e.currentTarget.style.borderColor = theme.redAccent;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = theme.textSecondary;
-              e.currentTarget.style.borderColor = theme.border;
-            }}
-          >
-            {isDark ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
         </div>
 
         {/* STEP 1: Enter Email */}
@@ -382,28 +328,28 @@ export default function ForgotPassword() {
                 width: '52px',
                 height: '52px',
                 borderRadius: '16px',
-                backgroundColor: theme.inputBg,
-                border: `1px solid ${theme.border}`,
+                backgroundColor: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '1rem',
-                color: theme.redAccent
+                color: 'var(--text-primary)'
               }}>
                 <Mail size={24} />
               </div>
 
               <h1 style={{
-                fontSize: '1.5rem',
+                fontSize: '1.55rem',
                 fontWeight: 800,
                 letterSpacing: '-0.025em',
-                color: theme.textPrimary,
+                color: 'var(--text-primary)',
                 margin: '0 0 0.4rem 0'
               }}>
                 Reset Password
               </h1>
               <p style={{
-                color: theme.textSecondary,
+                color: 'var(--text-secondary)',
                 fontSize: '0.88rem',
                 lineHeight: 1.45,
                 margin: 0
@@ -415,8 +361,8 @@ export default function ForgotPassword() {
             {error && (
               <div style={{
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: theme.redAccent,
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: '#ef4444',
                 borderRadius: '12px',
                 padding: '0.75rem 0.9rem',
                 fontSize: '0.84rem',
@@ -436,10 +382,10 @@ export default function ForgotPassword() {
                   htmlFor="spit-email-input" 
                   style={{ 
                     display: 'block', 
-                    fontSize: '0.82rem', 
+                    fontSize: '0.84rem', 
                     fontWeight: 600, 
-                    color: theme.textPrimary, 
-                    marginBottom: '0.4rem' 
+                    color: 'var(--text-primary)', 
+                    marginBottom: '0.45rem' 
                   }}
                 >
                   SPIT Email
@@ -455,19 +401,19 @@ export default function ForgotPassword() {
                   disabled={loading}
                   style={{
                     width: '100%',
-                    height: '46px',
+                    height: '48px',
                     borderRadius: '12px',
                     fontSize: '0.92rem',
-                    backgroundColor: theme.inputBg,
-                    border: `1px solid ${theme.border}`,
-                    color: theme.textPrimary,
+                    backgroundColor: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
                     padding: '0 1rem',
                     boxSizing: 'border-box',
                     outline: 'none',
                     transition: 'border-color 0.2s ease'
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = theme.redAccent; }}
-                  onBlur={(e) => { e.target.style.borderColor = theme.border; }}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--text-primary)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
                 />
               </div>
 
@@ -475,16 +421,16 @@ export default function ForgotPassword() {
                 type="submit"
                 disabled={loading}
                 style={{
-                  height: '46px',
+                  height: '48px',
                   borderRadius: '12px',
                   width: '100%',
                   border: 'none',
-                  backgroundColor: theme.redAccent,
-                  color: '#ffffff',
+                  backgroundColor: 'var(--accent-color)',
+                  color: 'var(--accent-inverse)',
                   fontWeight: 600,
-                  fontSize: '0.92rem',
+                  fontSize: '0.94rem',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1,
+                  opacity: loading ? 0.75 : 1,
                   transition: 'opacity 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
@@ -504,11 +450,26 @@ export default function ForgotPassword() {
           <div>
             {/* Header Titles Based on Sub-Stage */}
             <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '16px',
+                backgroundColor: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+                color: 'var(--text-primary)'
+              }}>
+                <KeyRound size={24} />
+              </div>
+
               <h1 style={{
-                fontSize: '1.45rem',
+                fontSize: '1.5rem',
                 fontWeight: 800,
                 letterSpacing: '-0.025em',
-                color: theme.textPrimary,
+                color: 'var(--text-primary)',
                 margin: '0 0 0.35rem 0'
               }}>
                 {otpStage === 'entry' && 'Enter Verification Code'}
@@ -516,8 +477,8 @@ export default function ForgotPassword() {
                 {otpStage === 'success' && 'Verification Complete'}
               </h1>
               <p style={{
-                color: theme.textSecondary,
-                fontSize: '0.85rem',
+                color: 'var(--text-secondary)',
+                fontSize: '0.86rem',
                 lineHeight: 1.45,
                 margin: 0
               }}>
@@ -530,8 +491,8 @@ export default function ForgotPassword() {
             {error && (
               <div style={{
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: theme.redAccent,
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: '#ef4444',
                 borderRadius: '12px',
                 padding: '0.75rem 0.9rem',
                 fontSize: '0.84rem',
@@ -576,19 +537,19 @@ export default function ForgotPassword() {
                         fontSize: '1.35rem',
                         fontWeight: 700,
                         textAlign: 'center',
-                        backgroundColor: theme.inputBg,
-                        border: `1.5px solid ${digit ? theme.redAccent : theme.border}`,
-                        color: theme.textPrimary,
+                        backgroundColor: 'var(--bg-tertiary)',
+                        border: `1.5px solid ${digit ? 'var(--text-primary)' : 'var(--border-color)'}`,
+                        color: 'var(--text-primary)',
                         boxSizing: 'border-box',
                         outline: 'none',
                         transition: 'border-color 0.2s ease, transform 0.15s ease'
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = theme.redAccent;
+                        e.target.style.borderColor = 'var(--text-primary)';
                         e.target.style.transform = 'scale(1.04)';
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = digit ? theme.redAccent : theme.border;
+                        e.target.style.borderColor = digit ? 'var(--text-primary)' : 'var(--border-color)';
                         e.target.style.transform = 'scale(1)';
                       }}
                     />
@@ -604,7 +565,7 @@ export default function ForgotPassword() {
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: resendCooldown > 0 ? theme.textSecondary : theme.redAccent,
+                      color: resendCooldown > 0 ? 'var(--text-secondary)' : 'var(--accent-color)',
                       cursor: resendCooldown > 0 ? 'default' : 'pointer',
                       fontSize: '0.84rem',
                       fontWeight: 500,
@@ -644,7 +605,7 @@ export default function ForgotPassword() {
                     width: '130px',
                     height: '130px',
                     borderRadius: '50%',
-                    border: `1.5px dashed ${theme.guideRing}`,
+                    border: '1.5px dashed var(--border-color)',
                     pointerEvents: 'none'
                   }}
                 />
@@ -655,12 +616,12 @@ export default function ForgotPassword() {
                   width: '42px',
                   height: '42px',
                   borderRadius: '50%',
-                  backgroundColor: `${theme.redAccent}15`,
-                  border: `1px solid ${theme.redAccent}40`,
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: theme.redAccent
+                  color: '#ef4444'
                 }}>
                   <KeyRound size={20} />
                 </div>
@@ -694,15 +655,15 @@ export default function ForgotPassword() {
                           width: '36px',
                           height: '36px',
                           borderRadius: '50%',
-                          backgroundColor: theme.badgeBg,
-                          border: `1.5px solid ${theme.border}`,
-                          color: theme.textPrimary,
+                          backgroundColor: 'var(--bg-surface, #ffffff)',
+                          border: '1.5px solid var(--border-color)',
+                          color: 'var(--text-primary)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 700,
                           fontSize: '0.95rem',
-                          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)'
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
                         }}
                       >
                         {badge.digit}
@@ -754,8 +715,8 @@ export default function ForgotPassword() {
                     width: '64px',
                     height: '64px',
                     borderRadius: '50%',
-                    backgroundColor: theme.successGreen,
-                    boxShadow: `0 0 24px ${theme.successGreen}60`,
+                    backgroundColor: '#10b981',
+                    boxShadow: '0 0 24px rgba(16, 185, 129, 0.4)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -772,7 +733,7 @@ export default function ForgotPassword() {
             {otpStage === 'success' ? (
               <div style={{
                 textAlign: 'center',
-                color: theme.successGreen,
+                color: '#10b981',
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 display: 'flex',
@@ -796,29 +757,29 @@ export default function ForgotPassword() {
                 width: '52px',
                 height: '52px',
                 borderRadius: '16px',
-                backgroundColor: theme.inputBg,
-                border: `1px solid ${theme.border}`,
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '1rem',
-                color: theme.successGreen
+                color: '#10b981'
               }}>
                 <Lock size={24} />
               </div>
 
               <h1 style={{
-                fontSize: '1.45rem',
+                fontSize: '1.5rem',
                 fontWeight: 800,
                 letterSpacing: '-0.025em',
-                color: theme.textPrimary,
+                color: 'var(--text-primary)',
                 margin: '0 0 0.35rem 0'
               }}>
                 Create New Password
               </h1>
               <p style={{
-                color: theme.textSecondary,
-                fontSize: '0.85rem',
+                color: 'var(--text-secondary)',
+                fontSize: '0.86rem',
                 lineHeight: 1.45,
                 margin: 0
               }}>
@@ -829,8 +790,8 @@ export default function ForgotPassword() {
             {error && (
               <div style={{
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: theme.redAccent,
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: '#ef4444',
                 borderRadius: '12px',
                 padding: '0.75rem 0.9rem',
                 fontSize: '0.84rem',
@@ -850,10 +811,10 @@ export default function ForgotPassword() {
                   htmlFor="new-pwd" 
                   style={{ 
                     display: 'block', 
-                    fontSize: '0.82rem', 
+                    fontSize: '0.84rem', 
                     fontWeight: 600, 
-                    color: theme.textPrimary, 
-                    marginBottom: '0.4rem' 
+                    color: 'var(--text-primary)', 
+                    marginBottom: '0.45rem' 
                   }}
                 >
                   New Password
@@ -870,19 +831,19 @@ export default function ForgotPassword() {
                     disabled={loading}
                     style={{
                       width: '100%',
-                      height: '46px',
+                      height: '48px',
                       borderRadius: '12px',
                       fontSize: '0.92rem',
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      color: theme.textPrimary,
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
                       padding: '0 2.5rem 0 1rem',
                       boxSizing: 'border-box',
                       outline: 'none',
                       transition: 'border-color 0.2s ease'
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = theme.redAccent; }}
-                    onBlur={(e) => { e.target.style.borderColor = theme.border; }}
+                    onFocus={(e) => { e.target.style.borderColor = 'var(--text-primary)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
                   />
                   <button
                     type="button"
@@ -895,7 +856,7 @@ export default function ForgotPassword() {
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: theme.textSecondary,
+                      color: 'var(--text-secondary)',
                       padding: 0,
                       display: 'flex',
                       alignItems: 'center'
@@ -912,10 +873,10 @@ export default function ForgotPassword() {
                   htmlFor="confirm-new-pwd" 
                   style={{ 
                     display: 'block', 
-                    fontSize: '0.82rem', 
+                    fontSize: '0.84rem', 
                     fontWeight: 600, 
-                    color: theme.textPrimary, 
-                    marginBottom: '0.4rem' 
+                    color: 'var(--text-primary)', 
+                    marginBottom: '0.45rem' 
                   }}
                 >
                   Confirm New Password
@@ -931,19 +892,19 @@ export default function ForgotPassword() {
                     disabled={loading}
                     style={{
                       width: '100%',
-                      height: '46px',
+                      height: '48px',
                       borderRadius: '12px',
                       fontSize: '0.92rem',
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      color: theme.textPrimary,
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
                       padding: '0 2.5rem 0 1rem',
                       boxSizing: 'border-box',
                       outline: 'none',
                       transition: 'border-color 0.2s ease'
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = theme.redAccent; }}
-                    onBlur={(e) => { e.target.style.borderColor = theme.border; }}
+                    onFocus={(e) => { e.target.style.borderColor = 'var(--text-primary)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
                   />
                   <button
                     type="button"
@@ -956,7 +917,7 @@ export default function ForgotPassword() {
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: theme.textSecondary,
+                      color: 'var(--text-secondary)',
                       padding: 0,
                       display: 'flex',
                       alignItems: 'center'
@@ -972,16 +933,16 @@ export default function ForgotPassword() {
                 type="submit"
                 disabled={loading}
                 style={{
-                  height: '46px',
+                  height: '48px',
                   borderRadius: '12px',
                   width: '100%',
                   border: 'none',
-                  backgroundColor: theme.redAccent,
-                  color: '#ffffff',
+                  backgroundColor: 'var(--accent-color)',
+                  color: 'var(--accent-inverse)',
                   fontWeight: 600,
-                  fontSize: '0.92rem',
+                  fontSize: '0.94rem',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1,
+                  opacity: loading ? 0.75 : 1,
                   transition: 'opacity 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
@@ -1003,9 +964,9 @@ export default function ForgotPassword() {
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              backgroundColor: `${theme.successGreen}20`,
-              border: `2px solid ${theme.successGreen}`,
-              color: theme.successGreen,
+              backgroundColor: 'rgba(52, 199, 89, 0.1)',
+              border: '2px solid #34c759',
+              color: '#34c759',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1016,15 +977,15 @@ export default function ForgotPassword() {
 
             <div>
               <h1 style={{
-                fontSize: '1.45rem',
+                fontSize: '1.5rem',
                 fontWeight: 800,
-                color: theme.textPrimary,
+                color: 'var(--text-primary)',
                 margin: '0 0 0.4rem 0'
               }}>
                 Password Updated
               </h1>
               <p style={{
-                color: theme.textSecondary,
+                color: 'var(--text-secondary)',
                 fontSize: '0.88rem',
                 lineHeight: 1.5,
                 margin: 0
@@ -1037,14 +998,14 @@ export default function ForgotPassword() {
               type="button"
               onClick={() => navigate('/login', { replace: true })}
               style={{
-                height: '46px',
+                height: '48px',
                 borderRadius: '12px',
                 width: '100%',
                 border: 'none',
-                backgroundColor: theme.redAccent,
-                color: '#ffffff',
+                backgroundColor: 'var(--accent-color)',
+                color: 'var(--accent-inverse)',
                 fontWeight: 600,
-                fontSize: '0.92rem',
+                fontSize: '0.94rem',
                 cursor: 'pointer'
               }}
             >
@@ -1055,17 +1016,17 @@ export default function ForgotPassword() {
 
         {/* Footer Security Badge */}
         <div style={{
-          marginTop: '1.75rem',
+          marginTop: '2rem',
           paddingTop: '1.25rem',
-          borderTop: `1px solid ${theme.border}`,
+          borderTop: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.4rem',
-          color: theme.textSecondary,
-          fontSize: '0.76rem'
+          color: 'var(--text-secondary)',
+          fontSize: '0.78rem'
         }}>
-          <Shield size={13} color={theme.successGreen} />
+          <Shield size={14} color="#34C759" />
           <span>Encrypted with 256-bit server-side verification</span>
         </div>
       </div>

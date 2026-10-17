@@ -599,39 +599,69 @@ export const linkGoogleAccount = async ({ idToken, password }) => {
 };
 
 export const requestPasswordReset = async (email) => {
-  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+  let res = await fetch(`${API_URL}/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
   });
+  if (res.status === 404) {
+    res = await fetch(`${API_URL}/users/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error('Password recovery service is deploying or updating. Please try again in a few moments.');
+    }
     throw new Error(data.error || 'Failed to request password reset');
   }
   return data;
 };
 
 export const verifyPasswordResetCode = async ({ email, code }) => {
-  const res = await fetch(`${API_URL}/auth/verify-reset-code`, {
+  let res = await fetch(`${API_URL}/auth/verify-reset-code`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, code })
   });
+  if (res.status === 404) {
+    res = await fetch(`${API_URL}/users/verify-reset-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code })
+    });
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error('Verification service is deploying or updating. Please try again in a few moments.');
+    }
     throw new Error(data.error || 'Failed to verify reset code');
   }
   return data;
 };
 
 export const resetPassword = async ({ email, resetToken, newPassword, confirmPassword }) => {
-  const res = await fetch(`${API_URL}/auth/reset-password`, {
+  let res = await fetch(`${API_URL}/auth/reset-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, resetToken, newPassword, confirmPassword })
   });
+  if (res.status === 404) {
+    res = await fetch(`${API_URL}/users/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, resetToken, newPassword, confirmPassword })
+    });
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error('Password reset service is deploying or updating. Please try again in a few moments.');
+    }
     throw new Error(data.error || 'Failed to reset password');
   }
   return data;
