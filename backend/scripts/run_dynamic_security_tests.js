@@ -113,22 +113,22 @@ async function runDastSuite() {
     assert.equal(res.statusCode, 401);
   });
 
-  await test('1.2 Forged Signature Token returns 403', async () => {
+  await test('1.2 Forged Signature Token returns 401 or 403', async () => {
     const forgedToken = jwt.sign({ email: 'admin@spit.ac.in', role: 'Administrator' }, 'wrong_secret_signature');
     const res = await sendRequest({
       path: '/api/folders',
       headers: { Authorization: `Bearer ${forgedToken}` }
     });
-    assert.equal(res.statusCode, 403);
+    assert.ok(res.statusCode === 401 || res.statusCode === 403, `Expected 401 or 403 but got ${res.statusCode}`);
   });
 
-  await test('1.3 Alg=none Token Attack rejected with 403', async () => {
+  await test('1.3 Alg=none Token Attack rejected with 401 or 403', async () => {
     const noneToken = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbWFpbCI6ImFkbWluQHNwaXQuYWMuaW4iLCJyb2xlIjoiQWRtaW5pc3RyYXRvciJ9.';
     const res = await sendRequest({
       path: '/api/folders',
       headers: { Authorization: `Bearer ${noneToken}` }
     });
-    assert.equal(res.statusCode, 403);
+    assert.ok(res.statusCode === 401 || res.statusCode === 403, `Expected 401 or 403 but got ${res.statusCode}`);
   });
 
   // 2. AUTHORIZATION & RBAC

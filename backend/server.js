@@ -17,13 +17,17 @@ const helmet = require('helmet');
 const busboy = require('busboy');
 const crypto = require('crypto');
 const compression = require('compression');
-const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession, PasswordResetChallenge } = require('./models');
+const { Readable } = require('stream');
+const multer = require('multer');
+const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession, PasswordResetChallenge, UserSession, Feedback, ActivityLog } = require('./models');
 const StorageService = require('./services/storageService');
 const { ensureSystemFolders } = require('./scripts/initSystemFolders');
 const { verifyGoogleToken, isSpitDomain, RESTRICTED_MESSAGE } = require('./services/googleAuth');
 const { generateFullSystemHealth, recordWriteVerification } = require('./services/systemDiagnostics');
 const cacheService = require('./services/cacheService');
 const { sendPasswordResetEmail } = require('./services/emailService');
+const sessionService = require('./services/sessionService');
+const activityService = require('./services/activityService');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -93,6 +97,29 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many upload attempts from this IP, please try again after 15 minutes.' }
 });
 
+// Define Feedback Rate Limiter (Max 15 submissions per 15 min per IP)
+const feedbackLimiter = rateLimit({
+  windowMs: RATE_LIMIT_CONFIG.WINDOW_MS,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many feedback submissions from this IP, please try again after 15 minutes.' }
+});
+
+// Multer memory storage for feedback screenshot attachments (max 5MB)
+const feedbackUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PNG, JPEG, and WebP images are permitted for screenshots.'));
+    }
+  }
+});
+
 // Middlewares
 
 // Enable CORS with restricted origin access
@@ -120,7 +147,8 @@ app.use(cors({
     }
     return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['X-Refreshed-Token', 'Content-Disposition']
 }));
 
 // Selective HTTP Response Compression (Gzip / Deflate for JSON, skips binary file streaming)
@@ -508,7 +536,7 @@ async function authenticateToken(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Access token is required. Please login.' });
+    return res.status(401).json({ error: 'Access token is required. Please login.', code: 'TOKEN_MISSING' });
   }
 
   try {
@@ -516,29 +544,64 @@ async function authenticateToken(req, res, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     const email = (decoded.email || '').trim();
     if (!email) {
-      return res.status(401).json({ error: 'User session invalid. Email claim missing.' });
+      return res.status(401).json({ error: 'User session invalid. Email claim missing.', code: 'INVALID_TOKEN' });
     }
 
-    // 2. Check short-lived in-memory cache before executing remote database query
+    // 2. Check session validity if sessionId is present
+    if (decoded.sessionId) {
+      const isActive = await sessionService.isSessionActive(decoded.sessionId, email);
+      if (!isActive) {
+        return res.status(401).json({
+          error: 'Your session has been terminated or expired. Please sign in again.',
+          code: 'SESSION_REVOKED'
+        });
+      }
+      sessionService.touchSession(decoded.sessionId);
+    }
+
+    // 3. Check short-lived in-memory cache before executing remote database query
     let user = userAuthCache.get(email);
     if (!user) {
       user = await User.findOne({ email: new RegExp('^' + escapeRegExp(email) + '$', 'i') });
       if (!user) {
-        return res.status(401).json({ error: 'User session invalid. User not found.' });
+        return res.status(401).json({ error: 'User session invalid. User not found.', code: 'USER_NOT_FOUND' });
       }
       userAuthCache.set(email, user);
     }
 
-    // 3. Immediately enforce account suspension or deactivation
+    // 4. Immediately enforce account suspension or deactivation
     if (user.status !== 'Active') {
       userAuthCache.invalidate(email);
-      return res.status(403).json({ error: 'Your account is inactive or pending approval.' });
+      return res.status(403).json({ error: 'Your account is inactive or pending approval.', code: 'ACCOUNT_INACTIVE' });
+    }
+
+    // 5. Automatic sliding token refresh if token has less than 12 hours remaining
+    if (decoded.exp) {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const remainingSeconds = decoded.exp - nowSeconds;
+      if (remainingSeconds > 0 && remainingSeconds < 12 * 3600) {
+        const refreshedToken = jwt.sign(
+          {
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            sessionId: decoded.sessionId || null
+          },
+          JWT_SECRET,
+          { expiresIn: '24h' }
+        );
+        res.setHeader('X-Refreshed-Token', refreshedToken);
+      }
     }
 
     req.user = user;
+    req.sessionId = decoded.sessionId || null;
     next();
   } catch (err) {
-    return res.status(403).json({ error: 'Session expired or token invalid. Please sign in again.' });
+    return res.status(401).json({
+      error: 'Session expired or token invalid. Please sign in again.',
+      code: 'TOKEN_EXPIRED'
+    });
   }
 }
 
@@ -1166,6 +1229,16 @@ app.post('/api/users/login', async (req, res) => {
       ]
     });
     if (!user) {
+      activityService.logActivity({
+        eventType: 'AUTH_LOGIN_FAIL',
+        category: 'AUTH',
+        actorEmail: String(rawIdentifier).slice(0, 80),
+        summary: 'Failed login attempt - user not found',
+        outcome: 'FAILURE',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || '',
+        metadata: { reason: 'USER_NOT_FOUND' }
+      });
       return res.status(401).json({ error: 'Invalid username/email or password. Please try again.' });
     }
     
@@ -1185,15 +1258,46 @@ app.post('/api/users/login', async (req, res) => {
     // Compare bcrypt passwords
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      activityService.logActivity({
+        eventType: 'AUTH_LOGIN_FAIL',
+        category: 'AUTH',
+        actorEmail: user.email,
+        summary: 'Failed login attempt - invalid password',
+        outcome: 'FAILURE',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || '',
+        metadata: { reason: 'INVALID_PASSWORD' }
+      });
       return res.status(401).json({ error: 'Invalid username/email or password. Please try again.' });
     }
     
-    // Sign JWT
+    // Create persistent user session
+    const userAgent = req.headers['user-agent'] || '';
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const session = await sessionService.createSession({
+      email: user.email,
+      userAgent,
+      ipAddress
+    });
+
+    // Sign JWT with sessionId
     const token = jwt.sign(
-      { email: user.email, role: user.role, status: user.status },
+      { email: user.email, role: user.role, status: user.status, sessionId: session.sessionId },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    activityService.logActivity({
+      eventType: 'AUTH_LOGIN_SUCCESS',
+      category: 'AUTH',
+      actorEmail: user.email,
+      actorRole: user.role,
+      summary: `User logged in from ${session.deviceSummary}`,
+      outcome: 'SUCCESS',
+      ipAddress,
+      userAgent,
+      metadata: { method: 'local_password', sessionId: session.sessionId }
+    });
     
     const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
     res.json({
@@ -1207,7 +1311,8 @@ app.post('/api/users/login', async (req, res) => {
       onboarded: isUserAdmin ? true : user.onboarded,
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || '',
-      token
+      token,
+      sessionId: session.sessionId
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -1261,11 +1366,31 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
       }
 
       // Existing returning Google user - direct login without repeating signup
+      const userAgent = req.headers['user-agent'] || '';
+      const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+      const session = await sessionService.createSession({
+        email: user.email,
+        userAgent,
+        ipAddress
+      });
+
       const token = jwt.sign(
-        { email: user.email, role: user.role, status: user.status },
+        { email: user.email, role: user.role, status: user.status, sessionId: session.sessionId },
         JWT_SECRET,
         { expiresIn: '24h' }
       );
+
+      activityService.logActivity({
+        eventType: 'AUTH_LOGIN_SUCCESS',
+        category: 'AUTH',
+        actorEmail: user.email,
+        actorRole: user.role,
+        summary: `User logged in via Google OAuth from ${session.deviceSummary}`,
+        outcome: 'SUCCESS',
+        ipAddress,
+        userAgent,
+        metadata: { method: 'google', sessionId: session.sessionId }
+      });
 
       const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
       return res.json({
@@ -1280,7 +1405,8 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
         onboarded: isUserAdmin ? true : user.onboarded,
         isAdmin: isUserAdmin,
         nameColor: user.nameColor || '',
-        token
+        token,
+        sessionId: session.sessionId
       });
     }
 
@@ -1373,11 +1499,31 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
       userAuthCache.invalidate(existingByEmail.email);
 
       // Issue session token using existing user's role and status
+      const userAgent = req.headers['user-agent'] || '';
+      const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+      const session = await sessionService.createSession({
+        email: existingByEmail.email,
+        userAgent,
+        ipAddress
+      });
+
       const token = jwt.sign(
-        { email: existingByEmail.email, role: existingByEmail.role, status: existingByEmail.status },
+        { email: existingByEmail.email, role: existingByEmail.role, status: existingByEmail.status, sessionId: session.sessionId },
         JWT_SECRET,
         { expiresIn: '24h' }
       );
+
+      activityService.logActivity({
+        eventType: 'AUTH_LOGIN_SUCCESS',
+        category: 'AUTH',
+        actorEmail: existingByEmail.email,
+        actorRole: existingByEmail.role,
+        summary: `User logged in via Google OAuth from ${session.deviceSummary}`,
+        outcome: 'SUCCESS',
+        ipAddress,
+        userAgent,
+        metadata: { method: 'google_linked', sessionId: session.sessionId }
+      });
 
       const isUserAdmin = existingByEmail.email.toLowerCase() === 'admin@spit.ac.in' || existingByEmail.role === 'Administrator' || existingByEmail.role === 'Admin';
       return res.json({
@@ -1392,7 +1538,8 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
         onboarded: isUserAdmin ? true : existingByEmail.onboarded,
         isAdmin: isUserAdmin,
         nameColor: existingByEmail.nameColor || '',
-        token
+        token,
+        sessionId: session.sessionId
       });
     }
 
@@ -1487,12 +1634,33 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
     await newUser.save();
     userAuthCache.invalidate(email);
 
+    // Create session
+    const userAgent = req.headers['user-agent'] || '';
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const session = await sessionService.createSession({
+      email: newUser.email,
+      userAgent,
+      ipAddress
+    });
+
     // Sign JWT
     const token = jwt.sign(
-      { email: newUser.email, role: newUser.role, status: newUser.status },
+      { email: newUser.email, role: newUser.role, status: newUser.status, sessionId: session.sessionId },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    activityService.logActivity({
+      eventType: 'AUTH_LOGIN_SUCCESS',
+      category: 'AUTH',
+      actorEmail: newUser.email,
+      actorRole: newUser.role,
+      summary: `New user signed up and logged in via Google OAuth from ${session.deviceSummary}`,
+      outcome: 'SUCCESS',
+      ipAddress,
+      userAgent,
+      metadata: { method: 'google_signup', sessionId: session.sessionId }
+    });
 
     return res.status(201).json({
       action: 'LOGIN_SUCCESS',
@@ -1506,7 +1674,8 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
       onboarded: newUser.onboarded,
       isAdmin: false,
       nameColor: newUser.nameColor || '',
-      token
+      token,
+      sessionId: session.sessionId
     });
   } catch (err) {
     return handleRegistrationError(err, 'Google Registration', res);
@@ -1560,11 +1729,32 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
     await user.save();
     userAuthCache.invalidate(email);
 
+    // Create session
+    const userAgent = req.headers['user-agent'] || '';
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const session = await sessionService.createSession({
+      email: user.email,
+      userAgent,
+      ipAddress
+    });
+
     const token = jwt.sign(
-      { email: user.email, role: user.role, status: user.status },
+      { email: user.email, role: user.role, status: user.status, sessionId: session.sessionId },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    activityService.logActivity({
+      eventType: 'AUTH_LOGIN_SUCCESS',
+      category: 'AUTH',
+      actorEmail: user.email,
+      actorRole: user.role,
+      summary: `User linked Google account and logged in from ${session.deviceSummary}`,
+      outcome: 'SUCCESS',
+      ipAddress,
+      userAgent,
+      metadata: { method: 'google_linked_password', sessionId: session.sessionId }
+    });
 
     const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
     return res.json({
@@ -1579,7 +1769,8 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
       onboarded: isUserAdmin ? true : user.onboarded,
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || '',
-      token
+      token,
+      sessionId: session.sessionId
     });
   } catch (err) {
     console.error('[SECURE_DB_ERROR] Google Account Link failed:', {
@@ -3603,6 +3794,462 @@ app.delete('/api/achievements/:id', authenticateToken, requireOnboarded, require
   }
 });
 
+// ==========================================
+// AUTHENTICATION & MULTI-DEVICE SESSIONS API
+// ==========================================
+
+// Logout - revokes current session
+app.post('/api/auth/logout', authenticateToken, async (req, res) => {
+  try {
+    if (req.sessionId) {
+      await sessionService.revokeSession(req.sessionId, req.user.email, 'User explicit logout');
+    }
+    activityService.logActivity({
+      eventType: 'AUTH_LOGOUT',
+      category: 'AUTH',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      summary: 'User logged out',
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { sessionId: req.sessionId }
+    });
+    res.json({ message: 'Successfully logged out.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to complete logout.' });
+  }
+});
+
+// List active sessions for authenticated user
+app.get('/api/sessions/my', authenticateToken, async (req, res) => {
+  try {
+    const sessions = await sessionService.listUserSessions(req.user.email, req.sessionId);
+    res.json({ sessions });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve active sessions.' });
+  }
+});
+
+// Revoke a specific session
+app.delete('/api/sessions/my/:sessionId', authenticateToken, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required.' });
+    }
+    await sessionService.revokeSession(sessionId, req.user.email, 'User revoked individual session');
+    activityService.logActivity({
+      eventType: 'AUTH_SESSION_REVOKED',
+      category: 'AUTH',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      summary: `User terminated session ${sessionId}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { targetSessionId: sessionId }
+    });
+    res.json({ message: 'Session revoked successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to revoke session.' });
+  }
+});
+
+// Revoke all other sessions except current
+app.post('/api/sessions/my/revoke-others', authenticateToken, async (req, res) => {
+  try {
+    const result = await sessionService.revokeOtherSessions(req.user.email, req.sessionId);
+    activityService.logActivity({
+      eventType: 'AUTH_SESSION_REVOKED',
+      category: 'AUTH',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      summary: 'User revoked all other active sessions',
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: { modifiedCount: result.modifiedCount || 0 }
+    });
+    res.json({
+      message: 'All other active sessions have been terminated.',
+      revokedCount: result.modifiedCount || 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to revoke other sessions.' });
+  }
+});
+
+// ==========================================
+// USER FEEDBACK & BUG REPORTING API
+// ==========================================
+
+const FEEDBACK_VALID_CATEGORIES = [
+  'Bug / Error',
+  'UI / Usability',
+  'Placement Story Issue',
+  'Resource / Material Issue',
+  'Authentication / Login Issue',
+  'Performance / Slowness',
+  'Mobile / Responsiveness',
+  'Feature Request',
+  'Account / Profile Issue',
+  'Other'
+];
+
+const FEEDBACK_VALID_SEVERITIES = ['Minor', 'Moderate', 'Major', 'Critical'];
+const FEEDBACK_VALID_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
+
+// Submit feedback or bug report with optional screenshot
+app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, (req, res) => {
+  feedbackUpload.single('screenshot')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Error processing attachment.' });
+    }
+
+    try {
+      const {
+        title,
+        category,
+        severity = 'Moderate',
+        priority = 'Medium',
+        description,
+        expectedBehavior = '',
+        actualBehavior = '',
+        stepsToReproduce = '',
+        route = '',
+        deviceDiagnostics = '{}'
+      } = req.body;
+
+      if (!title || typeof title !== 'string' || !title.trim()) {
+        return res.status(400).json({ error: 'Feedback title is required.' });
+      }
+      if (!description || typeof description !== 'string' || !description.trim()) {
+        return res.status(400).json({ error: 'Feedback description is required.' });
+      }
+      if (!FEEDBACK_VALID_CATEGORIES.includes(category)) {
+        return res.status(400).json({
+          error: `Invalid category. Must be one of: ${FEEDBACK_VALID_CATEGORIES.join(', ')}`
+        });
+      }
+
+      const cleanSeverity = FEEDBACK_VALID_SEVERITIES.includes(severity) ? severity : 'Moderate';
+      const cleanPriority = FEEDBACK_VALID_PRIORITIES.includes(priority) ? priority : 'Medium';
+
+      // Parse diagnostics safely
+      let parsedDiagnostics = {};
+      try {
+        parsedDiagnostics = typeof deviceDiagnostics === 'string' ? JSON.parse(deviceDiagnostics) : (deviceDiagnostics || {});
+      } catch (parseErr) {
+        parsedDiagnostics = {};
+      }
+
+      // Generate reference ID FB-YYYYMMDD-XXXX
+      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randPart = crypto.randomBytes(3).toString('hex').toUpperCase();
+      const referenceId = `FB-${datePart}-${randPart}`;
+
+      let screenshotFileId = null;
+      let screenshotFileName = '';
+      let screenshotSize = 0;
+      let screenshotMime = '';
+
+      // If user uploaded a screenshot, store safely in GridFS
+      if (req.file) {
+        const sanitizedFilename = `feedback-${referenceId}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const fileStream = Readable.from(req.file.buffer);
+        const uploadResult = await StorageService.uploadToGridFS(
+          fileStream,
+          sanitizedFilename,
+          req.file.mimetype,
+          {
+            uploadedBy: req.user.email,
+            referenceId,
+            isFeedbackAttachment: true
+          }
+        );
+        screenshotFileId = uploadResult.gridFsFileId;
+        screenshotFileName = sanitizedFilename;
+        screenshotSize = req.file.size;
+        screenshotMime = req.file.mimetype;
+      }
+
+      const feedback = new Feedback({
+        referenceId,
+        reporterEmail: req.user.email.toLowerCase().trim(),
+        reporterName: req.user.name || '',
+        category,
+        severity: cleanSeverity,
+        priority: cleanPriority,
+        status: 'New',
+        title: sanitizeString(title.trim().slice(0, 200)),
+        description: sanitizeString(description.trim().slice(0, 5000)),
+        expectedBehavior: sanitizeString((expectedBehavior || '').trim().slice(0, 2000)),
+        actualBehavior: sanitizeString((actualBehavior || '').trim().slice(0, 2000)),
+        stepsToReproduce: sanitizeString((stepsToReproduce || '').trim().slice(0, 2000)),
+        route: sanitizeString((route || '').trim().slice(0, 200)),
+        deviceDiagnostics: {
+          browser: sanitizeString((parsedDiagnostics.browser || '').slice(0, 100)),
+          os: sanitizeString((parsedDiagnostics.os || '').slice(0, 100)),
+          viewport: sanitizeString((parsedDiagnostics.viewport || '').slice(0, 50)),
+          appVersion: sanitizeString((parsedDiagnostics.appVersion || '2.2.0').slice(0, 50)),
+          correlationId: sanitizeString((parsedDiagnostics.correlationId || '').slice(0, 100))
+        },
+        screenshotFileId,
+        screenshotFileName,
+        screenshotSize,
+        screenshotMime,
+        statusHistory: [{
+          status: 'New',
+          changedBy: req.user.email,
+          timestamp: new Date(),
+          reason: 'Initial report submission'
+        }]
+      });
+
+      await feedback.save();
+
+      // Log in audit trail
+      activityService.logActivity({
+        eventType: 'FEEDBACK_SUBMIT',
+        category: 'FEEDBACK',
+        actorEmail: req.user.email,
+        actorRole: req.user.role,
+        targetType: 'Feedback',
+        targetId: feedback._id,
+        summary: `Submitted feedback: [${category}] ${title.slice(0, 60)}`,
+        outcome: 'SUCCESS',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || '',
+        metadata: { referenceId, category, severity: cleanSeverity }
+      });
+
+      res.status(201).json({
+        message: 'Feedback submitted successfully. Thank you for helping us improve LOOP!',
+        referenceId,
+        feedbackId: feedback._id,
+        feedback
+      });
+    } catch (err) {
+      console.error('[FEEDBACK_POST_ERROR]', err);
+      res.status(500).json({ error: 'Failed to process feedback submission.' });
+    }
+  });
+});
+
+// View authenticated user's own feedback history
+app.get('/api/feedback/my', authenticateToken, requireOnboarded, async (req, res) => {
+  try {
+    const list = await Feedback.find({ reporterEmail: req.user.email.toLowerCase().trim() })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load feedback history.' });
+  }
+});
+
+// Stream feedback screenshot attachment with permission check
+app.get('/api/feedback/attachments/:id', authenticateToken, async (req, res) => {
+  try {
+    const feedback = await Feedback.findOne({ screenshotFileId: req.params.id }).lean();
+    if (!feedback) {
+      return res.status(404).json({ error: 'Attachment not found.' });
+    }
+
+    const isAdmin = isUserAdmin(req.user);
+    const isOwner = feedback.reporterEmail.toLowerCase().trim() === req.user.email.toLowerCase().trim();
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'Access denied to this attachment.' });
+    }
+
+    return await StorageService.streamFromGridFS(
+      `gridfs:${req.params.id}`,
+      req,
+      res,
+      feedback.screenshotFileName,
+      feedback.screenshotMime || 'image/png'
+    );
+  } catch (err) {
+    console.error('[FEEDBACK_ATTACHMENT_ERROR]', err);
+    res.status(500).json({ error: 'Failed to stream screenshot.' });
+  }
+});
+
+// Admin: Query and filter all feedback submissions
+app.get('/api/admin/feedback', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      category,
+      severity,
+      priority,
+      search
+    } = req.query;
+
+    const query = {};
+    if (status && status !== 'All') query.status = status;
+    if (category && category !== 'All') query.category = category;
+    if (severity && severity !== 'All') query.severity = severity;
+    if (priority && priority !== 'All') query.priority = priority;
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const escaped = escapeRegExp(search.trim());
+      query.$or = [
+        { title: { $regex: escaped, $options: 'i' } },
+        { description: { $regex: escaped, $options: 'i' } },
+        { referenceId: { $regex: escaped, $options: 'i' } },
+        { reporterEmail: { $regex: escaped, $options: 'i' } }
+      ];
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [items, total, countsByStatus, totalCritical] = await Promise.all([
+      Feedback.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Feedback.countDocuments(query),
+      Feedback.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Feedback.countDocuments({ severity: 'Critical', status: { $nin: ['Resolved', 'Closed', 'Rejected'] } })
+    ]);
+
+    const statusMetrics = {};
+    countsByStatus.forEach(c => { statusMetrics[c._id] = c.count; });
+
+    res.json({
+      items,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum) || 1
+      },
+      metrics: {
+        totalAll: Object.values(statusMetrics).reduce((a, b) => a + b, 0),
+        statusCounts: statusMetrics,
+        criticalOpen: totalCritical
+      }
+    });
+  } catch (err) {
+    console.error('[ADMIN_FEEDBACK_GET_ERROR]', err);
+    res.status(500).json({ error: 'Failed to retrieve feedback list.' });
+  }
+});
+
+// Admin: Update feedback status, priority, admin response, notes
+app.patch('/api/admin/feedback/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, priority, assignedTo, adminResponse, note, reason } = req.body;
+
+    const feedback = await Feedback.findById(id);
+    if (!feedback) {
+      return res.status(404).json({ error: 'Feedback record not found.' });
+    }
+
+    const updates = {};
+    let statusChanged = false;
+
+    if (status && status !== feedback.status) {
+      const validStatuses = ['New', 'Acknowledged', 'In Progress', 'Waiting for Information', 'Resolved', 'Closed', 'Rejected'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status value.' });
+      }
+      updates.status = status;
+      statusChanged = true;
+      feedback.statusHistory.push({
+        status,
+        changedBy: req.user.email,
+        timestamp: new Date(),
+        reason: sanitizeString(reason || '')
+      });
+    }
+
+    if (priority && FEEDBACK_VALID_PRIORITIES.includes(priority)) {
+      updates.priority = priority;
+    }
+    if (assignedTo !== undefined) {
+      updates.assignedTo = sanitizeString(assignedTo.trim());
+    }
+    if (adminResponse !== undefined) {
+      updates.adminResponse = sanitizeString(adminResponse.trim());
+    }
+    if (note && typeof note === 'string' && note.trim()) {
+      feedback.adminNotes.push({
+        note: sanitizeString(note.trim()),
+        authorEmail: req.user.email,
+        createdAt: new Date()
+      });
+    }
+
+    Object.assign(feedback, updates);
+    await feedback.save();
+
+    if (statusChanged) {
+      activityService.logActivity({
+        eventType: 'FEEDBACK_STATUS_CHANGE',
+        category: 'FEEDBACK',
+        actorEmail: req.user.email,
+        actorRole: req.user.role,
+        targetType: 'Feedback',
+        targetId: feedback._id,
+        summary: `Changed feedback [${feedback.referenceId}] status to ${status}`,
+        outcome: 'SUCCESS',
+        ipAddress: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || '',
+        metadata: { referenceId: feedback.referenceId, oldStatus: feedback.status, newStatus: status, reason }
+      });
+    }
+
+    res.json({ message: 'Feedback updated successfully.', feedback });
+  } catch (err) {
+    console.error('[ADMIN_FEEDBACK_PATCH_ERROR]', err);
+    res.status(500).json({ error: 'Failed to update feedback record.' });
+  }
+});
+
+// ==========================================
+// AUDIT TRAILS & USER ACTIVITY INTELLIGENCE
+// ==========================================
+
+// Authenticated user's recent activity stream
+app.get('/api/users/me/activity', authenticateToken, async (req, res) => {
+  try {
+    const logs = await ActivityLog.find({ actorEmail: req.user.email.toLowerCase().trim() })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve personal activity history.' });
+  }
+});
+
+// Admin: Comprehensive, filterable, paginated audit logs
+app.get('/api/admin/audit-logs', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { page, limit, category, eventType, actorEmail, outcome, search, startDate, endDate } = req.query;
+    const result = await activityService.getAuditLogs({
+      page: parseInt(page, 10) || 1,
+      limit: parseInt(limit, 10) || 25,
+      category,
+      eventType,
+      actorEmail,
+      outcome,
+      search,
+      startDate,
+      endDate
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[ADMIN_AUDIT_LOGS_GET_ERROR]', err);
+    res.status(500).json({ error: 'Failed to retrieve audit logs.' });
+  }
+});
+
 let server = null;
 if (require.main === module) {
   server = app.listen(PORT, () => {
@@ -3638,5 +4285,6 @@ module.exports = {
   requireOnboarded,
   parseConfiguredOrigins,
   DEFAULT_ALLOWED_ORIGINS,
-  RESET_SECRET
+  RESET_SECRET,
+  JWT_SECRET
 };

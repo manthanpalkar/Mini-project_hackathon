@@ -252,6 +252,151 @@ const PasswordResetChallengeSchema = new mongoose.Schema({
 PasswordResetChallengeSchema.index({ email: 1, status: 1 });
 PasswordResetChallengeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 86400 });
 
+// User Session Schema for Multi-Device Session Management & Persistent Logins
+const UserSessionSchema = new mongoose.Schema({
+  sessionId: { type: String, required: true, unique: true, index: true },
+  email: { type: String, required: true, lowercase: true, trim: true, index: true },
+  deviceSummary: { type: String, default: 'Web Browser' },
+  ipAddress: { type: String, default: 'Unknown' },
+  userAgent: { type: String, default: '' },
+  lastActive: { type: Date, default: Date.now, index: true },
+  expiresAt: { type: Date, required: true },
+  revoked: { type: Boolean, default: false, index: true },
+  revokedAt: { type: Date, default: null },
+  revokedReason: { type: String, default: '' }
+}, { timestamps: true });
+
+UserSessionSchema.index({ email: 1, revoked: 1 });
+UserSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// User Feedback & Bug Reporting Schema
+const FeedbackSchema = new mongoose.Schema({
+  referenceId: { type: String, required: true, unique: true, index: true },
+  reporterEmail: { type: String, required: true, lowercase: true, trim: true, index: true },
+  reporterName: { type: String, default: '' },
+  title: { type: String, required: true, trim: true },
+  description: { type: String, required: true },
+  category: {
+    type: String,
+    required: true,
+    enum: [
+      'Bug or technical issue',
+      'Feature request',
+      'Improvement suggestion',
+      'UI/UX or design feedback',
+      'Performance or loading problem',
+      'Login or account problem',
+      'Upload or resource problem',
+      'Security or privacy concern',
+      'Positive feedback',
+      'Other'
+    ],
+    index: true
+  },
+  severity: {
+    type: String,
+    enum: ['Low', 'Medium', 'High', 'Critical'],
+    default: 'Low',
+    index: true
+  },
+  priority: {
+    type: String,
+    enum: ['Low', 'Medium', 'High', 'Urgent'],
+    default: 'Medium',
+    index: true
+  },
+  status: {
+    type: String,
+    enum: ['New', 'Acknowledged', 'In Progress', 'Waiting for Information', 'Resolved', 'Closed', 'Rejected'],
+    default: 'New',
+    index: true
+  },
+  expectedBehavior: { type: String, default: '' },
+  actualBehavior: { type: String, default: '' },
+  stepsToReproduce: { type: String, default: '' },
+  route: { type: String, default: '' },
+  deviceDiagnostics: {
+    browser: { type: String, default: '' },
+    os: { type: String, default: '' },
+    viewport: { type: String, default: '' },
+    appVersion: { type: String, default: '2.2.0' },
+    correlationId: { type: String, default: '' }
+  },
+  screenshotFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  screenshotFileName: { type: String, default: '' },
+  screenshotSize: { type: Number, default: 0 },
+  screenshotMime: { type: String, default: '' },
+  assignedTo: { type: String, default: '' },
+  adminNotes: [{
+    note: String,
+    authorEmail: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  adminResponse: { type: String, default: '' },
+  statusHistory: [{
+    status: String,
+    changedBy: String,
+    timestamp: { type: Date, default: Date.now },
+    reason: { type: String, default: '' }
+  }]
+}, { timestamps: true });
+
+FeedbackSchema.index({ reporterEmail: 1, createdAt: -1 });
+FeedbackSchema.index({ status: 1, priority: 1, createdAt: -1 });
+FeedbackSchema.index({ category: 1, createdAt: -1 });
+FeedbackSchema.index({ createdAt: -1 });
+
+// User Activity History & Security Audit Trail Schema
+const ActivityLogSchema = new mongoose.Schema({
+  eventId: { type: String, required: true, unique: true, index: true },
+  eventType: {
+    type: String,
+    required: true,
+    enum: [
+      'AUTH_LOGIN_SUCCESS',
+      'AUTH_LOGIN_FAIL',
+      'AUTH_LOGOUT',
+      'AUTH_SESSION_REVOKED',
+      'AUTH_PASSWORD_RESET_REQ',
+      'AUTH_PASSWORD_RESET_SUCCESS',
+      'PROFILE_UPDATE',
+      'ONBOARDING_COMPLETE',
+      'CONTENT_STORY_ADD',
+      'CONTENT_STORY_EDIT',
+      'CONTENT_STORY_DELETE',
+      'CONTENT_RESOURCE_UPLOAD',
+      'CONTENT_RESOURCE_DELETE',
+      'CONTENT_FOLDER_CREATE',
+      'FEEDBACK_SUBMIT',
+      'FEEDBACK_STATUS_CHANGE',
+      'ADMIN_ACTION',
+      'SECURITY_WARN'
+    ],
+    index: true
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['AUTH', 'PROFILE', 'CONTENT', 'FEEDBACK', 'ADMIN', 'SECURITY'],
+    index: true
+  },
+  actorEmail: { type: String, required: true, lowercase: true, trim: true, index: true },
+  actorRole: { type: String, default: 'Student' },
+  targetType: { type: String, default: '' },
+  targetId: { type: String, default: '' },
+  summary: { type: String, required: true },
+  outcome: { type: String, enum: ['SUCCESS', 'FAILURE', 'DENIED'], default: 'SUCCESS', index: true },
+  ipAddress: { type: String, default: '127.0.0.1' },
+  userAgent: { type: String, default: '' },
+  metadata: { type: mongoose.Schema.Types.Mixed, default: {} }
+}, { timestamps: true });
+
+ActivityLogSchema.index({ actorEmail: 1, createdAt: -1 });
+ActivityLogSchema.index({ category: 1, createdAt: -1 });
+ActivityLogSchema.index({ eventType: 1, createdAt: -1 });
+ActivityLogSchema.index({ createdAt: -1 });
+ActivityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600 }); // 90-day retention
+
 module.exports = {
   User: mongoose.model('User', UserSchema),
   Story: mongoose.model('Story', StorySchema),
@@ -261,5 +406,8 @@ module.exports = {
   Achievement: mongoose.model('Achievement', AchievementSchema),
   Folder: mongoose.model('Folder', FolderSchema),
   UploadSession: mongoose.model('UploadSession', UploadSessionSchema),
-  PasswordResetChallenge: mongoose.model('PasswordResetChallenge', PasswordResetChallengeSchema)
+  PasswordResetChallenge: mongoose.model('PasswordResetChallenge', PasswordResetChallengeSchema),
+  UserSession: mongoose.model('UserSession', UserSessionSchema),
+  Feedback: mongoose.model('Feedback', FeedbackSchema),
+  ActivityLog: mongoose.model('ActivityLog', ActivityLogSchema)
 };

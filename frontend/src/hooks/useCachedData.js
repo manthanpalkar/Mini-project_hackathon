@@ -42,10 +42,29 @@ const setSessionCache = (key, val) => {
   }
 };
 
+// Maximum in-memory cache entries for low-spec device optimization (~1GB RAM)
+const MAX_CACHE_ENTRIES = 50;
+const pruneCacheIfNeeded = () => {
+  const keys = Object.keys(memoryCache);
+  if (keys.length > MAX_CACHE_ENTRIES) {
+    const sorted = keys.sort((a, b) => (memoryTimestamps[a] || 0) - (memoryTimestamps[b] || 0));
+    for (let i = 0; i < 15; i++) {
+      if (sorted[i]) {
+        delete memoryCache[sorted[i]];
+        delete memoryTimestamps[sorted[i]];
+      }
+    }
+  }
+};
+
 /**
  * Hook for intelligent client-side caching with request deduplication and TTL revalidation
  */
 export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_CACHE_TTL_MS) => {
+  // Stabilize fetcher reference to prevent infinite re-fetching loops from inline functions
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
+
   // Initialize state with in-memory or sessionStorage cached value
   const [data, setData] = useState(() => {
     const memAge = Date.now() - (memoryTimestamps[key] || 0);
@@ -104,7 +123,8 @@ export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_C
 
     const requestPromise = (async () => {
       try {
-        const res = await fetcher();
+        const res = await fetcherRef.current();
+        pruneCacheIfNeeded();
         memoryCache[key] = res;
         memoryTimestamps[key] = Date.now();
         setSessionCache(key, res);
@@ -127,7 +147,7 @@ export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_C
 
     inFlightPromises.set(key, requestPromise);
     return requestPromise;
-  }, [key, fetcher]);
+  }, [key]);
 
   // Revalidate (background fetch) on mount or dependency changes
   useEffect(() => {
@@ -145,6 +165,7 @@ export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_C
 
   // Mutate function allows optimistic UI updates
   const mutate = useCallback((newData, revalidate = true) => {
+    pruneCacheIfNeeded();
     memoryCache[key] = newData;
     memoryTimestamps[key] = Date.now();
     setSessionCache(key, newData);

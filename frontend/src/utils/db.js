@@ -75,10 +75,23 @@ const authFetch = async (url, options = {}) => {
     }
   }
   const res = await fetch(url, { ...options, headers });
+
+  // Handle sliding session token rotation
+  try {
+    const refreshedToken = res.headers ? res.headers.get('x-refreshed-token') : null;
+    if (refreshedToken && userSession) {
+      const current = JSON.parse(userSession);
+      if (current && current.email) {
+        current.token = refreshedToken;
+        localStorage.setItem('loop_current_user', JSON.stringify(current));
+      }
+    }
+  } catch (tokenErr) {}
+
   if (res.status === 401) {
     if (!window.location.pathname.includes('/login')) {
       localStorage.removeItem('loop_current_user');
-      window.location.href = '/login';
+      window.dispatchEvent(new CustomEvent('loop_auth_expired'));
       throw new Error('Session expired. Please login again.');
     }
   }
@@ -122,15 +135,25 @@ const authFetchXHR = (url, options = {}, onProgress) => {
       const responseBody = xhr.responseText;
       const ok = xhr.status >= 200 && xhr.status < 300;
 
-      // Handle auth failures — delay redirect so the promise resolves first
-      if ((xhr.status === 401 || xhr.status === 403) && !window.location.pathname.includes('/login')) {
+      // Handle sliding token refresh
+      try {
+        const refreshedToken = xhr.getResponseHeader('X-Refreshed-Token');
+        if (refreshedToken && userSession) {
+          const current = JSON.parse(userSession);
+          if (current && current.email) {
+            current.token = refreshedToken;
+            localStorage.setItem('loop_current_user', JSON.stringify(current));
+          }
+        }
+      } catch (tokenErr) {}
+
+      // Handle ONLY 401 Unauthorized for session expiration (NEVER 403 Forbidden!)
+      if (xhr.status === 401 && !window.location.pathname.includes('/login')) {
         localStorage.removeItem('loop_current_user');
-        // Resolve with the error response so the caller can handle it
         let parsedJson = null;
         try { parsedJson = JSON.parse(responseBody); } catch (e) { parsedJson = { error: 'Session expired. Please login again.' }; }
         resolve({ ok: false, status: xhr.status, json: async () => parsedJson, text: async () => responseBody });
-        // Delay navigation so we don't abort other in-flight requests
-        setTimeout(() => { window.location.href = '/login'; }, 300);
+        window.dispatchEvent(new CustomEvent('loop_auth_expired'));
         return;
       }
 
@@ -1193,4 +1216,144 @@ export const verifyDatabaseWrite = async () => {
     message: 'Database state verified.'
   };
 };
+
+// ==========================================
+// USER SESSIONS & AUTHENTICATION API
+// ==========================================
+
+export const logoutUser = async () => {
+  try {
+    await authFetch(`${API_URL}/auth/logout`, { method: 'POST' });
+  } catch (e) {
+    console.warn('Logout API notification failed:', e);
+  } finally {
+    localStorage.removeItem('loop_current_user');
+    window.dispatchEvent(new CustomEvent('loop_auth_expired'));
+  }
+};
+
+export const getUserSessions = async () => {
+  const res = await authFetch(`${API_URL}/sessions/my`);
+  if (!res.ok) {
+    throw new Error('Failed to retrieve user sessions.');
+  }
+  return await res.json();
+};
+
+export const revokeUserSession = async (sessionId) => {
+  const res = await authFetch(`${API_URL}/sessions/my/${sessionId}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to revoke session.');
+  }
+  return await res.json();
+};
+
+export const revokeOtherUserSessions = async () => {
+  const res = await authFetch(`${API_URL}/sessions/my/revoke-others`, { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to revoke other sessions.');
+  }
+  return await res.json();
+};
+
+// ==========================================
+// USER FEEDBACK & BUG REPORTING API
+// ==========================================
+
+export const submitFeedback = async (formData) => {
+  const userSession = localStorage.getItem('loop_current_user');
+  const headers = {};
+  if (userSession) {
+    try {
+      const { token } = JSON.parse(userSession);
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch (e) {}
+  }
+
+  // fetch with FormData will automatically set multipart/form-data with proper boundary
+  const res = await fetch(`${API_URL}/feedback`, {
+    method: 'POST',
+    headers,
+    body: formData
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to submit feedback.');
+  }
+  return data;
+};
+
+export const getMyFeedback = async () => {
+  const res = await authFetch(`${API_URL}/feedback/my`);
+  if (!res.ok) {
+    throw new Error('Failed to retrieve feedback history.');
+  }
+  return await res.json();
+};
+
+export const getFeedbackAttachmentUrl = (fileId) => {
+  return `${API_URL}/feedback/attachments/${fileId}`;
+};
+
+export const getAdminFeedback = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.status && params.status !== 'All') query.set('status', params.status);
+  if (params.category && params.category !== 'All') query.set('category', params.category);
+  if (params.severity && params.severity !== 'All') query.set('severity', params.severity);
+  if (params.priority && params.priority !== 'All') query.set('priority', params.priority);
+  if (params.search) query.set('search', params.search);
+
+  const res = await authFetch(`${API_URL}/admin/feedback?${query.toString()}`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch admin feedback records.');
+  }
+  return await res.json();
+};
+
+export const updateAdminFeedback = async (id, updates) => {
+  const res = await authFetch(`${API_URL}/admin/feedback/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to update feedback record.');
+  }
+  return await res.json();
+};
+
+// ==========================================
+// USER ACTIVITY INTELLIGENCE & AUDIT TRAIL API
+// ==========================================
+
+export const getMyActivityLogs = async () => {
+  const res = await authFetch(`${API_URL}/users/me/activity`);
+  if (!res.ok) {
+    throw new Error('Failed to retrieve user activity.');
+  }
+  return await res.json();
+};
+
+export const getAdminAuditLogs = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.category && params.category !== 'All') query.set('category', params.category);
+  if (params.eventType && params.eventType !== 'All') query.set('eventType', params.eventType);
+  if (params.outcome && params.outcome !== 'All') query.set('outcome', params.outcome);
+  if (params.search) query.set('search', params.search);
+
+  const res = await authFetch(`${API_URL}/admin/audit-logs?${query.toString()}`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch audit log trail.');
+  }
+  return await res.json();
+};
+
 

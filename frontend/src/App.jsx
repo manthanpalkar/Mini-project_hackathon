@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import Navbar from './components/Navbar';
 import { UploadProvider } from './context/UploadContext';
@@ -60,7 +60,18 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const user = JSON.parse(userSession);
+  let user = null;
+  try {
+    user = JSON.parse(userSession);
+  } catch (e) {
+    localStorage.removeItem('loop_current_user');
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!user || !user.token) {
+    localStorage.removeItem('loop_current_user');
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
   
   // If not onboarded, not an admin, and not currently on the onboarding page, redirect to onboarding
   if (!user.onboarded && !user.isAdmin && location.pathname !== '/onboarding') {
@@ -73,13 +84,25 @@ function ProtectedRoute({ children }) {
 // Layout wrapper to easily render footer and manage pages
 function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/onboarding' || location.pathname === '/forgot-password';
   const isPreviewPage = location.pathname.startsWith('/preview');
 
   // Scroll to top on route change
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.pathname]);
+
+  // Smooth SPA authentication expiration navigation (prevents hard window.location.href reload)
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      if (!location.pathname.includes('/login')) {
+        navigate('/login', { replace: true, state: { message: 'Your session has expired. Please sign in again.' } });
+      }
+    };
+    window.addEventListener('loop_auth_expired', handleAuthExpired);
+    return () => window.removeEventListener('loop_auth_expired', handleAuthExpired);
+  }, [navigate, location.pathname]);
 
   return (
     <div style={{

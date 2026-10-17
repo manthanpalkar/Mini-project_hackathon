@@ -43,6 +43,8 @@ import {
 } from '../utils/db';
 import { playApproveSound, playRejectSound } from '../utils/sound';
 import SystemHealthDashboard from '../components/SystemHealthDashboard';
+import AdminFeedbackTab from '../components/AdminFeedbackTab';
+import AdminAuditLogsTab from '../components/AdminAuditLogsTab';
 
 const parsePosition = (posStr) => {
   if (!posStr) return { x: 50, y: 50, zoom: 1.0 };
@@ -1341,6 +1343,34 @@ export default function AdminDashboard() {
           }}
         >
           System Health
+        </button>
+        <button
+          onClick={() => setActiveTab('feedback')}
+          className="btn"
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem',
+            borderRadius: '10px',
+            backgroundColor: activeTab === 'feedback' ? 'var(--text-primary)' : 'transparent',
+            color: activeTab === 'feedback' ? 'var(--accent-inverse)' : 'var(--text-secondary)',
+            border: activeTab === 'feedback' ? '1px solid var(--text-primary)' : '1px solid transparent'
+          }}
+        >
+          Feedback & Bug Reports
+        </button>
+        <button
+          onClick={() => setActiveTab('audit')}
+          className="btn"
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem',
+            borderRadius: '10px',
+            backgroundColor: activeTab === 'audit' ? 'var(--text-primary)' : 'transparent',
+            color: activeTab === 'audit' ? 'var(--accent-inverse)' : 'var(--text-secondary)',
+            border: activeTab === 'audit' ? '1px solid var(--text-primary)' : '1px solid transparent'
+          }}
+        >
+          Activity & Audit Trail
         </button>
       </div>
 
@@ -3200,6 +3230,16 @@ export default function AdminDashboard() {
       {/* Tab: System Health & Diagnostics */}
       {activeTab === 'health' && (
         <SystemHealthDashboard />
+      )}
+
+      {/* Tab: Feedback & Bug Reports */}
+      {activeTab === 'feedback' && (
+        <AdminFeedbackTab />
+      )}
+
+      {/* Tab: Security Audit & Activity Logs */}
+      {activeTab === 'audit' && (
+        <AdminAuditLogsTab />
       )}
       </>
       )}
