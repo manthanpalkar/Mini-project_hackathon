@@ -3641,7 +3641,7 @@ export default function AdminDashboard() {
                               const currentResume = editStoryForm.resume;
                               const resUrl = getResourceFileUrl({ resume: currentResume });
                               const resumeDoc = {
-                                id: `resume-${editingStory?.id || 'edit'}`,
+                                id: `resume-${editingItem?.id || 'edit'}`,
                                 title: `${editStoryForm.name || 'Candidate'}'s Resume`,
                                 type: 'PDF',
                                 fileName: typeof currentResume === 'object' ? currentResume.fileName : (currentResume || 'resume.pdf'),
@@ -3649,7 +3649,7 @@ export default function AdminDashboard() {
                                 url: resUrl || '',
                                 previewUrl: resUrl || ''
                               };
-                              navigate(`/preview/${resumeDoc.id}?storyId=${editingStory?.id || ''}`, {
+                              navigate(`/preview/${resumeDoc.id}?storyId=${editingItem?.id || ''}`, {
                                 state: {
                                   file: resumeDoc,
                                   files: [resumeDoc],
@@ -3729,16 +3729,16 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                               <button 
                                 type="button"
-                                onClick={() => navigate(`/preview/mat-${editingStory?.id || 'edit'}-${idx}?storyId=${editingStory?.id || ''}`, {
+                                onClick={() => navigate(`/preview/mat-${editingItem?.id || 'edit'}-${idx}?storyId=${editingItem?.id || ''}`, {
                                   state: {
                                     file: {
                                       ...material,
-                                      id: `mat-${editingStory?.id || 'edit'}-${idx}`,
+                                      id: `mat-${editingItem?.id || 'edit'}-${idx}`,
                                       title: material.title || material.fileName
                                     },
                                     files: (editStoryForm.studyMaterials || []).map((m, i) => ({
                                       ...m,
-                                      id: `mat-${editingStory?.id || 'edit'}-${i}`,
+                                      id: `mat-${editingItem?.id || 'edit'}-${i}`,
                                       title: m.title || m.fileName
                                     })),
                                     storyTitle: editStoryForm.name

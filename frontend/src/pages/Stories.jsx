@@ -263,7 +263,7 @@ export default function Stories() {
   const userSession = localStorage.getItem('loop_current_user');
   const currentUser = userSession ? JSON.parse(userSession) : null;
 
-  const { data: cachedStories, loading } = useCachedData('stories', getStories);
+  const { data: cachedStories, loading, mutate } = useCachedData('stories', getStories);
   const stories = cachedStories || [];
   const [selectedBranches, setSelectedBranchesState] = useState(
     initialBranch === 'ALL' ? ['CSE', 'CE', 'EXTC'] : [initialBranch]
