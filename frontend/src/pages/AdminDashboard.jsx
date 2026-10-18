@@ -39,7 +39,8 @@ import {
   approveRegistration,
   updateUser,
   getAdminResourceStats,
-  formatBytes
+  formatBytes,
+  getResourceFileUrl
 } from '../utils/db';
 import { playApproveSound, playRejectSound } from '../utils/sound';
 import SystemHealthDashboard from '../components/SystemHealthDashboard';
@@ -3638,14 +3639,15 @@ export default function AdminDashboard() {
                             onClick={(e) => {
                               e.stopPropagation();
                               const currentResume = editStoryForm.resume;
+                              const resUrl = getResourceFileUrl({ resume: currentResume });
                               const resumeDoc = {
                                 id: `resume-${editingStory?.id || 'edit'}`,
                                 title: `${editStoryForm.name || 'Candidate'}'s Resume`,
                                 type: 'PDF',
                                 fileName: typeof currentResume === 'object' ? currentResume.fileName : (currentResume || 'resume.pdf'),
                                 fileSize: typeof currentResume === 'object' ? currentResume.fileSize : '',
-                                url: typeof currentResume === 'object' ? currentResume.url : '#',
-                                previewUrl: typeof currentResume === 'object' ? currentResume.url : '#'
+                                url: resUrl || '',
+                                previewUrl: resUrl || ''
                               };
                               navigate(`/preview/${resumeDoc.id}?storyId=${editingStory?.id || ''}`, {
                                 state: {
@@ -4750,14 +4752,15 @@ export default function AdminDashboard() {
                       onClick={() => {
                         const rf = previewingPendingStory.resumeFile;
                         const cr = previewingPendingStory.resume;
+                        const resUrl = getResourceFileUrl({ resumeFile: rf, resume: cr, url: rf?.url });
                         const resumeDoc = {
                           id: `resume-${previewingPendingStory.id}`,
                           title: `${previewingPendingStory.name}'s Resume`,
                           type: 'PDF',
                           fileName: rf?.fileName || (typeof cr === 'object' ? cr.fileName : (cr || 'resume.pdf')),
                           fileSize: rf?.fileSize || '',
-                          url: rf?.url || (typeof cr === 'object' ? cr.url : '#'),
-                          previewUrl: rf?.url || (typeof cr === 'object' ? cr.url : '#')
+                          url: resUrl || '',
+                          previewUrl: resUrl || ''
                         };
                         navigate(`/preview/${resumeDoc.id}?storyId=${previewingPendingStory.id}&pending=true`, {
                           state: {

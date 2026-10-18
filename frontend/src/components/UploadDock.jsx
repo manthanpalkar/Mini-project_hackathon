@@ -1,9 +1,9 @@
 import React from 'react';
-import { UploadCloud, CheckCircle, AlertCircle, X, Minimize2, Maximize2, Loader2 } from 'lucide-react';
+import { UploadCloud, CheckCircle, AlertCircle, X, Minimize2, Maximize2, Loader2, RotateCcw } from 'lucide-react';
 import { useUpload } from '../context/UploadContext';
 
 export default function UploadDock() {
-  const { uploads, activeCount, isDockMinimized, toggleDock, cancelUpload, dismissUpload } = useUpload();
+  const { uploads, activeCount, isDockMinimized, toggleDock, cancelUpload, dismissUpload, retryUpload } = useUpload();
 
   if (!uploads || uploads.length === 0) return null;
 
@@ -213,13 +213,35 @@ export default function UploadDock() {
                 )}
                 {isDone && (
                   <span style={{ color: '#34c759', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <CheckCircle size={12} /> Ready in library
+                    <CheckCircle size={12} /> {item.type === 'story' ? 'Submitted for moderation' : 'Ready in library'}
                   </span>
                 )}
                 {isErr && (
-                  <span style={{ color: '#ff453a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <AlertCircle size={12} /> {item.error || 'Failed'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: '#ff453a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <AlertCircle size={12} /> {item.error || 'Failed'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => retryUpload(item.id)}
+                      style={{
+                        background: 'rgba(255, 69, 58, 0.15)',
+                        border: '1px solid rgba(255, 69, 58, 0.3)',
+                        color: '#ff453a',
+                        borderRadius: '6px',
+                        padding: '0.15rem 0.45rem',
+                        fontSize: '0.68rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.2rem'
+                      }}
+                      title="Retry Upload"
+                    >
+                      <RotateCcw size={10} /> Retry
+                    </button>
+                  </div>
                 )}
                 {isCancel && (
                   <span style={{ color: 'var(--text-secondary)' }}>

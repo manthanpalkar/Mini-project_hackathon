@@ -135,11 +135,13 @@ const ResourceSchema = new mongoose.Schema({
   date: { type: String, default: '' },
   visibility: { type: String, enum: ['public', 'private'], default: 'public', index: true },
   status: { type: String, enum: ['approved', 'pending', 'rejected'], default: 'approved', index: true },
+  uploadId: { type: String, default: null },
   semester: { type: String, default: '' },
   year: { type: String, default: '' },
   tags: [String]
 }, { timestamps: true });
 
+ResourceSchema.index({ uploadId: 1 }, { unique: true, partialFilterExpression: { uploadId: { $type: 'string' } } });
 ResourceSchema.index({ folderId: 1, status: 1 });
 ResourceSchema.index({ folderId: 1, status: 1, createdAt: -1 });
 ResourceSchema.index({ folderId: 1, status: 1, type: 1, createdAt: -1 });
@@ -150,6 +152,7 @@ ResourceSchema.index({ createdAt: -1 });
 // Pending Study Resource Schema
 const PendingResourceSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
+  uploadId: { type: String, default: null },
   activeId: String,
   requestType: { type: String, default: 'add' }, // 'add', 'edit', 'delete'
   status: { type: String, default: 'pending', index: true },
@@ -175,6 +178,7 @@ const PendingResourceSchema = new mongoose.Schema({
   year: { type: String, default: '' }
 }, { timestamps: true });
 
+PendingResourceSchema.index({ uploadId: 1 }, { unique: true, partialFilterExpression: { uploadId: { $type: 'string' } } });
 PendingResourceSchema.index({ createdAt: -1 });
 
 // Achievement Schema
@@ -230,7 +234,11 @@ const UploadSessionSchema = new mongoose.Schema({
   uploadedBy: { type: String, default: 'Anonymous' },
   uploadedByEmail: { type: String, default: '' },
   isPending: { type: Boolean, default: false },
+  isFinalizing: { type: Boolean, default: false, index: true },
   isFinalized: { type: Boolean, default: false, index: true },
+  finalizingAt: { type: Date, default: null },
+  leaseExpiresAt: { type: Date, default: null, index: true },
+  finalizeGeneration: { type: Number, default: 0, index: true },
   finalResourceId: { type: String, default: null },
   finalGridFsId: { type: mongoose.Schema.Types.ObjectId, default: null },
   expiresAt: { type: Date, default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), index: { expires: 0 } }

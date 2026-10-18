@@ -322,7 +322,108 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
-app.use('/uploads', express.static(UPLOADS_DIR));
+// Security Guard for Legacy /uploads/* directory
+// Public assets (profile photos, achievement badges) are served statically without authentication.
+// Sensitive legacy uploads (resumes, study materials, private documents) require authentication and authorization.
+app.use('/uploads', async (req, res, next) => {
+  const filename = path.basename(req.path);
+
+  // Allow legitimate public assets unconditionally (photos, avatars, achievement badges with valid image extensions)
+  const isImageExt = /\.(png|jpe?g|webp|gif|svg|ico)$/i.test(filename);
+  const isPublicAsset = isImageExt && (
+    filename.startsWith('photo-') ||
+    filename.startsWith('avatar-') ||
+    filename.startsWith('achievement-') ||
+    filename.startsWith('public-')
+  );
+
+  if (isPublicAsset) {
+    return next();
+  }
+
+  // Sensitive legacy file (resume-*, material-*, resource-*, or arbitrary document)
+  // Enforce authentication & authorization before serving
+  authenticateToken(req, res, async () => {
+    try {
+      if (isUserAdmin(req.user)) {
+        return next();
+      }
+
+      const fileUrl = `/uploads/${filename}`;
+      const userEmail = (req.user?.email || '').toLowerCase().trim();
+
+      // Check if file belongs to an approved Story (publicly accessible by authenticated users)
+      const story = await Story.findOne({
+        $or: [
+          { 'resumeFile.url': fileUrl },
+          { resume: fileUrl },
+          { 'studyMaterials.url': fileUrl }
+        ]
+      }).lean();
+
+      if (story) {
+        return next();
+      }
+
+      // Check if file belongs to a PendingStory (accessible only to author or admin)
+      const pendingStory = await PendingStory.findOne({
+        $or: [
+          { 'resumeFile.url': fileUrl },
+          { resume: fileUrl },
+          { 'studyMaterials.url': fileUrl }
+        ]
+      }).lean();
+
+      if (pendingStory) {
+        const isAuthor = pendingStory.uploadedByEmail &&
+          (pendingStory.uploadedByEmail.toLowerCase().trim() === userEmail);
+        if (!isAuthor) {
+          return res.status(403).json({ error: 'Access denied to pending story file.' });
+        }
+        return next();
+      }
+
+      // Check if file belongs to Resource
+      const resource = await Resource.findOne({
+        $or: [{ link: fileUrl }, { url: fileUrl }]
+      }).lean();
+
+      if (resource) {
+        if (resource.visibility === 'private') {
+          const isUploader = resource.uploadedByEmail &&
+            (resource.uploadedByEmail.toLowerCase().trim() === userEmail);
+          if (!isUploader) {
+            return res.status(403).json({ error: 'Access denied to private file.' });
+          }
+        }
+        return next();
+      }
+
+      // Check if file belongs to PendingResource
+      const pendingResource = await PendingResource.findOne({
+        $or: [{ link: fileUrl }, { url: fileUrl }]
+      }).lean();
+
+      if (pendingResource) {
+        const isUploader = pendingResource.uploadedByEmail &&
+          (pendingResource.uploadedByEmail.toLowerCase().trim() === userEmail);
+        if (!isUploader) {
+          return res.status(403).json({ error: 'Access denied to pending resource file.' });
+        }
+        return next();
+      }
+
+      // Unparented or unknown sensitive file -> deny access
+      return res.status(404).json({ error: 'File not found or access denied.' });
+    } catch (authErr) {
+      console.error('[UploadsAuth] Error:', authErr.message);
+      return res.status(500).json({ error: 'Failed to authorize file access.' });
+    }
+  });
+}, express.static(UPLOADS_DIR, {
+  maxAge: '7d',
+  immutable: true
+}));
 
 function saveBase64File(dataUri, prefix = 'file') {
   if (!dataUri || typeof dataUri !== 'string') return dataUri;
@@ -2616,9 +2717,12 @@ app.get(['/api/stories/:id', '/api/pending-stories/:id'], authenticateToken, req
     const cacheKey = cacheService.makeKey('stories:detail', sanitizedId);
 
     const story = await cacheService.getOrSet(cacheKey, async () => {
-      let doc = await Story.findOne({ id: sanitizedId }).lean();
+      const query = mongoose.Types.ObjectId.isValid(sanitizedId)
+        ? { $or: [{ id: sanitizedId }, { _id: sanitizedId }] }
+        : { id: sanitizedId };
+      let doc = await Story.findOne(query).lean();
       if (!doc) {
-        doc = await PendingStory.findOne({ id: sanitizedId }).lean();
+        doc = await PendingStory.findOne(query).lean();
       }
       return doc;
     }, cacheService.DEFAULT_TTLS.storyDetail);
@@ -2626,6 +2730,15 @@ app.get(['/api/stories/:id', '/api/pending-stories/:id'], authenticateToken, req
     if (!story) {
       return res.status(404).json({ error: 'Story not found.' });
     }
+
+    if (story.status === 'pending') {
+      const isAdmin = isUserAdmin(req.user);
+      const isAuthor = story.uploadedByEmail && req.user && (story.uploadedByEmail.toLowerCase() === req.user.email.toLowerCase());
+      if (!isAdmin && !isAuthor) {
+        return res.status(403).json({ error: 'Access denied to pending story.' });
+      }
+    }
+
     res.json(story);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3112,19 +3225,103 @@ const handleUploadStatus = async (req, res) => {
   }
 };
 
+const FINALIZATION_LEASE_MS = 60 * 1000; // 60-second time-limited lease for recovery after crashes
+
+/**
+ * Safely delete a GridFS file only if it is genuinely orphaned and not adopted
+ * by a newer worker generation or referenced by any active/pending resource, story, or session.
+ */
+async function safeDeleteGridFSFileIfOrphaned(fileId, uploadId) {
+  if (!fileId) return false;
+  try {
+    const rawId = String(fileId).replace(/^gridfs:/, '');
+    if (!mongoose.Types.ObjectId.isValid(rawId)) return false;
+    const oid = new mongoose.Types.ObjectId(rawId);
+
+    // 1. Check if the latest UploadSession in the database has adopted or is actively using this file
+    if (uploadId) {
+      const currentSession = await UploadSession.findOne({ uploadId }).lean();
+      if (currentSession) {
+        // If adopted as finalGridFsId by any generation -> never delete!
+        if (currentSession.finalGridFsId && String(currentSession.finalGridFsId) === String(rawId)) {
+          return false;
+        }
+        // If the session is still active/unfinalized, check if this is a complete, valid assembled file
+        // that a newer worker generation can adopt via Crash Window C recovery
+        if (!currentSession.isFinalized && currentSession.expiresAt && new Date(currentSession.expiresAt) > new Date()) {
+          const finalBucket = StorageService.getGridFSBucket();
+          const files = await finalBucket.find({ _id: oid }).limit(1).toArray();
+          if (files.length > 0 && currentSession.fileSize && files[0].length === currentSession.fileSize) {
+            return false; // Valid complete file matching uploadId - preserve for newer worker
+          }
+        }
+      }
+    }
+
+    // 2. Check if referenced by any Resource
+    const inResource = await Resource.exists({
+      $or: [{ gridFsFileId: oid }, { storageKey: `gridfs:${rawId}` }, { storageKey: rawId }]
+    });
+    if (inResource) return false;
+
+    // 3. Check if referenced by any PendingResource
+    const inPendingResource = await PendingResource.exists({
+      $or: [{ gridFsFileId: oid }, { storageKey: `gridfs:${rawId}` }, { storageKey: rawId }]
+    });
+    if (inPendingResource) return false;
+
+    // 4. Check if referenced by any Story
+    const inStory = await Story.exists({
+      $or: [
+        { 'resumeFile.gridFsFileId': oid },
+        { 'resumeFile.storageKey': `gridfs:${rawId}` },
+        { 'studyMaterials.gridFsFileId': oid },
+        { 'studyMaterials.storageKey': `gridfs:${rawId}` }
+      ]
+    });
+    if (inStory) return false;
+
+    // 5. Check if referenced by any PendingStory
+    const inPendingStory = await PendingStory.exists({
+      $or: [
+        { 'resumeFile.gridFsFileId': oid },
+        { 'resumeFile.storageKey': `gridfs:${rawId}` },
+        { 'studyMaterials.gridFsFileId': oid },
+        { 'studyMaterials.storageKey': `gridfs:${rawId}` }
+      ]
+    });
+    if (inPendingStory) return false;
+
+    // 6. Check if referenced by any Feedback attachment
+    const inFeedback = await Feedback.exists({ screenshotFileId: rawId });
+    if (inFeedback) return false;
+
+    // Truly unreferenced and orphaned: safely delete
+    const finalBucket = StorageService.getGridFSBucket();
+    await finalBucket.delete(oid).catch(() => {});
+    return true;
+  } catch (err) {
+    console.warn('[SafeDeleteGridFS] Error during orphan check:', err.message);
+    return false;
+  }
+}
+
 const handleUploadFinalize = async (req, res) => {
+  let acquiredGeneration = null;
+  let activeUploadId = null;
   try {
     const { uploadId } = req.body;
     if (!uploadId) {
       return res.status(400).json({ error: 'uploadId is required.' });
     }
+    activeUploadId = uploadId;
 
     const session = await UploadSession.findOne({ uploadId });
     if (!session) {
       return res.status(404).json({ error: 'Upload session not found.' });
     }
 
-    // Idempotency: if already finalized, return existing record immediately
+    // 1. Idempotency: if already finalized, return existing record immediately
     if (session.isFinalized && session.finalResourceId) {
       const Model = session.isPending ? PendingResource : Resource;
       const existingResource = await Model.findOne({ id: session.finalResourceId });
@@ -3141,80 +3338,304 @@ const handleUploadFinalize = async (req, res) => {
       }
     }
 
-    // Assemble final GridFS file in exact chunk index order
-    const assembledFile = await StorageService.assembleFinalGridFSFile({
-      uploadId,
-      totalChunks: session.totalChunks,
-      expectedFileSize: session.fileSize,
-      fileName: session.fileName,
-      mimeType: session.mimeType,
-      metadata: {
-        uploadedBy: session.uploadedBy,
-        uploadedByEmail: session.uploadedByEmail
+    const now = new Date();
+    // 2. Concurrency protection: if another request holds an active, unexpired lease, wait briefly for completion
+    const hasActiveLease = session.isFinalizing && session.leaseExpiresAt && new Date(session.leaseExpiresAt) > now;
+    if (hasActiveLease) {
+      let waitAttempts = 0;
+      while (waitAttempts < 6) {
+        await new Promise(r => setTimeout(r, 500));
+        const refreshed = await UploadSession.findOne({ uploadId });
+        if (refreshed && refreshed.isFinalized && refreshed.finalResourceId) {
+          const Model = refreshed.isPending ? PendingResource : Resource;
+          const resDoc = await Model.findOne({ id: refreshed.finalResourceId });
+          if (resDoc) {
+            return res.status(200).json({
+              success: true,
+              uploadId: refreshed.uploadId,
+              resourceId: resDoc.id,
+              fileId: refreshed.finalGridFsId || resDoc.gridFsFileId,
+              message: 'Upload completed successfully',
+              resource: resDoc,
+              alreadyFinalized: true
+            });
+          }
+        }
+        // If lease expired during waiting, exit loop to allow immediate recovery acquisition
+        if (!refreshed || !refreshed.isFinalizing || (refreshed.leaseExpiresAt && new Date(refreshed.leaseExpiresAt) <= new Date())) {
+          break;
+        }
+        waitAttempts++;
       }
-    });
+    }
 
-    const resourceId = String(Date.now());
-    const detectedType = StorageService.getFileTypeCategory(session.mimeType, session.fileName);
-    const resourceUrl = `/api/resources/${resourceId}/file`;
+    // 3. Atomically acquire or recover lease using Compare-And-Set + Generation Counter (Fencing Token)
+    const leaseStartTime = new Date();
+    const leaseExpiresAt = new Date(leaseStartTime.getTime() + FINALIZATION_LEASE_MS);
 
-    let createdRecord;
-    if (session.isPending) {
-      createdRecord = await PendingResource.create({
-        id: resourceId,
-        title: session.title || session.fileName.replace(/\.[^/.]+$/, ''),
-        description: session.description || '',
-        category: session.category || 'General',
-        type: detectedType,
-        originalFileName: session.fileName,
-        mimeType: session.mimeType,
-        size: assembledFile.size || session.fileSize,
-        fileSizeFormatted: StorageService.formatBytes(assembledFile.size || session.fileSize),
-        storageProvider: 'gridfs',
-        storageKey: assembledFile.storageKey,
-        gridFsFileId: assembledFile.gridFsFileId,
-        url: resourceUrl,
-        folderId: session.folderId,
-        ownerId: session.ownerId,
-        uploadedBy: session.uploadedBy,
-        uploadedByEmail: session.uploadedByEmail,
-        date: new Date().toISOString().split('T')[0],
-        status: 'pending',
-        semester: session.semester,
-        year: session.year
-      });
-    } else {
-      createdRecord = await Resource.create({
-        id: resourceId,
-        title: session.title || session.fileName.replace(/\.[^/.]+$/, ''),
-        description: session.description || '',
-        category: session.category || 'General',
-        type: detectedType,
-        originalFileName: session.fileName,
-        mimeType: session.mimeType,
-        size: assembledFile.size || session.fileSize,
-        fileSizeFormatted: StorageService.formatBytes(assembledFile.size || session.fileSize),
-        storageProvider: 'gridfs',
-        storageKey: assembledFile.storageKey,
-        gridFsFileId: assembledFile.gridFsFileId,
-        url: resourceUrl,
-        folderId: session.folderId,
-        ownerId: session.ownerId,
-        uploadedBy: session.uploadedBy,
-        uploadedByEmail: session.uploadedByEmail,
-        date: new Date().toISOString().split('T')[0],
-        status: 'approved',
-        semester: session.semester,
-        year: session.year,
-        tags: session.tags || []
+    const acquired = await UploadSession.findOneAndUpdate(
+      {
+        uploadId,
+        isFinalized: false,
+        $or: [
+          { isFinalizing: false },
+          { leaseExpiresAt: { $lt: leaseStartTime } },
+          { isFinalizing: true, leaseExpiresAt: null }
+        ]
+      },
+      {
+        $set: {
+          isFinalizing: true,
+          finalizingAt: leaseStartTime,
+          leaseExpiresAt: leaseExpiresAt
+        },
+        $inc: { finalizeGeneration: 1 }
+      },
+      { new: true }
+    );
+
+    if (!acquired) {
+      // Recheck if finalized concurrently
+      const checkFinal = await UploadSession.findOne({ uploadId });
+      if (checkFinal && checkFinal.isFinalized && checkFinal.finalResourceId) {
+        const Model = checkFinal.isPending ? PendingResource : Resource;
+        const resDoc = await Model.findOne({ id: checkFinal.finalResourceId });
+        if (resDoc) {
+          return res.status(200).json({
+            success: true,
+            uploadId: checkFinal.uploadId,
+            resourceId: resDoc.id,
+            fileId: checkFinal.finalGridFsId || resDoc.gridFsFileId,
+            message: 'Upload completed successfully',
+            resource: resDoc,
+            alreadyFinalized: true
+          });
+        }
+      }
+      return res.status(409).json({ error: 'Finalization already in progress with an active lease. Please retry shortly.' });
+    }
+
+    acquiredGeneration = acquired.finalizeGeneration;
+
+    // 4. Check if final GridFS file was already assembled by a previous attempt that died before writing metadata
+    let assembledFile = null;
+    const finalBucket = StorageService.getGridFSBucket();
+
+    if (acquired.finalGridFsId) {
+      try {
+        const existingFiles = await finalBucket.find({ _id: new mongoose.Types.ObjectId(acquired.finalGridFsId) }).limit(1).toArray();
+        if (existingFiles && existingFiles.length > 0 && (!acquired.fileSize || existingFiles[0].length === acquired.fileSize)) {
+          assembledFile = {
+            storageKey: `gridfs:${acquired.finalGridFsId.toString()}`,
+            gridFsFileId: acquired.finalGridFsId,
+            fileId: acquired.finalGridFsId,
+            fileName: existingFiles[0].filename || acquired.fileName,
+            size: existingFiles[0].length || acquired.fileSize,
+            contentType: existingFiles[0].contentType || acquired.mimeType
+          };
+        }
+      } catch (checkErr) {}
+    }
+
+    // Recovery for Crash Window C: If a prior attempt assembled a complete file matching uploadId but crashed before recording finalGridFsId
+    if (!assembledFile) {
+      try {
+        const priorAssembledFiles = await finalBucket.find({ 'metadata.uploadId': uploadId }).sort({ uploadDate: -1 }).toArray();
+        if (priorAssembledFiles && priorAssembledFiles.length > 0) {
+          for (const candidate of priorAssembledFiles) {
+            if (!acquired.fileSize || candidate.length === acquired.fileSize) {
+              assembledFile = {
+                storageKey: `gridfs:${candidate._id.toString()}`,
+                gridFsFileId: candidate._id,
+                fileId: candidate._id,
+                fileName: candidate.filename || acquired.fileName,
+                size: candidate.length || acquired.fileSize,
+                contentType: candidate.contentType || acquired.mimeType
+              };
+              break;
+            } else {
+              // Delete incomplete/corrupted file left behind by crashed attempt
+              await finalBucket.delete(candidate._id).catch(() => {});
+            }
+          }
+        }
+      } catch (findErr) {}
+    }
+
+    // Assemble final GridFS file in exact chunk index order if not already assembled
+    if (!assembledFile) {
+      assembledFile = await StorageService.assembleFinalGridFSFile({
+        uploadId,
+        totalChunks: acquired.totalChunks,
+        expectedFileSize: acquired.fileSize,
+        fileName: acquired.fileName,
+        mimeType: acquired.mimeType,
+        metadata: {
+          uploadId,
+          finalizeGeneration: acquiredGeneration,
+          uploadedBy: acquired.uploadedBy,
+          uploadedByEmail: acquired.uploadedByEmail
+        }
       });
     }
 
-    // Update session as finalized
-    session.isFinalized = true;
-    session.finalResourceId = resourceId;
-    session.finalGridFsId = assembledFile.gridFsFileId;
-    await session.save();
+    // 5. Durably record finalGridFsId in UploadSession protected by current finalizeGeneration fencing token
+    const sessionWithFile = await UploadSession.findOneAndUpdate(
+      {
+        uploadId,
+        finalizeGeneration: acquiredGeneration,
+        isFinalized: false
+      },
+      {
+        $set: {
+          finalGridFsId: assembledFile.gridFsFileId,
+          assemblyCompletedAt: new Date()
+        }
+      },
+      { new: true }
+    );
+
+    if (!sessionWithFile) {
+      // Lease was superseded by a newer generation! Fenced non-destruction:
+      // A superseded worker has lost its fencing token and must NEVER delete shared GridFS files during rollback,
+      // because a newer worker may have already adopted or will adopt this complete file via Crash Window C recovery.
+      // Truly orphaned files are safely cleaned up post-commit by the winning worker or by background pruning.
+
+      // Check if finalized by winning generation
+      const checkWinner = await UploadSession.findOne({ uploadId });
+      if (checkWinner && checkWinner.isFinalized && checkWinner.finalResourceId) {
+        const Model = checkWinner.isPending ? PendingResource : Resource;
+        const resDoc = await Model.findOne({ id: checkWinner.finalResourceId });
+        if (resDoc) {
+          return res.status(200).json({
+            success: true,
+            uploadId: checkWinner.uploadId,
+            resourceId: resDoc.id,
+            fileId: checkWinner.finalGridFsId || resDoc.gridFsFileId,
+            message: 'Upload completed successfully',
+            resource: resDoc,
+            alreadyFinalized: true
+          });
+        }
+      }
+      return res.status(409).json({ error: 'Finalization lease expired and was superseded by another attempt.' });
+    }
+
+    // 6. Persist final Resource or PendingResource (Idempotent & Concurrency-Safe)
+    const targetModel = acquired.isPending ? PendingResource : Resource;
+
+    // Check if an existing record was already created for this uploadId or gridFsFileId by an earlier attempt
+    let createdRecord = await targetModel.findOne({
+      $or: [
+        { uploadId: acquired.uploadId },
+        ...(assembledFile.gridFsFileId ? [{ gridFsFileId: assembledFile.gridFsFileId }] : [])
+      ]
+    });
+
+    let wasReused = Boolean(createdRecord);
+
+    if (!createdRecord) {
+      const resourceId = String(Date.now());
+      const detectedType = StorageService.getFileTypeCategory(acquired.mimeType, acquired.fileName);
+      const resourceUrl = `/api/resources/${resourceId}/file`;
+      const recordPayload = {
+        id: resourceId,
+        uploadId: acquired.uploadId,
+        title: acquired.title || acquired.fileName.replace(/\.[^/.]+$/, ''),
+        description: acquired.description || '',
+        category: acquired.category || 'General',
+        type: detectedType,
+        originalFileName: acquired.fileName,
+        mimeType: acquired.mimeType,
+        size: assembledFile.size || acquired.fileSize,
+        fileSizeFormatted: StorageService.formatBytes(assembledFile.size || acquired.fileSize),
+        storageProvider: 'gridfs',
+        storageKey: assembledFile.storageKey,
+        gridFsFileId: assembledFile.gridFsFileId,
+        url: resourceUrl,
+        folderId: acquired.folderId,
+        ownerId: acquired.ownerId,
+        uploadedBy: acquired.uploadedBy,
+        uploadedByEmail: acquired.uploadedByEmail,
+        date: new Date().toISOString().split('T')[0],
+        status: acquired.isPending ? 'pending' : 'approved',
+        semester: acquired.semester,
+        year: acquired.year,
+        ...(acquired.isPending ? {} : { tags: acquired.tags || [] })
+      };
+
+      try {
+        createdRecord = await targetModel.create(recordPayload);
+      } catch (createErr) {
+        // Concurrency protection: if another worker created it concurrently,
+        // catch the duplicate key (E11000) and load the winning canonical record
+        if (createErr.code === 11000 || (createErr.name === 'MongoServerError' && createErr.message.includes('E11000'))) {
+          createdRecord = await targetModel.findOne({
+            $or: [
+              { uploadId: acquired.uploadId },
+              ...(assembledFile.gridFsFileId ? [{ gridFsFileId: assembledFile.gridFsFileId }] : [])
+            ]
+          });
+          if (!createdRecord) throw createErr;
+          wasReused = true;
+        } else {
+          throw createErr;
+        }
+      }
+    }
+
+    const resourceId = createdRecord.id;
+
+    // 7. Atomic fenced completion update
+    const finalizedSession = await UploadSession.findOneAndUpdate(
+      {
+        uploadId,
+        finalizeGeneration: acquiredGeneration,
+        isFinalized: false
+      },
+      {
+        $set: {
+          isFinalized: true,
+          isFinalizing: false,
+          finalResourceId: resourceId,
+          finalGridFsId: assembledFile.gridFsFileId,
+          leaseExpiresAt: null
+        }
+      },
+      { new: true }
+    );
+
+    if (!finalizedSession) {
+      // Rollback created record ONLY if it was newly created by this worker and not reused from a previous/other worker
+      if (!wasReused) {
+        const Model = acquired.isPending ? PendingResource : Resource;
+        await Model.deleteOne({ id: resourceId, uploadId: acquired.uploadId }).catch(() => {});
+      }
+      // Fenced non-destruction: do not delete assembled GridFS file during rollback.
+      // The superseding generation may adopt or has adopted this file. Preserving for background/post-commit cleanup avoids TOCTOU race.
+      return res.status(409).json({ error: 'Finalization generation superseded at commit.' });
+    }
+
+    // 8. Safely cleanup temporary chunks now that finalization is committed and published
+    await StorageService.cleanupTempChunks(uploadId).catch((cleanErr) => {
+      console.warn('[Finalize Cleanup Temp Chunks] Warning:', cleanErr.message);
+    });
+
+    // Prune any unreferenced duplicate GridFS files created for this uploadId that were not selected as final
+    try {
+      const finalBucket = StorageService.getGridFSBucket();
+      const duplicateFiles = await finalBucket.find({
+        'metadata.uploadId': uploadId,
+        _id: { $ne: new mongoose.Types.ObjectId(assembledFile.gridFsFileId) }
+      }).toArray();
+      for (const dup of duplicateFiles) {
+        await safeDeleteGridFSFileIfOrphaned(dup._id, uploadId);
+      }
+    } catch (dupErr) {
+      console.warn('[Finalize Cleanup Duplicates] Warning:', dupErr.message);
+    }
+
+    const isModerated = Boolean(acquired.isPending);
 
     activityService.logActivity({
       eventType: 'CONTENT_RESOURCE_UPLOAD',
@@ -3223,11 +3644,11 @@ const handleUploadFinalize = async (req, res) => {
       actorRole: req.user.role,
       targetType: isModerated ? 'PendingResource' : 'Resource',
       targetId: resourceId,
-      summary: `Uploaded resource: ${session.fileName} (${isModerated ? 'Pending Moderation' : 'Approved'})`,
+      summary: `Uploaded resource: ${acquired.fileName} (${isModerated ? 'Pending Moderation' : 'Approved'})`,
       outcome: 'SUCCESS',
       ipAddress: req.ip || '127.0.0.1',
       userAgent: req.headers['user-agent'] || '',
-      metadata: { resourceId, fileName: session.fileName, size: assembledFile.size || session.fileSize, isModerated }
+      metadata: { resourceId, fileName: acquired.fileName, size: assembledFile.size || acquired.fileSize, isModerated, finalizeGeneration: acquiredGeneration }
     });
 
     await cacheService.invalidateResources(resourceId).catch(() => {});
@@ -3241,6 +3662,12 @@ const handleUploadFinalize = async (req, res) => {
       resource: createdRecord
     });
   } catch (err) {
+    if (activeUploadId && acquiredGeneration) {
+      await UploadSession.updateOne(
+        { uploadId: activeUploadId, finalizeGeneration: acquiredGeneration, isFinalized: false },
+        { $set: { isFinalizing: false, leaseExpiresAt: null } }
+      ).catch(() => {});
+    }
     console.error('Finalize error:', err);
     res.status(500).json({ error: err.message || 'Failed to finalize upload.' });
   }
@@ -3395,9 +3822,13 @@ app.get('/api/resources', authenticateToken, requireOnboarded, async (req, res) 
 app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
-    let resource = await Resource.findOne({ id: sanitizeString(id) }).lean();
+    const sanitizedId = sanitizeString(id);
+    const query = mongoose.Types.ObjectId.isValid(sanitizedId)
+      ? { $or: [{ id: sanitizedId }, { _id: sanitizedId }] }
+      : { id: sanitizedId };
+    let resource = await Resource.findOne(query).lean();
     if (!resource) {
-      resource = await PendingResource.findOne({ id: sanitizeString(id) }).lean();
+      resource = await PendingResource.findOne(query).lean();
     }
     if (!resource) {
       return res.status(404).json({ error: 'Resource not found.' });
@@ -3406,7 +3837,12 @@ app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken,
     // Verify folder privacy
     const folder = await Folder.findOne({ id: resource.folderId }).lean();
     const isAdmin = isUserAdmin(req.user);
-    const isUploader = resource.uploadedByEmail === req.user.email;
+    const isUploader = resource.uploadedByEmail && req.user && (resource.uploadedByEmail.toLowerCase() === req.user.email.toLowerCase());
+
+    const isPendingDoc = resource.status === 'pending';
+    if (isPendingDoc && !isAdmin && !isUploader) {
+      return res.status(403).json({ error: 'Access denied to pending resource.' });
+    }
 
     if (folder && folder.visibility === 'private') {
       const isFolderOwner = folder.ownerEmail === req.user.email || (folder.ownerId && String(folder.ownerId) === String(req.user.id));
@@ -3425,18 +3861,94 @@ app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken,
 app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
-    let resource = await Resource.findOne({ id: sanitizeString(id) });
+    const sanitizedId = sanitizeString(id);
+    const idQuery = mongoose.Types.ObjectId.isValid(sanitizedId)
+      ? { $or: [{ id: sanitizedId }, { _id: sanitizedId }, { gridFsFileId: sanitizedId }, { storageKey: `gridfs:${sanitizedId}` }, { storageKey: sanitizedId }] }
+      : { id: sanitizedId };
+
+    let resource = await Resource.findOne(idQuery);
     if (!resource) {
-      resource = await PendingResource.findOne({ id: sanitizeString(id) });
+      resource = await PendingResource.findOne(idQuery);
     }
+
+    let parentStory = null;
+    let isStoryPending = false;
     if (!resource) {
-      return res.status(404).json({ error: 'Resource not found.' });
+      const storyIdQuery = mongoose.Types.ObjectId.isValid(sanitizedId)
+        ? {
+            $or: [
+              { id: sanitizedId },
+              { _id: sanitizedId },
+              { 'resumeFile.gridFsFileId': sanitizedId },
+              { 'resumeFile.storageKey': `gridfs:${sanitizedId}` },
+              { 'studyMaterials.gridFsFileId': sanitizedId },
+              { 'studyMaterials.storageKey': `gridfs:${sanitizedId}` }
+            ]
+          }
+        : {
+            $or: [
+              { id: sanitizedId },
+              { 'resumeFile.fileName': sanitizedId }
+            ]
+          };
+
+      parentStory = await Story.findOne(storyIdQuery).lean();
+      if (!parentStory) {
+        parentStory = await PendingStory.findOne(storyIdQuery).lean();
+        if (parentStory) isStoryPending = true;
+      }
+    }
+
+    if (!resource && !parentStory) {
+      // Do NOT expose unparented/orphaned GridFS files to arbitrary callers
+      return res.status(404).json({ error: 'Resource or file not found.' });
+    }
+
+    if (parentStory) {
+      const isAdmin = isUserAdmin(req.user);
+      const isAuthor = parentStory.uploadedByEmail && req.user && (parentStory.uploadedByEmail.toLowerCase() === req.user.email.toLowerCase());
+
+      if (isStoryPending && !isAdmin && !isAuthor) {
+        return res.status(403).json({ error: 'Access denied to pending story file.' });
+      }
+
+      // Stream story resume or study material from GridFS
+      if (parentStory.resumeFile && (parentStory.resumeFile.gridFsFileId || parentStory.resumeFile.storageKey)) {
+        const gfsKey = parentStory.resumeFile.gridFsFileId ? `gridfs:${parentStory.resumeFile.gridFsFileId}` : parentStory.resumeFile.storageKey;
+        return await StorageService.streamFromGridFS(
+          gfsKey,
+          req,
+          res,
+          parentStory.resumeFile.fileName || `${parentStory.name}_Resume.pdf`,
+          'application/pdf',
+          false
+        );
+      }
+
+      const storyLink = parentStory.resumeFile?.url || parentStory.resume;
+      if (storyLink && typeof storyLink === 'string' && storyLink.startsWith('/uploads/')) {
+        const sanitizedFilename = path.basename(storyLink);
+        const uploadsDirResolved = path.resolve(UPLOADS_DIR);
+        const localPath = path.resolve(uploadsDirResolved, sanitizedFilename);
+        if (localPath.startsWith(uploadsDirResolved + path.sep) && fs.existsSync(localPath)) {
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(parentStory.resumeFile?.fileName || `${parentStory.name}_Resume.pdf`)}"`);
+          return fs.createReadStream(localPath).pipe(res);
+        }
+      }
+
+      return res.status(404).json({ error: 'Story resume file not found in storage.' });
     }
 
     // Verify privacy
-    const folder = await Folder.findOne({ id: resource.folderId });
+    const folder = resource.folderId ? await Folder.findOne({ id: resource.folderId }) : null;
     const isAdmin = isUserAdmin(req.user);
-    const isUploader = resource.uploadedByEmail === req.user.email;
+    const isUploader = resource.uploadedByEmail && req.user && (resource.uploadedByEmail.toLowerCase() === req.user.email.toLowerCase());
+
+    const isPendingDoc = resource.status === 'pending';
+    if (isPendingDoc && !isAdmin && !isUploader) {
+      return res.status(403).json({ error: 'Access denied to pending resource file.' });
+    }
 
     if (folder && folder.visibility === 'private') {
       const isFolderOwner = folder.ownerEmail === req.user.email || (folder.ownerId && String(folder.ownerId) === String(req.user.id));
@@ -3459,20 +3971,7 @@ app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenti
       );
     }
 
-    // 2. Legacy Local Disk Fallback (Path traversal safe)
-    if (resource.link && resource.link.startsWith('/uploads/')) {
-      const sanitizedFilename = path.basename(resource.link);
-      const uploadsDirResolved = path.resolve(UPLOADS_DIR);
-      const localPath = path.resolve(uploadsDirResolved, sanitizedFilename);
-
-      if (localPath.startsWith(uploadsDirResolved + path.sep) && fs.existsSync(localPath)) {
-        res.setHeader('Content-Type', resource.mimeType || 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(resource.originalFileName || resource.title)}"`);
-        return fs.createReadStream(localPath).pipe(res);
-      }
-    }
-
-    // 3. Fallback: if gridFsFileId exists or storageKey is raw ObjectId string without prefix
+    // 2. Fallback: if gridFsFileId exists or storageKey is raw ObjectId string without prefix
     if (resource.gridFsFileId || (resource.storageKey && resource.storageKey.length === 24)) {
       const gfsKey = resource.gridFsFileId ? `gridfs:${resource.gridFsFileId}` : `gridfs:${resource.storageKey}`;
       return await StorageService.streamFromGridFS(
@@ -3483,6 +3982,29 @@ app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenti
         resource.mimeType,
         isPrivate
       );
+    }
+
+    // 3. Local Disk Fallback (Path traversal safe)
+    const localLink = resource.link || resource.url || (resource.fileUrl && !resource.fileUrl.startsWith('http') ? resource.fileUrl : null);
+    if (localLink && (localLink.startsWith('/uploads/') || localLink.includes('sample-document') || localLink.endsWith('.pdf'))) {
+      const sanitizedFilename = path.basename(localLink);
+      const uploadsDirResolved = path.resolve(UPLOADS_DIR);
+      let localPath = path.resolve(uploadsDirResolved, sanitizedFilename);
+
+      if (!fs.existsSync(localPath)) {
+        // Check frontend public directory for sample files
+        const publicDir = path.resolve(__dirname, '../frontend/public');
+        const candidate = path.resolve(publicDir, sanitizedFilename);
+        if (candidate.startsWith(publicDir + path.sep) && fs.existsSync(candidate)) {
+          localPath = candidate;
+        }
+      }
+
+      if (fs.existsSync(localPath)) {
+        res.setHeader('Content-Type', resource.mimeType || 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(resource.originalFileName || resource.title || sanitizedFilename)}"`);
+        return fs.createReadStream(localPath).pipe(res);
+      }
     }
 
     res.status(404).json({ error: 'File content not found in storage.' });
@@ -3819,17 +4341,16 @@ app.delete('/api/resources/:id', authenticateToken, requireOnboarded, async (req
       return res.status(403).json({ error: 'You do not have permission to delete this resource.' });
     }
 
-    // Clean up physical file in GridFS or legacy storage
-    if (resource.storageKey) {
-      await StorageService.deleteFile(resource.storageKey, resource.storageProvider);
-    } else if (resource.gridFsFileId) {
-      await StorageService.deleteFile(`gridfs:${resource.gridFsFileId}`);
-    } else if (resource.url) {
-      await StorageService.deleteFile(resource.url);
-    }
-
     await Resource.deleteOne({ id: resource.id });
     await cacheService.invalidateResources(resource.id).catch(() => {});
+
+    // Clean up physical file in GridFS only if no other record references it (e.g. pending moderation edit)
+    const fileIdToClean = resource.gridFsFileId || resource.storageKey;
+    if (fileIdToClean && (String(fileIdToClean).startsWith('gridfs:') || mongoose.Types.ObjectId.isValid(String(fileIdToClean).replace(/^gridfs:/, '')))) {
+      await safeDeleteGridFSFileIfOrphaned(fileIdToClean).catch(() => {});
+    } else if (resource.storageKey || resource.url) {
+      await StorageService.deleteFile(resource.storageKey || resource.url, resource.storageProvider).catch(() => {});
+    }
 
     activityService.logActivity({
       eventType: 'CONTENT_RESOURCE_DELETE',
@@ -4373,7 +4894,7 @@ app.get('/api/feedback/my', authenticateToken, requireOnboarded, async (req, res
 });
 
 // Stream feedback screenshot attachment with permission check
-app.get('/api/feedback/attachments/:id', authenticateToken, async (req, res) => {
+app.get('/api/feedback/attachments/:id', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const feedback = await Feedback.findOne({ screenshotFileId: req.params.id }).lean();
     if (!feedback) {
@@ -4695,5 +5216,7 @@ module.exports = {
   parseConfiguredOrigins,
   DEFAULT_ALLOWED_ORIGINS,
   RESET_SECRET,
-  JWT_SECRET
+  JWT_SECRET,
+  handleUploadFinalize,
+  safeDeleteGridFSFileIfOrphaned
 };

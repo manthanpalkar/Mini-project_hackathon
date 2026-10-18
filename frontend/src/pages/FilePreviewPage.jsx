@@ -107,7 +107,12 @@ export default function FilePreviewPage() {
 
           // Resume doc
           const resumeName = story.resumeFile?.fileName || (typeof story.resume === 'object' ? story.resume.fileName : (story.resume || 'Resume.pdf'));
-          const resumeUrl = story.resumeFile?.url || (typeof story.resume === 'object' ? story.resume.url : (story.resume && story.resume.startsWith('http') ? story.resume : null));
+          const resumeUrl = getResourceFileUrl({
+            resumeFile: story.resumeFile,
+            resume: story.resume,
+            url: story.resumeFile?.url,
+            fileUrl: story.resumeFile?.fileUrl
+          });
           const resumeDoc = {
             id: `resume-${story.id}`,
             title: `${story.name}'s Resume`,
@@ -115,22 +120,23 @@ export default function FilePreviewPage() {
             type: 'PDF',
             mimeType: 'application/pdf',
             fileSize: story.resumeFile?.fileSize || '',
-            url: resumeUrl || '#',
-            previewUrl: resumeUrl || '#'
+            url: resumeUrl || '',
+            previewUrl: resumeUrl || ''
           };
           storyFilesList.push(resumeDoc);
 
           // Study materials
           if (Array.isArray(story.studyMaterials)) {
             story.studyMaterials.forEach((m, idx) => {
+              const matUrl = getResourceFileUrl(m);
               storyFilesList.push({
                 id: `mat-${story.id}-${idx}`,
                 title: m.title || `Material ${idx + 1}`,
                 fileName: m.fileName || m.title || `Material-${idx + 1}`,
                 type: m.type || 'Document',
                 fileSize: m.fileSize || '',
-                url: m.url || '#',
-                previewUrl: m.url || '#'
+                url: matUrl || '',
+                previewUrl: matUrl || ''
               });
             });
           }

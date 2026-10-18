@@ -317,6 +317,7 @@ async function assembleFinalGridFSFile({ uploadId, totalChunks, expectedFileSize
     contentType: mimeType || 'application/octet-stream',
     metadata: {
       ...metadata,
+      uploadId,
       uploadedAt: new Date()
     }
   });
@@ -351,12 +352,8 @@ async function assembleFinalGridFSFile({ uploadId, totalChunks, expectedFileSize
     finalUploadStream.end();
   });
 
-  // 4. Delete temporary chunks now that the file is safely stitched
-  try {
-    await cleanupTempChunks(uploadId);
-  } catch (cleanErr) {
-    console.warn('[Assemble Cleanup Temp Chunks] Warning:', cleanErr.message);
-  }
+  // Note: Temporary chunks are preserved until finalization is durably committed
+  // in handleUploadFinalize, ensuring full crash-recovery without chunk data loss.
 
   return {
     storageKey: `gridfs:${finalUploadStream.id.toString()}`,

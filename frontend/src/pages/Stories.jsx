@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { getStories, addPendingStory, fileToBase64 } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
+import { useUpload } from '../context/UploadContext';
 
 function formatStoryDate(dateStr) {
   if (!dateStr) return null;
@@ -287,6 +288,15 @@ export default function Stories() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { startStoryUpload } = useUpload();
+
+  useEffect(() => {
+    const handleStorySubmitted = () => {
+      if (typeof mutate === 'function') mutate();
+    };
+    window.addEventListener('loop_story_submitted', handleStorySubmitted);
+    return () => window.removeEventListener('loop_story_submitted', handleStorySubmitted);
+  }, [mutate]);
   
   // Modal states synced with URL & location.state
   const [isModalOpen, setIsModalOpenState] = useState(
@@ -629,20 +639,7 @@ export default function Stories() {
     };
     
     try {
-      setUploadProgress(0);
-      await addPendingStory(submission, (progress) => {
-        setUploadProgress(progress);
-      });
-      setUploadSuccess(true);
-    } catch (err) {
-      console.error('Error submitting story:', err);
-      alert(err.message);
-      setSubmitting(false);
-      return;
-    }
-    
-    // Reset form
-    setTimeout(() => {
+      await startStoryUpload(submission);
       setIsModalOpen(false);
       setUploadSuccess(false);
       setSubmitting(false);
@@ -664,7 +661,13 @@ export default function Stories() {
         resources: [],
         studyMaterials: []
       });
-    }, 2500);
+      setMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
+    } catch (err) {
+      console.error('Error submitting story:', err);
+      alert(err.message);
+      setSubmitting(false);
+      return;
+    }
   };
 
   const handleAddResource = () => {
@@ -2249,13 +2252,13 @@ export default function Stories() {
                 {submitting && (
                   <p style={{
                     fontSize: '0.78rem',
-                    color: '#ff4d4d',
+                    color: 'var(--accent-primary, #0071e3)',
                     margin: '0.6rem 0 0 0',
                     opacity: 0.9,
                     textAlign: 'right',
                     fontWeight: '500'
                   }}>
-                    Keep this tab active. Switching or minimizing tabs will pause the upload.
+                    Uploading in background. You can safely continue browsing.
                   </p>
                 )}
               </form>

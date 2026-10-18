@@ -7,7 +7,7 @@ import {
   Users, MessageSquare, GraduationCap, 
   Rocket, Compass, Star, ArrowRight, UserCheck
 } from 'lucide-react';
-import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl } from '../utils/db';
+import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl } from '../utils/db';
 
 
 // Intelligent parser for preparation strategy
@@ -487,8 +487,12 @@ export default function StoryDetail() {
     if (!story) return [];
     const list = [];
     const rf = story.resumeFile;
-    const resumeName = rf?.fileName || story.resume || 'Resume.pdf';
-    const resumeUrl = rf?.url ? resolveUrl(rf.url) : (story.resume && story.resume.startsWith('http') ? story.resume : (story.resume && story.resume.startsWith('/uploads/') ? resolveUrl(story.resume) : null));
+    const resumeName = rf?.fileName || (typeof story.resume === 'object' ? story.resume.fileName : (story.resume || 'Resume.pdf'));
+    const resumeUrl = getResourceFileUrl({
+      resumeFile: rf,
+      resume: story.resume,
+      url: rf?.url
+    });
     list.push({
       id: `resume-${story.id}`,
       title: `${story.name}'s Resume`,
@@ -496,20 +500,21 @@ export default function StoryDetail() {
       type: 'PDF',
       mimeType: 'application/pdf',
       fileSize: rf?.fileSize || '',
-      url: resumeUrl || '#',
-      previewUrl: resumeUrl || '#'
+      url: resumeUrl || '',
+      previewUrl: resumeUrl || ''
     });
 
     if (Array.isArray(story.studyMaterials)) {
       story.studyMaterials.forEach((m, idx) => {
+        const matUrl = getResourceFileUrl(m);
         list.push({
           id: `mat-${story.id}-${idx}`,
           title: m.title || `Material ${idx + 1}`,
-          fileName: m.fileName || m.title,
+          fileName: m.fileName || m.title || `Material-${idx + 1}`,
           type: m.type || 'Document',
           fileSize: m.fileSize || '',
-          url: m.url ? resolveUrl(m.url) : '#',
-          previewUrl: m.url ? resolveUrl(m.url) : '#'
+          url: matUrl || '',
+          previewUrl: matUrl || ''
         });
       });
     }

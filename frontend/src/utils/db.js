@@ -61,6 +61,15 @@ const adjustUrls = (data) => {
 };
 
 
+let authExpiredDispatched = false;
+const notifyAuthExpired = () => {
+  if (authExpiredDispatched) return;
+  authExpiredDispatched = true;
+  localStorage.removeItem('loop_current_user');
+  window.dispatchEvent(new CustomEvent('loop_auth_expired'));
+  setTimeout(() => { authExpiredDispatched = false; }, 3000);
+};
+
 const authFetch = async (url, options = {}) => {
   const userSession = localStorage.getItem('loop_current_user');
   const headers = {
@@ -97,8 +106,7 @@ const authFetch = async (url, options = {}) => {
 
   if (res.status === 401) {
     if (!window.location.pathname.includes('/login')) {
-      localStorage.removeItem('loop_current_user');
-      window.dispatchEvent(new CustomEvent('loop_auth_expired'));
+      notifyAuthExpired();
       throw new Error('Session expired. Please login again.');
     }
   }
@@ -161,11 +169,10 @@ const authFetchXHR = (url, options = {}, onProgress) => {
 
       // Handle ONLY 401 Unauthorized for session expiration (NEVER 403 Forbidden!)
       if (xhr.status === 401 && !window.location.pathname.includes('/login')) {
-        localStorage.removeItem('loop_current_user');
         let parsedJson = null;
         try { parsedJson = JSON.parse(responseBody); } catch (e) { parsedJson = { error: 'Session expired. Please login again.' }; }
         resolve({ ok: false, status: xhr.status, json: async () => parsedJson, text: async () => responseBody });
-        window.dispatchEvent(new CustomEvent('loop_auth_expired'));
+        notifyAuthExpired();
         return;
       }
 
@@ -885,18 +892,87 @@ export { formatBytes, formatSpeed, formatEta, uploadResourceStream, uploadResour
 
 export const getResourceFileUrl = (resource) => {
   if (!resource) return '';
-  if (resource.previewUrl && resource.previewUrl.startsWith('http')) return resource.previewUrl;
-  if (resource.previewUrl && resource.previewUrl.startsWith('/api/')) return `${BASE_URL}${resource.previewUrl}`;
-  if (resource.previewUrl && resource.previewUrl.startsWith('/uploads/')) return `${BASE_URL}${resource.previewUrl}`;
-  if (resource.url && resource.url.startsWith('http')) return resource.url;
-  if (resource.url && resource.url.startsWith('/api/')) return `${BASE_URL}${resource.url}`;
-  if (resource.url && resource.url.startsWith('/uploads/')) return `${BASE_URL}${resource.url}`;
-  if (resource.link && resource.link.startsWith('http')) return resource.link;
-  if (resource.link && resource.link.startsWith('/uploads/')) return `${BASE_URL}${resource.link}`;
+
+  const normalizeUrl = (u) => {
+    if (!u || u === '#' || typeof u !== 'string') return '';
+    const trimmed = u.trim();
+    if (!trimmed || trimmed === '#') return '';
+    if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('/api/')) return `${BASE_URL}${trimmed}`;
+    if (trimmed.startsWith('/uploads/')) return `${BASE_URL}${trimmed}`;
+    if (trimmed.startsWith('/')) return `${BASE_URL}${trimmed}`;
+    // Bare filename like "document.pdf"
+    if (trimmed.includes('.') && !trimmed.includes('/')) return `${BASE_URL}/uploads/${trimmed}`;
+    return trimmed;
+  };
+
+  // 1. Direct explicit url / previewUrl / fileUrl / link properties
+  if (resource.fileUrl) {
+    const norm = normalizeUrl(resource.fileUrl);
+    if (norm) return norm;
+  }
+  if (resource.previewUrl) {
+    const norm = normalizeUrl(resource.previewUrl);
+    if (norm) return norm;
+  }
+  if (resource.url) {
+    const norm = normalizeUrl(resource.url);
+    if (norm) return norm;
+  }
+  if (resource.link) {
+    const norm = normalizeUrl(resource.link);
+    if (norm) return norm;
+  }
+
+  // 2. Story Resume File sub-object or string
+  if (resource.resumeFile) {
+    if (typeof resource.resumeFile === 'object') {
+      const norm = normalizeUrl(resource.resumeFile.url || resource.resumeFile.previewUrl || resource.resumeFile.fileUrl);
+      if (norm) return norm;
+      if (resource.resumeFile.storageKey) {
+        const key = resource.resumeFile.storageKey.replace(/^gridfs:/, '');
+        return `${BASE_URL}/api/resources/${key}/file`;
+      }
+      if (resource.resumeFile.gridFsFileId) {
+        return `${BASE_URL}/api/resources/${resource.resumeFile.gridFsFileId}/file`;
+      }
+    }
+  }
+  if (resource.resume) {
+    if (typeof resource.resume === 'object') {
+      const norm = normalizeUrl(resource.resume.url || resource.resume.previewUrl || resource.resume.fileUrl || resource.resume.fileName);
+      if (norm) return norm;
+    } else if (typeof resource.resume === 'string') {
+      const norm = normalizeUrl(resource.resume);
+      if (norm) return norm;
+    }
+  }
+
+  // 3. GridFS storageKey / gridFsFileId references
+  if (resource.storageKey) {
+    const key = String(resource.storageKey).replace(/^gridfs:/, '');
+    const resourceTargetId = (resource.id && !String(resource.id).startsWith('resume-') && !String(resource.id).startsWith('mat-'))
+      ? resource.id
+      : key;
+    return `${BASE_URL}/api/resources/${resourceTargetId}/file`;
+  }
+  if (resource.gridFsFileId) {
+    const resourceTargetId = (resource.id && !String(resource.id).startsWith('resume-') && !String(resource.id).startsWith('mat-'))
+      ? resource.id
+      : resource.gridFsFileId;
+    return `${BASE_URL}/api/resources/${resourceTargetId}/file`;
+  }
+
+  // 4. Resource ID endpoint fallback for stored resources
   if (resource.id && !String(resource.id).startsWith('resume-') && !String(resource.id).startsWith('mat-')) {
     return `${BASE_URL}/api/resources/${resource.id}/file`;
   }
-  return resource.url || resource.previewUrl || resource.link || '';
+  if (resource._id) {
+    return `${BASE_URL}/api/resources/${resource._id}/file`;
+  }
+
+  return '';
 };
 
 // Safe Binary Download Helper preserving original filename and extension
