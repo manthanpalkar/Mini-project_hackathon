@@ -1,6 +1,7 @@
 {
   "name": "loop-backend",
   "version": "1.0.0",
+  "license": "MIT",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {

@@ -10,6 +10,7 @@
 [![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
 [![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&style=flat-square)](https://loop-qnh9.onrender.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
 > **LOOP** is an institutional placement intelligence, peer mentorship, and academic vault ecosystem engineered for **Sardar Patel Institute of Technology (SPIT), Mumbai**. It bridges the gap between campus academics and high-tier engineering recruitment by publishing verified 4-year roadmaps, actual round-by-round interview debriefs, compensation packages, senior resumes, and curated study materials.
 
@@ -686,6 +687,8 @@ TEST_MONGODB_URI=mongodb://127.0.0.1:27018/loop_test npm test
 ---
 
 ## License & Acknowledgments
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 Engineered for academic empowerment, peer mentorship, and campus recruitment excellence at **Sardar Patel Institute of Technology (SPIT), Mumbai**.
 
