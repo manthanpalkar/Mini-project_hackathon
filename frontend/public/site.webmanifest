@@ -1,0 +1,22 @@
+{
+  "name": "LOOP — Life of Other Placements",
+  "short_name": "LOOP",
+  "description": "Sardar Patel Institute of Technology Official Placement Knowledge Hub",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0a0e17",
+  "background_color": "#0a0e17"
+}

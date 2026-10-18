@@ -386,7 +386,7 @@ export default function Navbar() {
               transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
             }}>
               <img 
-                src="/favicon.png" 
+                src="/loop-logo.png" 
                 alt="LOOP Logo" 
                 style={{ 
                   height: isScrolled ? '24px' : '26px', 

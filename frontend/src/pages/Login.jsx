@@ -737,7 +737,7 @@ export default function Login() {
             marginBottom: '2.5rem'
           }}>
             <img 
-              src="/favicon.png" 
+              src="/loop-logo.png" 
               alt="LOOP Logo" 
               style={{ 
                 height: '24px', 
