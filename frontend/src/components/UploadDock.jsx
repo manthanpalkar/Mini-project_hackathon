@@ -204,7 +204,7 @@ export default function UploadDock() {
                 {isBusy && (
                   <>
                     <span style={{ fontWeight: 600, color: 'var(--accent-primary, #0071e3)' }}>
-                      {item.percent}% • Speed: {item.speedFormatted}
+                      {item.percent}% • {item.speedFormatted && item.speedFormatted.includes('/s') ? `Speed: ${item.speedFormatted}` : item.speedFormatted}
                     </span>
                     <span style={{ color: 'var(--text-secondary)' }}>
                       ETA: {item.etaFormatted || (item.remainingSecs ? `~${item.remainingSecs}s` : 'Calculating...')}

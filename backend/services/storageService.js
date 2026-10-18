@@ -14,6 +14,30 @@ const GRIDFS_UPLOAD_CONCURRENCY = Math.max(2, Math.min(12, parseInt(process.env.
 // Final storage GridFS chunk size (4 MB)
 const FINAL_CHUNK_SIZE_BYTES = 4 * 1024 * 1024;
 
+/**
+ * Calculate optimal chunk size based on file size
+ * Balances concurrency benefits against HTTP request overhead.
+ * - Files <= 1 MB: 1 MB chunk (1 chunk, single fast request, no chunking overhead)
+ * - Files 1 MB - 8 MB: 2 MB chunks (e.g. 5.4 MB = 3 chunks, concurrency 3)
+ * - Files 8 MB - 32 MB: 4 MB chunks (e.g. 20 MB = 5 chunks, concurrency 5)
+ * - Files > 32 MB: CHUNK_SIZE_BYTES (8 MB chunks, concurrency 6)
+ */
+function calculateOptimalChunkSize(fileSizeBytes) {
+  if (!fileSizeBytes || isNaN(fileSizeBytes) || fileSizeBytes <= 0) {
+    return CHUNK_SIZE_BYTES;
+  }
+  if (fileSizeBytes <= 1024 * 1024) {
+    return 1024 * 1024; // 1 MB
+  }
+  if (fileSizeBytes <= 8 * 1024 * 1024) {
+    return 2 * 1024 * 1024; // 2 MB
+  }
+  if (fileSizeBytes <= 32 * 1024 * 1024) {
+    return 4 * 1024 * 1024; // 4 MB
+  }
+  return CHUNK_SIZE_BYTES; // 8 MB default for large files
+}
+
 // Supported file formats whitelist
 const SUPPORTED_EXTENSIONS = new Set([
   // Documents
@@ -121,6 +145,15 @@ function getGridFSBucket() {
       bucketName: 'loop_resources',
       chunkSizeBytes: FINAL_CHUNK_SIZE_BYTES
     });
+
+    // Ensure metadata indexes exist for fast crash recovery lookup
+    const resColl = mongoose.connection.db.collection ? mongoose.connection.db.collection('loop_resources.files') : null;
+    if (resColl && typeof resColl.createIndex === 'function') {
+      resColl.createIndex(
+        { 'metadata.uploadId': 1 },
+        { background: true }
+      ).catch(() => {});
+    }
   }
   return gridFsBucket;
 }
@@ -138,6 +171,15 @@ function getTempChunksBucket() {
       bucketName: 'loop_temp_chunks',
       chunkSizeBytes: 2 * 1024 * 1024
     });
+
+    // Ensure metadata indexes exist for sub-millisecond chunk lookup, resumability, and assembly
+    const tempColl = mongoose.connection.db.collection ? mongoose.connection.db.collection('loop_temp_chunks.files') : null;
+    if (tempColl && typeof tempColl.createIndex === 'function') {
+      tempColl.createIndex(
+        { 'metadata.uploadId': 1, 'metadata.chunkIndex': 1 },
+        { background: true }
+      ).catch(() => {});
+    }
   }
   return tempChunksBucket;
 }
@@ -601,6 +643,7 @@ module.exports = {
   cleanupTempChunks,
   purgeStaleTempUploads,
   assembleFinalGridFSFile,
+  calculateOptimalChunkSize,
   uploadToGridFS,
   streamFromGridFS,
   deleteFile

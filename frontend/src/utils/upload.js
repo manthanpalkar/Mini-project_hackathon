@@ -13,7 +13,7 @@
  */
 
 export const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB (209,715,200 bytes)
-export const DEFAULT_CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB default chunk size
+export const DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB default chunk size (was 8 MB)
 export const DEFAULT_CONCURRENCY = 6; // 6 parallel chunk streams
 export const MAX_RETRIES_PER_CHUNK = 5;
 
@@ -195,10 +195,12 @@ export async function uploadResourceStream({
 
     const now = Date.now();
     const timeDelta = (now - lastSpeedCalcTime) / 1000;
-    if (timeDelta >= 0.3) {
+    if (timeDelta >= 0.25) {
       const bytesDelta = loadedBytes - lastSpeedCalcBytes;
       const currentSpeed = bytesDelta / timeDelta;
-      smoothedSpeed = smoothedSpeed === 0 ? currentSpeed : (0.7 * smoothedSpeed + 0.3 * currentSpeed);
+      if (currentSpeed >= 0) {
+        smoothedSpeed = smoothedSpeed === 0 ? currentSpeed : (0.75 * smoothedSpeed + 0.25 * currentSpeed);
+      }
       lastSpeedCalcTime = now;
       lastSpeedCalcBytes = loadedBytes;
     }
@@ -241,6 +243,7 @@ export async function uploadResourceStream({
         await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           activeXhrs.add(xhr);
+          xhr.timeout = 60000; // 60-second socket timeout to prevent indefinite hangs on dead connections
 
           xhr.open('PUT', chunkEndpoint);
           xhr.setRequestHeader('x-upload-id', uploadId);
@@ -312,6 +315,8 @@ export async function uploadResourceStream({
         }
 
         attempt++;
+        activeChunkBytes[chunkIndex] = 0;
+        emitProgress();
         if (attempt >= MAX_RETRIES_PER_CHUNK) {
           throw new Error(`Failed to upload chunk ${chunkIndex + 1} of ${totalChunks} after ${MAX_RETRIES_PER_CHUNK} attempts: ${err.message}`);
         }

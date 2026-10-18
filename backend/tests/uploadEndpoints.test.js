@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const StorageService = require('../services/storageService');
 const { app, userAuthCache, JWT_SECRET } = require('../server');
-const { Resource, PendingResource, Story, PendingStory, UploadSession } = require('../models');
+const { Resource, PendingResource, Story, PendingStory, UploadSession, Folder } = require('../models');
 
 describe('MongoDB GridFS Storage Service & Upload Validation', () => {
   describe('File Size Validation (200 MB Limit)', () => {
@@ -22,6 +22,31 @@ describe('MongoDB GridFS Storage Service & Upload Validation', () => {
       assert.strictEqual(StorageService.formatBytes(1024), '1 KB');
       assert.strictEqual(StorageService.formatBytes(10 * 1024 * 1024), '10 MB');
       assert.strictEqual(StorageService.formatBytes(200 * 1024 * 1024), '200 MB');
+    });
+
+    test('calculateOptimalChunkSize adapts chunk size dynamically to file size', () => {
+      // <= 1 MB: 1 MB chunk (1 chunk, single fast request)
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(500 * 1024), 1024 * 1024);
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(1024 * 1024), 1024 * 1024);
+
+      // 1 MB - 8 MB (e.g. 5.4 MB exact user screenshot file): 2 MB chunks (3 parallel chunks)
+      const size5_4MB = Math.round(5.4 * 1024 * 1024);
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(size5_4MB), 2 * 1024 * 1024);
+      const totalChunks5_4MB = Math.ceil(size5_4MB / StorageService.calculateOptimalChunkSize(size5_4MB));
+      assert.strictEqual(totalChunks5_4MB, 3, '5.4 MB file must be split into 3 chunks for parallel streaming');
+
+      // 8 MB - 32 MB (e.g. 20 MB): 4 MB chunks (5 parallel chunks)
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(20 * 1024 * 1024), 4 * 1024 * 1024);
+      const totalChunks20MB = Math.ceil((20 * 1024 * 1024) / StorageService.calculateOptimalChunkSize(20 * 1024 * 1024));
+      assert.strictEqual(totalChunks20MB, 5);
+
+      // > 32 MB (e.g. 50 MB): 8 MB chunks
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(50 * 1024 * 1024), 8 * 1024 * 1024);
+
+      // Edge cases
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(0), StorageService.CHUNK_SIZE_BYTES);
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(null), StorageService.CHUNK_SIZE_BYTES);
+      assert.strictEqual(StorageService.calculateOptimalChunkSize(-100), StorageService.CHUNK_SIZE_BYTES);
     });
   });
 
@@ -532,6 +557,40 @@ describe('MongoDB GridFS Storage Service & Upload Validation', () => {
       assert.strictEqual(res.status, 400);
       const json = await res.json();
       assert.match(json.error, /uploadId is required/);
+    });
+
+    test('POST /api/resources/upload/init: calculates adaptive chunk size (2 MB) and 3 chunks for 5.4 MB file', async () => {
+      const origFolderFindOne = Folder.findOne;
+      const origSessionCreate = UploadSession.create;
+
+      try {
+        Folder.findOne = async () => ({ id: 'system-placement-material', visibility: 'public' });
+        UploadSession.create = async (doc) => doc;
+
+        const size5_4MB = Math.round(5.4 * 1024 * 1024);
+        const res = await fetch(`${baseUrl}/api/resources/upload/init`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${studentAToken}`
+          },
+          body: JSON.stringify({
+            fileName: 'Group1_IEEE_Paper_FINAL.pdf',
+            fileSize: size5_4MB,
+            mimeType: 'application/pdf'
+          })
+        });
+
+        assert.strictEqual(res.status, 200);
+        const json = await res.json();
+        assert.strictEqual(json.success, true);
+        assert.strictEqual(json.chunkSize, 2 * 1024 * 1024, '5.4 MB file must use 2 MB chunk size');
+        assert.strictEqual(json.totalChunks, 3, '5.4 MB file must be split into 3 chunks for parallel streaming');
+        assert.strictEqual(json.concurrency, 6);
+      } finally {
+        Folder.findOne = origFolderFindOne;
+        UploadSession.create = origSessionCreate;
+      }
     });
 
     test('POST /api/resources/upload/finalize: returns 404 for non-existent upload session', async () => {

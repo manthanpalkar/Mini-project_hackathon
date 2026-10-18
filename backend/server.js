@@ -3065,7 +3065,7 @@ const handleUploadInit = async (req, res) => {
     }
 
     const isPending = !isAdmin;
-    const chunkSize = StorageService.CHUNK_SIZE_BYTES; // Configurable, default 8 MB
+    const chunkSize = StorageService.calculateOptimalChunkSize(numSize);
     const totalChunks = Math.ceil(numSize / chunkSize);
     const uploadId = `up_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
 
