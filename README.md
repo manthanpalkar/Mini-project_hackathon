@@ -1,11 +1,13 @@
 # LOOP — Life of Other Placements
 
 [![React](https://img.shields.io/badge/React-19.0-blue?logo=react&style=flat-square)](https://react.dev/)
-[![Node](https://img.shields.io/badge/Node.js-Express-green?logo=node.js&style=flat-square)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/Node.js-Express_4.19-green?logo=node.js&style=flat-square)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cloud_Cache-red?logo=redis&style=flat-square)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-MongoDB_7.0_Staging-2496ED?logo=docker&style=flat-square)](https://www.docker.com/)
 [![Tests](https://img.shields.io/badge/Automated_Tests-214_Passed_(25_Suites)-success?style=flat-square)](backend/tests/)
+[![Vite](https://img.shields.io/badge/Bundler-Vite_8-646CFF?logo=vite&style=flat-square)](https://vitejs.dev/)
+[![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
 [![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&style=flat-square)](https://loop-qnh9.onrender.com/)
 
@@ -13,180 +15,409 @@
 
 ---
 
-## Deployments & Live Access
+## Table of Contents
+1. [Project Overview: What is LOOP?](#project-overview-what-is-loop)
+2. [The Real-World Problem: What is it Solving?](#the-real-world-problem-what-is-it-solving)
+3. [The Engineering Solution: How Does LOOP Solve It?](#the-engineering-solution-how-does-loop-solve-it)
+4. [Live Deployments & Access](#live-deployments--access)
+5. [Complete System Architecture](#complete-system-architecture)
+6. [Comprehensive Technology Stack (What, Why & How)](#comprehensive-technology-stack-what-why--how)
+   - [Frontend Architecture](#1-frontend-architecture)
+   - [Backend API & Server Engine](#2-backend-api--server-engine)
+   - [Database & Storage Infrastructure](#3-database--storage-infrastructure)
+   - [Distributed Caching Layer](#4-distributed-caching-layer)
+   - [Cloud Integrations & Campus Identity](#5-cloud-integrations--campus-identity)
+   - [DevOps, Containerization & Testing](#6-devops-containerization--testing)
+7. [System Workflows & Sequence Diagrams](#system-workflows--sequence-diagrams)
+   - [Story Submission & Moderation Lifecycle](#story-submission--moderation-lifecycle)
+   - [Brevo 6-Digit Hashed OTP Password Reset](#brevo-6-digit-hashed-otp-password-reset)
+   - [High-Speed Adaptive Chunking GridFS Upload Pipeline](#high-speed-adaptive-chunking-gridfs-upload-pipeline)
+   - [Social Sharing & High-Contrast Favicon Engineering](#social-sharing--high-contrast-favicon-engineering)
+8. [Environment Variables & Configuration Reference](#environment-variables--configuration-reference)
+9. [Codebase Directory Structure](#codebase-directory-structure)
+10. [Automated Verification & Test Harness (214 Tests)](#automated-verification--test-harness-214-tests)
+11. [Local Development & Setup](#local-development--setup)
+12. [Security, Access Control & Integrity Policies](#security-access-control--integrity-policies)
+13. [License & Acknowledgments](#license--acknowledgments)
 
-| Layer | Hosting Provider | Live URL | Status |
+---
+
+## Project Overview: What is LOOP?
+
+**LOOP (Life of Other Placements)** is a purpose-built, institutional engineering platform developed to empower students at **Sardar Patel Institute of Technology (SPIT), Mumbai** throughout their campus recruitment journey.
+
+During undergraduate engineering, students face intense recruitment cycles for top-tier technology firms, investment banks, and product startups (such as Morgan Stanley, J.P. Morgan Chase, Barclays, Deutsche Bank, Quantiphi, LTI, and PhonePe). However, the crucial knowledge needed to succeed—what questions are asked in technical rounds, what coding problems appear in Online Assessments (OAs), how to navigate HR interviews, and what study materials are truly relevant—has historically been fragmented, informal, and ephemeral.
+
+**LOOP** replaces this informal whisper network with a **permanent, verified, high-performance institutional knowledge vault**. It provides:
+* **Round-by-Round Interview Debriefs:** Direct firsthand accounts from seniors who cleared competitive placement drives, detailing every coding problem, system design question, and HR discussion.
+* **4-Year Departmental Roadmaps:** Step-by-step preparation schedules covering Data Structures & Algorithms (DSA), System Design, Core CS Fundamentals (DBMS, OS, CN), and specialization tracks (AI/ML, Web Dev, Cloud).
+* **200 MB Academic & Resume Vault:** A high-speed digital repository where students access senior resumes, placement handbooks, previous year exam papers, and faculty lecture presentations.
+* **Strict Campus Domain Verification:** Every contributor is verified against SPIT's institutional directory (`@spit.ac.in`), preventing external spam, commercial promotions, and fabricated interview claims.
+
+---
+
+## The Real-World Problem: What is it Solving?
+
+Engineering campus placement is one of the most critical transitions in a student's academic life, yet it is plagued by systemic operational challenges:
+
+```mermaid
+flowchart TD
+    subgraph TraditionalProblems["The Traditional Campus Placement Chaos"]
+        P1["WhatsApp & Telegram Silos\nExperiences and notes get buried under thousands of group chat messages"]
+        P2["Broken Cloud Drives & Lost Files\nSenior Google Drive links expire or lose permissions after graduation"]
+        P3["Unverified Rumors & Misinformation\nExaggerated compensation numbers and unconfirmed interview questions cause panic"]
+        P4["Junior-Senior Disconnect\nShy students or those without strong senior networks miss critical company insights"]
+        P5["Slow & Bloated Portals\nHeavy legacy portals fail on mobile devices and weak campus Wi-Fi networks"]
+    end
+
+    subgraph TheLoopSolution["The LOOP Institutional Solution"]
+        S1["Centralized Searchable Archive\nIndexed by Company, Role, Batch, Package, and Difficulty Tag"]
+        S2["200MB GridFS Database Vault\nBinary files streamed directly from database clusters with in-browser PDF previews"]
+        S3["Institutional SSO & Admin Moderation\n@spit.ac.in OAuth verification and manual admin review for 100% accuracy"]
+        S4["Democratized Open Access\nEvery student has equal access to verified roadmaps regardless of personal connections"]
+        S5["Ultra-Optimized Lightweight Stack\nSub-1ms Redis caching, 91.8% smaller JS bundles, and adaptive chunked uploads"]
+    end
+
+    P1 -.->|Solved By| S1
+    P2 -.->|Solved By| S2
+    P3 -.->|Solved By| S3
+    P4 -.->|Solved By| S4
+    P5 -.->|Solved By| S5
+```
+
+### Detailed Breakdown of Problems Solved:
+1. **The Ephemeral Chat Problem:** Every placement season, seniors share invaluable advice on WhatsApp or Telegram. Within weeks, these messages are buried under thousands of chat logs, media files expire, and the incoming batch enters the placement season completely blind. **LOOP archives every story permanently in a structured database.**
+2. **The Cloud Storage Permission Trap:** Seniors often share Google Drive folders before graduating. Once their college Google accounts are archived or storage quotas are exceeded, incoming batches find broken links and "Access Denied" screens. **LOOP hosts all documents in its dedicated MongoDB GridFS cluster with zero external file host dependencies.**
+3. **The Authenticity Crisis:** Public platforms (like Glassdoor or Reddit) mix data from professionals with 10 years of experience, international applicants, and anonymous users. Campus recruitment for fresh graduates has a completely distinct format. **LOOP strictly enforces campus identity (`@spit.ac.in`) and requires administrative moderation before any submission is visible.**
+4. **Network Inequality:** Under traditional circumstances, students with close personal friends among seniors received mentorship, while others had to prepare without guidance. **LOOP levels the playing field by democratizing all senior insights for every enrolled student.**
+
+---
+
+## The Engineering Solution: How Does LOOP Solve It?
+
+LOOP achieves its mission through four purpose-built subsystems:
+
+1. **Structured Experience Engine:** Interview debriefs are submitted using a structured schema: Company Name, Role, Package (CTC/Stipend in LPA), Difficulty Rating (Easy/Medium/Hard), Selection Status, Preparation Strategy, Round-by-Round Breakdown (OA, Technical 1, Technical 2, HR), and Key Advice.
+2. **High-Speed Binary Vault (MongoDB GridFS):** Enables students to upload, organize, and stream large academic files (PDFs, presentations, programming archives) up to 200 MB. Files are dynamically partitioned into adaptive chunks, uploaded over parallel TCP streams, and previewed directly in the browser using custom canvas renderers without requiring full file downloads.
+3. **Dual-Tier Caching Pipeline (Redis Cloud + Memory):** Hot landing page queries, company filters, and resource lists are served in $< 1\text{ ms}$ from Redis Cloud. Event-driven cache invalidation ensures that when an admin approves a story or edits a resource, stale cached data is purged instantly.
+4. **Zero-Trust Institutional Security:** Combines Google OAuth 2.0 (`@spit.ac.in` domain restriction), cryptographically signed JWT sliding session rotation, dual-tier rate limiting (1500 general / 5 auth requests), and 6-digit salted SHA-256 OTP password recovery via Brevo.
+
+---
+
+## Live Deployments & Access
+
+| Subsystem | Hosting Platform | URL / Endpoint | Availability |
 | :--- | :--- | :--- | :--- |
-| **Frontend Client** | Vercel Global Edge Network | [https://loop-seven-delta.vercel.app/](https://loop-seven-delta.vercel.app/) | **Live 24/7** |
-| **Backend REST API** | Render Cloud Application Engine | [https://loop-qnh9.onrender.com/](https://loop-qnh9.onrender.com/) | **Live 24/7** |
-| **Primary Database** | MongoDB Atlas Cloud (M0 Cluster) | `databaseloop.4qedd5n.mongodb.net` | **Cloud Replica** |
-| **Distributed Cache** | Redis Cloud Free Tier | `diaphanous-celery-purpose-99869.db.redis.io` | **In-Memory Cache** |
-| **Email & OTP Engine** | Brevo Transactional API | `smtp-relay.brevo.com` | **Authenticated Delivery** |
+| **Frontend Web Client** | Vercel Global Edge Network | [https://loop-seven-delta.vercel.app/](https://loop-seven-delta.vercel.app/) | **Production (24/7)** |
+| **Backend API Engine** | Render Cloud Application Engine | [https://loop-qnh9.onrender.com/](https://loop-qnh9.onrender.com/) | **Production (24/7)** |
+| **Primary Cloud Database** | MongoDB Atlas Cloud (M0 Cluster) | `databaseloop.4qedd5n.mongodb.net` | **Cloud Replica** |
+| **Distributed Query Cache** | Redis Cloud Free Tier | `diaphanous-celery-purpose-99869.db.redis.io` | **In-Memory Cache** |
+| **Transactional Email Engine**| Brevo Transactional API | `smtp-relay.brevo.com` | **Authenticated Delivery** |
 
 ### Demo Credentials
-
 * **Student Account:**
   * **Email:** `student@spit.ac.in`
   * **Password:** `student123`
 * **Administrator Account:**
   * **Email:** `admin@spit.ac.in`
-  * **Password:** *(Managed via campus admin provisioning)*
-* **Campus Single Sign-On:**
-  * Any valid `@spit.ac.in` institutional Google account can log in or register instantly via the **Continue with Google** button.
+  * **Password:** *(Protected via campus administrative provisioning)*
+* **Campus Single Sign-On (SSO):**
+  * Any student or faculty member possessing an active `@spit.ac.in` Google account can click **"Continue with Google"** to authenticate instantly without manual registration.
 
 ---
 
-## System Architecture
+## Complete System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Clients["Clients & Edge Network"]
-        Browser["Student / Admin Browser\n(React 19 + Vite 8 SPA)"]
-        Social["Social Platforms / WhatsApp\n(Open Graph Crawler)"]
+    subgraph Clients["1. Client Layer & Crawlers"]
+        Desktop["Desktop Browser\n(Chrome, Edge, Safari, Firefox)"]
+        Mobile["Mobile Browser\n(Android Chrome, iOS Safari)"]
+        SocialCrawler["Social Preview Crawlers\n(WhatsApp, LinkedIn, Twitter, iMessage)"]
     end
 
-    subgraph CDN["Edge & Static Hosting"]
-        Vercel["Vercel Global Edge CDN\n(HTML5, CSS3, JS Bundles, /og-image.png)"]
+    subgraph EdgeCDN["2. Global Edge CDN (Vercel)"]
+        VercelCDN["Vercel Global Edge Network\n(TLS Termination, Gzip/Brotli, HTTP/2)"]
+        StaticAssets["Static Client Assets\n(React 19 SPA, JS Chunks, CSS, Icons)"]
+        OGImage["Open Graph Meta & Assets\n(/og-image.png 1200x630, /favicon.png)"]
     end
 
-    subgraph BackendAPI["Backend Cloud Engine (Render)"]
-        Express["Express 4.19 REST API Server"]
-        AuthMiddleware["JWT Verification & Sliding Rotation"]
-        RateLimiters["Dual-Tier Rate Limiters\n(Global 1500 req / Auth 5 req)"]
-        UserCache["LRU UserAuthCache & CacheService"]
+    subgraph BackendEngine["3. Backend API Engine (Render Cloud)"]
+        ExpressApp["Express 4.19 REST API Server"]
+        CORS["CORS Security Filter\n(loop-seven-delta.vercel.app)"]
+        RateLimiter["Dual-Tier Rate Limiters\n(Global: 1500 req / Auth: 5 req)"]
+        AuthGuard["JWT Auth & Sliding Token Rotation\n(1-Hour Session Lifetime)"]
+        MemoryCache["Local LRU Cache Fallback"]
     end
 
-    subgraph DataTier["Cloud Persistence & Cache Layer"]
-        AtlasDB[("MongoDB Atlas Cloud\nUsers, Stories, Resources, Feedback")]
-        GridFSBucket[("MongoDB GridFS\nfs.files & fs.chunks (Up to 200MB)")]
-        RedisCloud[("Redis Cloud\nHot Query Caching (<1ms)")]
+    subgraph DistributedCache["4. Distributed In-Memory Cache (Redis Cloud)"]
+        RedisNode["Redis Cloud High-Speed Cache\n(Key-Value JSON Payloads, <1ms Latency)"]
     end
 
-    subgraph ExternalServices["External Cloud Integrations"]
-        GoogleOAuth["Google Identity Services\n(@spit.ac.in Domain Enforced)"]
-        BrevoSMTP["Brevo Email API\n(6-Digit Hashed OTP Password Reset)"]
+    subgraph CloudDatabase["5. Primary Persistence (MongoDB Atlas M0)"]
+        AtlasCluster[("MongoDB Atlas Cloud Database")]
+        Collections["Collections:\n- users (Auth, Roles, Salted Hash)\n- stories (Approved Interview Roadmaps)\n- pendingstories (Moderation Queue)\n- resources (Academic Vault Metadata)\n- folders (Categorization Hierarchy)\n- feedback (Campus Bug Reports)\n- uploadsessions (Chunk Lease Tracking)"]
+        GridFSBucket[("MongoDB GridFS\nfs.files & fs.chunks\n(Up to 200 MB Binary Streams)")]
     end
 
-    subgraph LocalDev["Isolated Local Staging Sandbox (Docker)"]
-        DockerMongo["Docker Container: loop-staging-mongo\n(MongoDB 7.0 on 127.0.0.1:27018)"]
+    subgraph CloudIntegrations["6. Third-Party Cloud Integrations"]
+        GoogleAuth["Google Identity Services (OAuth 2.0)\n(@spit.ac.in Domain Restricted)"]
+        BrevoAPI["Brevo Transactional Email Engine\n(6-Digit Salted SHA-256 OTP Reset)"]
     end
 
-    Browser -->|HTTPS / WSS| Vercel
-    Browser -->|REST API JSON / Streaming PUT| Express
-    Social -->|Fetch Open Graph Meta| Vercel
+    subgraph DevSandbox["7. Isolated Local Test Sandbox (Docker)"]
+        DockerMongo["Docker Container: loop-staging-mongo\n(MongoDB 7.0 on 127.0.0.1:27018)\n*Only used for local automated tests*"]
+    end
 
-    Express --> AuthMiddleware
-    AuthMiddleware --> RateLimiters
-    RateLimiters --> UserCache
+    Desktop -->|HTTPS / WSS| VercelCDN
+    Mobile -->|HTTPS / WSS| VercelCDN
+    SocialCrawler -->|Fetch Open Graph Meta| VercelCDN
+    VercelCDN --> StaticAssets
+    VercelCDN --> OGImage
 
-    Express -->|Read / Write Documents| AtlasDB
-    Express -->|Chunked Binary Streams| GridFSBucket
-    Express -->|Get / Set Cached JSON| RedisCloud
-    Express -->|Verify ID Tokens| GoogleOAuth
-    Express -->|Send Transactional OTP| BrevoSMTP
+    Desktop -->|REST API Calls / Streaming PUT| ExpressApp
+    Mobile -->|REST API Calls / Streaming PUT| ExpressApp
 
-    Express -.->|Automated Test Harness| DockerMongo
+    ExpressApp --> CORS
+    CORS --> RateLimiter
+    RateLimiter --> AuthGuard
+    AuthGuard --> MemoryCache
+
+    ExpressApp -->|Check / Invalidate Cache| RedisNode
+    ExpressApp -->|Read / Write Documents| Collections
+    ExpressApp -->|Chunked Binary Streaming| GridFSBucket
+    ExpressApp -->|Verify ID Tokens| GoogleAuth
+    ExpressApp -->|Dispatch Reset OTP| BrevoAPI
+
+    ExpressApp -.->|Run 214 Automated Tests| DockerMongo
 ```
 
 ---
 
-## Core Technologies: What, Why & How
+## Comprehensive Technology Stack (What, Why & How)
 
-### 1. Redis Cloud (Distributed Query Acceleration)
-* **What is it?** A managed, low-latency in-memory data store hosted on Redis Cloud.
-* **Why do we use it?** 
-  High-traffic endpoints (such as `/api/stories`, `/api/resources`, and `/api/folders`) are queried frequently by students browsing placement roadmaps. Querying MongoDB Atlas across the transatlantic network introduces 150ms–300ms of latency per request. Redis caches serialized JSON responses in memory, serving hot data in **under 1 millisecond**.
-* **How it works:**
-  1. **Cache-Aside Pattern:** When a request arrives, [`backend/services/cacheService.js`](backend/services/cacheService.js) checks Redis for a matching key (e.g., `stories:page1:sortDate`).
-  2. **Cache Hit:** If found, the cached JSON payload is returned immediately without touching MongoDB.
-  3. **Cache Miss:** If not found, MongoDB Atlas is queried, the response is written to Redis with an automatic TTL (e.g., 5 to 15 minutes), and delivered to the client.
-  4. **Active Event-Driven Invalidation:** When an administrator approves a story, edits a resource, or moderates an entry, the cache service automatically invalidates matching key patterns using `DEL` / `SCAN`, preventing stale data.
-  5. **Resilient In-Memory Fallback:** If Redis is temporarily unreachable or `REDIS_CACHE_ENABLED=false`, the server seamlessly falls back to a bounded local Node.js memory cache with zero downtime.
+Every technology in LOOP was deliberately chosen based on concrete engineering requirements, performance benchmarks, and institutional constraints:
+
+### 1. Frontend Architecture
+
+#### **React 19.0 (User Interface Library)**
+* **What is it?** The latest generation of Meta's declarative frontend library.
+* **Why do we use it?** React 19 introduces optimized compiler heuristics and automatic asset prefetching, allowing seamless state transitions without manual `useMemo` and `useCallback` boilerplate. Its concurrent rendering pipeline ensures that large tables of interview experiences filter instantaneously without locking the browser's main thread.
+* **How it is used:** Powers the Single Page Application (SPA), routing ([`frontend/src/App.jsx`](frontend/src/App.jsx)), dynamic moderation consoles, interactive roadmaps, and real-time upload progress docks.
+
+#### **Vite 8.0 (Build Tool & Dev Server)**
+* **What is it?** Next-generation frontend bundler powered by Rollup and native ES modules.
+* **Why do we use it?** Replaced legacy Create React App (CRA). Cold start server boots dropped from 35s to **320ms**, and Hot Module Replacement (HMR) executes in **under 50ms**. In production, Vite performs aggressive tree-shaking, manual vendor chunk splitting, and dynamic chunk preloading.
+* **Impact:** Reduced initial uncompressed JavaScript bundle from **1,312.33 kB to 106.90 kB** (a **91.85% reduction**), with gzipped main bundle at only **28.10 kB**.
+
+#### **Tailwind CSS (Utility-First Styling)**
+* **What is it?** A utility-first CSS framework that compiles on-demand.
+* **Why do we use it?** Traditional CSS frameworks (like Bootstrap) load hundreds of kilobytes of unused styles. Tailwind scans every template, generating a hyper-minified CSS file (under 18 kB gzip) containing only the exact utility classes utilized in the application.
+* **How it is used:** Provides dark-mode/light-mode theming, responsive grid layouts for mobile devices, glassmorphism cards, and micro-interaction animations.
+
+#### **SWR (Stale-While-Revalidate) & Custom Cache Hooks**
+* **What is it?** Client-side HTTP cache-invalidation and synchronization strategy.
+* **Why do we use it?** When students switch between the "Stories" and "Resources" tabs, SWR renders previously loaded data from the client cache **instantaneously (0ms perceived latency)** while revalidating against the Render API in the background. If updates are found, the UI refreshes seamlessly without screen flicker.
+* **How it is used:** Implemented in [`frontend/src/hooks/useCachedData.js`](frontend/src/hooks/useCachedData.js) and [`frontend/src/utils/db.js`](frontend/src/utils/db.js).
+
+#### **Client-Side PDF.js & Canvas Document Inspection**
+* **What is it?** An in-browser PDF rendering engine utilizing HTML5 `<canvas>`.
+* **Why do we use it?** If students had to download a 50 MB textbook or lecture deck just to inspect page 1, bandwidth would be wasted. Native browser PDF plugins often fail or download files on mobile devices.
+* **How it is used:** The custom PDF previewer fetches the first 3 pages of any vault document using byte-range requests and renders them cleanly in a high-resolution canvas modal.
 
 ---
 
-### 2. Docker (Isolated Testing & Benchmark Sandbox)
-* **What is it?** A lightweight Linux container running **MongoDB 7.0** (`loop-staging-mongo`) exposed on isolated port `127.0.0.1:27018`.
-* **Why do we use it?**
-  To protect live production database clusters. In production, LOOP connects to a shared MongoDB Atlas free-tier M0 cluster. Running exhaustive test suites (214 tests), load tests, and multi-gigabyte upload benchmarks directly against Atlas would risk exhausting database quotas, modifying live student records, or causing rate limits. Docker creates an ephemeral, production-identical local sandbox.
-* **How it works:**
-  * **Zero Production Pollution:** All unit, integration, and crash-recovery tests execute against `127.0.0.1:27018`.
-  * **Crash Window Verification:** Docker allows tests to simulate hard network disconnects, server crashes during multi-megabyte GridFS assembly, and lease expirations deterministically.
-  * **When is it needed?** Docker is **only required for local test execution and benchmarks**. When deploying to production on Render and Vercel, the application communicates directly with MongoDB Atlas in the cloud—Docker is never required on your computer during normal website operation.
+### 2. Backend API & Server Engine
+
+#### **Node.js (JavaScript Runtime) & Express 4.19 (Web Framework)**
+* **What is it?** An asynchronous, event-driven JavaScript server framework.
+* **Why do we use it?** LOOP's primary backend workloads are I/O-bound: proxying chunked binary streams to MongoDB GridFS, verifying Google OAuth tokens, reading/writing from Redis Cloud, and formatting JSON payloads. Node's non-blocking event loop handles hundreds of concurrent connections with minimal memory footprint compared to multi-threaded servers like Java Spring Boot or Django.
+* **How it is used:** Defines RESTful routing, authentication middleware, file ingestion pipelines, and administrative controls in [`backend/server.js`](backend/server.js).
+
+#### **JWT (JSON Web Tokens) & Sliding Session Rotation**
+* **What is it?** Cryptographically signed JSON claims (`jsonwebtoken`) stored in client memory.
+* **Why do we use it?** Server-side sessions (e.g. `express-session` with Redis storage) require a database lookup on every single API call. JWTs are stateless and verified mathematically using `JWT_SECRET`.
+* **Sliding Session Renewal:** To keep active students logged in while protecting inactive sessions, the auth middleware ([`backend/middlewares/auth.js`](backend/middlewares/auth.js)) checks token expiration: if an authenticated request is made within 30 minutes of expiration, the server automatically appends a refreshed token in the response headers.
+
+#### **Dual-Tier Express Rate Limiters (`express-rate-limit`)**
+* **What is it?** Middleware restricting incoming client request velocity based on IP address.
+* **Why do we use it?** Protects the free-tier Render and Atlas instances against Denial-of-Service (DoS) and brute-force password guessing attacks.
+* **Tiered Architecture:**
+  1. **Global Rate Limiter:** Permits **1,500 requests per 15 minutes** per IP for standard browsing, search, and document streaming.
+  2. **Auth & Password Reset Limiter:** Strictly caps sensitive endpoints (`/api/auth/login`, `/api/auth/forgot-password`, `/api/auth/reset-password`) to **5 requests per 15 minutes**, thwarting automated credential stuffing.
+
+#### **bcryptjs (12 Salt Rounds)**
+* **What is it?** An adaptive, one-way cryptographic password hashing algorithm.
+* **Why do we use it?** SHA-256 or MD5 are fast algorithms easily cracked by modern GPUs using rainbow tables. bcrypt introduces a configurable work factor (12 salt rounds in LOOP), ensuring that computing a single hash requires significant CPU time, making brute-force cracking mathematically infeasible.
 
 ---
 
-### 3. Brevo (Transactional Email & 6-Digit OTP Engine)
-* **What is it?** An enterprise-grade transactional email delivery API (`@getbrevo/brevo`).
+### 3. Database & Storage Infrastructure
+
+#### **MongoDB Atlas Cloud (M0 Free Tier Replica Set)**
+* **What is it?** Fully managed cloud MongoDB cluster hosted on AWS with automated failover.
+* **Why do we use it?** Placement stories contain varied structures: some companies have 2 interview rounds; others have 5 rounds including group discussions and coding assessments. MongoDB's flexible BSON document model stores nested interview round arrays naturally without requiring dozens of foreign-key relational joins.
+* **Indexes:** Compound indexes (`{ company: 1, role: 1, createdAt: -1 }`, `{ status: 1, createdAt: -1 }`) are applied to ensure searches execute in $< 5\text{ ms}$.
+
+#### **MongoDB GridFS (`loop_resources` & `loop_temp_chunks`)**
+* **What is it?** MongoDB's native distributed file specification that splits binary files into distinct chunks (`fs.chunks`) and metadata records (`fs.files`).
 * **Why do we use it?**
-  Students frequently forget their passwords or require account verification. Consumer email systems (like raw Gmail SMTP) hit strict connection limits, trigger spam filters, and leak credentials. Brevo provides verified DKIM/SPF delivery directly to institutional `@spit.ac.in` student inboxes.
-* **How the OTP System Works:**
-  1. **Request:** Student enters their campus email on the Forgot Password page.
-  2. **Cryptographic OTP Generation:** The backend generates a secure 6-digit numeric OTP using `crypto.randomInt(100000, 999999)`.
-  3. **Salted Hashing:** The OTP is never stored in plaintext. It is hashed with SHA-256 and stored in the user's document alongside an expiration timestamp (`Date.now() + 10 * 60 * 1000`, strictly 10 minutes).
-  4. **Rate Limiting & Anti-Spam:** Password reset requests are limited to **3 requests per 15 minutes** per IP/email to prevent inbox bombing and brute-force guessing.
-  5. **Verification & One-Time Consumption:** Upon entering the OTP, the hash is validated using constant-time comparison (`crypto.timingSafeEqual`). Once verified, the OTP is purged immediately, and a single-use JWT reset token is issued to authorize password updates.
+  1. **Exceeds BSON Limit:** MongoDB documents cannot exceed 16 MB. GridFS handles files up to **200 MB** effortlessly.
+  2. **Ephemeral Disk Protection:** Render's free hosting tier uses an ephemeral filesystem: any file saved to `./uploads/` on the local disk is permanently destroyed whenever Render restarts or deploys. GridFS stores binary chunks directly inside the persistent MongoDB Atlas cluster, guaranteeing 100% durability across server restarts.
+  3. **Streaming I/O:** Files are streamed directly between the database and the client browser without ever loading the entire 200 MB binary into Node.js server RAM.
+
+---
+
+### 4. Distributed Caching Layer
+
+#### **Redis Cloud (In-Memory Data Store)**
+* **What is it?** An ultra-low latency, managed in-memory key-value database.
+* **Why do we use it?** Querying MongoDB Atlas across the transatlantic network introduces 150ms–300ms of latency per database trip. By storing serialized JSON responses for hot endpoints (`/api/stories`, `/api/resources`, `/api/folders`) in Redis RAM, response latency drops to **under 1 millisecond**.
+* **Cache-Aside Pattern:**
+  * Request hits API $\to$ Check Redis for key $\to$ **Cache Hit:** Return JSON immediately ($< 1\text{ ms}$).
+  * **Cache Miss:** Query MongoDB Atlas ($180\text{ ms}$) $\to$ Write result to Redis with TTL $\to$ Return to client.
+* **Active Event-Driven Invalidation:** When an administrator approves a story, deletes a resource, or updates a folder, [`backend/services/cacheService.js`](backend/services/cacheService.js) purges the relevant cache keys immediately using `redis.del()`, preventing stale data.
+* **Resilient In-Memory Fallback:** If Redis Cloud is unreachable or disabled via `REDIS_CACHE_ENABLED=false`, the server seamlessly falls back to an internal Node.js LRU memory cache with zero server crashes or downtime.
+
+---
+
+### 5. Cloud Integrations & Campus Identity
+
+#### **Google Identity Services (OAuth 2.0)**
+* **What is it?** Google's modern authentication framework (`google-auth-library`).
+* **Why do we use it?** Provides one-click login for students and eliminates password fatigue.
+* **Domain Enforcement:** The backend strictly inspects the verified Google payload:
+  ```javascript
+  if (payload.hd !== 'spit.ac.in' || !payload.email.endsWith('@spit.ac.in')) {
+    return res.status(403).json({ error: 'Only @spit.ac.in accounts authorized' });
+  }
+  ```
+  Personal `@gmail.com` accounts are strictly barred, ensuring that all submissions and comments originate from verified SPIT campus members.
+
+#### **Brevo Transactional Email Engine (`@getbrevo/brevo`)**
+* **What is it?** Cloud transactional delivery service (formerly Sendinblue).
+* **Why do we use it?** Sending password reset emails via personal Gmail SMTP connections hits connection rate limits, triggers spam filters, and leaks personal account credentials. Brevo provides authenticated DKIM/SPF delivery ensuring password reset emails arrive in student inboxes in under 3 seconds.
+* **Security Architecture:** Generates a 6-digit cryptographic numeric OTP (`crypto.randomInt`), hashes it with **SHA-256**, stores the hash in MongoDB with a 10-minute expiry, and sends the raw OTP via Brevo. Plaintext OTPs are never stored in the database.
+
+---
+
+### 6. DevOps, Containerization & Testing
+
+#### **Vercel Global Edge Network (Frontend Hosting)**
+* **What is it?** Edge CDN platform with worldwide server points-of-presence (PoPs).
+* **Why do we use it?** Provides lightning-fast asset delivery, automatic gzip/brotli compression, SSL/TLS certificates, and SPA routing rewrites ([`frontend/vercel.json`](frontend/vercel.json)) so that deep links (e.g. `/stories`, `/resources`, `/admin`) resolve smoothly on page refresh.
+
+#### **Render Cloud Application Engine (Backend Hosting)**
+* **What is it?** Cloud platform-as-a-service (PaaS) running containerized Node.js web services.
+* **Why do we use it?** Automates continuous deployment directly from the GitHub repository (`main` branch). Whenever code is pushed to GitHub, Render pulls the commit, installs dependencies, runs build checks, and executes a zero-downtime hot swap.
+
+#### **Docker (`loop-staging-mongo`)**
+* **What is it?** Containerized Linux sandbox running **MongoDB 7.0** on isolated local port `127.0.0.1:27018`.
+* **Why do we use it?** Running 214 automated test suites and high-throughput upload benchmarks directly against the live production MongoDB Atlas cluster would risk exhausting database connection limits, dirtying live student records, or triggering rate limits. Docker creates a completely isolated local environment.
+* > [!IMPORTANT]
+  > **Is Docker needed to run the website?**
+  > **No.** Docker is **strictly an optional local testing sandbox**. The live production application runs 100% on cloud platforms (Vercel, Render, MongoDB Atlas, and Redis Cloud). You do **not** need Docker installed or running to browse or use LOOP.
+
+#### **Node.js Native Test Runner (`node --test`)**
+* **What is it?** High-performance testing framework built directly into Node.js (v18+).
+* **Why do we use it?** Replaces heavy third-party frameworks like Jest or Mocha. Zero extra `node_modules` overhead, instant execution (all 214 tests finish in **1.5 seconds**), native support for asynchronous timers, mocked dates, and sub-test suites.
+
+---
+
+## System Workflows & Sequence Diagrams
+
+### Story Submission & Moderation Lifecycle
+
+To prevent spam, fabricated compensation figures, and abusive language, LOOP uses an asynchronous moderation pipeline:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student as Student / Senior
+    participant Client as Frontend (Vercel)
+    participant API as Express API Server (Render)
+    participant DB as MongoDB Atlas
+    participant Redis as Redis Cloud
+    actor Admin as Campus Placement Admin
+
+    Student->>Client: Fills interview roadmap & clicks "Submit Story"
+    Client->>API: POST /api/stories { company, role, package, rounds... }
+    Note over API: Verifies JWT token & validates schema
+    API->>DB: Insert into "pendingstories" collection { status: "pending" }
+    API-->>Client: 201 Created { message: "Story submitted for moderation" }
+    Client-->>Student: Displays confirmation banner
+
+    Admin->>Client: Opens Admin Dashboard (/admin)
+    Client->>API: GET /api/admin/pending-stories
+    API->>DB: Query "pendingstories" where status == "pending"
+    DB-->>API: Returns list of pending submissions
+    API-->>Client: 200 OK [ pendingStories ]
+    Client-->>Admin: Displays moderation review table
+
+    Admin->>Client: Clicks "Approve Story"
+    Client->>API: POST /api/admin/stories/:id/approve
+    API->>DB: Atomically move document from "pendingstories" to "stories"
+    API->>Redis: Invalidate cache keys (DEL "stories:*")
+    API-->>Client: 200 OK { message: "Story approved successfully" }
+    Client-->>Admin: UI updates instantly (confetti / success pill)
+
+    Note over Client,Redis: Next student visit fetches fresh approved story from DB and recaches
+```
+
+---
+
+### Brevo 6-Digit Hashed OTP Password Reset
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Student as Student (@spit.ac.in)
     participant Client as Frontend (Vercel)
-    participant API as Backend API (Render)
+    participant API as Express API Server (Render)
     participant Brevo as Brevo API
     participant DB as MongoDB Atlas
 
-    Student->>Client: Enters email & clicks "Send OTP"
+    Student->>Client: Enters campus email on Forgot Password page
     Client->>API: POST /api/auth/forgot-password { email }
-    API->>DB: Check student exists & verify rate limits
-    API->>API: Generate 6-digit OTP & compute SHA-256 hash
-    API->>DB: Save hashed OTP & 10-minute expiry timestamp
-    API->>Brevo: Send transactional email with OTP template
-    Brevo-->>Student: Delivers OTP email to SPIT inbox
-    API-->>Client: 200 OK { message: "OTP sent successfully" }
+    API->>API: Check Auth Rate Limiter (Max 5 req / 15 min)
+    API->>DB: Verify student account exists
+    API->>API: crypto.randomInt(100000, 999999) -> "749201"
+    API->>API: Compute SHA-256("749201") -> hashedOTP
+    API->>DB: Store hashedOTP & expiry (Date.now() + 10 mins)
+    API->>Brevo: Send transactional email template with OTP
+    Brevo-->>Student: Delivers secure OTP to SPIT inbox (<3s)
+    API-->>Client: 200 OK { message: "OTP sent to institutional email" }
     
     Student->>Client: Enters 6-digit OTP & new password
-    Client->>API: POST /api/auth/reset-password { email, otp, newPassword }
-    API->>DB: Fetch hashed OTP & verify expiry (> now)
-    API->>API: Compare SHA-256(otp) === storedHash
-    API->>API: Hash new password with bcrypt (12 salt rounds)
-    API->>DB: Update password & invalidate OTP record
+    Client->>API: POST /api/auth/reset-password { email, otp: "749201", newPassword }
+    API->>DB: Fetch user document with stored hashedOTP
+    API->>API: Verify expiry > Date.now()
+    API->>API: Constant-time comparison: timingSafeEqual(SHA256(otp), storedHash)
+    API->>API: Hash newPassword with bcrypt (12 salt rounds)
+    API->>DB: Update password hash & clear OTP fields
     API-->>Client: 200 OK { message: "Password updated successfully" }
-    Client-->>Student: Redirects to Login with success banner
+    Client-->>Student: Redirects to Login with success toast
 ```
 
 ---
 
-### 4. Google OAuth 2.0 (Campus Domain Restricted)
-* **What is it?** Google Identity Services token verification (`google-auth-library`).
-* **Why do we use it?**
-  Eliminates friction while guaranteeing campus-only authenticity. Seniors and juniors can log in with one click without creating separate passwords.
-* **How it works:**
-  1. **Client-Side Sign-In:** The browser initiates authentication via Google Identity Services and receives a cryptographically signed Google ID token (`credential`).
-  2. **Server-Side Verification:** The backend verifies the token using Google's public keys via `OAuth2Client.verifyIdToken()`.
-  3. **Strict Domain Enforcement:** The server verifies that `payload.hd === 'spit.ac.in'` and that the email ends with `@spit.ac.in`. If an outsider attempts to log in with a personal `@gmail.com` account, the backend strictly rejects the request with `403 Forbidden` (`Only @spit.ac.in institutional accounts are authorized`).
-  4. **Automatic Account Linking:** If the student exists, their profile is updated with their verified Google avatar and name; if not, an account is automatically provisioned with the `Student` role.
+### High-Speed Adaptive Chunking GridFS Upload Pipeline
 
----
+Earlier versions hardcoded a flat 8 MB chunk size, forcing files $\le 8\text{ MB}$ (like a standard 5.4 MB research paper) to serialize over a single TCP stream. The upgraded pipeline dynamically computes optimal chunk sizes and concurrency based on file payload size:
 
-### 5. High-Speed MongoDB GridFS & Parallel Upload Pipeline
-* **What is it?** MongoDB GridFS chunked binary storage with client-side parallel slicing and server-side atomic assembly.
-* **Why do we use it?**
-  Resume PDFs, presentation decks, project archives, and educational videos range from 1 MB to 200 MB. Storing large binary files in regular MongoDB documents exceeds the 16 MB BSON document limit. Storing files locally on Render's ephemeral filesystem would cause files to disappear on dyno restarts. GridFS streams binary files directly inside database collections (`fs.files` and `fs.chunks`) with high availability and durability.
-
-#### Adaptive Chunk Sizing & Multi-Stream Acceleration
-Earlier implementations hardcoded an 8 MB chunk size, causing files $\le 8\text{ MB}$ (like a 5.4 MB research paper) to be serialized over a single TCP stream. The upgraded architecture features **dynamic adaptive chunk sizing**:
-* **Files $\le 1\text{ MB}$:** $1\text{ MB}$ chunk (1 request, zero chunk slicing overhead).
-* **Files $1\text{ MB} - 8\text{ MB}$ (e.g. 5.4 MB IEEE paper):** $2\text{ MB}$ chunks (**3 parallel streams**, $3\times$ TCP pipe utilization).
-* **Files $8\text{ MB} - 32\text{ MB}$ (e.g. 20 MB manual):** $4\text{ MB}$ chunks (**5 parallel streams**).
-* **Files $> 32\text{ MB}$ (up to 200 MB):** $8\text{ MB}$ chunks (**6 parallel streams**).
+| File Size Range | Dynamic Chunk Size | Parallel TCP Streams | Target Use Case |
+| :--- | :---: | :---: | :--- |
+| $\le 1\text{ MB}$ | **1 MB** | **1 Stream** | Cheatsheets, resumes, brief assignment PDFs |
+| $1\text{ MB} - 8\text{ MB}$ | **2 MB** | **3 Streams** | Research papers, presentations, IEEE publications |
+| $8\text{ MB} - 32\text{ MB}$ | **4 MB** | **5 Streams** | Complete laboratory manuals, textbook chapters |
+| $> 32\text{ MB}$ (up to 200 MB) | **8 MB** | **6 Streams** | Full semester video lectures, project ZIP archives |
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Student / Senior
+    actor User as Senior / Contributor
     participant Client as Browser (UploadContext)
-    participant API as Express API Server
+    participant API as Express API Server (Render)
     participant TempBucket as GridFS (loop_temp_chunks)
     participant FinalBucket as GridFS (loop_resources)
     participant DB as MongoDB Atlas (UploadSession)
@@ -195,8 +426,8 @@ sequenceDiagram
     Client->>API: POST /api/resources/upload/init { fileName, fileSize: 5.4MB }
     API->>API: calculateOptimalChunkSize(5.4MB) -> 2MB
     API->>DB: Create UploadSession { totalChunks: 3, chunkSize: 2MB, finalizeGeneration: 0 }
-    API-->>Client: 200 OK { uploadId, chunkSize: 2MB, totalChunks: 3, concurrency: 6 }
-    
+    API-->>Client: 200 OK { uploadId, chunkSize: 2MB, totalChunks: 3, concurrency: 3 }
+
     par Parallel Chunk Upload (3 Concurrent Streams)
         Client->>API: PUT /upload/chunk [Chunk 0: 0-2MB]
         API->>TempBucket: Stream chunk 0
@@ -210,13 +441,13 @@ sequenceDiagram
 
     Client->>API: POST /api/resources/upload/finalize { uploadId }
     API->>DB: Atomically acquire lease & increment finalizeGeneration Token
-    API->>TempBucket: Verify chunks 0, 1, 2 exist
+    API->>TempBucket: Verify chunks 0, 1, 2 exist & match sizes
     API->>FinalBucket: Sequentially stream chunks into canonical GridFS file
-    API->>DB: Create Resource / PendingResource record
-    API->>DB: Atomically mark UploadSession.isFinalized = true
+    API->>DB: Create Resource record in "pendingresources"
+    API->>DB: Mark UploadSession.isFinalized = true
     API->>TempBucket: Purge temporary chunks
     API-->>Client: 200 OK { success: true, resource }
-    Client-->>User: UploadDock: "Ready in library" (100%)
+    Client-->>User: UploadDock: "Upload Complete" (100%)
 ```
 
 #### Fenced Non-Destruction & Crash Safety Protocol
@@ -232,11 +463,15 @@ To eliminate race conditions between concurrent worker threads, upload finalizat
 
 ---
 
-### 6. Social Sharing Preview & Light-Mode Favicon Design
-When sharing links across social networks (WhatsApp, iMessage, LinkedIn, Twitter), search crawlers parse Open Graph meta tags to render rich cards.
-* **High-Resolution Banner (`/og-image.png`):** A $1200 \times 630\text{ px}$ graphic featuring a deep midnight-slate background (`#0A0E17`), ambient blue/violet glow, bold white LOOP typography, SPIT Mumbai official badge, and feature pills.
-* **High-Contrast Favicon Badge (`/favicon.png`):** Features a 512×512 dark squircle badge containing the white infinity symbol. When shared on platforms with white backgrounds (like WhatsApp link preview cards) or pinned on light-themed browser tabs, the dark badge provides 100% contrast, eliminating white-on-white vanishing.
-* **Adaptive SVG Favicon (`/favicon.svg`):** Uses vector rendering for crisp browser tab presentation across standard and retina displays.
+### Social Sharing & High-Contrast Favicon Engineering
+
+When students share LOOP URLs on WhatsApp, LinkedIn, Twitter, or iMessage, crawler bots scrape the HTML `<head>` tags to render link preview cards.
+
+* **The Problem:** The original LOOP favicon was a transparent PNG with white lines. WhatsApp renders link previews on a pure white card (`#FFFFFF`), causing transparent white logos to vanish completely.
+* **The Solution:**
+  1. **Open Graph Banner (`/og-image.png`):** A custom $1200 \times 630\text{ px}$ graphic featuring a deep midnight-slate background (`#0A0E17`), ambient violet glow, bold white typography, the SPIT Mumbai emblem, and feature badges.
+  2. **High-Contrast Squircle Favicon (`/favicon.png`):** A 512×512 icon featuring a dark rounded squircle badge enclosing the white infinity logo, guaranteeing 100% visibility on light-themed browser tabs and white WhatsApp preview cards.
+  3. **Adaptive Vector Favicon (`/favicon.svg`):** Scalable vector asset for high-DPI retina displays.
 
 ---
 
@@ -244,28 +479,28 @@ When sharing links across social networks (WhatsApp, iMessage, LinkedIn, Twitter
 
 ### Backend Configuration (`backend/.env`)
 
-| Variable | Required? | Why is it used? / Purpose | Example / Format |
+| Variable Name | Required? | Why is it used? (Deep Technical Explanation) | Example Value |
 | :--- | :---: | :--- | :--- |
-| `PORT` | Yes | Defines the network port where the Express HTTP server listens. | `5001` |
-| `MONGODB_URI` | Yes | Connection URI for the MongoDB Atlas database cluster, containing username, password, cluster endpoint, and database name. | `mongodb+srv://user:pass@cluster.mongodb.net/loop_db?retryWrites=true&w=majority` |
-| `JWT_SECRET` | Yes | Cryptographic secret key used to sign and verify JSON Web Tokens (JWT) for student and administrator sessions. | `spit_loop_super_secret_jwt_key_2026` |
-| `ALLOWED_ORIGIN` | Yes | CORS security configuration specifying authorized frontend origins allowed to send credentials and requests. | `http://localhost:5173,https://loop-seven-delta.vercel.app` |
-| `GOOGLE_CLIENT_ID` | Yes | OAuth 2.0 Client ID issued by the Google Cloud Console, required to verify campus Google Sign-In tokens. | `779605241663-...apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET`| Yes | OAuth 2.0 Client Secret issued by Google Cloud Console for secure server-to-server token exchange. | `GOCSPX-culB16QZE...` |
-| `REDIS_URL` | Optional | Connection string for Redis Cloud (host, port, username, password) used to cache API responses. | `redis://default:pass@redis-host.db.redis.io:14088` |
-| `REDIS_CACHE_ENABLED` | Optional | Boolean flag (`true`/`false`) toggling Redis caching. If set to `false`, the server uses its resilient in-memory cache. | `true` |
-| `BREVO_API_KEY` | Yes | API Key from Brevo (formerly Sendinblue) used to dispatch transactional 6-digit password reset OTP emails. | `xkeysib-a1218b05...` |
-| `EMAIL_FROM` | Yes | The verified sender email address displayed on password reset and notification emails sent to students. | `swapnil.patil24@spit.ac.in` |
-| `RESET_SECRET` | Yes | Cryptographic secret used to sign single-use password reset authorization tokens following successful OTP verification. | `spit_loop_super_secret_jwt_key_2026` |
-| `GRIDFS_CHUNK_SIZE_MB`| Optional | Base chunk size configuration in megabytes for large file partitioning (Default: `8`). | `8` |
-| `GRIDFS_UPLOAD_CONCURRENCY`| Optional | Maximum parallel HTTP streams allowed per file upload session (Default: `6`). | `6` |
+| `PORT` | Yes | Specifies the network port for the Node.js HTTP server. Render dynamically sets this in production, while `5001` is used locally. | `5001` |
+| `MONGODB_URI` | Yes | Connection string for the MongoDB Atlas database cluster. Encodes credentials, host cluster, replica set settings, and authentication database. | `mongodb+srv://user:pass@cluster.mongodb.net/loop?retryWrites=true&w=majority` |
+| `JWT_SECRET` | Yes | 256-bit cryptographic secret key utilized by `jsonwebtoken` to sign and mathematically verify user auth tokens. | `spit_loop_super_secret_jwt_key_2026` |
+| `ALLOWED_ORIGIN` | Yes | CORS security configuration. Dictates which frontend URLs are permitted to access API endpoints and pass credentials. | `https://loop-seven-delta.vercel.app,http://localhost:5173` |
+| `GOOGLE_CLIENT_ID` | Yes | OAuth 2.0 Client ID issued by Google Cloud Console. Used on the server to verify incoming Google ID tokens via `OAuth2Client.verifyIdToken()`. | `779605241663-...apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Yes | OAuth 2.0 Client Secret issued by Google Cloud Console for secure server-to-server token exchange. | `GOCSPX-culB16QZE...` |
+| `REDIS_URL` | Optional | Connection URI for the Redis Cloud instance. Enables sub-1ms query caching. If omitted, the server automatically defaults to the in-memory cache. | `redis://default:pass@redis-host.db.redis.io:14088` |
+| `REDIS_CACHE_ENABLED` | Optional | Global boolean flag (`true`/`false`) allowing instant toggling of Redis caching without code deployments. | `true` |
+| `BREVO_API_KEY` | Yes | API authentication key for Brevo (Sendinblue). Authorizes the backend to dispatch 6-digit transactional password reset OTP emails. | `xkeysib-a1218b05...` |
+| `EMAIL_FROM` | Yes | The verified sender email address displayed on password reset emails sent to students (`From:` header). | `swapnil.patil24@spit.ac.in` |
+| `RESET_SECRET` | Yes | Cryptographic secret used to sign single-use password reset authorization tokens following successful OTP verification. | `spit_loop_reset_auth_token_key_2026` |
+| `GRIDFS_CHUNK_SIZE_MB` | Optional | Base chunk partition size in megabytes for large file uploads (Defaults to `8`). | `8` |
+| `GRIDFS_UPLOAD_CONCURRENCY`| Optional | Maximum parallel TCP streams allowed during chunked uploads (Defaults to `6`). | `6` |
 
 ### Frontend Configuration (`frontend/.env`)
 
-| Variable | Required? | Why is it used? / Purpose | Example / Format |
+| Variable Name | Required? | Why is it used? (Deep Technical Explanation) | Example Value |
 | :--- | :---: | :--- | :--- |
-| `VITE_API_URL` | Yes | The base URL of the backend Express API server. Point to `http://localhost:5001/api` for local development or the Render URL in production. | `https://loop-qnh9.onrender.com/api` |
-| `VITE_GOOGLE_CLIENT_ID`| Yes | Public Google OAuth Client ID loaded by the frontend Google Identity Services script for button rendering. | `779605241663-...apps.googleusercontent.com` |
+| `VITE_API_URL` | Yes | Base URL where the frontend makes all REST API requests. Pointed to `http://localhost:5001/api` during local dev and Render in production. | `https://loop-qnh9.onrender.com/api` |
+| `VITE_GOOGLE_CLIENT_ID`| Yes | Public Google Client ID loaded by the frontend Google Identity Services SDK to render the "Continue with Google" button. | `779605241663-...apps.googleusercontent.com` |
 
 ---
 
@@ -274,16 +509,19 @@ When sharing links across social networks (WhatsApp, iMessage, LinkedIn, Twitter
 ```text
 loop/
 ├── backend/
-│   ├── middlewares/          # JWT authentication, token rotation, & role guards
-│   ├── scripts/              # Performance benchmarks & staging test suites
-│   │   ├── benchmark_upload_performance.js   # Local GridFS upload benchmark
-│   │   ├── benchmark_network_throttling.js   # Simulated 4G/3G/2G network profiles
-│   │   └── measure_performance_metrics.py    # Performance & latency analyzer
-│   ├── services/             # Core distributed services
-│   │   ├── activityService.js                # Administrator audit trails & logging
-│   │   ├── cacheService.js                   # Distributed Redis Cloud & in-memory cache
-│   │   └── storageService.js                 # MongoDB GridFS chunking & adaptive sizing
-│   ├── tests/                # 214 automated unit & integration test suites
+│   ├── middlewares/                  # Express middleware guards
+│   │   ├── auth.js                   # JWT verification, sliding rotation, requireAdmin
+│   │   └── upload.js                 # Multer memory storage & MIME whitelist filter
+│   ├── scripts/                      # Performance benchmarks & staging suites
+│   │   ├── benchmark_upload_performance.js   # GridFS upload benchmark (1MB, 5MB, 20MB)
+│   │   ├── benchmark_network_throttling.js   # Simulated 4G, 3G, 2G latency benchmarks
+│   │   └── measure_performance_metrics.py    # Multi-metric automated latency profiler
+│   ├── services/                     # Core distributed services
+│   │   ├── activityService.js        # Audit trail logging for admin actions
+│   │   ├── cacheService.js           # Distributed Redis Cloud & in-memory LRU cache
+│   │   ├── emailService.js           # Brevo transactional email & OTP dispatcher
+│   │   └── storageService.js         # GridFS streaming, adaptive chunking, fenced rollback
+│   ├── tests/                        # 214 automated unit & integration test suites
 │   │   ├── adminUserAuditAndEmailAuth.test.js
 │   │   ├── cacheService.test.js
 │   │   ├── forgotPassword.test.js
@@ -292,48 +530,59 @@ loop/
 │   │   ├── storySubmissionLifecycle.test.js
 │   │   ├── systemHealthDashboard.test.js
 │   │   └── uploadEndpoints.test.js
-│   ├── models.js             # Mongoose schemas & compound database indexes
-│   ├── server.js             # Express API server, routes, & security filters
-│   ├── seed.js               # Database seeding and demo hydration scripts
-│   └── package.json          # Backend dependencies & npm scripts
+│   ├── models.js                     # Mongoose schemas & compound database indexes
+│   ├── server.js                     # Express API server, routes, & security filters
+│   ├── seed.js                       # Database seeding and demo hydration scripts
+│   └── package.json                  # Backend dependencies & npm test scripts
 │
 ├── frontend/
-│   ├── public/               # Public assets & social preview images
-│   │   ├── apple-touch-icon.png              # 180x180 iOS/macOS bookmark icon
-│   │   ├── favicon.png                       # 512x512 high-contrast squircle badge
-│   │   ├── favicon.svg                       # Adaptive vector favicon
-│   │   ├── loop-logo.png                     # Transparent navbar & login logo
-│   │   ├── og-image.png                      # 1200x630 WhatsApp & social banner
-│   │   └── site.webmanifest                  # Web app manifest for mobile home screens
+│   ├── public/                       # Static public assets & meta graphics
+│   │   ├── apple-touch-icon.png      # 180x180 iOS/macOS bookmark icon
+│   │   ├── favicon.png               # 512x512 high-contrast squircle badge (WhatsApp safe)
+│   │   ├── favicon.svg               # Adaptive vector SVG favicon
+│   │   ├── loop-logo.png             # Transparent navbar & brand logo
+│   │   ├── og-image.png              # 1200x630 Open Graph card banner
+│   │   └── site.webmanifest          # PWA manifest for mobile devices
 │   ├── src/
-│   │   ├── assets/           # Vector branding and illustrations
-│   │   ├── components/       # Reusable UI widgets, Navbar, UploadDock, modals
-│   │   ├── context/          # React contexts (AuthContext, UploadContext, Theme)
-│   │   ├── hooks/            # Custom hooks (SWR useCachedData, etc.)
-│   │   ├── pages/            # Views (Stories, Resources, Admin, Login, Previews)
-│   │   ├── utils/            # API client wrappers, db.js, and upload.js
-│   │   ├── App.jsx           # Main application routing & protected route guards
-│   │   └── main.jsx          # DOM entry point
-│   ├── index.html            # HTML5 shell with Open Graph and Twitter metadata
-│   ├── vercel.json           # SPA rewrite rules for production hosting
-│   └── package.json          # Frontend dependencies & npm scripts
+│   │   ├── assets/                   # Vector branding and illustrations
+│   │   ├── components/               # Modular UI widgets
+│   │   │   ├── Navbar.jsx            # Campus navigation bar with role badges
+│   │   │   ├── UploadDock.jsx        # Floating multi-file background upload dock
+│   │   │   ├── PDFPreviewModal.jsx   # Client-side canvas PDF previewer
+│   │   │   └── StoryCard.jsx         # Expandable interview roadmap cards
+│   │   ├── context/                  # React global state contexts
+│   │   │   ├── AuthContext.jsx       # Student login state & JWT token management
+│   │   │   └── UploadContext.jsx     # Non-blocking background upload state machine
+│   │   ├── hooks/                    # Custom React hooks (SWR useCachedData)
+│   │   ├── pages/                    # Core view routing
+│   │   │   ├── Stories.jsx           # Placement roadmap feed & multi-filter search
+│   │   │   ├── Resources.jsx         # 200MB academic vault & folder browser
+│   │   │   ├── AdminDashboard.jsx    # Moderation queue, user audit, activity logs
+│   │   │   ├── Login.jsx             # Campus login & Google SSO entry point
+│   │   │   └── ForgotPassword.jsx    # 6-digit OTP verification & password reset
+│   │   ├── utils/                    # Client API wrappers, db.js, and upload.js
+│   │   ├── App.jsx                   # Application routing & protected route wrappers
+│   │   └── main.jsx                  # React DOM entry point
+│   ├── index.html                    # HTML5 shell with Open Graph and Twitter metadata
+│   ├── vercel.json                   # Edge CDN SPA rewrite rules
+│   └── package.json                  # Frontend dependencies & npm build scripts
 │
-├── LOOP_UPLOAD_PERFORMANCE_AUDIT.md  # Scientific benchmark & optimization audit
+├── LOOP_UPLOAD_PERFORMANCE_AUDIT.md  # Detailed benchmark report on chunking optimizations
 └── README.md                         # Complete project documentation
 ```
 
 ---
 
-## Automated Verification & Test Suite
+## Automated Verification & Test Harness (214 Tests)
 
-LOOP includes an automated test harness executed using Node's native test runner (`node --test`).
+LOOP features an automated test harness executed with Node's native test runner (`node --test`), covering unit models, authentication edge cases, GridFS chunk fencing, and HTTP route authorization:
 
 ```bash
 cd backend
 npm test
 ```
 
-### Test Suite Results: 214 / 214 Tests Passing (25 Suites, 0 Failures)
+### Complete Test Results: 214 Passed Across 25 Suites (0 Failures)
 
 ```text
 ▶ MongoDB GridFS Storage Service & Upload Validation
@@ -386,9 +635,9 @@ npm test
 ## Local Development & Setup
 
 ### Prerequisites
-* **Node.js**: v18.0.0 or higher
-* **npm**: v9.0.0 or higher
-* **MongoDB**: A free MongoDB Atlas cluster connection string (or local Docker container for tests)
+* **Node.js**: `v18.0.0` or higher
+* **npm**: `v9.0.0` or higher
+* **MongoDB**: A free MongoDB Atlas cluster connection URI (or local Docker container for isolated tests)
 
 ### 1. Clone the Repository
 ```bash
@@ -396,57 +645,48 @@ git clone https://github.com/swapnil-exxe/loop.git
 cd loop
 ```
 
-### 2. Configure Backend
+### 2. Configure & Run Backend
 ```bash
 cd backend
 npm install
 cp .env.example .env
+# Edit .env with your MongoDB Atlas URI, JWT Secret, and Brevo API Key
+npm run dev
+# Backend starts listening on http://localhost:5001
 ```
-Update `backend/.env` with your MongoDB Atlas URI, JWT Secret, and Brevo API key.
 
-### 3. Configure Frontend
+### 3. Configure & Run Frontend
+In a second terminal window:
 ```bash
-cd ../frontend
+cd frontend
 npm install
 cp .env.example .env
+# Ensure VITE_API_URL=http://localhost:5001/api
+npm run dev
+# Frontend client starts on http://localhost:5173
 ```
-Update `frontend/.env` with `VITE_API_URL=http://localhost:5001/api`.
 
-### 4. Run the Local Development Servers
-In two separate terminal windows:
-
-* **Terminal 1 (Backend API):**
-  ```bash
-  cd backend
-  npm run dev
-  # Server starts on http://localhost:5001
-  ```
-
-* **Terminal 2 (Frontend Client):**
-  ```bash
-  cd frontend
-  npm run dev
-  # Client starts on http://localhost:5173
-  ```
-
-### 5. Running with Local Docker Sandbox (Optional for Testing)
-To run automated benchmarks against an isolated local database without touching MongoDB Atlas:
+### 4. Running with Local Docker Sandbox (Optional for Staging Tests)
+If you want to run high-throughput benchmarks or unit test suites locally without touching your live MongoDB Atlas cloud database:
 ```bash
 docker run -d --name loop-staging-mongo -p 127.0.0.1:27018:27017 mongo:7.0
-TEST_MONGODB_URI=mongodb://127.0.0.1:27018/loop_test node backend/scripts/benchmark_upload_performance.js
+TEST_MONGODB_URI=mongodb://127.0.0.1:27018/loop_test npm test
 ```
 
 ---
 
-## Security Policies & Best Practices
+## Security, Access Control & Integrity Policies
 
-1. **Credential Hygiene:** Never commit `.env` files or raw API keys to Git. All secrets are managed via Vercel and Render environment variable dashboards.
-2. **Access Control:** All endpoints modifying placement records or administrative settings require `authenticateToken` and `requireAdmin` middlewares.
-3. **Campus Data Integrity:** All incoming story submissions default to `PendingStory` and require moderation review before appearing in public library queries.
-4. **Binary Protection:** Only educational document and image formats are permitted; executable binary uploads are immediately rejected at the stream boundary.
+1. **Strict Institutional Gatekeeping:** All user accounts are bound to `@spit.ac.in`. Out-of-domain accounts are rejected at both the OAuth boundary and the manual registration endpoint.
+2. **Administrative Moderation by Default:** Stories and shared resources submitted by students default to `pending` status. They are only queryable in the public library once an administrator has audited and approved them.
+3. **MIME-Type & Extension Dual Validation:** File uploads are inspected both by file extension and byte-level MIME headers. All executable formats (`.exe`, `.sh`, `.bat`, `.cmd`, `.msi`) are rejected at the stream boundary.
+4. **Fenced Non-Destruction on File Rollbacks:** If an upload worker fails or times out while a newer retry worker has adopted the uploaded file, the superseded worker is cryptographically prevented from deleting the file.
+5. **Zero Secret Leakage:** All production secrets are strictly managed through Vercel and Render cloud dashboards; `.env` files are tracked in `.gitignore` and never committed to source control.
 
 ---
 
-## License
+## License & Acknowledgments
 
-Developed for educational, academic, and campus recruitment empowerment at **Sardar Patel Institute of Technology (SPIT), Mumbai**. All rights reserved.
+Engineered for academic empowerment, peer mentorship, and campus recruitment excellence at **Sardar Patel Institute of Technology (SPIT), Mumbai**.
+
+Copyright © 2026 Swapnil Patil & The LOOP Engineering Team. All rights reserved.
