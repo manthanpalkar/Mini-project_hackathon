@@ -53,6 +53,14 @@ function parsePrepContent(prepText) {
     } else {
       rawItems = parts;
     }
+  } else if (/^\s*(?:[0-9]+[\.\)]|[-*•])\s+/m.test(text)) {
+    const items = text.split(/(?=(?:^|\n)\s*(?:[0-9]+[\.\)]|[-*•])\s+)/)
+      .map(l => l.replace(/^[-*•\d.)\s]+/, '').trim())
+      .filter(Boolean);
+    rawItems = items;
+  } else if (text.includes('\n\n')) {
+    const paras = text.split(/\n\s*\n/).map(l => l.trim()).filter(Boolean);
+    rawItems = paras;
   } else if (text.includes('\n')) {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     lines.forEach(line => {
@@ -70,12 +78,38 @@ function parsePrepContent(prepText) {
     }
   }
 
+  // Defensively reconstruct any fragmented items so single words never become cards
+  const sanitizedItems = [];
+  let buffer = '';
+  for (const it of rawItems) {
+    const trimmed = (it || '').trim();
+    if (!trimmed) continue;
+    if (trimmed.split(/\s+/).length <= 3 && !/[.!?:;]$/.test(trimmed)) {
+      buffer = buffer ? `${buffer} ${trimmed}` : trimmed;
+    } else {
+      if (buffer) {
+        sanitizedItems.push(`${buffer} ${trimmed}`.trim());
+        buffer = '';
+      } else {
+        sanitizedItems.push(trimmed);
+      }
+    }
+  }
+  if (buffer) sanitizedItems.push(buffer);
+
+  let finalItems = sanitizedItems;
+  if (finalItems.length > 3 && finalItems.some(i => i.split(/\s+/).length < 4)) {
+    const combined = finalItems.join(' ').replace(/\s+/g, ' ');
+    const sentences = combined.match(/[^.!?]+[.!?]+/g) || [combined];
+    finalItems = sentences.map(s => s.trim()).filter(s => s.length > 8);
+  }
+
   if (!takeaway && intro && (intro.includes('1%') || intro.includes('Small daily') || intro.includes('difference') || intro.includes('consistency'))) {
     takeaway = intro;
     intro = '';
   }
 
-  const categorized = rawItems.map((item, idx) => {
+  const categorized = finalItems.map((item, idx) => {
     const lower = item.toLowerCase();
     let category = 'Study Discipline';
     let icon = CheckCircle2;
@@ -219,11 +253,24 @@ function parseAdviceContent(adviceText) {
   let tips = [];
 
   const quoteIndicators = ['most importantly', 'avoid comparing', 'trust the process', 'small efforts', 'compounding'];
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  // Split on numbered items (e.g. "1. ", "2. ") or double newlines first, avoiding naive single newline split
+  let rawBlocks = [];
+  if (/^\s*(?:[0-9]+[\.\)]|[-*•])\s+/m.test(text)) {
+    rawBlocks = text.split(/(?=(?:^|\n)\s*(?:[0-9]+[\.\)]|[-*•])\s+)/)
+      .map(b => b.replace(/^[-*•\d.)\s]+/, '').trim())
+      .filter(Boolean);
+  } else if (text.includes('\n\n')) {
+    rawBlocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  } else {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    rawBlocks = lines;
+  }
+
   const regularLines = [];
   const quoteLines = [];
 
-  lines.forEach(line => {
+  rawBlocks.forEach(line => {
     const lower = line.toLowerCase();
     const isQuoteLike = quoteIndicators.some(qi => lower.includes(qi));
     if (isQuoteLike || quoteLines.length > 0) {
@@ -237,6 +284,32 @@ function parseAdviceContent(adviceText) {
     quote = quoteLines.join(' ');
   }
 
+  // Resilient defensive coalescing: Never allow short word fragments to become cards
+  const coalesced = [];
+  let buffer = '';
+  for (const line of regularLines) {
+    const cleaned = line.replace(/^[-*•\d.)\s]+/, '').trim();
+    if (!cleaned) continue;
+    if (cleaned.split(/\s+/).length <= 3 && !/[.!?:;]$/.test(cleaned)) {
+      buffer = buffer ? `${buffer} ${cleaned}` : cleaned;
+    } else {
+      if (buffer) {
+        coalesced.push(`${buffer} ${cleaned}`.trim());
+        buffer = '';
+      } else {
+        coalesced.push(cleaned);
+      }
+    }
+  }
+  if (buffer) coalesced.push(buffer);
+
+  let finalLines = coalesced;
+  if (finalLines.length > 3 && finalLines.some(l => l.split(/\s+/).length < 4)) {
+    const combined = finalLines.join(' ').replace(/\s+/g, ' ');
+    const sentences = combined.match(/[^.!?]+[.!?]+/g) || [combined];
+    finalLines = sentences.map(s => s.trim()).filter(s => s.length > 8);
+  }
+
   const tipIcons = [
     { icon: Target, title: 'Start Preparation Early', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' },
     { icon: Compass, title: 'Consistency Over Intensity', color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.12)' },
@@ -248,10 +321,8 @@ function parseAdviceContent(adviceText) {
     { icon: MessageSquare, title: 'Hone Articulate Communication', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.12)' }
   ];
 
-  regularLines.forEach((line, idx) => {
-    const cleaned = line.replace(/^[-*•\d.)\s]+/, '').trim();
+  finalLines.forEach((cleaned, idx) => {
     if (!cleaned) return;
-
     const lower = cleaned.toLowerCase();
     let matchedIcon = tipIcons[idx % tipIcons.length];
 
@@ -261,15 +332,15 @@ function parseAdviceContent(adviceText) {
       matchedIcon = tipIcons[1];
     } else if (lower.includes('project') || lower.includes('build')) {
       matchedIcon = tipIcons[2];
-    } else if (lower.includes('dsa') || lower.includes('code') || lower.includes('practice')) {
+    } else if (lower.includes('dsa') || lower.includes('code') || lower.includes('practice') || lower.includes('neetcode')) {
       matchedIcon = tipIcons[3];
     } else if (lower.includes('hackathon') || lower.includes('competition')) {
       matchedIcon = tipIcons[4];
     } else if (lower.includes('senior') || lower.includes('network') || lower.includes('alumni')) {
       matchedIcon = tipIcons[5];
-    } else if (lower.includes('resume') || lower.includes('ats')) {
+    } else if (lower.includes('resume') || lower.includes('ats') || lower.includes('honest')) {
       matchedIcon = tipIcons[6];
-    } else if (lower.includes('communication') || lower.includes('presentation') || lower.includes('speak')) {
+    } else if (lower.includes('communication') || lower.includes('presentation') || lower.includes('speak') || lower.includes('discussion')) {
       matchedIcon = tipIcons[7];
     }
 
@@ -589,6 +660,7 @@ export default function StoryDetail() {
     passoutYear: '',
     semester: '',
     cgpa: '',
+    package: '',
     journey: {
       firstYear: '',
       secondYear: '',
@@ -674,6 +746,7 @@ export default function StoryDetail() {
       passoutYear: story.passoutYear || '',
       semester: story.semester || '',
       cgpa: story.cgpa || '',
+      package: story.package || story.ctc || '',
       journey: {
         firstYear: story.journey?.firstYear || '',
         secondYear: story.journey?.secondYear || '',
@@ -1039,18 +1112,6 @@ export default function StoryDetail() {
         }}>
           <div>
             <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-              Semester Placed
-            </p>
-            <p style={{ fontWeight: 600, fontSize: '1rem' }}>Semester {story.semester}</p>
-          </div>
-          <div>
-            <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-              CGPA
-            </p>
-            <p style={{ fontWeight: 600, fontSize: '1rem' }}>{story.cgpa || 'N/A'}</p>
-          </div>
-          <div>
-            <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
               Company
             </p>
             <p style={{ fontWeight: 600, fontSize: '1rem' }}>{story.company}</p>
@@ -1061,6 +1122,50 @@ export default function StoryDetail() {
             </p>
             <p style={{ fontWeight: 600, fontSize: '1rem' }}>{story.role}</p>
           </div>
+          {story.semester && (
+            <div>
+              <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+                Semester Placed
+              </p>
+              <p style={{ fontWeight: 600, fontSize: '1rem' }}>Semester {story.semester}</p>
+            </div>
+          )}
+          {story.cgpa && story.cgpa !== 'N/A' && story.cgpa !== 'null' && (
+            <div>
+              <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+                CGPA
+              </p>
+              <p style={{ fontWeight: 600, fontSize: '1rem' }}>{story.cgpa}</p>
+            </div>
+          )}
+          {/* Verified Placement Compensation */}
+          {(() => {
+            const rawPkg = (story.package || story.ctc || '').trim();
+            if (!rawPkg || rawPkg === '0' || rawPkg.toLowerCase() === '0 lpa' || rawPkg.toLowerCase() === 'n/a' || rawPkg.toLowerCase() === 'nil') {
+              return null;
+            }
+            const displayPkg = rawPkg.toLowerCase().includes('lpa') ? rawPkg : `${rawPkg} LPA`;
+            return (
+              <div>
+                <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+                  Placement Package (LPA)
+                </p>
+                <p style={{ fontWeight: 700, fontSize: '1.05rem', color: '#10b981' }}>
+                  {displayPkg}
+                </p>
+              </div>
+            );
+          })()}
+          {story.stipend && (
+            <div>
+              <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+                Internship Stipend
+              </p>
+              <p style={{ fontWeight: 600, fontSize: '1rem', color: '#60a5fa' }}>
+                {story.stipend.includes('₹') || story.stipend.toLowerCase().includes('pm') || story.stipend.toLowerCase().includes('month') ? story.stipend : `₹${story.stipend}/month`}
+              </p>
+            </div>
+          )}
         </div>
       </header>
 
@@ -1630,6 +1735,48 @@ export default function StoryDetail() {
                     );
                   })}
                 </div>
+
+                {/* Detailed Source-Supported Interview Rounds & Narrative */}
+                {story.journey?.howSecured && story.journey.howSecured.trim().length > 30 && (
+                  <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{
+                      padding: '1.5rem',
+                      borderRadius: '16px',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                          color: '#60a5fa',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <BookOpen size={16} />
+                        </div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                          Detailed Interview Breakdown & Experience
+                        </h3>
+                      </div>
+                      <div style={{
+                        fontSize: '0.96rem',
+                        lineHeight: 1.75,
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'pre-line'
+                      }}>
+                        {story.journey.howSecured}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div
                   style={{
@@ -2559,7 +2706,7 @@ export default function StoryDetail() {
                 </div>
               </div>
 
-              <div className="form-grid-3col" style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+              <div className="form-grid-4col" style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label">Passout Year</label>
                   <input 
@@ -2586,6 +2733,16 @@ export default function StoryDetail() {
                     className="input-field" 
                     value={editForm.cgpa} 
                     onChange={e => setEditForm({ ...editForm, cgpa: e.target.value })} 
+                  />
+                </div>
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label">Package (LPA)</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    placeholder="e.g. 14.5 LPA"
+                    value={editForm.package} 
+                    onChange={e => setEditForm({ ...editForm, package: e.target.value })} 
                   />
                 </div>
               </div>

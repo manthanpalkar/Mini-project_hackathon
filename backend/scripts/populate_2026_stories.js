@@ -11,7 +11,7 @@ async function main() {
   const isDryRun = process.argv.includes('--dry-run');
   console.log(`\n======================================================`);
   console.log(`LOOP 2026 Verified Placement Stories Ingestion Engine`);
-  console.log(`Mode: ${isDryRun ? 'DRY-RUN (Validation Only)' : 'LIVE DATABASE POPULATION'}`);
+  console.log(`Mode: ${isDryRun ? 'DRY-RUN (Validation Only)' : 'LIVE DATABASE MIGRATION & REPAIR'}`);
   console.log(`======================================================\n`);
 
   if (!fs.existsSync(STORIES_FILE)) {
@@ -20,9 +20,8 @@ async function main() {
   }
 
   const storiesData = JSON.parse(fs.readFileSync(STORIES_FILE, 'utf-8'));
-  console.log(`Loaded ${storiesData.length} extracted student experiences for validation.`);
+  console.log(`Loaded ${storiesData.length} extracted student experiences for processing.`);
 
-  // Connect to MongoDB
   if (!process.env.MONGODB_URI) {
     console.error('Error: MONGODB_URI missing from backend/.env');
     process.exit(1);
@@ -30,23 +29,14 @@ async function main() {
 
   console.log('Connecting to MongoDB Atlas cluster...');
   await mongoose.connect(process.env.MONGODB_URI);
-  console.log('Successfully connected to MongoDB.\n');
+  console.log('Successfully connected to MongoDB Atlas.\n');
 
-  let validatedCount = 0;
+  let updatedCount = 0;
   let insertedCount = 0;
-  let skippedExistingCount = 0;
+  let validatedCount = 0;
   let errors = [];
 
-  const existingStories = await Story.find({}, 'id name company passoutYear').lean();
-  const existingSet = new Set(existingStories.map(s => `${(s.name || '').toLowerCase()}_${(s.company || '').toLowerCase()}`));
-
   for (const s of storiesData) {
-    const key = `${s.name.toLowerCase()}_${s.company.toLowerCase()}`;
-    if (existingSet.has(key)) {
-      skippedExistingCount++;
-      continue;
-    }
-
     let branchCode = s.branch || 'CSE';
     let subBranchCode = s.subBranch || '';
     const bu = branchCode.toUpperCase();
@@ -70,14 +60,17 @@ async function main() {
       subBranchCode = 'MCA';
     }
 
-    const storyDoc = new Story({
-      id: s.id,
+    const storyDataToSet = {
       name: s.name,
       company: s.company,
       role: s.role,
       branch: branchCode,
       subBranch: subBranchCode,
       passoutYear: s.passoutYear || '2026',
+      package: s.package || undefined,
+      ctc: s.ctc || undefined,
+      stipend: s.stipend || undefined,
+      offerType: s.offerType || 'Placement',
       journey: {
         firstYear: s.journey.firstYear || undefined,
         secondYear: s.journey.secondYear || undefined,
@@ -89,23 +82,78 @@ async function main() {
       },
       customSections: s.customSections || [],
       uploadedByEmail: 'tpo.verified@spit.ac.in'
+    };
+
+    // Find existing story by ID or Name + Company
+    const nameRegex = new RegExp(`^${s.name.trim()}$`, 'i');
+    const compRegex = new RegExp(`^${s.company.trim()}$`, 'i');
+
+    const existing = await Story.findOne({
+      $or: [
+        { id: s.id },
+        { name: nameRegex, company: compRegex }
+      ]
     });
 
-    // Validate schema
-    const valErr = storyDoc.validateSync();
-    if (valErr) {
-      errors.push({ file: s.source_file, error: valErr.message });
-      continue;
-    }
-    validatedCount++;
+    if (existing) {
+      if (!isDryRun) {
+        existing.name = storyDataToSet.name;
+        existing.company = storyDataToSet.company;
+        existing.role = storyDataToSet.role;
+        existing.branch = storyDataToSet.branch;
+        existing.subBranch = storyDataToSet.subBranch;
+        existing.passoutYear = storyDataToSet.passoutYear;
+        existing.package = storyDataToSet.package;
+        existing.ctc = storyDataToSet.ctc;
+        existing.stipend = storyDataToSet.stipend;
+        existing.offerType = storyDataToSet.offerType;
+        existing.journey = storyDataToSet.journey;
+        existing.customSections = storyDataToSet.customSections;
+        if (!existing.uploadedByEmail) {
+          existing.uploadedByEmail = storyDataToSet.uploadedByEmail;
+        }
 
-    if (!isDryRun) {
-      await storyDoc.save();
-      insertedCount++;
+        const valErr = existing.validateSync();
+        if (valErr) {
+          errors.push({ file: s.source_file, error: valErr.message });
+          continue;
+        }
+
+        await existing.save();
+        updatedCount++;
+      } else {
+        const dummyDoc = new Story({ ...storyDataToSet, id: existing.id });
+        const valErr = dummyDoc.validateSync();
+        if (valErr) {
+          errors.push({ file: s.source_file, error: valErr.message });
+          continue;
+        }
+        updatedCount++;
+      }
+    } else {
+      const newDoc = new Story({
+        ...storyDataToSet,
+        id: s.id
+      });
+
+      const valErr = newDoc.validateSync();
+      if (valErr) {
+        errors.push({ file: s.source_file, error: valErr.message });
+        continue;
+      }
+
+      if (!isDryRun) {
+        await newDoc.save();
+        insertedCount++;
+      } else {
+        insertedCount++;
+      }
     }
+
+    validatedCount++;
   }
 
-  if (!isDryRun && insertedCount > 0) {
+  if (!isDryRun && (updatedCount > 0 || insertedCount > 0)) {
     try {
       await cacheService.invalidateStories();
       console.log('Invalidated Redis story cache keys successfully.');
@@ -114,17 +162,34 @@ async function main() {
     }
   }
 
+  // Verification of sample story: Iffat Patel
+  console.log('\n--- Live Verification of Target Story (story_2026_26155894) ---');
+  const verifiedStory = await Story.findOne({ id: 'story_2026_26155894' }).lean();
+  if (verifiedStory) {
+    console.log(`ID:           ${verifiedStory.id}`);
+    console.log(`Name:         ${verifiedStory.name}`);
+    console.log(`Company:      ${verifiedStory.company}`);
+    console.log(`Package:      ${verifiedStory.package}`);
+    console.log(`CTC:          ${verifiedStory.ctc}`);
+    console.log(`Stipend:      ${verifiedStory.stipend}`);
+    console.log(`Prep Length:  ${verifiedStory.journey?.prep?.length} chars`);
+    console.log(`Prep Preview: ${verifiedStory.journey?.prep?.slice(0, 150)}...`);
+  } else {
+    console.warn('Warning: story_2026_26155894 not found in database.');
+  }
+
   await mongoose.disconnect();
 
   console.log('\n--- Execution Summary ---');
-  console.log(`Total Extracted Records:   ${storiesData.length}`);
-  console.log(`Schema Validated:          ${validatedCount}`);
-  console.log(`Skipped Existing (Dupes):  ${skippedExistingCount}`);
-  console.log(`Validation Errors:         ${errors.length}`);
-  if (!isDryRun) {
-    console.log(`Successfully Populated:    ${insertedCount} stories`);
+  console.log(`Total Extracted Records:  ${storiesData.length}`);
+  console.log(`Schema Validated:         ${validatedCount}`);
+  console.log(`Updated Existing Stories: ${updatedCount}`);
+  console.log(`Inserted New Stories:     ${insertedCount}`);
+  console.log(`Validation Errors:        ${errors.length}`);
+  if (isDryRun) {
+    console.log(`DRY-RUN COMPLETE: 0 writes executed.`);
   } else {
-    console.log(`DRY-RUN COMPLETE: 0 writes executed. Ready for live population upon user confirmation.`);
+    console.log(`LIVE MIGRATION COMPLETE: All stories repaired and packages populated.`);
   }
 
   if (errors.length > 0) {

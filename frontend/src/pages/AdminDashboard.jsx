@@ -714,6 +714,7 @@ export default function AdminDashboard() {
     passoutYear: '',
     semester: '',
     cgpa: '',
+    package: '',
     journey: {
       firstYear: '',
       secondYear: '',
@@ -1127,6 +1128,7 @@ export default function AdminDashboard() {
       passoutYear: item.passoutYear || '',
       semester: item.semester || '',
       cgpa: item.cgpa || '',
+      package: item.package || '',
       journey: {
         firstYear: item.journey?.firstYear || '',
         secondYear: item.journey?.secondYear || '',
@@ -1157,6 +1159,7 @@ export default function AdminDashboard() {
           passoutYear: fullDetails.passoutYear || '',
           semester: fullDetails.semester || '',
           cgpa: fullDetails.cgpa || '',
+          package: fullDetails.package || '',
           journey: {
             firstYear: fullDetails.journey?.firstYear || '',
             secondYear: fullDetails.journey?.secondYear || '',
@@ -1446,7 +1449,7 @@ export default function AdminDashboard() {
                           )}
                         </h3>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                          {story.branch} Class of {story.passoutYear} • Placed: {story.company} ({story.role}) • Sem {story.semester} • CGPA {story.cgpa || 'N/A'}
+                          {story.branch} Class of {story.passoutYear} • Placed: {story.company} ({story.role}) • Sem {story.semester} • CGPA {story.cgpa || 'N/A'}{story.package ? ` • Package: ${story.package}` : ''}
                         </p>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -3467,7 +3470,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label">Passout Year</label>
                     <input 
@@ -3494,6 +3497,16 @@ export default function AdminDashboard() {
                       className="input-field" 
                       value={editStoryForm.cgpa} 
                       onChange={e => setEditStoryForm({ ...editStoryForm, cgpa: e.target.value })} 
+                    />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Package (LPA)</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="e.g. 14.5 LPA"
+                      value={editStoryForm.package || ''} 
+                      onChange={e => setEditStoryForm({ ...editStoryForm, package: e.target.value })} 
                     />
                   </div>
                 </div>
@@ -4658,7 +4671,7 @@ export default function AdminDashboard() {
                 {previewingPendingStory.name}
               </h2>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                {previewingPendingStory.branch} Class of {previewingPendingStory.passoutYear} • Placed: {previewingPendingStory.company} ({previewingPendingStory.role}) • Sem {previewingPendingStory.semester} • CGPA {previewingPendingStory.cgpa || 'N/A'}
+                {previewingPendingStory.branch} Class of {previewingPendingStory.passoutYear} • Placed: {previewingPendingStory.company} ({previewingPendingStory.role}) • Sem {previewingPendingStory.semester} • CGPA {previewingPendingStory.cgpa || 'N/A'}{previewingPendingStory.package ? ` • Package: ${previewingPendingStory.package}` : ''}
               </p>
             </div>
 

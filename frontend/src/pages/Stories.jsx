@@ -150,6 +150,28 @@ function Story3DCard({ story, index, navigate }) {
           <span className="badge" style={{ fontSize: '0.68rem', borderRadius: '10px' }}>
             Class of {story.passoutYear}
           </span>
+          {(() => {
+            const rawPkg = (story.package || story.ctc || '').trim();
+            if (!rawPkg || rawPkg === '0' || rawPkg.toLowerCase() === '0 lpa' || rawPkg.toLowerCase() === 'n/a' || rawPkg.toLowerCase() === 'nil') {
+              return null;
+            }
+            const displayPkg = rawPkg.toLowerCase().includes('lpa') ? rawPkg : `${rawPkg} LPA`;
+            return (
+              <span
+                style={{
+                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#10b981',
+                  padding: '0.2rem 0.65rem',
+                  borderRadius: '10px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700
+                }}
+              >
+                {displayPkg}
+              </span>
+            );
+          })()}
           {formattedDate && (
             <span style={{
               display: 'inline-flex',
@@ -373,6 +395,7 @@ export default function Stories() {
     role: '',
     semester: '7',
     cgpa: '',
+    package: '',
     journey: {
       firstYear: '',
       secondYear: '',
@@ -678,6 +701,7 @@ export default function Stories() {
         role: '',
         semester: '7',
         cgpa: '',
+        package: '',
         journey: { firstYear: '', secondYear: '', thirdYear: '', fourthYear: '', prep: '', projects: '', howSecured: '' },
         resources: [],
         studyMaterials: []
@@ -1461,15 +1485,27 @@ export default function Stories() {
                     </div>
                   </div>
 
-                  <div className="input-group" style={{ marginBottom: 0, maxWidth: '220px' }}>
-                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>CGPA</label>
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      placeholder="e.g. 9.4"
-                      value={formData.cgpa}
-                      onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>CGPA</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="e.g. 9.4"
+                        value={formData.cgpa}
+                        onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
+                      />
+                    </div>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Placement Package (LPA)</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="e.g. 14.5 or 11.6 LPA"
+                        value={formData.package}
+                        onChange={(e) => setFormData({ ...formData, package: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
 
