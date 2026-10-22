@@ -711,20 +711,32 @@ export default function AdminDashboard() {
     company: '',
     role: '',
     branch: 'CSE',
+    subBranch: 'CSE',
     passoutYear: '',
     semester: '',
     cgpa: '',
     package: '',
+    ctc: '',
+    stipend: '',
+    offerType: 'Placement Only',
     journey: {
       firstYear: '',
       secondYear: '',
       thirdYear: '',
       fourthYear: '',
-      prep: ''
+      prep: '',
+      projects: '',
+      howSecured: ''
     },
+    resources: [],
     studyMaterials: [],
-    resume: ''
+    resume: '',
+    resumeFile: null,
+    customSections: []
   });
+
+  const [adminResourceInput, setAdminResourceInput] = useState({ name: '', type: 'Coding Practice / DSA', url: '' });
+  const [adminResourceError, setAdminResourceError] = useState('');
 
   const [editAchievementForm, setEditAchievementForm] = useState({
     title: '',
@@ -1148,6 +1160,9 @@ export default function AdminDashboard() {
       semester: item.semester || '',
       cgpa: item.cgpa || '',
       package: item.package || '',
+      ctc: item.ctc || '',
+      stipend: item.stipend || '',
+      offerType: item.offerType || 'Placement Only',
       journey: {
         firstYear: item.journey?.firstYear || '',
         secondYear: item.journey?.secondYear || '',
@@ -1200,6 +1215,9 @@ export default function AdminDashboard() {
           semester: fullDetails.semester || '',
           cgpa: fullDetails.cgpa || '',
           package: fullDetails.package || '',
+          ctc: fullDetails.ctc || '',
+          stipend: fullDetails.stipend || '',
+          offerType: fullDetails.offerType || 'Placement Only',
           journey: {
             firstYear: fullDetails.journey?.firstYear || '',
             secondYear: fullDetails.journey?.secondYear || '',
@@ -3522,14 +3540,17 @@ export default function AdminDashboard() {
                       style={{ backgroundColor: 'var(--bg-secondary)' }}
                     >
                       <option value="CSE">CSE</option>
+                      <option value="CSE-AIML">CSE-AIML</option>
+                      <option value="CSE-DS">CSE-DS</option>
+                      <option value="CE">CE</option>
                       <option value="IT">IT</option>
                       <option value="EXTC">EXTC</option>
-                      <option value="AI & DS">AI & DS</option>
+                      <option value="MCA">MCA</option>
                     </select>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label">Passout Year</label>
                     <input 
@@ -3559,63 +3580,131 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Package (LPA)</label>
+                    <label className="input-label">Offer Type</label>
+                    <select
+                      className="input-field"
+                      value={editStoryForm.offerType || 'Placement Only'}
+                      onChange={e => setEditStoryForm({ ...editStoryForm, offerType: e.target.value })}
+                      style={{ backgroundColor: 'var(--bg-secondary)' }}
+                    >
+                      <option value="Placement Only">Placement Only</option>
+                      <option value="Internship + Placement">Internship + Placement</option>
+                      <option value="Internship Only">Internship Only</option>
+                      <option value="PPO">PPO</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Compensation & Offer Breakdown Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.25rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Placement Package (LPA)</label>
                     <input 
                       type="text" 
                       className="input-field" 
-                      placeholder="e.g. 14.5 LPA"
+                      placeholder="e.g. 13.66 LPA"
                       value={editStoryForm.package || ''} 
                       onChange={e => setEditStoryForm({ ...editStoryForm, package: e.target.value })} 
                     />
                   </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Base CTC / Breakdown</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="e.g. 11.66L Base + 2L Joining"
+                      value={editStoryForm.ctc || ''} 
+                      onChange={e => setEditStoryForm({ ...editStoryForm, ctc: e.target.value })} 
+                    />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Internship Stipend</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="e.g. 75,000 INR"
+                      value={editStoryForm.stipend || ''} 
+                      onChange={e => setEditStoryForm({ ...editStoryForm, stipend: e.target.value })} 
+                    />
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">1st Year Strategy</label>
+                {/* Selection Process & Interview Rounds */}
+                <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="input-label" style={{ fontWeight: 700, color: '#60a5fa' }}>
+                    Selection Process &amp; Interview Rounds (howSecured)
+                  </label>
+                  <textarea 
+                    className="input-field" 
+                    rows={5} 
+                    placeholder="Enter numbered interview rounds, questions asked, timelines, and outcomes..."
+                    value={editStoryForm.journey.howSecured || ''} 
+                    onChange={e => setEditStoryForm({
+                      ...editStoryForm,
+                      journey: { ...editStoryForm.journey, howSecured: e.target.value }
+                    })}
+                  />
+                </div>
+
+                {/* Preparation Strategy & Routine */}
+                <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="input-label" style={{ fontWeight: 700, color: '#10b981' }}>
+                    Preparation Strategy &amp; Study Routine *
+                  </label>
+                  <textarea 
+                    className="input-field" 
+                    rows={4} 
+                    placeholder="DSA problem solving, core computer science revision, study routine..."
+                    value={editStoryForm.journey.prep || ''} 
+                    onChange={e => setEditStoryForm({
+                      ...editStoryForm,
+                      journey: { ...editStoryForm.journey, prep: e.target.value }
+                    })}
+                    required
+                  />
+                </div>
+
+                {/* Optional Academic Milestones */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label className="input-label" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Academic Milestones (Optional — Leave blank if not documented)
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.35rem' }}>
                     <textarea 
                       className="input-field" 
                       rows={2} 
-                      value={editStoryForm.journey.firstYear} 
+                      placeholder="1st Year milestones..."
+                      value={editStoryForm.journey.firstYear || ''} 
                       onChange={e => setEditStoryForm({
                         ...editStoryForm,
                         journey: { ...editStoryForm.journey, firstYear: e.target.value }
                       })}
                     />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">2nd Year Strategy</label>
                     <textarea 
                       className="input-field" 
                       rows={2} 
-                      value={editStoryForm.journey.secondYear} 
+                      placeholder="2nd Year milestones..."
+                      value={editStoryForm.journey.secondYear || ''} 
                       onChange={e => setEditStoryForm({
                         ...editStoryForm,
                         journey: { ...editStoryForm.journey, secondYear: e.target.value }
                       })}
                     />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">3rd Year Strategy</label>
                     <textarea 
                       className="input-field" 
                       rows={2} 
-                      value={editStoryForm.journey.thirdYear} 
+                      placeholder="3rd Year milestones..."
+                      value={editStoryForm.journey.thirdYear || ''} 
                       onChange={e => setEditStoryForm({
                         ...editStoryForm,
                         journey: { ...editStoryForm.journey, thirdYear: e.target.value }
                       })}
                     />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">4th Year Strategy</label>
                     <textarea 
                       className="input-field" 
                       rows={2} 
-                      value={editStoryForm.journey.fourthYear} 
+                      placeholder="4th Year milestones..."
+                      value={editStoryForm.journey.fourthYear || ''} 
                       onChange={e => setEditStoryForm({
                         ...editStoryForm,
                         journey: { ...editStoryForm.journey, fourthYear: e.target.value }
@@ -3624,18 +3713,173 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="input-group">
-                  <label className="input-label">Preparation Strategy & Tips *</label>
+                {/* Key Projects Built */}
+                <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="input-label" style={{ fontWeight: 600, color: '#c084fc' }}>
+                    Key Projects Built (Optional — Leave blank if not documented)
+                  </label>
+                  <textarea 
+                    className="input-field" 
+                    rows={2} 
+                    placeholder="Project names, technologies used, architectures..."
+                    value={editStoryForm.journey.projects || ''} 
+                    onChange={e => setEditStoryForm({
+                      ...editStoryForm,
+                      journey: { ...editStoryForm.journey, projects: e.target.value }
+                    })}
+                  />
+                </div>
+
+                {/* Advice to Juniors */}
+                <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="input-label" style={{ fontWeight: 700, color: '#fbbf24' }}>
+                    Advice &amp; Tips for Juniors
+                  </label>
                   <textarea 
                     className="input-field" 
                     rows={3} 
-                    value={editStoryForm.journey.prep} 
-                    onChange={e => setEditStoryForm({
-                      ...editStoryForm,
-                      journey: { ...editStoryForm.journey, prep: e.target.value }
-                    })}
-                    required
+                    placeholder="Candidate's genuine recommendations and tips for juniors..."
+                    value={(() => {
+                      const adviceSec = (editStoryForm.customSections || []).find(s => s.title && s.title.toLowerCase().includes('advice'));
+                      return adviceSec ? adviceSec.content : '';
+                    })()} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      const sections = [...(editStoryForm.customSections || [])];
+                      const idx = sections.findIndex(s => s.title && s.title.toLowerCase().includes('advice'));
+                      if (idx >= 0) {
+                        sections[idx] = { ...sections[idx], content: val };
+                      } else if (val.trim()) {
+                        sections.push({ title: 'Advice & Tips for Juniors', content: val });
+                      }
+                      setEditStoryForm({ ...editStoryForm, customSections: sections });
+                    }}
                   />
+                </div>
+
+                {/* Educational Resources Section */}
+                <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                      Verified Educational Resources ({editStoryForm.resources ? editStoryForm.resources.length : 0})
+                    </h4>
+                  </div>
+
+                  {/* List of Resources */}
+                  {editStoryForm.resources && editStoryForm.resources.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                      {editStoryForm.resources.map((res, rIdx) => (
+                        <div key={rIdx} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.5rem 0.85rem',
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
+                            <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '4px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              {res.type || 'Resource'}
+                            </span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {res.name}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                            <a
+                              href={res.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-secondary"
+                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                            >
+                              <ExternalLink size={12} /> Test
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditStoryForm({
+                                  ...editStoryForm,
+                                  resources: editStoryForm.resources.filter((_, i) => i !== rIdx)
+                                });
+                              }}
+                              style={{ background: 'transparent', border: 'none', color: '#ff453a', cursor: 'pointer', padding: '0.25rem' }}
+                              title="Remove Resource"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add New Resource Row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 2.5fr auto', gap: '0.5rem', alignItems: 'center', backgroundColor: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="Resource Title (e.g. Striver DSA Sheet)"
+                      value={adminResourceInput.name}
+                      onChange={e => {
+                        setAdminResourceInput({ ...adminResourceInput, name: e.target.value });
+                        setAdminResourceError('');
+                      }}
+                      style={{ margin: 0, fontSize: '0.8rem' }}
+                    />
+                    <select
+                      className="input-field"
+                      value={adminResourceInput.type}
+                      onChange={e => setAdminResourceInput({ ...adminResourceInput, type: e.target.value })}
+                      style={{ margin: 0, fontSize: '0.8rem', backgroundColor: 'var(--bg-primary)' }}
+                    >
+                      <option value="Coding Practice / DSA">Coding Practice / DSA</option>
+                      <option value="Study Resource">Study Resource</option>
+                      <option value="Technical Notes / Puzzles">Technical Notes / Puzzles</option>
+                      <option value="Aptitude Preparation">Aptitude Preparation</option>
+                      <option value="Video Tutorial">Video Tutorial</option>
+                      <option value="Google Drive Resource">Google Drive Resource</option>
+                      <option value="Resume & Portfolio">Resume &amp; Portfolio</option>
+                    </select>
+                    <input
+                      type="url"
+                      className="input-field"
+                      placeholder="https://takeuforward.org/..."
+                      value={adminResourceInput.url}
+                      onChange={e => {
+                        setAdminResourceInput({ ...adminResourceInput, url: e.target.value });
+                        setAdminResourceError('');
+                      }}
+                      style={{ margin: 0, fontSize: '0.8rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!adminResourceInput.name.trim()) {
+                          setAdminResourceError('Please enter a resource title');
+                          return;
+                        }
+                        if (!adminResourceInput.url.trim() || !isValidUrl(adminResourceInput.url.trim())) {
+                          setAdminResourceError('Please enter a valid HTTP or HTTPS URL');
+                          return;
+                        }
+                        setEditStoryForm({
+                          ...editStoryForm,
+                          resources: [...(editStoryForm.resources || []), { ...adminResourceInput, url: adminResourceInput.url.trim() }]
+                        });
+                        setAdminResourceInput({ name: '', type: 'Coding Practice / DSA', url: '' });
+                        setAdminResourceError('');
+                      }}
+                      className="btn btn-primary"
+                      style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  {adminResourceError && (
+                    <span style={{ fontSize: '0.75rem', color: '#ff3b30', marginTop: '0.35rem', display: 'block' }}>{adminResourceError}</span>
+                  )}
                 </div>
 
                 {/* Resume Section in Edit Modal */}

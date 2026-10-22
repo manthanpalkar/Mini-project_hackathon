@@ -57,6 +57,32 @@ def clean_document_text(text):
     text = text.replace('\u2018', "'").replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"')
     text = text.replace('\r\n', '\n').replace('\r', '\n')
 
+    # Detect if text suffers from word-by-word line fragmentation (average words < 2.0 per line)
+    raw_lines = [l.strip() for l in text.split('\n') if l.strip()]
+    if len(raw_lines) > 20:
+        avg_words = sum(len(l.split()) for l in raw_lines) / len(raw_lines)
+        if avg_words < 2.0:
+            reconstructed_lines = []
+            cur_line = []
+            for l in text.split('\n'):
+                st = l.strip()
+                if not st:
+                    if cur_line:
+                        reconstructed_lines.append(' '.join(cur_line))
+                        cur_line = []
+                    continue
+                is_list = bool(re.match(r'^(?:[0-9]+[\.\)]|[\-•\*\u25cf\u25cb]|\([0-9a-zA-Z]+\))\s+', st))
+                is_hdr = bool(re.match(r'^(?:Company|Job Profile|Offer Type|Internship Stipend|CTC|Location|Process Date|Placement Process|Round\s*[0-9]+|Technical Interview|HR Round|Online Aptitude|Aptitude Test|Preparation Strategy|Useful Tips|Tips|Advice)\s*[:\-]', st, re.I))
+                if (is_list or is_hdr) and cur_line:
+                    reconstructed_lines.append(' '.join(cur_line))
+                    cur_line = [st]
+                else:
+                    cur_line.append(st)
+            if cur_line:
+                reconstructed_lines.append(' '.join(cur_line))
+            text = '\n'.join(reconstructed_lines)
+            text = re.sub(r'\s+([,\.!?;:])', r'\1', text)
+
     lines = text.split('\n')
     blocks = []
     current_block = []
@@ -104,10 +130,19 @@ def extract_raw_text(file_path):
                     extracted = page.extract_text(extraction_mode="layout")
                 except Exception:
                     extracted = None
-                if not extracted or len(extracted.strip()) == 0:
+                if not extracted or len(extracted.strip()) < 50:
                     extracted = page.extract_text()
                 if extracted:
                     text += extracted + "\n\n"
+
+            # If still empty or scanned PDF (< 50 chars), run Apple Vision OCR via swift
+            if len(text.strip()) < 50:
+                ocr_script = os.path.join(os.path.dirname(__file__), "ocr_pdf.swift")
+                if os.path.exists(ocr_script):
+                    import subprocess
+                    res = subprocess.run(["swift", ocr_script, file_path], capture_output=True, text=True)
+                    if res.returncode == 0 and len(res.stdout.strip()) > 50:
+                        text = res.stdout
         except Exception as e:
             return "", page_count, f"PDF read error: {e}"
     elif ext == ".docx":
@@ -159,129 +194,166 @@ def analyze_document_resources(file_path):
     resume_file = None
     seen_urls = set()
 
+    # Filter out duplicate URLs and truncated prefix URLs
+    all_raw_urls = []
     for line in text_lines:
         for match in url_pattern.finditer(line):
             u = match.group(0).rstrip('.,;:\'\")')
-            if len(u) < 10 or u in seen_urls: continue
+            if len(u) >= 10:
+                all_raw_urls.append((u, line))
+
+    # Keep only non-truncated URLs
+    seen_urls = set()
+    unique_candidates = []
+    for u, line in all_raw_urls:
+        if u not in seen_urls:
             seen_urls.add(u)
+            unique_candidates.append((u, line))
 
-            netloc = urlparse(u).netloc.lower()
-            path = urlparse(u).path.lower()
+    valid_candidates = []
+    for u1, line in unique_candidates:
+        # If u1 is a shorter prefix of another candidate URL on the same domain, discard u1
+        is_truncated = any(u2 != u1 and u2.startswith(u1) and urlparse(u1).netloc == urlparse(u2).netloc for u2, _ in unique_candidates)
+        if not is_truncated:
+            valid_candidates.append((u1, line))
 
-            if 'linkedin.com' in netloc:
-                continue
-            if any(s in u.lower() for s in ['w3.org', 'adobe.com', 'schema.org']):
-                continue
+    for u, line in valid_candidates:
+        netloc = urlparse(u).netloc.lower()
+        path = urlparse(u).path.lower()
 
-            ctx = re.sub(r'https?://[^\s<>\"\'\)]+', '', line).strip()
-            ctx = re.sub(r'^[\-\*•\d\.\:\s]+', '', ctx).strip()
-            ctx = re.sub(r'[:\-–—]+$', '', ctx).strip()
-            title = ctx if 5 <= len(ctx) <= 60 else ''
+        if 'linkedin.com' in netloc:
+            continue
+        if any(s in u.lower() for s in ['w3.org', 'adobe.com', 'schema.org']):
+            continue
 
-            # Check if student's verified resume
-            if ('drive.google.com' in netloc or 'docs.google.com' in netloc) and any(k in line.lower() for k in ['resume', 'cv']):
-                resume_file = {
-                    'fileName': 'Candidate_Verified_Resume.pdf',
-                    'fileSize': 'Google Drive Verified Document',
-                    'url': u
-                }
-                continue
+        ctx = re.sub(r'https?://[^\s<>\"\'\)]+', '', line).strip()
+        ctx = re.sub(r'^[\-\*•\d\.\:\s]+', '', ctx).strip()
+        ctx = re.sub(r'[:\-–—]+$', '', ctx).strip()
+        title = ctx if 5 <= len(ctx) <= 60 else ''
 
-            # Check if downloadable PDF study material
-            if u.endswith('.pdf') or '180dcsrcc.in' in netloc:
-                fn = os.path.basename(path) if path else 'Study_Material.pdf'
-                clean_fn_title = re.sub(r'[\-_]+', ' ', os.path.splitext(fn)[0]).title()
-                pdf_title = title or clean_fn_title
-                pdf_cat = 'Interview Preparation PDFs'
-                lower_title = pdf_title.lower()
-                if 'sql' in lower_title or 'dbms' in lower_title or 'os' in lower_title:
-                    pdf_cat = 'Technical Interview Preparation'
-                elif 'guesstimate' in lower_title or 'case' in lower_title or 'consulting' in lower_title:
-                    pdf_cat = 'Company-Specific Preparation'
-                elif 'dsa' in lower_title or 'algorithm' in lower_title:
-                    pdf_cat = 'DSA Preparation'
-                elif 'cheat' in lower_title or 'note' in lower_title:
-                    pdf_cat = 'Subject Notes'
-                elif 'aptitude' in lower_title or 'quant' in lower_title:
-                    pdf_cat = 'Aptitude Preparation'
+        # Check if student's verified resume
+        if ('drive.google.com' in netloc or 'docs.google.com' in netloc) and any(k in line.lower() for k in ['resume', 'cv']):
+            resume_file = {
+                'fileName': 'Candidate_Verified_Resume.pdf',
+                'fileSize': 'Google Drive Verified Document',
+                'url': u
+            }
+            continue
 
-                study_materials.append({
-                    'title': pdf_title,
-                    'type': 'PDF',
-                    'category': pdf_cat,
-                    'fileName': fn,
-                    'fileSize': 'Verified PDF Resource',
-                    'url': u
-                })
-                resources.append({
-                    'name': pdf_title,
-                    'type': 'Study Material (PDF)',
-                    'url': u
-                })
-                continue
-
-            # Check if Google Drive folder with candidate's interview resources
-            if 'drive.google.com/drive/folders' in u or ('drive.google.com' in netloc and any(w in line.lower() for w in ['folder', 'material', 'notes', 'resources', 'guide'])):
-                cat = 'Interview Preparation PDFs' if 'pdf' in line.lower() else 'Company-Specific Preparation'
-                study_materials.append({
-                    'title': title or 'Placement Preparation & Study Archive',
-                    'type': 'Google Drive',
-                    'category': cat,
-                    'fileName': 'Interview_Preparation_Archive',
-                    'fileSize': 'Google Drive Archive',
-                    'url': u
-                })
-
-            # Classify educational learning resource
-            res_type = 'Study Resource'
-            if 'neetcode.io' in netloc:
-                res_type = 'Coding Practice / DSA'
-                if not title or len(title) < 5: title = 'NeetCode DSA & Blind 75'
-            elif 'takeuforward.org' in netloc:
-                res_type = 'Coding Practice / DSA'
-                if not title or len(title) < 5: title = "Striver's A2Z DSA Sheet"
-            elif 'leetcode.com' in netloc:
-                res_type = 'Coding Practice / DSA'
-                if 'studyplan' in path or 'top-sql' in path: title = 'LeetCode Top SQL 50'
-                elif 'problems' in path:
-                    pname = path.split('/')[2].replace('-', ' ').title() if len(path.split('/')) > 2 else 'Problem'
-                    title = f'LeetCode - {pname}'
-                elif not title: title = 'LeetCode Problem Practice'
-            elif 'indiabix.com' in netloc:
-                res_type = 'Aptitude Preparation'
-                if 'hr-interview' in path: title = 'IndiaBix HR Interview Questions'
-                elif not title or len(title) < 5: title = 'IndiaBix Aptitude & Reasoning'
-            elif 'geeksforgeeks.org' in netloc:
-                res_type = 'Technical Notes / Puzzles'
-                if 'puzzles' in path: title = 'GeeksforGeeks Interview Puzzles'
-                elif not title: title = 'GeeksforGeeks Technical Preparation'
-            elif 'youtube.com' in netloc or 'youtu.be' in netloc:
-                res_type = 'Video Tutorial'
-                if not title or len(title) < 5: title = 'Interview Preparation Video Lecture'
-            elif 'github.com' in netloc:
-                res_type = 'Source Code / GitHub'
-                if not title:
-                    parts = [p for p in path.split('/') if p]
-                    title = f'GitHub: {parts[-1]}' if parts else 'GitHub Repository'
-            elif 'overleaf.com' in netloc:
-                res_type = 'Resume & Portfolio'
-                title = "Jake's Resume ATS LaTeX Template"
-            elif 'resumeworded.com' in netloc:
-                res_type = 'Resume Optimization Tool'
-                title = 'Resume Worded ATS Score & Optimization'
-            elif 'drive.google.com' in netloc or 'docs.google.com' in netloc:
-                res_type = 'Google Drive Resource'
-                if not title: title = 'Interview Preparation Notes Document'
+        # Check if downloadable PDF study material or specific cheatsheet
+        if u.endswith('.pdf') or '180dcsrcc.in' in netloc:
+            fn = os.path.basename(path) if path else 'Study_Material.pdf'
+            clean_fn_title = re.sub(r'[\-_]+', ' ', os.path.splitext(fn)[0]).title()
+            if '180dcsrcc.in' in netloc:
+                pdf_title = '180 DC SRCC Guesstimate Cheat Sheet 2024'
             else:
-                if not title:
-                    domain = netloc.replace('www.', '').split('.')[0].title()
-                    title = f'{domain} Learning Resource'
+                pdf_title = title or clean_fn_title
+            pdf_cat = 'Interview Preparation PDFs'
+            lower_title = pdf_title.lower()
+            if 'sql' in lower_title or 'dbms' in lower_title or 'os' in lower_title:
+                pdf_cat = 'Technical Interview Preparation'
+            elif 'guesstimate' in lower_title or 'case' in lower_title or 'consulting' in lower_title:
+                pdf_cat = 'Company-Specific Preparation'
+            elif 'dsa' in lower_title or 'algorithm' in lower_title:
+                pdf_cat = 'DSA Preparation'
+            elif 'cheat' in lower_title or 'note' in lower_title:
+                pdf_cat = 'Subject Notes'
+            elif 'aptitude' in lower_title or 'quant' in lower_title:
+                pdf_cat = 'Aptitude Preparation'
 
-            resources.append({
-                'name': title,
-                'type': res_type,
+            study_materials.append({
+                'title': pdf_title,
+                'type': 'PDF',
+                'category': pdf_cat,
+                'fileName': fn,
+                'fileSize': 'Verified PDF Resource',
                 'url': u
             })
+            resources.append({
+                'name': pdf_title,
+                'type': 'Study Material (PDF)',
+                'url': u
+            })
+            continue
+
+        # Check if Google Drive folder with candidate's interview resources
+        if 'drive.google.com/drive/folders' in u or ('drive.google.com' in netloc and any(w in line.lower() for w in ['folder', 'material', 'notes', 'resources', 'guide'])):
+            cat = 'Interview Preparation PDFs' if 'pdf' in line.lower() else 'Company-Specific Preparation'
+            study_materials.append({
+                'title': title or 'Placement Preparation & Study Archive',
+                'type': 'Google Drive',
+                'category': cat,
+                'fileName': 'Interview_Preparation_Archive',
+                'fileSize': 'Google Drive Archive',
+                'url': u
+            })
+
+        # Classify educational learning resource
+        res_type = 'Study Resource'
+        if 'neetcode.io' in netloc:
+            res_type = 'Coding Practice / DSA'
+            if not title or len(title) < 5: title = 'NeetCode DSA & Blind 75'
+        elif 'takeuforward.org' in netloc:
+            res_type = 'Coding Practice / DSA'
+            if not title or len(title) < 5: title = "Striver's A2Z DSA Sheet"
+        elif 'whimsical.com' in netloc:
+            res_type = 'Study Resource'
+            title = 'Whimsical OOPs Cheat Sheet by Love Babbar'
+        elif 'tpointtech.com' in netloc:
+            res_type = 'Study Resource'
+            title = 'Tpointtech Java Tutorial'
+        elif 'leetcode.com' in netloc:
+            res_type = 'Coding Practice / DSA'
+            if 'studyplan' in path or 'top-sql' in path: title = 'LeetCode Top SQL 50'
+            elif 'problems' in path:
+                pname = path.split('/')[2].replace('-', ' ').title() if len(path.split('/')) > 2 else 'Problem'
+                title = f'LeetCode - {pname}'
+            elif not title: title = 'LeetCode Problem Practice'
+        elif 'indiabix.com' in netloc:
+            res_type = 'Aptitude Preparation'
+            if 'hr-interview' in path: title = 'IndiaBix HR Interview Questions'
+            elif not title or len(title) < 5: title = 'IndiaBix Aptitude & Reasoning'
+        elif 'geeksforgeeks.org' in netloc:
+            res_type = 'Technical Notes / Puzzles'
+            if 'puzzles' in path: title = 'GeeksforGeeks Top 100 Interview Puzzles'
+            elif not title: title = 'GeeksforGeeks Technical Preparation'
+        elif 'youtube.com' in netloc or 'youtu.be' in netloc:
+            res_type = 'Video Tutorial'
+            if 'BSVKUk58K6U' in u:
+                title = 'Introduction to DBMS Placements Course 2022'
+            elif 'eYpXCdvKwEQ' in u:
+                title = 'OOP 1 | Introduction & Concepts - Classes, Objects, Constructors, Keywords'
+            elif not title or len(title) < 5:
+                title = 'Interview Preparation Video Lecture'
+        elif 'github.com' in netloc:
+            res_type = 'Source Code / GitHub'
+            if not title:
+                parts = [p for p in path.split('/') if p]
+                title = f'GitHub: {parts[-1]}' if parts else 'GitHub Repository'
+        elif 'overleaf.com' in netloc:
+            res_type = 'Resume & Portfolio'
+            title = "Jake's Resume ATS LaTeX Template"
+        elif 'resumeworded.com' in netloc:
+            res_type = 'Resume Optimization Tool'
+            title = 'Resume Worded ATS Score & Optimization'
+        elif 'drive.google.com' in netloc or 'docs.google.com' in netloc:
+            res_type = 'Google Drive Resource'
+            if '1KUDTxqKGzFo4TAcIPeuM3FuueHTeXrsT' in u:
+                title = 'Nomura GM Tech Focused Role JD (2025)'
+            elif '1TyPJfnHmk5TS8nCFaVJkqOcEwneYxBml' in u:
+                title = 'Nomura Interview Preparation Notes'
+            elif not title:
+                title = 'Interview Preparation Notes Document'
+        else:
+            if not title:
+                domain = netloc.replace('www.', '').split('.')[0].title()
+                title = f'{domain} Learning Resource'
+
+        resources.append({
+            'name': title,
+            'type': res_type,
+            'url': u
+        })
 
     return resources, study_materials, resume_file
 
@@ -377,10 +449,10 @@ def parse_experience(raw_text, filename, company_folder, full_path):
             branch = "EXTC"
             sub_branch = "EXTC"
         elif "AIML" in b_raw:
-            branch = "CSE"
+            branch = "CSE-AIML"
             sub_branch = "AI"
         elif "DS" in b_raw:
-            branch = "CSE"
+            branch = "CSE-DS"
             sub_branch = "DS"
         elif "COMPS" in b_raw or "COMPUTER" in b_raw:
             branch = "CE"
@@ -397,7 +469,7 @@ def parse_experience(raw_text, filename, company_folder, full_path):
     m_off = re.search(r'Offer\s*Type\s*:\s*([^\n\r•]+)', clean_text, re.IGNORECASE)
     if m_off:
         offer_type = m_off.group(1).strip()
-        offer_type = re.sub(r'\s+(CTC|Location|Date|Placement|Internship|Stipend).*', '', offer_type, flags=re.IGNORECASE).strip()
+        offer_type = re.sub(r'\s+(CTC|Location|Date|Stipend|Process)\b.*', '', offer_type, flags=re.IGNORECASE).strip()
 
     ctc = None
     m_ctc = re.search(r'CTC\s*:\s*([^\n\r•]+)', clean_text, re.IGNORECASE)
@@ -419,19 +491,19 @@ def parse_experience(raw_text, filename, company_folder, full_path):
     thirdYear = None
     fourthYear = None
 
-    m_y1 = re.search(r'(?:First\s*Year|FE|1st\s*Year)\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
+    m_y1 = re.search(r'(?:^|\n)\s*(?:First\s*Year|\bFE\b|1st\s*Year)\b\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
     if m_y1 and len(m_y1.group(1).strip()) > 25 and not re.search(r'^(NA|N/A|Nil|None|No data)$', m_y1.group(1).strip(), re.I):
         firstYear = m_y1.group(1).strip()
 
-    m_y2 = re.search(r'(?:Second\s*Year|SE|2nd\s*Year)\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
+    m_y2 = re.search(r'(?:^|\n)\s*(?:Second\s*Year|\bSE\b|2nd\s*Year)\b\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
     if m_y2 and len(m_y2.group(1).strip()) > 25 and not re.search(r'^(NA|N/A|Nil|None|No data)$', m_y2.group(1).strip(), re.I):
         secondYear = m_y2.group(1).strip()
 
-    m_y3 = re.search(r'(?:Third\s*Year|TE|3rd\s*Year)\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
+    m_y3 = re.search(r'(?:^|\n)\s*(?:Third\s*Year|\bTE\b|3rd\s*Year)\b\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
     if m_y3 and len(m_y3.group(1).strip()) > 25 and not re.search(r'^(NA|N/A|Nil|None|No data)$', m_y3.group(1).strip(), re.I):
         thirdYear = m_y3.group(1).strip()
 
-    m_y4 = re.search(r'(?:Fourth\s*Year|BE|4th\s*Year|Final\s*Year)\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
+    m_y4 = re.search(r'(?:^|\n)\s*(?:Fourth\s*Year|\bBE\b|4th\s*Year|Final\s*Year)\b\s*[:\-]\s*([^\n\r]+(?:\n\n[^\n\r]+){1,3})', clean_text, re.IGNORECASE)
     if m_y4 and len(m_y4.group(1).strip()) > 25 and not re.search(r'^(NA|N/A|Nil|None|No data)$', m_y4.group(1).strip(), re.I):
         fourthYear = m_y4.group(1).strip()
 

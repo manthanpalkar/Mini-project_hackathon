@@ -41,10 +41,10 @@ async function main() {
     let subBranchCode = s.subBranch || '';
     const bu = branchCode.toUpperCase();
     if (bu.includes('AI') || bu.includes('AIML')) {
-      branchCode = 'CSE';
+      branchCode = 'CSE-AIML';
       subBranchCode = 'AI';
     } else if (bu.includes('DATA') || bu.includes('DS')) {
-      branchCode = 'CSE';
+      branchCode = 'CSE-DS';
       subBranchCode = 'DS';
     } else if (bu.includes('COMPUTER SCIENCE') || bu === 'CSE') {
       branchCode = 'CSE';
@@ -177,13 +177,18 @@ async function main() {
   }
 
   // Live Verification
-  console.log('\n--- Live Verification of Target Story (story_2026_26155894) ---');
-  const verifiedStory = await Story.findOne({ id: 'story_2026_26155894' }).lean();
+  console.log('\n--- Live Verification of Target Story (Aman Kanojia: story_2026_5136315) ---');
+  const verifiedStory = await Story.findOne({ id: 'story_2026_5136315' }).lean();
   if (verifiedStory) {
     console.log(`ID:           ${verifiedStory.id}`);
     console.log(`Name:         ${verifiedStory.name}`);
     console.log(`Company:      ${verifiedStory.company}`);
+    console.log(`Branch:       ${verifiedStory.branch} (${verifiedStory.subBranch})`);
     console.log(`Package:      ${verifiedStory.package}`);
+    console.log(`Offer Type:   ${verifiedStory.offerType}`);
+    console.log(`Stipend:      ${verifiedStory.stipend}`);
+    console.log(`Resume:       ${verifiedStory.resume || 'None (Verified source-only)'}`);
+    console.log(`Academic Yrs: 1st=${verifiedStory.journey?.firstYear || 'null'}, 2nd=${verifiedStory.journey?.secondYear || 'null'}, 3rd=${verifiedStory.journey?.thirdYear || 'null'}, 4th=${verifiedStory.journey?.fourthYear || 'null'}`);
     console.log(`Resources:    ${verifiedStory.resources?.length || 0} attached`);
     if (verifiedStory.resources && verifiedStory.resources.length > 0) {
       verifiedStory.resources.forEach((r, idx) => console.log(`  [${r.type}] ${r.name}: ${r.url}`));

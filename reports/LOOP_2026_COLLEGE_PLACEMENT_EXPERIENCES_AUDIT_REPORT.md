@@ -3,14 +3,14 @@
 **Institution:** Sardar Patel Institute of Technology (SPIT), Mumbai  
 **Batch:** Class of 2026  
 **Total Source Documents Discovered:** 141  
-**Total Unique Verified Experiences Extracted:** 129  
-**Experiences with Verified Placement Package (LPA):** 117  
+**Total Unique Verified Experiences Extracted:** 131  
+**Experiences with Verified Placement Package (LPA):** 118  
 **Stories with Attached Educational Resource Links:** 93  
-**Total Verified Resource Links Attached:** 556  
-**Total Study Materials (PDFs) Attached:** 12  
+**Total Verified Resource Links Attached:** 535  
+**Total Study Materials (PDFs) Attached:** 11  
 **Total Verified Resumes Attached:** 3  
 **Duplicates Detected & Skipped:** 9  
-**Unreadable / Scanned PDFs (Flagged for Review):** 2  
+**Unreadable / Scanned PDFs (Flagged for Review):** 0  
 
 ---
 
@@ -25,12 +25,12 @@
 | **BlackRock** | 8 |
 | **IDFC FIRST Bank** | 8 |
 | **PhonePe** | 7 |
+| **Nomura** | 7 |
 | **TransUnion** | 6 |
-| **Nomura** | 6 |
+| **General Mills** | 4 |
 | **Quantiphi** | 4 |
 | **Baker Hughes** | 4 |
 | **MSCI** | 4 |
-| **General Mills** | 3 |
 | **Russell Investments** | 3 |
 | **TransBnk** | 3 |
 | **BrowserStack** | 3 |
@@ -60,31 +60,31 @@
 | 3 | **Harsh Chhallani** | Interactive Brokers | Junior Software Engineer | EXTC | 14.65 + Performance Bonus (Cash+/Stock component) ( 15-30 % ) | 1 | 0 | — | `IB-SWE-HarshChhallani.pdf` |
 | 4 | **Heenal Kishor Patel** | HyperVerge | Associate Product Manager Intern | CE | 12-16 LPA | 3 | 0 | Yes (Verified Link) | `HyperVerge_APM_HeenalPatel.pdf` |
 | 5 | **Vivek Valanj** | Smowcode | Business Development Executive | EXTC | 12 LPA (8 Fixed+2 Variable +2 ESOP) | 2 | 0 | — | `Smowcode_BDE_Vivek_Interview_experience.pdf` |
-| 6 | **Manish Shashikant Jadhav** | ICICI Lombard | Trainee Software Engineer | CE | 8,00,100 LPA (6,30,000 Fixed + 1,70,100 Performance Bonus) | 9 | 1 | — | `ICICILombard_SoftwareEngineer_ManishJadhav.pdf` |
-| 7 | **[Riya Patil]** | Mastercard | Software Engineer I | CSE | 13.40 LPA (Fixed: 11 LPA + Joining Bonus: 0.50 L + Variable: 1.90 LPA) | 0 | 0 | — | `MasterCard_Software Engineer 1_ Riya Patil.pdf` |
-| 8 | **Ayesha Siddiqui** | AuxoAI | AI Engineer | CSE | Base: 14 LPA + Joining Bonus 1 Lakh + Performance Bonus 2.1 Lakh+ Retention Bonus 10 Lakhs paid after 3 years | 0 | 0 | — | `AUXOAI_AIEngineer_Ayesha_Siddiqui.pdf` |
-| 9 | **Dhruv Deshpande** | AuxoAI | AI Engineer | CSE | Base: 14LPA Joining Bonus: 1 Lakh Performance Bonus: 2.1 Lakhs | 2 | 0 | — | `AUXOAI_AIEngineer_DhruvDeshpande.pdf` |
-| 10 | **Pushap Raina** | Oracle Financial Services (OFSS) | Associate Consultant | CSE | 9.82 LPA | 0 | 0 | — | `OFSS_AssociateConsultant_PushapRaina.pdf` |
+| 6 | **Manish Shashikant Jadhav** | ICICI Lombard | Trainee Software Engineer | CE | 8,00,100 LPA (6,30,000 Fixed + 1,70,100 Performance Bonus) | 7 | 1 | — | `ICICILombard_SoftwareEngineer_ManishJadhav.pdf` |
+| 7 | **[Riya Patil]** | Mastercard | Software Engineer I | CSE-DS | 13.40 LPA (Fixed: 11 LPA + Joining Bonus: 0.50 L + Variable: 1.90 LPA) | 0 | 0 | — | `MasterCard_Software Engineer 1_ Riya Patil.pdf` |
+| 8 | **Ayesha Siddiqui** | AuxoAI | AI Engineer | CSE-DS | Base: 14 LPA + Joining Bonus 1 Lakh + Performance Bonus 2.1 Lakh+ Retention Bonus 10 Lakhs paid after 3 years | 0 | 0 | — | `AUXOAI_AIEngineer_Ayesha_Siddiqui.pdf` |
+| 9 | **Dhruv Deshpande** | AuxoAI | AI Engineer | CSE-DS | Base: 14LPA Joining Bonus: 1 Lakh Performance Bonus: 2.1 Lakhs | 2 | 0 | — | `AUXOAI_AIEngineer_DhruvDeshpande.pdf` |
+| 10 | **Pushap Raina** | Oracle Financial Services (OFSS) | Associate Consultant | CSE-AIML | 9.82 LPA | 0 | 0 | — | `OFSS_AssociateConsultant_PushapRaina.pdf` |
 | 11 | **Tiwari** | Oracle Financial Services (OFSS) | Associate Consultant (MCA) | CE | 9.82 LPA | 4 | 0 | — | `Oracle_Associate_consultant_Prashant_Tiwari.docx` |
 | 12 | **Raja Ruswin** | ISS STOXX | SDE 1 | CE | 6 LPA | 0 | 0 | — | `EdelweissSDERuswin.pdf` |
 | 13 | **Apurva A. Khangal Science** | UBS | GOTO Intern | CE | Disclosed in Interview | 0 | 0 | — | `UBS_GOTOIntern_ApurvaKhangal.pdf` |
 | 14 | **Heet P. Shah Enginnering** | UBS | GOTO Intern | CE | Disclosed in Interview | 0 | 0 | — | `UBS_GOTOIntern_HeetShah.pdf` |
-| 15 | **Aditi Pillai** | UBS | Graduate Trainee Technology | CSE | 14.5 LPA (12.5 + 2 joining) | 0 | 0 | — | `UBS_GraduateTrainee_AditiPillai.pdf` |
-| 16 | **Piyanshu Gehani** | UBS | Graduate Trainee | CSE | 14.5 LPA (12.5 + 2) | 7 | 0 | — | `UBS_GraduateTrainee_PiyanshuGehani.pdf` |
+| 15 | **Aditi Pillai** | UBS | Graduate Trainee Technology | CSE-AIML | 14.5 LPA (12.5 + 2 joining) | 0 | 0 | — | `UBS_GraduateTrainee_AditiPillai.pdf` |
+| 16 | **Piyanshu Gehani** | UBS | Graduate Trainee | CSE-AIML | 14.5 LPA (12.5 + 2) | 7 | 0 | — | `UBS_GraduateTrainee_PiyanshuGehani.pdf` |
 | 17 | **Khushi Parekh** | UBS | Graduate Trainee | CE | 14.5 LPA ( 12.5 + 2 ) | 11 | 0 | — | `UBS_Graduate_Trainee_Khushi_Parekh.pdf` |
 | 18 | **Riva Rodrigues** | UBS | Graduate Trainee | CE | 14.5 LPA ( 12.5 + 2 ) | 7 | 0 | — | `UBS_Graduate_Trainee_Riva_Rodrigues.pdf` |
 | 19 | **Sahil Patil Science (AIML)** | UBS | Graduate Trainee | CE | 14.5 LPA (12.5L fixed + 2L variable) | 11 | 1 | — | `UBS_Graduate_Trainee_Sahil_Patil.pdf` |
-| 20 | **Zaid** | UBS | Graduate Trainee | CSE | 12.5 (+ 2) LPA | 2 | 0 | — | `UBS_Graduate_Trainee_Zaid.pdf` |
+| 20 | **Zaid** | UBS | Graduate Trainee | CSE-DS | 12.5 (+ 2) LPA | 2 | 0 | — | `UBS_Graduate_Trainee_Zaid.pdf` |
 | 21 | **Shivsharan Sanjawad** | UBS | Summer | CE | 12.5LPA + 2L variable | 5 | 1 | — | `UBS_Summer_Internship_Shivsharan_2027batch.docx` |
 | 22 | **Hridaya Sudhir Patil** | Oracle Financial Services (OFSS) | Associate Consultant | CE | 9.8 lpa | 3 | 0 | — | `OFSS-Associate_Consulting-Hridaya_Patil.pdf` |
-| 23 | **Vihaan Shinde** | Oracle Financial Services (OFSS) | Associate Application Developer | CSE | 15.23 LPA | 12 | 0 | — | `OFSS_AAD_(Vihaan S Shinde).pdf` |
-| 24 | **Adithya Nair** | Oracle Financial Services (OFSS) | Associate Application Developer | CSE | 15.23 LPA + USD 16K worth stocks over 4 years + relocation + gratuity. | 1 | 0 | — | `OFSS_AAD_AdithyaNair.pdf` |
+| 23 | **Vihaan Shinde** | Oracle Financial Services (OFSS) | Associate Application Developer | CSE-AIML | 15.23 LPA | 12 | 0 | — | `OFSS_AAD_(Vihaan S Shinde).pdf` |
+| 24 | **Adithya Nair** | Oracle Financial Services (OFSS) | Associate Application Developer | CSE-AIML | 15.23 LPA + USD 16K worth stocks over 4 years + relocation + gratuity. | 1 | 0 | — | `OFSS_AAD_AdithyaNair.pdf` |
 | 25 | **Jheel Parikh** | Oracle Financial Services (OFSS) | Application Developer | CE | 1523000 + Stocks with vested period (USD 16,000) | 3 | 0 | — | `OFSS_ApplicationDev_JheelParikh.pdf` |
 | 26 | **Yash Kambli yash.kambli22@spit.ac.in** | Oracle Financial Services (OFSS) | Associate Consultant | CE | 9.82 LPA | 0 | 0 | — | `OFSS_AssociateConsultant_YashKambli.pdf` |
-| 27 | **Dhruv Hogade** | Oracle Financial Services (OFSS) | Associate Application Developer | CSE | 15.23 LPA (Annual Gross Pay) | 12 | 0 | — | `OFSS_Associate_Application_Developer_Dhruv_Hogade.pdf` |
-| 28 | **Pranav Nair (COMPS)** | Oracle Financial Services (OFSS) | Associate Consultant | CE | 9.82 LPA | 6 | 0 | — | `OFSS_Associate_consultant_Pranav_Nair.pdf` |
-| 29 | **Atharva Dahegaonkar** | J.P. Morgan | CIB Research and Analytics - Banking | CSE | Disclosed in Interview | 9 | 0 | — | `CIB - AtharvaDahegaonkar (2).pdf` |
-| 30 | **Mridula Raul CSE DS** | Barclays | Summer Intern 2025 | CSE | Disclosed in Interview | 0 | 0 | — | `Barclays_Summer Intern_Mridula Raul.pdf` |
+| 27 | **Dhruv Hogade** | Oracle Financial Services (OFSS) | Associate Application Developer | CSE-DS | 15.23 LPA (Annual Gross Pay) | 12 | 0 | — | `OFSS_Associate_Application_Developer_Dhruv_Hogade.pdf` |
+| 28 | **Pranav Nair (COMPS)** | Oracle Financial Services (OFSS) | Associate Consultant | CE | 9.82 LPA | 5 | 0 | — | `OFSS_Associate_consultant_Pranav_Nair.pdf` |
+| 29 | **Atharva Dahegaonkar** | J.P. Morgan | CIB Research and Analytics - Banking | CSE-AIML | Disclosed in Interview | 9 | 0 | — | `CIB - AtharvaDahegaonkar (2).pdf` |
+| 30 | **Mridula Raul CSE DS** | Barclays | Summer Intern 2025 | CSE-DS | Disclosed in Interview | 0 | 0 | — | `Barclays_Summer Intern_Mridula Raul.pdf` |
 | 31 | **Ruchi Bhanushali CSE(DS)** | Barclays | Summer Intern 2025 | CE | Location: Pune, Maharashtra, India | 0 | 0 | — | `Barclays_SummerIntern_RuchiBhanushali.docx` |
 | 32 | **Siddhesh Shrawne** | Barclays | Summer Intern 2025 | CE | Disclosed in Interview | 0 | 0 | — | `Barclays_Summer_Inter_Siddhesh_Shrawne.pdf` |
 | 33 | **Maureen Miranda** | Barclays | Summer Intern 2025 | CE | Disclosed in Interview | 0 | 0 | — | `Barclays_Summer_Intern_Maureen_Miranda.pdf` |
@@ -96,11 +96,11 @@
 | 39 | **Saachi** | Barclays | Intern | CE | Location: Pune | 0 | 0 | — | `Barclays_Summer_Internship_Saachi.pdf` |
 | 40 | **Asim Shah science and** | Barclays | Summer Intern 2025 | CE | Disclosed in Interview | 0 | 0 | — | `Barclays_summer_intern_2025_ASIM.pdf` |
 | 41 | **Nimesh Katudia** | Barclays | Summer Intern 2025 | CE | Disclosed in Interview | 0 | 0 | — | `Interview Experience Nimesh Katudia.pdf` |
-| 42 | **Naufil A. N. Asar** | Dolat Capital | Quant Developer | CSE | 11 (10 fixed, 1 variable) | 12 | 0 | — | `DolatCapital_QuantDeveloper_NaufilAsar.pdf` |
+| 42 | **Naufil A. N. Asar** | Dolat Capital | Quant Developer | CSE-AIML | 11 (10 fixed, 1 variable) | 12 | 0 | — | `DolatCapital_QuantDeveloper_NaufilAsar.pdf` |
 | 43 | **Sumit Patel** | Dolat Capital | Quant Developer | CE | ₹11 LPA (₹10 LPA fixed + ₹1 LPA variable) | 0 | 0 | — | `Interview Experience Template._sumit_patel.pdf` |
-| 44 | **Aditya Tiwari CSE DS** | PhonePe | Offer Type :Intern+FTE- Software Development Engineer (SDE) | CSE | 33 LPA | 5 | 0 | — | `PhonePe_SDE_Aditya_Tiwari.pdf` |
+| 44 | **Aditya Tiwari CSE DS** | PhonePe | Offer Type :Intern+FTE- Software Development Engineer (SDE) | CSE-DS | 33 LPA | 5 | 0 | — | `PhonePe_SDE_Aditya_Tiwari.pdf` |
 | 45 | **Harsh Pandey** | PhonePe | SDE | EXTC | 33.5 LPA | 29 | 0 | — | `PhonePe_SDE_HarshPandey.pdf` |
-| 46 | **Swaroop Vaze** | PhonePe | SDE | CE | 33.5 LPA | 6 | 0 | — | `PhonePe_SDE_SwaroopVaze.pdf` |
+| 46 | **Swaroop Vaze** | PhonePe | SDE | CE | 33.5 LPA | 4 | 0 | — | `PhonePe_SDE_SwaroopVaze.pdf` |
 | 47 | **Tabish Shaikh** | PhonePe | SDE | CE | 33.5 LPA | 7 | 0 | — | `PhonePe_SDE_TabishShaikh.pdf` |
 | 48 | **Talha Naik CSE (DS)** | PhonePe | SDE | CE | 33.5 LPA | 7 | 0 | — | `PhonePe_SDE_TalhaNaik.pdf` |
 | 49 | **Vedant Shah** | PhonePe | SDE | CE | 33.5 LPA | 4 | 0 | — | `PhonePe_SDE_VedantShah.pdf` |
@@ -108,82 +108,84 @@
 | 51 | **Prathamesh Khachane** | BlackRock | Aladdin Data | CE | 18 LPA (Performance based PPO) | 0 | 0 | — | `BlackRock_AladdinData_Prathamesh Khachane.pdf` |
 | 52 | **Vinay Marathe** | BlackRock | Aladdin Data (Data related role) | CE | 18 LPA | 4 | 0 | — | `BlackRock_AladdinData_VinayMarathe.pdf` |
 | 53 | **Tanish Kuldeep Patil** | BlackRock | Global Marketing | CE | 18 LPA (Performance based PPO) | 0 | 0 | — | `BlackRock_GM_Tanish_Kuldeep_Patil.pdf` |
-| 54 | **Dhruv Kanadia** | BlackRock | Software Engineer | CSE | 18 LPA | 4 | 0 | — | `BlackRock_SDE_DhruvKanadia.pdf` |
+| 54 | **Dhruv Kanadia** | BlackRock | Software Engineer | CSE-AIML | 18 LPA | 4 | 0 | — | `BlackRock_SDE_DhruvKanadia.pdf` |
 | 55 | **Shreshth Pradeep Singh CSE(DS)** | BlackRock | SDE | CE | 18 LPA (Performance based PPO) | 4 | 0 | — | `BlackRock_SDE_Shreshth_Pradeep_Singh.pdf` |
 | 56 | **Veer Shah** | BlackRock | Software Engineer | CE | 18 LPA | 11 | 0 | — | `BlackRock_SDE_VeerShah.pdf` |
-| 57 | **Aashay Sumit Ranjit]** | BlackRock | Software Engineering Intern | CSE | 18LPA | 1 | 0 | — | `BlackRock_SoftwareEngineeringintern_AashaySumitRanjit .pdf` |
+| 57 | **Aashay Sumit Ranjit]** | BlackRock | Software Engineering Intern | CSE-AIML | 18LPA | 1 | 0 | — | `BlackRock_SoftwareEngineeringintern_AashaySumitRanjit .pdf` |
 | 58 | **Aayush Mohite** | BlackRock | Software Engineer | CE | 18LPA (Performance based PPO) | 2 | 0 | — | `Blackrock_SoftwareEngineerIntern_AayushMohite.pdf` |
 | 59 | **Manan Sonali Kher** | WorkIndia | SDE | CE | 15 + 1 LPA | 9 | 0 | — | `WorkIndia_SDE_MananKher.pdf` |
 | 60 | **Ninad Maadhavi CSE AIML** | WorkIndia | SDE-Intern | CE | 15 Fixed + 1 Joining | 1 | 0 | — | `WorkIndia_SDE_NinadMaadhavi.pdf` |
 | 61 | **Hrishikesh Dalal** | General Mills | Software Developer | CE | Location: Mumbai | 0 | 0 | — | `GeneralMills_Summer_Intern_Hrishikesh_Dalal.pdf` |
 | 62 | **Keerti Mehta** | General Mills | Software Developer | CE | Location: Mumbai | 0 | 0 | — | `GeneralMills_Summer_Intern_Keerti_Mehta.pdf` |
-| 63 | **Shreya Rathod** | General Mills | Summer | CE | Disclosed in Interview | 0 | 0 | — | `GeneralMills_Summer_Intern_Shreya_Rathod.pdf` |
-| 64 | **Palash Mahajan** | IDfy | SDE | CE | 10 LPA | 5 | 0 | — | `IDfy_SoftwareEngineer_PalashMahajan.pdf` |
-| 65 | **Kush Nhayade** | Equity Data Science (EDS) | SDE | CE | 15 LPA | 0 | 0 | — | `EDS_SDE_Kush Nhayade.pdf` |
-| 66 | **Hardik Aneja** | Quantiphi | Business Analyst | CSE | 8.5LPA | 0 | 0 | — | `Quantiphi_BA_Hardik Aneja (3).pdf` |
-| 67 | **Deepak Kumar Yadav** | Quantiphi | Framework Engineer | CE | 8.5 LPA - 6.5L (Base) + 2L (QCDP) | 0 | 0 | — | `Quantiphi_FE_DeepakKumarYadav.pdf` |
-| 68 | **Ronak Walinjkar** | Quantiphi | Framework Engineer | CSE | 8.5 LPA | 6 | 0 | — | `Quantiphi_FE_RonakWalinjkar.pdf` |
-| 69 | **Harsh Dugar** | Quantiphi | Machine Learning Engineer | EXTC | 8.5 LPA - 6.5L (Base) + 2L (Bonus/QCDP) | 2 | 0 | — | `Quantiphi_MLE_HarshDugar.pdf` |
-| 70 | **Vedant Kulkarni** | ISS STOXX | Data Quality | EXTC | 12.9 Base + 1.1 (PF and Gratuity) = 14L + Variable bonus (not mentioned yet) | 5 | 0 | — | `ISS-STOXX_DataQuality_VedantKulkarni.pdf` |
-| 71 | **Aryan Kanyawar** | ISS STOXX | Software Engineer | CSE | 12.9 Base + 1.1 (PF and Gratuity) = 14L + Variable bonus (not mentioned yet) | 7 | 0 | — | `ISS-STOXX_SDE_Aryan_Kanyawar.pdf` |
-| 72 | **Paarth Dalvi CSE AIML** | ISS STOXX | SDE | CE | 12.9 LPA | 1 | 0 | — | `ISS-STOXX_SDE_PaarthDalvi.pdf` |
-| 73 | **Yash Rawat CSE- DS** | ISS STOXX | Software Engineer | CE | : 12.9 Base + 1.1 (PF and Gratuity) = 14L | 4 | 0 | — | `ISS-Stoxx_SDE_YashRawat.pdf` |
-| 74 | **Rashi Lodha** | ISS STOXX | Software Testing Engineer | CE | 14 lpa | 0 | 0 | — | `ISS-Stoxx_STE_RashiLodha.pdf` |
-| 75 | **Alpha Rane** | ISS STOXX | Software Engineer | CSE | 12.9 Base + 1.1 (PF and Gratuity) = 14L + Variable bonus (not mentioned yet) | 6 | 0 | — | `ISS_STOXX_SE_AlphaRane.pdf` |
-| 76 | **Mohit Karande CSE AIML** | ISS STOXX | Software Engineer | CSE | 14 lpa(12.9+1.1) | 1 | 0 | — | `ISS_STOXX_SE_MohitKarande (2).pdf` |
-| 77 | **Aditi Rao TE** | Russell Investments | Application Developer Intern | EXTC | Undisclosed | 14 | 1 | — | `Russell_ApplicationDeveloperIntern_AditiRao.pdf` |
-| 78 | **Sanjeev Ratnani** | Russell Investments | Technology Intern (Application Developer) | CE | Not disclosed yet | 2 | 0 | — | `Russell_ApplicationDeveloper_SanjeevRatnani.pdf` |
-| 79 | **Atharva Tamhankar** | Russell Investments | Technology Intern | CE | Disclosed in Interview | 0 | 0 | — | `Russell_DataAutomationIntern_AtharvaTamhankar.pdf` |
-| 80 | **Jsh** | InCred Financial Services | Business Analyst | CE | ₹12 LPA (11+1) | 0 | 0 | — | `InCred_BuisnessAnalyst_Jsh.pdf` |
-| 81 | **Harsh Kasliwal** | InCred Financial Services | Business Analyst | EXTC | 12 LPA (11 + 1 Lakh Bonus) | 11 | 1 | Yes (Verified Link) | `IncredFinance_BusinessAnalyst_HarshKasliwal.pdf` |
-| 82 | **Nimit Sheth** | IDFC FIRST Bank | Offer Type: | CSE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 3 | 0 | — | `Application_Engineer_IDFC_Nimit_Sheth.pdf` |
-| 83 | **Anurag Nair CSE AIML** | IDFC FIRST Bank | Application Engineer | CSE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 8 | 0 | — | `IDFC_ApplicationEngineer_AnuragNair.pdf` |
-| 84 | **Maaz Malik CSE (AIML)** | IDFC FIRST Bank | Application Engineer | CSE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 16 | 2 | — | `IDFC_ApplicationEngineer_MaazMalik.pdf` |
-| 85 | **Ritvik Sharma** | IDFC FIRST Bank | Application Engineer | CSE | 18.1 LPA (14L Base + 2L Signing bonus + 2.1L Variable Pay) | 1 | 0 | — | `IDFC_ApplicationEngineer_RitvikSharma.pdf` |
-| 86 | **Shrihari Joshi CSE AIML** | IDFC FIRST Bank | Application Engineer | CE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 4 | 0 | — | `IDFC_ApplicationEngineer_ShrihariJoshi.pdf` |
-| 87 | **Vaishnavi Prabha Chettiar** | IDFC FIRST Bank | Application Engineer | CSE | 18.10 (Fixed 14LPA + Joining Bonus 2L + Variable 2.10) | 11 | 0 | — | `IDFC_ApplicationEngineer_VaishnaviChettiar.pdf` |
-| 88 | **Trishna Tiwari** | IDFC FIRST Bank | Application Engineer | CSE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 1 | 0 | — | `IDFC_Application_Engineer_Trishna_Tiwari.pdf` |
-| 89 | **Tushar Raja My Resume** | IDFC FIRST Bank | Application Developer | CE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 6 | 0 | — | `IDFC_TusharRaja_ApplicationEngineer.pdf` |
-| 90 | **Harshal Vhatkar** | Baker Hughes | Digital Technology Intern | CE | 11 LPA | 8 | 0 | — | `BakerHughes_DTI_HarshalVhatkar.pdf` |
-| 91 | **Shrutika Yeole** | Baker Hughes | Digital Technology Intern | EXTC | 11 lpa | 3 | 0 | — | `BakerHughes_DTI_ShrutikaYeole.pdf` |
-| 92 | **Yaddhnyesh Choudhari CSE (DS)** | Baker Hughes | - Digital Technology Intern (DTI) | CE | - Rs.11,00,000 per annum | 0 | 0 | — | `BakerHughes_DTI_YaddhnyeshChoudhari.pdf` |
-| 93 | **Shloka Mardikar** | Baker Hughes | Digital Technology Intern | CSE | 11 lpa | 4 | 0 | — | `Digital_Technology_Intern_Shloka_Mardikar.pdf` |
-| 94 | **Aarya Deshmukh CSE AIML** | TransUnion | Software Engineer | CSE | ₹8 LPA + ₹1 Lakh joinning | 0 | 0 | — | `TransUnion_Aarya_Deshmukh.pdf` |
-| 95 | **Praveen Vishwakarma CSE AIML** | TransUnion | Developer/Quality Engineer | CE | 9 lpa | 1 | 0 | — | `TransUnion_Dev-QE_PraveenVishwakarma.pdf` |
-| 96 | **Dhruv Abhijeet Baljekar** | TransUnion | IT Developer/ Quality Engineer | CSE | 9 LPA | 8 | 0 | — | `TransUnion_ITD-QE_DhruvBaljekar.pdf` |
-| 97 | **Soham Sachin Vichare** | TransUnion | Software Engineer | CSE | 9 LPA | 0 | 0 | — | `TransUnion_Soham_Vichare_InterviewExp.pdf` |
-| 98 | **Varsha Bojja] [Comps]** | TransUnion | Quality/Developer | CE | 8lakh CTC + 1lakh joining bonus | 0 | 0 | — | `TransUnion_Varsha_Bojja.pdf` |
-| 99 | **Jagdish Aade** | TransUnion | Engineering - Web / Software | EXTC | ₹ 900000 per Annum | 13 | 0 | — | `TransUnion_softwareEngineer_Jagdish_Aade.pdf` |
-| 100 | **Deep Patel** | Barclays | Software Developer | CSE | 13.5 LPA | 4 | 0 | — | `Barclays_TechDeveloper_Deep Patel.pdf` |
-| 101 | **Harsh Shah** | Barclays | Software Development Engineer (SDE) | CE | ₹13.5 LPA | 3 | 1 | — | `Barclays_TechDeveloper_Harsh_Shah.pdf` |
-| 102 | **Mahesh Panda** | Barclays | SDE | CE | 13.5 LPA | 2 | 0 | — | `Barclays_TechDeveloper_Mahesh_Panda (1).pdf` |
-| 103 | **Nidhi Jangid** | Barclays | SDE | CSE | 13.5 LPA | 5 | 0 | — | `Barclays_TechDeveloper_Nidhi_Jangid.pdf` |
-| 104 | **Nishita Sanghavi** | Barclays | SDE | CSE | 13.5 LPA | 9 | 0 | — | `Barclays_TechDeveloper_Nishita_Sanghavi.pdf` |
-| 105 | **Aayushman Dash** | Barclays | Technology Developer | CSE | 13.5 LPA | 16 | 1 | — | `Barclays_TechnologyDeveloper_Aayushman_Dash.pdf` |
-| 106 | **Aniket Bande** | Barclays | SDE | CSE | 13.5 LPA | 6 | 0 | — | `Barclays_TechnologyDeveloper_AniketBande.pdf` |
-| 107 | **Keya Dey** | Barclays | Technology Developer Graduate | CSE | 13.5 LPA | 2 | 0 | — | `Barclays_TechnologyDeveloper_KeyaDey.pdf` |
-| 108 | **Saurabh Gupta CSE DS** | Barclays | SDE | CE | 13.5 LPA | 14 | 0 | — | `Barclays_TechnologyDeveloper_SaurabhGupta.pdf` |
-| 109 | **Shreya Mehta** | Barclays | SDE | CSE | 13.5 LPA | 11 | 0 | — | `Barclays_TechnologyDeveloper_ShreyaMehta.pdf` |
-| 110 | **Siddharth Thikekar** | Barclays | Technology Developer Graduate | CSE | 13.5 LPA | 6 | 0 | — | `Barclays_TechnologyDeveloper_Siddharth Thikekar.pdf` |
-| 111 | **Tejas Billava** | Barclays | Technology Developer Graduate | CE | 13.5 LPA | 4 | 0 | — | `Barclays_TechnologyDeveloper_TejasBIllava.pdf` |
-| 112 | **Karampure** | MSCI | Technology and Data Operations Intern | CE | ₹14.68 LPA (Base: ₹13.2 LPA) | 9 | 0 | — | `MSCI_Technology&DataOperationIntern_Shubham_Karampure.pdf` |
-| 113 | **Aroosh Joshi CSE DS** | MSCI | Technology and Data Operations Intern | CSE | 14.68 LPA (Base 13.2 LPA) | 6 | 0 | — | `MSCI_Technology&DataOpsIntern_ Aroosh.pdf` |
-| 114 | **Pulkit Dwivedi** | MSCI | Technology & Data Operations Intern | EXTC | 14.67 LPA (13.2 base) | 1 | 0 | — | `MSCI_Technology&DataOpsIntern_PulkitDwivedi.pdf` |
-| 115 | **Tanvi Patil CSE AIML** | MSCI | Technology & Data Operations Intern | CE | 14.68 LPA (Base 13.2 LPA) | 8 | 0 | — | `MSCI_TechnologyIntern_TanviPatil.pdf` |
-| 116 | **Mohit Anil Jangale** | TransBnk | Software Developer (SDE) | CSE | 8 LPA | 6 | 0 | — | `TransBnk_SDE_Mohit_Jangale.pdf` |
-| 117 | **Sheeba Shaikh CSE AIML** | TransBnk | Software Developer | CSE | 8 LPA | 15 | 0 | — | `TransBnk_SDE_Sheeba_Shaikh.pdf` |
-| 118 | **Sujal Das CE** | TransBnk | Software Developer | CE | 8 lpa | 1 | 0 | — | `TransBnk_software_developer_Sujal_Das.docx` |
-| 119 | **Amogh Mathpati BE** | KPMG | Analyst - Digital Enablement | EXTC | 5 LPA Fixed + Variable + Other benefits | 0 | 0 | — | `KPMG_Digital-enablement_Amogh Mathpati.pdf` |
-| 120 | **Das** | KPMG | Analyst - Tech Enablement | CSE | 5 LPA Fixed + Variable (in hand) + Other Benefits + Allowances (based on | 1 | 0 | — | `KPMG_Digital_Tech_Enablemnet_Parnika_Das.pdf` |
-| 121 | **Kunal Bhoi CSE (AIML)** | BrowserStack | Software Engineer | EXTC | Not Mentioned (But we got to know from seniors that the oﬀer is around 22-22.5 LPA) | 11 | 1 | — | `BrowserStack_Kunal_Bhoi.pdf` |
-| 122 | **Param Gogia CSE AIML** | BrowserStack | Software Developer: Backend | CSE | upto 22 lpa | 1 | 0 | — | `BrowserStack_Param_Gogia.pdf` |
-| 123 | **Paraswar** | BrowserStack | Software Engineer Backend | CE | 22.5 LPA [ ₹16 LPA (Base) + ₹6.5 LPA (Retainment Bonus) ] | 7 | 0 | — | `BrowserStack_Software Engineer-Backend_Aniket_Paraswar_CE_2023301011.pdf` |
-| 124 | **Aashay Jadhav CSE AIML** | Nomura | CDO (Data Engineer/ Data Science Analyst) | CSE | 13.66 (2L signing Bonus + 11.66 Base) | 8 | 1 | — | `Nomura_CDO_Aashay_Jadhav.pdf` |
-| 125 | **Anushka Shendge** | Nomura | CDO (Data Engineer/ Data Science Analyst) | CSE | 13.66 (2L signing Bonus + 11.66 Base) | 6 | 0 | — | `Nomura_CDO_AnushkaShendge.pdf` |
-| 126 | **Aman Kanojia** | Nomura | GM (Global Markets) | CSE | 13.66 LPA (11.66L Base + 2L Joining) | 12 | 1 | — | `Nomura_GM_AmanKanojia.pdf` |
-| 127 | **Soham Parekh** | Nomura | GM | CSE | 13.66LPA(2L Joining Bonus + 11.66L Base) | 5 | 0 | — | `Nomura_GM_SohamParekh.pdf` |
-| 128 | **Iffat Patel** | Nomura | ITD | CE | 11.6 + 2(Joining Bonus) LPA | 1 | 0 | — | `Nomura_ITD_Iffat_Patel .pdf` |
-| 129 | **Shardul Mahindrakar** | Nomura | ITD | CE | 13.66 LPA | 1 | 0 | — | `Nomura_ITD_ShardulMahindrakar.pdf` |
+| 63 | **Sharma** | General Mills | Summer | CE | Disclosed in Interview | 0 | 0 | — | `GeneralMills_Summer_Intern_Muskan_Sharma.pdf` |
+| 64 | **Shreya Rathod** | General Mills | Summer | CE | Disclosed in Interview | 0 | 0 | — | `GeneralMills_Summer_Intern_Shreya_Rathod.pdf` |
+| 65 | **Palash Mahajan** | IDfy | SDE | CE | 10 LPA | 5 | 0 | — | `IDfy_SoftwareEngineer_PalashMahajan.pdf` |
+| 66 | **Kush Nhayade** | Equity Data Science (EDS) | SDE | CE | 15 LPA | 0 | 0 | — | `EDS_SDE_Kush Nhayade.pdf` |
+| 67 | **Hardik Aneja** | Quantiphi | Business Analyst | CSE-DS | 8.5LPA | 0 | 0 | — | `Quantiphi_BA_Hardik Aneja (3).pdf` |
+| 68 | **Deepak Kumar Yadav** | Quantiphi | Framework Engineer | CE | 8.5 LPA - 6.5L (Base) + 2L (QCDP) | 0 | 0 | — | `Quantiphi_FE_DeepakKumarYadav.pdf` |
+| 69 | **Ronak Walinjkar** | Quantiphi | Framework Engineer | CSE-DS | 8.5 LPA | 5 | 0 | — | `Quantiphi_FE_RonakWalinjkar.pdf` |
+| 70 | **Harsh Dugar** | Quantiphi | Machine Learning Engineer | EXTC | 8.5 LPA - 6.5L (Base) + 2L (Bonus/QCDP) | 2 | 0 | — | `Quantiphi_MLE_HarshDugar.pdf` |
+| 71 | **Vedant Kulkarni** | ISS STOXX | Data Quality | EXTC | 12.9 Base + 1.1 (PF and Gratuity) = 14L + Variable bonus (not mentioned yet) | 5 | 0 | — | `ISS-STOXX_DataQuality_VedantKulkarni.pdf` |
+| 72 | **Aryan Kanyawar** | ISS STOXX | Software Engineer | CSE-DS | 12.9 Base + 1.1 (PF and Gratuity) = 14L + Variable bonus (not mentioned yet) | 7 | 0 | — | `ISS-STOXX_SDE_Aryan_Kanyawar.pdf` |
+| 73 | **Paarth Dalvi CSE AIML** | ISS STOXX | SDE | CE | 12.9 LPA | 1 | 0 | — | `ISS-STOXX_SDE_PaarthDalvi.pdf` |
+| 74 | **Yash Rawat CSE- DS** | ISS STOXX | Software Engineer | CE | : 12.9 Base + 1.1 (PF and Gratuity) = 14L | 4 | 0 | — | `ISS-Stoxx_SDE_YashRawat.pdf` |
+| 75 | **Rashi Lodha** | ISS STOXX | Software Testing Engineer | CE | 14 lpa | 0 | 0 | — | `ISS-Stoxx_STE_RashiLodha.pdf` |
+| 76 | **Alpha Rane** | ISS STOXX | Software Engineer | CSE-AIML | 12.9 Base + 1.1 (PF and Gratuity) = 14L + Variable bonus (not mentioned yet) | 6 | 0 | — | `ISS_STOXX_SE_AlphaRane.pdf` |
+| 77 | **Mohit Karande CSE AIML** | ISS STOXX | Software Engineer | CSE-AIML | 14 lpa(12.9+1.1) | 1 | 0 | — | `ISS_STOXX_SE_MohitKarande (2).pdf` |
+| 78 | **Aditi Rao TE** | Russell Investments | Application Developer Intern | EXTC | Undisclosed | 13 | 1 | — | `Russell_ApplicationDeveloperIntern_AditiRao.pdf` |
+| 79 | **Sanjeev Ratnani** | Russell Investments | Technology Intern (Application Developer) | CE | Not disclosed yet | 2 | 0 | — | `Russell_ApplicationDeveloper_SanjeevRatnani.pdf` |
+| 80 | **Atharva Tamhankar** | Russell Investments | Technology Intern | CE | Disclosed in Interview | 0 | 0 | — | `Russell_DataAutomationIntern_AtharvaTamhankar.pdf` |
+| 81 | **Jsh** | InCred Financial Services | Business Analyst | CE | ₹12 LPA (11+1) | 0 | 0 | — | `InCred_BuisnessAnalyst_Jsh.pdf` |
+| 82 | **Harsh Kasliwal** | InCred Financial Services | Business Analyst | EXTC | 12 LPA (11 + 1 Lakh Bonus) | 11 | 1 | Yes (Verified Link) | `IncredFinance_BusinessAnalyst_HarshKasliwal.pdf` |
+| 83 | **Nimit Sheth** | IDFC FIRST Bank | Offer Type: | CSE-AIML | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 3 | 0 | — | `Application_Engineer_IDFC_Nimit_Sheth.pdf` |
+| 84 | **Anurag Nair CSE AIML** | IDFC FIRST Bank | Application Engineer | CSE-AIML | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 8 | 0 | — | `IDFC_ApplicationEngineer_AnuragNair.pdf` |
+| 85 | **Maaz Malik CSE (AIML)** | IDFC FIRST Bank | Application Engineer | CSE-AIML | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 12 | 1 | — | `IDFC_ApplicationEngineer_MaazMalik.pdf` |
+| 86 | **Ritvik Sharma** | IDFC FIRST Bank | Application Engineer | CSE-DS | 18.1 LPA (14L Base + 2L Signing bonus + 2.1L Variable Pay) | 1 | 0 | — | `IDFC_ApplicationEngineer_RitvikSharma.pdf` |
+| 87 | **Shrihari Joshi CSE AIML** | IDFC FIRST Bank | Application Engineer | CE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 4 | 0 | — | `IDFC_ApplicationEngineer_ShrihariJoshi.pdf` |
+| 88 | **Vaishnavi Prabha Chettiar** | IDFC FIRST Bank | Application Engineer | CSE-AIML | 18.10 (Fixed 14LPA + Joining Bonus 2L + Variable 2.10) | 10 | 0 | — | `IDFC_ApplicationEngineer_VaishnaviChettiar.pdf` |
+| 89 | **Trishna Tiwari** | IDFC FIRST Bank | Application Engineer | CSE-DS | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 1 | 0 | — | `IDFC_Application_Engineer_Trishna_Tiwari.pdf` |
+| 90 | **Tushar Raja My Resume** | IDFC FIRST Bank | Application Developer | CE | 18.10 LPA (Fixed: 14 LPA + Joining Bonus: 2 L + Variable: 2.10 LPA) | 6 | 0 | — | `IDFC_TusharRaja_ApplicationEngineer.pdf` |
+| 91 | **Harshal Vhatkar** | Baker Hughes | Digital Technology Intern | CE | 11 LPA | 8 | 0 | — | `BakerHughes_DTI_HarshalVhatkar.pdf` |
+| 92 | **Shrutika Yeole** | Baker Hughes | Digital Technology Intern | EXTC | 11 lpa | 3 | 0 | — | `BakerHughes_DTI_ShrutikaYeole.pdf` |
+| 93 | **Yaddhnyesh Choudhari CSE (DS)** | Baker Hughes | - Digital Technology Intern (DTI) | CE | - Rs.11,00,000 per annum | 0 | 0 | — | `BakerHughes_DTI_YaddhnyeshChoudhari.pdf` |
+| 94 | **Shloka Mardikar** | Baker Hughes | Digital Technology Intern | CSE-AIML | 11 lpa | 3 | 0 | — | `Digital_Technology_Intern_Shloka_Mardikar.pdf` |
+| 95 | **Aarya Deshmukh CSE AIML** | TransUnion | Software Engineer | CSE-AIML | ₹8 LPA + ₹1 Lakh joinning | 0 | 0 | — | `TransUnion_Aarya_Deshmukh.pdf` |
+| 96 | **Praveen Vishwakarma CSE AIML** | TransUnion | Developer/Quality Engineer | CE | 9 lpa | 1 | 0 | — | `TransUnion_Dev-QE_PraveenVishwakarma.pdf` |
+| 97 | **Dhruv Abhijeet Baljekar** | TransUnion | IT Developer/ Quality Engineer | CSE-AIML | 9 LPA | 7 | 0 | — | `TransUnion_ITD-QE_DhruvBaljekar.pdf` |
+| 98 | **Soham Sachin Vichare** | TransUnion | Software Engineer | CSE-DS | 9 LPA | 0 | 0 | — | `TransUnion_Soham_Vichare_InterviewExp.pdf` |
+| 99 | **Varsha Bojja] [Comps]** | TransUnion | Quality/Developer | CE | 8lakh CTC + 1lakh joining bonus | 0 | 0 | — | `TransUnion_Varsha_Bojja.pdf` |
+| 100 | **Jagdish Aade** | TransUnion | Engineering - Web / Software | EXTC | ₹ 900000 per Annum | 13 | 0 | — | `TransUnion_softwareEngineer_Jagdish_Aade.pdf` |
+| 101 | **Deep Patel** | Barclays | Software Developer | CSE-AIML | 13.5 LPA | 4 | 0 | — | `Barclays_TechDeveloper_Deep Patel.pdf` |
+| 102 | **Harsh Shah** | Barclays | Software Development Engineer (SDE) | CE | ₹13.5 LPA | 3 | 1 | — | `Barclays_TechDeveloper_Harsh_Shah.pdf` |
+| 103 | **Mahesh Panda** | Barclays | SDE | CE | 13.5 LPA | 2 | 0 | — | `Barclays_TechDeveloper_Mahesh_Panda (1).pdf` |
+| 104 | **Nidhi Jangid** | Barclays | SDE | CSE-DS | 13.5 LPA | 5 | 0 | — | `Barclays_TechDeveloper_Nidhi_Jangid.pdf` |
+| 105 | **Nishita Sanghavi** | Barclays | SDE | CSE-DS | 13.5 LPA | 9 | 0 | — | `Barclays_TechDeveloper_Nishita_Sanghavi.pdf` |
+| 106 | **Aayushman Dash** | Barclays | Technology Developer | CSE-AIML | 13.5 LPA | 16 | 1 | — | `Barclays_TechnologyDeveloper_Aayushman_Dash.pdf` |
+| 107 | **Aniket Bande** | Barclays | SDE | CSE-AIML | 13.5 LPA | 6 | 0 | — | `Barclays_TechnologyDeveloper_AniketBande.pdf` |
+| 108 | **Keya Dey** | Barclays | Technology Developer Graduate | CSE-DS | 13.5 LPA | 2 | 0 | — | `Barclays_TechnologyDeveloper_KeyaDey.pdf` |
+| 109 | **Saurabh Gupta CSE DS** | Barclays | SDE | CE | 13.5 LPA | 12 | 0 | — | `Barclays_TechnologyDeveloper_SaurabhGupta.pdf` |
+| 110 | **Shreya Mehta** | Barclays | SDE | CSE-AIML | 13.5 LPA | 10 | 0 | — | `Barclays_TechnologyDeveloper_ShreyaMehta.pdf` |
+| 111 | **Siddharth Thikekar** | Barclays | Technology Developer Graduate | CSE-DS | 13.5 LPA | 6 | 0 | — | `Barclays_TechnologyDeveloper_Siddharth Thikekar.pdf` |
+| 112 | **Tejas Billava** | Barclays | Technology Developer Graduate | CE | 13.5 LPA | 4 | 0 | — | `Barclays_TechnologyDeveloper_TejasBIllava.pdf` |
+| 113 | **Karampure** | MSCI | Technology and Data Operations Intern | CE | ₹14.68 LPA (Base: ₹13.2 LPA) | 9 | 0 | — | `MSCI_Technology&DataOperationIntern_Shubham_Karampure.pdf` |
+| 114 | **Aroosh Joshi CSE DS** | MSCI | Technology and Data Operations Intern | CSE-DS | 14.68 LPA (Base 13.2 LPA) | 5 | 0 | — | `MSCI_Technology&DataOpsIntern_ Aroosh.pdf` |
+| 115 | **Pulkit Dwivedi** | MSCI | Technology & Data Operations Intern | EXTC | 14.67 LPA (13.2 base) | 1 | 0 | — | `MSCI_Technology&DataOpsIntern_PulkitDwivedi.pdf` |
+| 116 | **Tanvi Patil CSE AIML** | MSCI | Technology & Data Operations Intern | CE | 14.68 LPA (Base 13.2 LPA) | 8 | 0 | — | `MSCI_TechnologyIntern_TanviPatil.pdf` |
+| 117 | **Mohit Anil Jangale** | TransBnk | Software Developer (SDE) | CSE-DS | 8 LPA | 6 | 0 | — | `TransBnk_SDE_Mohit_Jangale.pdf` |
+| 118 | **Sheeba Shaikh CSE AIML** | TransBnk | Software Developer | CSE-AIML | 8 LPA | 15 | 0 | — | `TransBnk_SDE_Sheeba_Shaikh.pdf` |
+| 119 | **Sujal Das CE** | TransBnk | Software Developer | CE | 8 lpa | 1 | 0 | — | `TransBnk_software_developer_Sujal_Das.docx` |
+| 120 | **Amogh Mathpati BE** | KPMG | Analyst - Digital Enablement | EXTC | 5 LPA Fixed + Variable + Other benefits | 0 | 0 | — | `KPMG_Digital-enablement_Amogh Mathpati.pdf` |
+| 121 | **Das** | KPMG | Analyst - Tech Enablement | CSE-AIML | 5 LPA Fixed + Variable (in hand) + Other Benefits + Allowances (based on | 1 | 0 | — | `KPMG_Digital_Tech_Enablemnet_Parnika_Das.pdf` |
+| 122 | **Kunal Bhoi CSE (AIML)** | BrowserStack | Software Engineer | EXTC | Not Mentioned (But we got to know from seniors that the oﬀer is around 22-22.5 LPA) | 10 | 1 | — | `BrowserStack_Kunal_Bhoi.pdf` |
+| 123 | **Param Gogia CSE AIML** | BrowserStack | Software Developer: Backend | CSE-AIML | upto 22 lpa | 1 | 0 | — | `BrowserStack_Param_Gogia.pdf` |
+| 124 | **Paraswar** | BrowserStack | Software Engineer Backend | CE | 22.5 LPA [ ₹16 LPA (Base) + ₹6.5 LPA (Retainment Bonus) ] | 7 | 0 | — | `BrowserStack_Software Engineer-Backend_Aniket_Paraswar_CE_2023301011.pdf` |
+| 125 | **Aashay Jadhav CSE AIML** | Nomura | CDO (Data Engineer/ Data Science Analyst) | CSE-AIML | 13.66 (2L signing Bonus + 11.66 Base) | 8 | 1 | — | `Nomura_CDO_Aashay_Jadhav.pdf` |
+| 126 | **Anushka Shendge** | Nomura | CDO (Data Engineer/ Data Science Analyst) | CSE-AIML | 13.66 (2L signing Bonus + 11.66 Base) | 5 | 0 | — | `Nomura_CDO_AnushkaShendge.pdf` |
+| 127 | **Aman Kanojia** | Nomura | GM (Global Markets) | CSE-AIML | 13.66 LPA (11.66L Base + 2L Joining) | 11 | 1 | — | `Nomura_GM_AmanKanojia.pdf` |
+| 128 | **Soham Parekh** | Nomura | GM | CSE-DS | 13.66LPA(2L Joining Bonus + 11.66L Base) | 5 | 0 | — | `Nomura_GM_SohamParekh.pdf` |
+| 129 | **Iffat Patel** | Nomura | ITD | CE | 11.6 + 2(Joining Bonus) LPA | 1 | 0 | — | `Nomura_ITD_Iffat_Patel .pdf` |
+| 130 | **Shardul Mahindrakar** | Nomura | ITD | CE | 13.66 LPA | 1 | 0 | — | `Nomura_ITD_ShardulMahindrakar.pdf` |
+| 131 | **Karmarkar** | Nomura | ITD | EXTC | 11.6 + 2(Joining Bonus) LPA | 0 | 0 | — | `Nomura_ITD_Soham_Karmarkar.pdf` |
 
 ---
 
@@ -191,9 +193,7 @@
 
 | File Name | Folder | Reason | Action Taken |
 | :--- | :--- | :--- | :--- |
-| `GeneralMills_Summer_Intern_Muskan_Sharma.pdf` | General_Mills_Summer_Interns_2026 | Image/Scanned stream without embed text | Preserved for manual review; omitted from automated import |
 | `ISS_STOXX_SET.docx` | ISS_2026 | Unfilled TPO questionnaire template | Excluded from public stories; requires student completion |
-| `Nomura_ITD_Soham_Karmarkar.pdf` | Nomura_2026 | Image/Scanned stream without embed text | Preserved for manual review; omitted from automated import |
 
 ---
 
