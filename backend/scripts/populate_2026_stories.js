@@ -10,7 +10,7 @@ const STORIES_FILE = path.join(__dirname, '../../reports/extracted_placement_202
 async function main() {
   const isDryRun = process.argv.includes('--dry-run');
   console.log(`\n======================================================`);
-  console.log(`LOOP 2026 Verified Placement Stories Ingestion Engine`);
+  console.log(`LOOP 2026 Verified Placement Stories & Resources Ingestion Engine`);
   console.log(`Mode: ${isDryRun ? 'DRY-RUN (Validation Only)' : 'LIVE DATABASE MIGRATION & REPAIR'}`);
   console.log(`======================================================\n`);
 
@@ -80,6 +80,10 @@ async function main() {
         projects: s.journey.projects,
         howSecured: s.journey.howSecured
       },
+      resources: s.resources || [],
+      resume: s.resume || undefined,
+      resumeFile: s.resumeFile || undefined,
+      studyMaterials: s.studyMaterials || [],
       customSections: s.customSections || [],
       uploadedByEmail: 'tpo.verified@spit.ac.in'
     };
@@ -109,6 +113,16 @@ async function main() {
         existing.offerType = storyDataToSet.offerType;
         existing.journey = storyDataToSet.journey;
         existing.customSections = storyDataToSet.customSections;
+        if (storyDataToSet.resources && storyDataToSet.resources.length > 0) {
+          existing.resources = storyDataToSet.resources;
+        }
+        if (storyDataToSet.studyMaterials && storyDataToSet.studyMaterials.length > 0) {
+          existing.studyMaterials = storyDataToSet.studyMaterials;
+        }
+        if (storyDataToSet.resumeFile) {
+          existing.resumeFile = storyDataToSet.resumeFile;
+          existing.resume = storyDataToSet.resume;
+        }
         if (!existing.uploadedByEmail) {
           existing.uploadedByEmail = storyDataToSet.uploadedByEmail;
         }
@@ -162,7 +176,7 @@ async function main() {
     }
   }
 
-  // Verification of sample story: Iffat Patel
+  // Live Verification
   console.log('\n--- Live Verification of Target Story (story_2026_26155894) ---');
   const verifiedStory = await Story.findOne({ id: 'story_2026_26155894' }).lean();
   if (verifiedStory) {
@@ -170,12 +184,10 @@ async function main() {
     console.log(`Name:         ${verifiedStory.name}`);
     console.log(`Company:      ${verifiedStory.company}`);
     console.log(`Package:      ${verifiedStory.package}`);
-    console.log(`CTC:          ${verifiedStory.ctc}`);
-    console.log(`Stipend:      ${verifiedStory.stipend}`);
-    console.log(`Prep Length:  ${verifiedStory.journey?.prep?.length} chars`);
-    console.log(`Prep Preview: ${verifiedStory.journey?.prep?.slice(0, 150)}...`);
-  } else {
-    console.warn('Warning: story_2026_26155894 not found in database.');
+    console.log(`Resources:    ${verifiedStory.resources?.length || 0} attached`);
+    if (verifiedStory.resources && verifiedStory.resources.length > 0) {
+      verifiedStory.resources.forEach((r, idx) => console.log(`  [${r.type}] ${r.name}: ${r.url}`));
+    }
   }
 
   await mongoose.disconnect();
@@ -189,7 +201,7 @@ async function main() {
   if (isDryRun) {
     console.log(`DRY-RUN COMPLETE: 0 writes executed.`);
   } else {
-    console.log(`LIVE MIGRATION COMPLETE: All stories repaired and packages populated.`);
+    console.log(`LIVE MIGRATION COMPLETE: All stories and resources populated.`);
   }
 
   if (errors.length > 0) {

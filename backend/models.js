@@ -38,7 +38,8 @@ const JourneySchema = new mongoose.Schema({
 // Resource Reference Subschema
 const ResourceRefSchema = new mongoose.Schema({
   name: String,
-  type: String
+  type: String,
+  url: String
 }, { _id: false });
 
 // Study Material Subschema
