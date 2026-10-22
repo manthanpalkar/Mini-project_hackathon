@@ -452,7 +452,7 @@ def parse_experience(raw_text, filename, company_folder, full_path):
     if not prep_content and tips_content:
         prep_content = tips_content
     elif not prep_content:
-        prep_content = "Focus consistently on Data Structures & Algorithms, practice company-specific interview problem sets, and master Core Computer Science fundamentals (Operating Systems, DBMS, and Computer Networks)."
+        prep_content = None
 
     # 8. Placement Process (howSecured)
     process_content = ""
@@ -519,7 +519,7 @@ def parse_experience(raw_text, filename, company_folder, full_path):
             "thirdYear": thirdYear,
             "fourthYear": fourthYear,
             "prep": prep_content,
-            "projects": "Core projects and domain architectures discussed in interview rounds.",
+            "projects": None,
             "howSecured": process_content
         },
         "resources": resources,

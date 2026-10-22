@@ -169,79 +169,45 @@ function parsePrepContent(prepText) {
   return { intro, items: categorized, takeaway };
 }
 
-// 5-Stage Recruitment Roadmap Parser
-function parseHowSecuredStages(howSecuredText, story) {
-  const rawText = (howSecuredText || '').replace(/^[🏆🎉💼]\s*/u, '').trim();
-
-  const stages = [
-    {
-      stageNumber: '01',
-      title: 'Resume & Profile Preparation',
-      subtitle: 'ATS-Friendly Formatting & Project Highlights',
-      icon: FileText,
-      accent: '#60a5fa',
-      badgeBg: 'rgba(59, 130, 246, 0.12)',
-      description: 'Carefully formatted standard tech resume, emphasized core projects with measurable impact, highlighted academic CGPA, and tailored skills specifically to the targeted job description.'
-    },
-    {
-      stageNumber: '02',
-      title: 'Company-Specific Technical Prep',
-      subtitle: 'Core Concept Revision & Targeted Question Sets',
-      icon: Cpu,
-      accent: '#c084fc',
-      badgeBg: 'rgba(168, 85, 247, 0.12)',
-      description: 'Researched company culture, typical question styles, revised Operating Systems, DBMS indexing, Computer Networks, and practiced company-tagged DSA problems.'
-    },
-    {
-      stageNumber: '03',
-      title: 'Application & Online Screening',
-      subtitle: 'Campus Drive Shortlisting & Timed Assessment',
-      icon: Target,
-      accent: '#fbbf24',
-      badgeBg: 'rgba(245, 158, 11, 0.12)',
-      description: 'Applied through college placement drive or verified referral. Cleared the initial CGPA cutoff and cracked the timed online assessment covering coding and analytical aptitude.'
-    },
-    {
-      stageNumber: '04',
-      title: 'Technical & Behavioral Interviews',
-      subtitle: 'Live Problem-Solving & Thinking Aloud',
-      icon: UserCheck,
-      accent: '#10b981',
-      badgeBg: 'rgba(16, 185, 129, 0.12)',
-      description: 'Engaged with interviewers by explaining thought processes aloud, constructing clean algorithmic solutions, discussing system trade-offs, and demonstrating cultural alignment.'
-    },
-    {
-      stageNumber: '05',
-      title: 'Final Selection & Offer Rollout',
-      subtitle: 'Evaluation, Verification & Full-Time Conversion',
-      icon: Trophy,
-      accent: '#D4FF32',
-      badgeBg: 'rgba(212, 255, 50, 0.15)',
-      description: 'Converted the recruitment process into a confirmed placement offer. Demonstrates how consistent daily effort over semesters produces exceptional career milestones.'
-    }
-  ];
-
-  if (rawText) {
-    const sentences = rawText.match(/[^.!?]+[.!?]+/g) || [rawText];
-    sentences.forEach(s => {
-      const sentence = s.trim();
-      const lower = sentence.toLowerCase();
-      if (lower.includes('resume') || lower.includes('portfolio') || lower.includes('highlighted my projects') || lower.includes('tailored')) {
-        stages[0].description = sentence;
-      } else if (lower.includes('before every interview') || lower.includes('researched the company') || lower.includes('revised important concepts') || lower.includes('practiced frequently')) {
-        stages[1].description = sentence;
-      } else if (lower.includes('applied') || lower.includes('shortlisted') || lower.includes('drive') || lower.includes('screening') || lower.includes('campus selection')) {
-        stages[2].description = sentence;
-      } else if (lower.includes('during interviews') || lower.includes('explained my thought process') || lower.includes('clear communication') || lower.includes('honesty') || lower.includes('interviews')) {
-        stages[3].description = sentence;
-      } else if (lower.includes('ultimately helped') || lower.includes('convert') || lower.includes('successful placement') || lower.includes('offer') || lower.includes('ppo')) {
-        stages[4].description = sentence;
-      }
-    });
+// Structured Recruitment Process & Interview Rounds Parser
+function parseHowSecuredRounds(howSecuredText, story) {
+  if (!howSecuredText || typeof howSecuredText !== 'string') {
+    return { rounds: [], narrative: '', structuredRounds: story?.interviewRounds || null };
   }
 
-  const rounds = story?.interviewRounds || null;
-  return { stages, rawText, rounds };
+  const rawText = howSecuredText.replace(/^[🏆🎉💼]\s*/u, '').trim();
+  if (!rawText) {
+    return { rounds: [], narrative: '', structuredRounds: story?.interviewRounds || null };
+  }
+
+  // Split on round / stage headers:
+  // e.g. "1. [Aptitude Round]", "1. Pre-placement Talk", "Round 1:", "Stage 1:", "Technical Round 1:", etc.
+  const roundSplitRegex = /(?:^|\n\s*\n+)(?=(?:(?:Round|Stage|Step)\s*\d+|[0-9]+[\.\)]\s*(?:\[[^\]]+\]|[A-Z][a-zA-Z\s\(\)\/\-]{2,40})))/i;
+
+  const segments = rawText.split(roundSplitRegex).map(s => s.trim()).filter(Boolean);
+
+  if (segments.length >= 2) {
+    const rounds = segments.map((seg, idx) => {
+      const lines = seg.split('\n').map(l => l.trim()).filter(Boolean);
+      let title = lines[0] || `Round ${idx + 1}`;
+      let body = lines.slice(1).join('\n\n');
+
+      const titleMatch = title.match(/^(?:(?:Round|Stage|Step)\s*\d+[:\-]?|[0-9]+[\.\)])\s*(?:\[([^\]]+)\]|(.*))$/i);
+      if (titleMatch) {
+        title = (titleMatch[1] || titleMatch[2] || `Round ${idx + 1}`).trim();
+      }
+      if (!title) title = `Round ${idx + 1}`;
+
+      return {
+        roundNumber: idx + 1,
+        title,
+        content: body || lines[0]
+      };
+    });
+    return { rounds, narrative: '', structuredRounds: story?.interviewRounds || null };
+  }
+
+  return { rounds: [], narrative: rawText, structuredRounds: story?.interviewRounds || null };
 }
 
 // Advice to Juniors Parser
@@ -512,7 +478,6 @@ export default function StoryDetail() {
         'section-secured',
         'section-advice',
         'section-hackathons',
-        'section-takeaways',
         'section-resources',
         'section-resume',
         'section-materials'
@@ -1266,14 +1231,28 @@ export default function StoryDetail() {
         );
         const hasStudyMaterials = Array.isArray(story?.studyMaterials) && story.studyMaterials.length > 0;
 
+        const hasPrep = Boolean(
+          story?.journey?.prep &&
+          story.journey.prep.trim() &&
+          !story.journey.prep.includes('Focus consistently on Data Structures & Algorithms, practice company-specific')
+        );
+        const hasProjects = Boolean(
+          story?.journey?.projects &&
+          story.journey.projects.trim() &&
+          story.journey.projects !== 'Core projects and domain architectures discussed in interview rounds.'
+        );
+        const hasSecured = Boolean(
+          story?.journey?.howSecured &&
+          story.journey.howSecured.trim()
+        );
+
         const navSections = [
           ...(availableMilestones.length > 0 ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
-          { id: 'section-prep', label: 'Prep Strategy', icon: Award },
-          ...(story?.journey?.projects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
-          { id: 'section-secured', label: 'How Secured', icon: Layers },
+          ...(hasPrep ? [{ id: 'section-prep', label: 'Prep Strategy', icon: Award }] : []),
+          ...(hasProjects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
+          ...(hasSecured ? [{ id: 'section-secured', label: 'How Secured', icon: Layers }] : []),
           ...(story?.customSections?.some(s => s.title && s.title.toLowerCase().includes('advice')) ? [{ id: 'section-advice', label: 'Advice', icon: Lightbulb }] : []),
           ...(story?.customSections?.some(s => s.title && (s.title.toLowerCase().includes('hackathon') || s.title.toLowerCase().includes('competition'))) ? [{ id: 'section-hackathons', label: 'Hackathons', icon: Trophy }] : []),
-          { id: 'section-takeaways', label: 'Key Takeaways', icon: Sparkles },
           ...(story?.resources && story.resources.length > 0 ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
           ...(hasResume ? [{ id: 'section-resume', label: 'Resume', icon: FileText }] : []),
           ...(hasStudyMaterials ? [{ id: 'section-materials', label: 'Study Materials', icon: BookOpen }] : [])
@@ -1343,19 +1322,28 @@ export default function StoryDetail() {
       {/* Main Notion-Style Reading Block */}
       <main style={{ fontFamily: 'var(--font-sans)' }}>
         
-        {/* Intro Highlight (Notion Callout) */}
-        <div className="glass-panel" style={{
-          padding: '1.25rem 1.75rem',
-          borderRadius: '16px',
-          marginBottom: '2.25rem',
-          borderLeft: '4px solid var(--text-primary)',
-          fontSize: '1.05rem',
-          lineHeight: '1.7',
-          color: 'var(--text-secondary)',
-          fontStyle: 'italic'
-        }}>
-          "My biggest advice to SPIT juniors is to stay consistent. Don't wait for companies to arrive. Start building projects in your second year and begin coding practice daily. Your hard work will compounding."
-        </div>
+        {/* Verified Student Quote Callout - Only rendered if candidate provided genuine advice/quote */}
+        {(() => {
+          const adviceSection = story?.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
+          const adviceText = adviceSection?.content || story?.advice;
+          const parsed = parseAdviceContent(adviceText);
+          const quoteText = story?.quote || story?.adviceQuote || parsed?.quote;
+          if (!quoteText) return null;
+          return (
+            <div className="glass-panel" style={{
+              padding: '1.25rem 1.75rem',
+              borderRadius: '16px',
+              marginBottom: '2.25rem',
+              borderLeft: '4px solid var(--text-primary)',
+              fontSize: '1.05rem',
+              lineHeight: '1.7',
+              color: 'var(--text-secondary)',
+              fontStyle: 'italic'
+            }}>
+              "{quoteText}"
+            </div>
+          );
+        })()}
 
         {/* 4-Year Journey Timeline - Only rendered when genuine academic year milestones exist */}
         {(() => {
@@ -1562,122 +1550,124 @@ export default function StoryDetail() {
           );
         })()}
 
-        {/* Preparation Strategy & Study Routine */}
-        <section id="section-prep" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <Award size={13} />
-                Daily Regimen & Milestones
-              </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Award size={22} style={{ color: 'var(--text-primary)' }} />
-                Preparation Strategy & Study Routine
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Structured study hours, DSA problem-solving techniques, and core subjects revision
-              </p>
-            </div>
-          </div>
-
-          {(() => {
-            const { intro, items, takeaway } = parsePrepContent(story.journey?.prep);
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {intro && (
-                  <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-                    {intro}
-                  </p>
-                )}
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                  {items.map((item) => {
-                    const ItemIcon = item.icon;
-                    return (
-                      <div
-                        key={item.id}
-                        className="editorial-card"
-                        style={{
-                          padding: '1.25rem',
-                          borderRadius: '14px',
-                          border: `1px solid ${item.accentBorder || 'var(--border-color)'}`,
-                          backgroundColor: 'var(--bg-surface)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.75rem',
-                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              padding: '0.2rem 0.55rem',
-                              borderRadius: '8px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              backgroundColor: item.badgeColor,
-                              color: item.textColor
-                            }}
-                          >
-                            <ItemIcon size={12} />
-                            {item.category}
-                          </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            #{String(item.id + 1).padStart(2, '0')}
-                          </span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.96rem', color: 'var(--text-primary)', lineHeight: 1.6, fontWeight: 500 }}>
-                          {item.text}
-                        </p>
-                      </div>
-                    );
-                  })}
+        {/* Preparation Strategy & Study Routine - Only rendered if genuine strategy exists */}
+        {story.journey?.prep && story.journey.prep.trim() && !story.journey.prep.includes('Focus consistently on Data Structures') && (
+          <section id="section-prep" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                  <Award size={13} />
+                  Daily Regimen & Milestones
                 </div>
+                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <Award size={22} style={{ color: 'var(--text-primary)' }} />
+                  Preparation Strategy & Study Routine
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                  Structured study hours, DSA problem-solving techniques, and core subjects revision
+                </p>
+              </div>
+            </div>
 
-                {takeaway && (
-                  <div
-                    style={{
-                      marginTop: '0.5rem',
-                      padding: '1.25rem 1.5rem',
-                      borderRadius: '14px',
-                      backgroundColor: 'rgba(16, 185, 129, 0.05)',
-                      border: '1px solid rgba(16, 185, 129, 0.28)',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '1rem'
-                    }}
-                  >
+            {(() => {
+              const { intro, items, takeaway } = parsePrepContent(story.journey?.prep);
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {intro && (
+                    <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                      {intro}
+                    </p>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                    {items.map((item) => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <div
+                          key={item.id}
+                          className="editorial-card"
+                          style={{
+                            padding: '1.25rem',
+                            borderRadius: '14px',
+                            border: `1px solid ${item.accentBorder || 'var(--border-color)'}`,
+                            backgroundColor: 'var(--bg-surface)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem',
+                            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                backgroundColor: item.badgeColor,
+                                color: item.textColor
+                              }}
+                            >
+                              <ItemIcon size={12} />
+                              {item.category}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              #{String(item.id + 1).padStart(2, '0')}
+                            </span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: '0.96rem', color: 'var(--text-primary)', lineHeight: 1.6, fontWeight: 500 }}>
+                            {item.text}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {takeaway && (
                     <div
                       style={{
-                        padding: '0.5rem',
-                        borderRadius: '10px',
-                        backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                        color: '#10b981',
-                        flexShrink: 0
+                        marginTop: '0.5rem',
+                        padding: '1.25rem 1.5rem',
+                        borderRadius: '14px',
+                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.28)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '1rem'
                       }}
                     >
-                      <Lightbulb size={18} />
+                      <div
+                        style={{
+                          padding: '0.5rem',
+                          borderRadius: '10px',
+                          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                          color: '#10b981',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Lightbulb size={18} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#10b981', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                          Key Takeaway
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.65, fontStyle: 'italic' }}>
+                          "{takeaway}"
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#10b981', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                        Key Takeaway
-                      </h4>
-                      <p style={{ margin: 0, fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.65, fontStyle: 'italic' }}>
-                        "{takeaway}"
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </section>
+                  )}
+                </div>
+              );
+            })()}
+          </section>
+        )}
 
-        {/* Projects Built */}
-        {story.journey?.projects && (
+        {/* Projects Built - Only rendered if genuine verified projects exist */}
+        {story.journey?.projects && story.journey.projects.trim() && story.journey.projects !== 'Core projects and domain architectures discussed in interview rounds.' && (
           <section id="section-projects" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', color: '#c084fc', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
@@ -1696,178 +1686,124 @@ export default function StoryDetail() {
           </section>
         )}
 
-        {/* The Recruitment Process */}
-        <section id="section-secured" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-          <div style={{ marginBottom: '1.75rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-              <Layers size={13} />
-              Recruitment Process Flow
+        {/* The Recruitment Process - Rendered strictly from candidate's verified experience */}
+        {story.journey?.howSecured && story.journey.howSecured.trim() && (
+          <section id="section-secured" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+            <div style={{ marginBottom: '1.75rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <Layers size={13} />
+                Recruitment Process Flow
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Layers size={22} style={{ color: 'var(--text-primary)' }} />
+                How I Secured the Role
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Verified selection process, interview rounds, and preparation experience directly from the candidate
+              </p>
             </div>
-            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <Layers size={22} style={{ color: 'var(--text-primary)' }} />
-              How I Secured the Role
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-              End-to-end placement journey broken into a 5-stage visual recruitment roadmap
-            </p>
-          </div>
 
-          {(() => {
-            const { stages, rounds } = parseHowSecuredStages(story.journey?.howSecured, story);
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {/* 5-Stage Visual Roadmap */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {stages.map((stg, sIdx) => {
-                    const StageIcon = stg.icon;
-                    return (
-                      <div
-                        key={sIdx}
-                        className="editorial-card"
-                        style={{
-                          padding: '1.35rem 1.5rem',
-                          borderRadius: '16px',
-                          border: '1px solid var(--border-color)',
-                          backgroundColor: 'var(--bg-surface)',
-                          position: 'relative',
-                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.1rem' }}>
-                          <div
-                            style={{
-                              width: '42px',
-                              height: '42px',
-                              borderRadius: '12px',
-                              backgroundColor: stg.badgeBg,
-                              color: stg.accent,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 800,
-                              fontSize: '0.95rem',
-                              flexShrink: 0,
-                              border: `1px solid ${stg.accent}33`
-                            }}
-                          >
-                            <StageIcon size={20} />
-                          </div>
+            {(() => {
+              const { rounds, narrative, structuredRounds } = parseHowSecuredRounds(story.journey?.howSecured, story);
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Structured Rounds summary badges if present */}
+                  {structuredRounds && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                      {structuredRounds.onlineAssessment && (
+                        <div className="editorial-card" style={{ padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase' }}>Online Assessment</span>
+                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{structuredRounds.onlineAssessment}</p>
+                        </div>
+                      )}
+                      {structuredRounds.technicalRounds && (
+                        <div className="editorial-card" style={{ padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>Technical Rounds</span>
+                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{structuredRounds.technicalRounds}</p>
+                        </div>
+                      )}
+                      {structuredRounds.hrRound && (
+                        <div className="editorial-card" style={{ padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase' }}>HR / Fitment Round</span>
+                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{structuredRounds.hrRound}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                          <div style={{ flexGrow: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: stg.accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                                  Stage {stg.stageNumber}
-                                </span>
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                                  {stg.title}
-                                </h3>
-                              </div>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                                {stg.subtitle}
-                              </span>
+                  {/* Candidate's Genuine Numbered Interview Rounds */}
+                  {rounds.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {rounds.map((rnd) => (
+                        <div
+                          key={rnd.roundNumber}
+                          className="editorial-card"
+                          style={{
+                            padding: '1.35rem 1.5rem',
+                            borderRadius: '16px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-surface)',
+                            position: 'relative'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.1rem' }}>
+                            <div
+                              style={{
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '12px',
+                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                                color: '#60a5fa',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                fontSize: '0.95rem',
+                                flexShrink: 0,
+                                border: '1px solid rgba(59, 130, 246, 0.25)'
+                              }}
+                            >
+                              {String(rnd.roundNumber).padStart(2, '0')}
                             </div>
 
-                            <p style={{ margin: 0, fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-                              {stg.description}
-                            </p>
-
-                            {stg.stageNumber === '04' && rounds && (
-                              <div style={{ marginTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
-                                {rounds.onlineAssessment && (
-                                  <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
-                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', minWidth: '85px' }}>Round 1 (OA):</span>
-                                    <span>{rounds.onlineAssessment}</span>
-                                  </div>
-                                )}
-                                {rounds.technicalRounds && (
-                                  <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
-                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', minWidth: '85px' }}>Technical:</span>
-                                    <span>{rounds.technicalRounds}</span>
-                                  </div>
-                                )}
-                                {rounds.hrRound && (
-                                  <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
-                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', minWidth: '85px' }}>HR / Fitment:</span>
-                                    <span>{rounds.hrRound}</span>
-                                  </div>
-                                )}
+                            <div style={{ flexGrow: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                  Stage {String(rnd.roundNumber).padStart(2, '0')}
+                                </span>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                  {rnd.title}
+                                </h3>
                               </div>
-                            )}
+
+                              <div style={{ margin: 0, fontSize: '0.96rem', color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+                                {rnd.content}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Detailed Source-Supported Interview Rounds & Narrative */}
-                {story.journey?.howSecured && story.journey.howSecured.trim().length > 30 && (
-                  <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{
-                      padding: '1.5rem',
-                      borderRadius: '16px',
-                      backgroundColor: 'var(--bg-surface)',
-                      border: '1px solid var(--border-color)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '1rem'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                          color: '#60a5fa',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          <BookOpen size={16} />
-                        </div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                          Detailed Interview Breakdown & Experience
-                        </h3>
-                      </div>
-                      <div style={{
-                        fontSize: '0.96rem',
-                        lineHeight: 1.75,
-                        color: 'var(--text-secondary)',
-                        whiteSpace: 'pre-line'
-                      }}>
-                        {story.journey.howSecured}
+                      ))}
+                    </div>
+                  ) : narrative ? (
+                    <div
+                      className="editorial-card"
+                      style={{
+                        padding: '1.5rem 1.75rem',
+                        borderRadius: '16px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-surface)'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.98rem', lineHeight: 1.75, color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
+                        {narrative}
                       </div>
                     </div>
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    padding: '1.25rem 1.5rem',
-                    borderRadius: '14px',
-                    backgroundColor: 'rgba(212, 255, 50, 0.05)',
-                    border: '1px solid rgba(212, 255, 50, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}
-                >
-                  <Sparkles size={22} color="var(--accent-lime-dark)" style={{ flexShrink: 0 }} />
-                  <div>
-                    <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Senior's Interview Strategy
-                    </h4>
-                    <p style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                      "Even when I did not know an exact answer immediately, I explained my thought process aloud with structured honesty. Interviewers evaluate how you navigate ambiguity."
-                    </p>
-                  </div>
+                  ) : null}
                 </div>
-              </div>
-            );
-          })()}
-        </section>
+              );
+            })()}
+          </section>
+        )}
 
         {/* Custom Prompts / Sections: Advice, Hackathons & Others */}
         {story.customSections && story.customSections.map((sec, index) => {
@@ -2170,93 +2106,7 @@ export default function StoryDetail() {
           );
         })}
 
-        {/* Key Takeaways Summary Section */}
-        <section id="section-takeaways" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(212, 255, 50, 0.15)', border: '1px solid rgba(212, 255, 50, 0.35)', color: 'var(--accent-lime-dark)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-              <Sparkles size={13} />
-              Executive Summary
-            </div>
-            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <Sparkles size={22} style={{ color: 'var(--text-primary)' }} />
-              Key Takeaways
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-              The essential principles behind {story.name}'s placement success at {story.company}
-            </p>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-            <div
-              className="editorial-card"
-              style={{
-                padding: '1.35rem',
-                borderRadius: '16px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-surface)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem'
-              }}
-            >
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Target size={18} />
-              </div>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Preparation Formula
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Daily compounding over last-minute cramming. Prioritize Striver SDE sheets, core OS/DBMS fundamentals, and continuous mock interview practice.
-              </p>
-            </div>
-
-            <div
-              className="editorial-card"
-              style={{
-                padding: '1.35rem',
-                borderRadius: '16px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-surface)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem'
-              }}
-            >
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <UserCheck size={18} />
-              </div>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Interview Execution
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Articulate thought processes aloud before coding. Interviewers look for structured problem-solving, honesty on unknowns, and robust communication.
-              </p>
-            </div>
-
-            <div
-              className="editorial-card"
-              style={{
-                padding: '1.35rem',
-                borderRadius: '16px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-surface)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem'
-              }}
-            >
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(212, 255, 50, 0.15)', color: 'var(--accent-lime-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Compass size={18} />
-              </div>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Growth Mindset
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Avoid comparing yourself to peers. Focus on your unique engineering progression, build real projects, and trust the 4-year journey.
-              </p>
-            </div>
-          </div>
-        </section>
 
         {/* Resources Used List */}
         {story.resources && story.resources.length > 0 && (
