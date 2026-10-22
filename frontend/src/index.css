@@ -1030,6 +1030,73 @@ input:-webkit-autofill:active {
   }
 }
 
+/* ==========================================================================
+   Single-Column Long-Form Placement Story Layout (Article Reading Style)
+   ========================================================================== */
+.story-content-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 1.5rem;
+}
+
+.story-section {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 2.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--border-color);
+  scroll-margin-top: 110px;
+}
+
+.story-content-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.5rem 1.75rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.story-content-card:hover {
+  border-color: var(--border-hover);
+}
+
+.story-inline-link {
+  color: var(--accent-color, #38bdf8);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.story-inline-link:hover {
+  color: var(--text-primary);
+  text-decoration-thickness: 2px;
+}
+
+.story-ordered-list,
+.story-bullet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0.65rem 0 1rem 0;
+  padding-left: 1.6rem;
+}
+
+.story-ordered-list li,
+.story-bullet-list li {
+  line-height: 1.7;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+}
+
+
 
 
 

@@ -49,3 +49,8 @@ goGreen-main/
 LOOP/
 PROJECT IMG/
 *.pdf
+
+__pycache__/
+*.pyc
+*.png
+

@@ -5,328 +5,163 @@ import {
   ArrowLeft, Download, FileText, Award, Code, BookOpen, Layers, X, Edit, Trash2, Plus, 
   ExternalLink, Sparkles, CheckCircle2, Trophy, Medal, Lightbulb, Quote, Target, Cpu, 
   Users, MessageSquare, GraduationCap, 
-  Rocket, Compass, Star, ArrowRight, UserCheck
+  Rocket, Compass, Star, ArrowRight, UserCheck, Briefcase
 } from 'lucide-react';
 import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl } from '../utils/db';
+import FormattedText, { renderInlineWithLinks } from '../components/FormattedText';
 
 
-// Intelligent parser for preparation strategy
-function parsePrepContent(prepText) {
-  if (!prepText || typeof prepText !== 'string') return { intro: '', items: [], takeaway: '' };
+// Structured Preparation Strategy & Study Routine Parser
+function parsePrepTopics(prepText, resources = []) {
+  if (!prepText || typeof prepText !== 'string') return { intro: '', topics: [], rawText: '' };
 
-  let text = prepText.trim();
-  text = text.replace(/^[📚📖🎯💡📌]\s*/u, '');
+  let text = prepText.trim().replace(/^[📚📖🎯💡📌]\s*/u, '');
+  // Clean up any unlinked resume filenames
+  text = text.replace(/^(?:My\s*)?Resume\s*[-:]\s*[A-Za-z0-9_\-\.]+\.pdf\b/gmi, '');
+  // Clean up personal contact details
+  text = text.replace(/(?:FEEL\s*FREE\s*TO\s*REACH\s*OUT|Contact\s*:\s*\d{8,}|Phone\s*:\s*\d{8,})[\s\S]*$/gi, '').trim();
 
-  let rawItems = [];
-  let intro = '';
-  let takeaway = '';
+  // Split on numbered items: e.g. "1) ", "2) ", "1. ", "2. "
+  const topicSplitRegex = /(?:^|\n\s*\n+)(?=(?:[0-9]+[\.\)]|\([0-9]+\))\s+)/;
+  const rawParts = text.split(topicSplitRegex).map(p => p.trim()).filter(Boolean);
 
-  if (text.includes('•')) {
-    const parts = text.split('•').map(p => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      const first = parts[0];
-      const lastPeriodIdx = first.lastIndexOf('.');
-      if (lastPeriodIdx !== -1 && lastPeriodIdx < first.length - 1) {
-        intro = first.substring(0, lastPeriodIdx + 1).trim();
-        const firstItem = first.substring(lastPeriodIdx + 1).trim();
-        if (firstItem) rawItems.push(firstItem);
-      } else if (first.length > 80 && (first.includes('strategy was') || first.includes('focused on') || first.includes('based on'))) {
-        intro = first;
-      } else {
-        rawItems.push(first);
-      }
+  if (rawParts.length >= 2) {
+    let intro = '';
+    const topics = [];
 
-      for (let i = 1; i < parts.length; i++) {
-        const item = parts[i];
-        if (i === parts.length - 1) {
-          const sentences = item.match(/[^.!?]+[.!?]+/g) || [item];
-          if (sentences.length > 1) {
-            rawItems.push(sentences[0].trim());
-            takeaway = sentences.slice(1).join(' ').trim();
+    rawParts.forEach((part) => {
+      const match = part.match(/^(?:([0-9]+)[\.\)]|\(([0-9]+)\))\s+([\s\S]*)$/);
+      if (match) {
+        const fullBody = match[3].trim();
+        const lines = fullBody.split('\n').map(l => l.trim()).filter(Boolean);
+        let title = lines[0] || `Topic ${topics.length + 1}`;
+        let body = fullBody;
+
+        if (title.length > 70) {
+          const colonIdx = title.indexOf(':');
+          const dashIdx = title.indexOf(' - ');
+          if (colonIdx > 0 && colonIdx < 50) {
+            title = title.substring(0, colonIdx).trim();
+          } else if (dashIdx > 0 && dashIdx < 50) {
+            title = title.substring(0, dashIdx).trim();
           } else {
-            rawItems.push(item);
+            title = `Topic ${topics.length + 1}`;
           }
         } else {
-          rawItems.push(item);
+          body = lines.slice(1).join('\n').trim();
+          if (!body) body = fullBody;
+        }
+
+        // Match relevant resources
+        const topicResources = [];
+        const lowerBody = fullBody.toLowerCase();
+        (resources || []).forEach(res => {
+          const rName = (res.name || '').toLowerCase();
+          const rUrl = res.url || '';
+          if (
+            (rName.includes('striver') && (lowerBody.includes('striver') || lowerBody.includes('a2z') || lowerBody.includes('dsa'))) ||
+            (rName.includes('sql') && (lowerBody.includes('sql') || lowerBody.includes('dbms'))) ||
+            (rName.includes('dbms') && lowerBody.includes('dbms')) ||
+            (rName.includes('oop') && (lowerBody.includes('oop') || lowerBody.includes('love babbar') || lowerBody.includes('whimsical'))) ||
+            (rName.includes('puzzle') && lowerBody.includes('puzzle')) ||
+            (rName.includes('guesstimate') && lowerBody.includes('guesstimate')) ||
+            (rName.includes('aptitude') && (lowerBody.includes('aptitude') || lowerBody.includes('indiabix'))) ||
+            (rName.includes('java') && lowerBody.includes('java')) ||
+            (rUrl && fullBody.includes(rUrl))
+          ) {
+            if (!topicResources.some(tr => tr.url === res.url)) {
+              topicResources.push(res);
+            }
+          }
+        });
+
+        topics.push({
+          topicNumber: topics.length + 1,
+          title: title,
+          content: body,
+          resources: topicResources
+        });
+      } else {
+        if (topics.length === 0) {
+          intro = intro ? `${intro}\n\n${part}` : part;
+        } else {
+          topics[topics.length - 1].content += `\n\n${part}`;
         }
       }
-    } else {
-      rawItems = parts;
-    }
-  } else if (/^\s*(?:[0-9]+[\.\)]|[-*•])\s+/m.test(text)) {
-    const items = text.split(/(?=(?:^|\n)\s*(?:[0-9]+[\.\)]|[-*•])\s+)/)
-      .map(l => l.replace(/^[-*•\d.)\s]+/, '').trim())
-      .filter(Boolean);
-    rawItems = items;
-  } else if (text.includes('\n\n')) {
-    const paras = text.split(/\n\s*\n/).map(l => l.trim()).filter(Boolean);
-    rawItems = paras;
-  } else if (text.includes('\n')) {
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    lines.forEach(line => {
-      const cleaned = line.replace(/^[-*•\d.)\s]+/, '').trim();
-      if (cleaned) rawItems.push(cleaned);
     });
-  } else {
-    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-    if (sentences.length >= 3) {
-      intro = sentences[0].trim();
-      rawItems = sentences.slice(1, -1).map(s => s.trim());
-      takeaway = sentences[sentences.length - 1].trim();
-    } else {
-      rawItems = sentences.map(s => s.trim());
-    }
+
+    return { intro, topics, rawText: text };
   }
 
-  // Defensively reconstruct any fragmented items so single words never become cards
-  const sanitizedItems = [];
-  let buffer = '';
-  for (const it of rawItems) {
-    const trimmed = (it || '').trim();
-    if (!trimmed) continue;
-    if (trimmed.split(/\s+/).length <= 3 && !/[.!?:;]$/.test(trimmed)) {
-      buffer = buffer ? `${buffer} ${trimmed}` : trimmed;
+  return { intro: '', topics: [], rawText: text };
+}
+
+// Structured Placement Journey & Interview Stages Parser
+function parseHowSecuredStages(howSecuredText) {
+  if (!howSecuredText || typeof howSecuredText !== 'string') return { intro: '', stages: [], rawText: '' };
+
+  const raw = howSecuredText.replace(/^[🏆🎉💼]\s*/u, '').trim();
+  if (!raw) return { intro: '', stages: [], rawText: '' };
+
+  const stageHeaderRegex = /(?:^|\n\s*\n+)(?=(?:(?:Round|Stage|Step)\s*\d+|[0-9]+[\.\)]\s*(?:\[[^\]]+\]|[A-Z][a-zA-Z\s\(\)\/\-]{2,40})|(?:Technical\s*Round|HR\s*Round|Techno\s*HR|Group\s*Discussion|Online\s*Assessment|Aptitude\s*Test|Pre-placement\s*Talk)\b))/i;
+
+  const parts = raw.split(stageHeaderRegex).map(p => p.trim()).filter(Boolean);
+
+  let intro = '';
+  const stages = [];
+
+  parts.forEach((part) => {
+    const lines = part.split('\n').map(l => l.trim()).filter(Boolean);
+    const firstLine = lines[0] || '';
+
+    const match = firstLine.match(/^(?:(?:Round|Stage|Step)\s*(\d+)[:\-]?|[0-9]+[\.\)]\s*)\s*(?:\[([^\]]+)\]|(.*))$/i);
+    const isNamedRound = /^(?:Technical\s*Round|HR\s*Round|Techno\s*HR|Group\s*Discussion|Online\s*Assessment|Aptitude\s*Test|Pre-placement\s*Talk)\b/i.test(firstLine);
+
+    if (match || isNamedRound) {
+      let stageTitle = firstLine;
+      let date = null;
+
+      const dateMatch = firstLine.match(/[-–—]\s*([0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?)|Date\s*:\s*([^\n]+)/i);
+      if (dateMatch) {
+        date = (dateMatch[1] || dateMatch[2]).trim();
+        stageTitle = stageTitle.replace(/[-–—]\s*[0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?|Date\s*:\s*[^\n]+/i, '').trim();
+      }
+
+      stageTitle = stageTitle.replace(/^(?:(?:Round|Stage|Step)\s*\d+[:\-]?|[0-9]+[\.\)])\s*/i, '').replace(/^[\[\(]|[\]\)]$/g, '').trim();
+      if (!stageTitle) stageTitle = `Interview Stage ${stages.length + 1}`;
+
+      const content = lines.slice(1).join('\n').trim() || '';
+
+      stages.push({
+        stageNumber: stages.length + 1,
+        title: stageTitle,
+        date: date,
+        content: content
+      });
     } else {
-      if (buffer) {
-        sanitizedItems.push(`${buffer} ${trimmed}`.trim());
-        buffer = '';
+      if (stages.length === 0) {
+        intro = intro ? `${intro}\n\n${part}` : part;
       } else {
-        sanitizedItems.push(trimmed);
+        stages[stages.length - 1].content += `\n\n${part}`;
       }
     }
-  }
-  if (buffer) sanitizedItems.push(buffer);
-
-  let finalItems = sanitizedItems;
-  if (finalItems.length > 3 && finalItems.some(i => i.split(/\s+/).length < 4)) {
-    const combined = finalItems.join(' ').replace(/\s+/g, ' ');
-    const sentences = combined.match(/[^.!?]+[.!?]+/g) || [combined];
-    finalItems = sentences.map(s => s.trim()).filter(s => s.length > 8);
-  }
-
-  if (!takeaway && intro && (intro.includes('1%') || intro.includes('Small daily') || intro.includes('difference') || intro.includes('consistency'))) {
-    takeaway = intro;
-    intro = '';
-  }
-
-  const categorized = finalItems.map((item, idx) => {
-    const lower = item.toLowerCase();
-    let category = 'Study Discipline';
-    let icon = CheckCircle2;
-    let badgeColor = 'rgba(255, 255, 255, 0.08)';
-    let textColor = 'var(--text-secondary)';
-    let accentBorder = 'rgba(255, 255, 255, 0.12)';
-
-    if (lower.includes('dsa') || lower.includes('leetcode') || lower.includes('algorithm') || lower.includes('striver') || lower.includes('tree') || lower.includes('graph') || lower.includes('dp') || lower.includes('neetcode')) {
-      category = 'DSA & Problem Solving';
-      icon = Code;
-      badgeColor = 'rgba(16, 185, 129, 0.12)';
-      textColor = '#10b981';
-      accentBorder = 'rgba(16, 185, 129, 0.28)';
-    } else if (lower.includes('dbms') || lower.includes('os') || lower.includes('cn') || lower.includes('oop') || lower.includes('sql') || lower.includes('operating system') || lower.includes('network') || lower.includes('core')) {
-      category = 'Core CS Subjects';
-      icon = Cpu;
-      badgeColor = 'rgba(59, 130, 246, 0.12)';
-      textColor = '#60a5fa';
-      accentBorder = 'rgba(59, 130, 246, 0.28)';
-    } else if (lower.includes('project') || lower.includes('resume') || lower.includes('full-stack') || lower.includes('built') || lower.includes('app') || lower.includes('portfolio') || lower.includes('crdt')) {
-      category = 'Projects & Portfolio';
-      icon = Layers;
-      badgeColor = 'rgba(168, 85, 247, 0.12)';
-      textColor = '#c084fc';
-      accentBorder = 'rgba(168, 85, 247, 0.28)';
-    } else if (lower.includes('mock') || lower.includes('interview') || lower.includes('round') || lower.includes('peer') || lower.includes('system design') || lower.includes('simulation')) {
-      category = 'Mock Interviews';
-      icon = UserCheck;
-      badgeColor = 'rgba(245, 158, 11, 0.12)';
-      textColor = '#fbbf24';
-      accentBorder = 'rgba(245, 158, 11, 0.28)';
-    } else if (lower.includes('communication') || lower.includes('presentation') || lower.includes('soft skill') || lower.includes('articulate') || lower.includes('english')) {
-      category = 'Communication & Soft Skills';
-      icon = MessageSquare;
-      badgeColor = 'rgba(244, 63, 94, 0.12)';
-      textColor = '#fb7185';
-      accentBorder = 'rgba(244, 63, 94, 0.28)';
-    } else if (lower.includes('senior') || lower.includes('mentor') || lower.includes('guidance') || lower.includes('learned from')) {
-      category = 'Mentorship & Guidance';
-      icon = GraduationCap;
-      badgeColor = 'rgba(20, 184, 166, 0.12)';
-      textColor = '#2dd4bf';
-      accentBorder = 'rgba(20, 184, 166, 0.28)';
-    }
-
-    return {
-      id: idx,
-      text: item,
-      category,
-      icon,
-      badgeColor,
-      textColor,
-      accentBorder
-    };
   });
 
-  return { intro, items: categorized, takeaway };
+  return { intro, stages, rawText: raw };
 }
 
-// Structured Recruitment Process & Interview Rounds Parser
-function parseHowSecuredRounds(howSecuredText, story) {
-  if (!howSecuredText || typeof howSecuredText !== 'string') {
-    return { rounds: [], narrative: '', structuredRounds: story?.interviewRounds || null };
-  }
-
-  const rawText = howSecuredText.replace(/^[🏆🎉💼]\s*/u, '').trim();
-  if (!rawText) {
-    return { rounds: [], narrative: '', structuredRounds: story?.interviewRounds || null };
-  }
-
-  // Split on round / stage headers:
-  // e.g. "1. [Aptitude Round]", "1. Pre-placement Talk", "Round 1:", "Stage 1:", "Technical Round 1:", etc.
-  const roundSplitRegex = /(?:^|\n\s*\n+)(?=(?:(?:Round|Stage|Step)\s*\d+|[0-9]+[\.\)]\s*(?:\[[^\]]+\]|[A-Z][a-zA-Z\s\(\)\/\-]{2,40})))/i;
-
-  const segments = rawText.split(roundSplitRegex).map(s => s.trim()).filter(Boolean);
-
-  if (segments.length >= 2) {
-    const rounds = segments.map((seg, idx) => {
-      const lines = seg.split('\n').map(l => l.trim()).filter(Boolean);
-      let title = lines[0] || `Round ${idx + 1}`;
-      let body = lines.slice(1).join('\n\n');
-
-      const titleMatch = title.match(/^(?:(?:Round|Stage|Step)\s*\d+[:\-]?|[0-9]+[\.\)])\s*(?:\[([^\]]+)\]|(.*))$/i);
-      if (titleMatch) {
-        title = (titleMatch[1] || titleMatch[2] || `Round ${idx + 1}`).trim();
-      }
-      if (!title) title = `Round ${idx + 1}`;
-
-      return {
-        roundNumber: idx + 1,
-        title,
-        content: body || lines[0]
-      };
-    });
-    return { rounds, narrative: '', structuredRounds: story?.interviewRounds || null };
-  }
-
-  return { rounds: [], narrative: rawText, structuredRounds: story?.interviewRounds || null };
-}
-
-// Advice to Juniors Parser
+// Advice to Juniors Parser (Strict: never invent synthetic quotes)
 function parseAdviceContent(adviceText) {
-  if (!adviceText || typeof adviceText !== 'string') return { tips: [], quote: '', raw: '' };
+  if (!adviceText || typeof adviceText !== 'string') return { quote: '', raw: '' };
 
-  let text = adviceText.trim().replace(/^💡\s*/, '');
+  const text = adviceText.trim().replace(/^💡\s*/, '');
   let quote = '';
-  let tips = [];
-
-  const quoteIndicators = ['most importantly', 'avoid comparing', 'trust the process', 'small efforts', 'compounding'];
-  
-  // Split on numbered items (e.g. "1. ", "2. ") or double newlines first, avoiding naive single newline split
-  let rawBlocks = [];
-  if (/^\s*(?:[0-9]+[\.\)]|[-*•])\s+/m.test(text)) {
-    rawBlocks = text.split(/(?=(?:^|\n)\s*(?:[0-9]+[\.\)]|[-*•])\s+)/)
-      .map(b => b.replace(/^[-*•\d.)\s]+/, '').trim())
-      .filter(Boolean);
-  } else if (text.includes('\n\n')) {
-    rawBlocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
-  } else {
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    rawBlocks = lines;
+  const quoteMatch = text.match(/"([^"]{20,280})"/);
+  if (quoteMatch) {
+    quote = quoteMatch[1].trim();
   }
 
-  const regularLines = [];
-  const quoteLines = [];
-
-  rawBlocks.forEach(line => {
-    const lower = line.toLowerCase();
-    const isQuoteLike = quoteIndicators.some(qi => lower.includes(qi));
-    if (isQuoteLike || quoteLines.length > 0) {
-      quoteLines.push(line);
-    } else {
-      regularLines.push(line);
-    }
-  });
-
-  if (quoteLines.length > 0) {
-    quote = quoteLines.join(' ');
-  }
-
-  // Resilient defensive coalescing: Never allow short word fragments to become cards
-  const coalesced = [];
-  let buffer = '';
-  for (const line of regularLines) {
-    const cleaned = line.replace(/^[-*•\d.)\s]+/, '').trim();
-    if (!cleaned) continue;
-    if (cleaned.split(/\s+/).length <= 3 && !/[.!?:;]$/.test(cleaned)) {
-      buffer = buffer ? `${buffer} ${cleaned}` : cleaned;
-    } else {
-      if (buffer) {
-        coalesced.push(`${buffer} ${cleaned}`.trim());
-        buffer = '';
-      } else {
-        coalesced.push(cleaned);
-      }
-    }
-  }
-  if (buffer) coalesced.push(buffer);
-
-  let finalLines = coalesced;
-  if (finalLines.length > 3 && finalLines.some(l => l.split(/\s+/).length < 4)) {
-    const combined = finalLines.join(' ').replace(/\s+/g, ' ');
-    const sentences = combined.match(/[^.!?]+[.!?]+/g) || [combined];
-    finalLines = sentences.map(s => s.trim()).filter(s => s.length > 8);
-  }
-
-  const tipIcons = [
-    { icon: Target, title: 'Start Preparation Early', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' },
-    { icon: Compass, title: 'Consistency Over Intensity', color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.12)' },
-    { icon: Code, title: 'Build Meaningful Projects', color: '#c084fc', bg: 'rgba(168, 85, 247, 0.12)' },
-    { icon: Cpu, title: 'Master Core CS & DSA', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.12)' },
-    { icon: Trophy, title: 'Participate in Hackathons', color: '#fbbf24', bg: 'rgba(245, 158, 11, 0.12)' },
-    { icon: Users, title: 'Network with SPIT Seniors', color: '#2dd4bf', bg: 'rgba(45, 212, 191, 0.12)' },
-    { icon: FileText, title: 'Maintain ATS-Ready Resume', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.12)' },
-    { icon: MessageSquare, title: 'Hone Articulate Communication', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.12)' }
-  ];
-
-  finalLines.forEach((cleaned, idx) => {
-    if (!cleaned) return;
-    const lower = cleaned.toLowerCase();
-    let matchedIcon = tipIcons[idx % tipIcons.length];
-
-    if (lower.includes('early') || lower.includes("don't wait") || lower.includes('wait until')) {
-      matchedIcon = tipIcons[0];
-    } else if (lower.includes('consistent') || lower.includes('daily')) {
-      matchedIcon = tipIcons[1];
-    } else if (lower.includes('project') || lower.includes('build')) {
-      matchedIcon = tipIcons[2];
-    } else if (lower.includes('dsa') || lower.includes('code') || lower.includes('practice') || lower.includes('neetcode')) {
-      matchedIcon = tipIcons[3];
-    } else if (lower.includes('hackathon') || lower.includes('competition')) {
-      matchedIcon = tipIcons[4];
-    } else if (lower.includes('senior') || lower.includes('network') || lower.includes('alumni')) {
-      matchedIcon = tipIcons[5];
-    } else if (lower.includes('resume') || lower.includes('ats') || lower.includes('honest')) {
-      matchedIcon = tipIcons[6];
-    } else if (lower.includes('communication') || lower.includes('presentation') || lower.includes('speak') || lower.includes('discussion')) {
-      matchedIcon = tipIcons[7];
-    }
-
-    tips.push({
-      number: String(idx + 1).padStart(2, '0'),
-      text: cleaned,
-      title: matchedIcon.title,
-      icon: matchedIcon.icon,
-      color: matchedIcon.color,
-      bg: matchedIcon.bg
-    });
-  });
-
-  if (!quote && tips.length === 0 && text) {
-    quote = text;
-  } else if (!quote) {
-    quote = "Most importantly, avoid comparing your journey with others. Everyone progresses at a different pace. Focus on learning, improving, and staying disciplined. Small efforts repeated daily can create extraordinary results over four years.";
-  }
-
-  return { tips, quote, raw: text };
+  return { quote, raw: text };
 }
 
 // Hackathons and Competitions Parser
@@ -906,12 +741,12 @@ export default function StoryDetail() {
     );
   }
 
-  // Format multi-line projects list into modern visual cards
+  // Format multi-line projects list into modern single-column visual cards
   const formatProjects = (projectsString) => {
     if (!projectsString) return null;
     const lines = projectsString.split('\n').map(l => l.trim()).filter(Boolean);
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+      <div className="story-content-layout">
         {lines.map((line, index) => {
           let title = `Project ${index + 1}`;
           let desc = line;
@@ -923,19 +758,15 @@ export default function StoryDetail() {
           return (
             <div
               key={index}
-              className="editorial-card"
+              className="story-content-card"
               style={{
-                padding: '1.25rem 1.4rem',
-                borderRadius: '14px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.65rem'
+                gap: '0.75rem'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <div style={{
                     width: '32px',
                     height: '32px',
@@ -949,17 +780,15 @@ export default function StoryDetail() {
                   }}>
                     <Code size={16} />
                   </div>
-                  <h4 style={{ fontSize: '1.02rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                     {title}
                   </h4>
                 </div>
-                <span className="badge" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                  Highlight
+                <span className="badge" style={{ fontSize: '0.68rem', padding: '0.15rem 0.55rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                  Technical Highlight
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                {desc}
-              </p>
+              <FormattedText content={desc} />
             </div>
           );
         })}
@@ -1230,32 +1059,33 @@ export default function StoryDetail() {
           (typeof story?.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim()))
         );
         const hasStudyMaterials = Array.isArray(story?.studyMaterials) && story.studyMaterials.length > 0;
-
+        const hasCompensation = Boolean(story?.package || story?.ctc || story?.stipend || story?.offerType);
+        const hasSecured = Boolean(story?.journey?.howSecured && story.journey.howSecured.trim());
         const hasPrep = Boolean(
           story?.journey?.prep &&
           story.journey.prep.trim() &&
-          !story.journey.prep.includes('Focus consistently on Data Structures & Algorithms, practice company-specific')
+          !story.journey.prep.includes('Focus consistently on Data Structures')
         );
+        const adviceSec = story?.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
+        const hasAdvice = Boolean((adviceSec && adviceSec.content && adviceSec.content.trim()) || (story?.advice && story.advice.trim()));
+        const hasResources = Boolean(story?.resources && story.resources.length > 0);
         const hasProjects = Boolean(
           story?.journey?.projects &&
           story.journey.projects.trim() &&
           story.journey.projects !== 'Core projects and domain architectures discussed in interview rounds.'
         );
-        const hasSecured = Boolean(
-          story?.journey?.howSecured &&
-          story.journey.howSecured.trim()
-        );
+        const hasJourney = availableMilestones.length > 0;
 
         const navSections = [
-          ...(availableMilestones.length > 0 ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
+          ...(hasCompensation ? [{ id: 'section-compensation', label: 'Compensation & Offer', icon: Briefcase }] : []),
+          ...(hasSecured ? [{ id: 'section-rounds', label: 'Placement Journey', icon: Layers }] : []),
           ...(hasPrep ? [{ id: 'section-prep', label: 'Prep Strategy', icon: Award }] : []),
+          ...(hasAdvice ? [{ id: 'section-advice', label: 'Advice to Juniors', icon: Lightbulb }] : []),
+          ...(hasResources ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
+          ...(hasStudyMaterials ? [{ id: 'section-materials', label: 'Study Materials', icon: FileText }] : []),
+          ...(hasJourney ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
           ...(hasProjects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
-          ...(hasSecured ? [{ id: 'section-secured', label: 'How Secured', icon: Layers }] : []),
-          ...(story?.customSections?.some(s => s.title && s.title.toLowerCase().includes('advice')) ? [{ id: 'section-advice', label: 'Advice', icon: Lightbulb }] : []),
-          ...(story?.customSections?.some(s => s.title && (s.title.toLowerCase().includes('hackathon') || s.title.toLowerCase().includes('competition'))) ? [{ id: 'section-hackathons', label: 'Hackathons', icon: Trophy }] : []),
-          ...(story?.resources && story.resources.length > 0 ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
-          ...(hasResume ? [{ id: 'section-resume', label: 'Resume', icon: FileText }] : []),
-          ...(hasStudyMaterials ? [{ id: 'section-materials', label: 'Study Materials', icon: BookOpen }] : [])
+          ...(hasResume ? [{ id: 'section-resume', label: 'Resume', icon: FileText }] : [])
         ];
 
         return (
@@ -1321,343 +1151,241 @@ export default function StoryDetail() {
 
       {/* Main Notion-Style Reading Block */}
       <main style={{ fontFamily: 'var(--font-sans)' }}>
-        
-        {/* Verified Student Quote Callout - Only rendered if candidate provided genuine advice/quote */}
-        {(() => {
-          const adviceSection = story?.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
-          const adviceText = adviceSection?.content || story?.advice;
-          const parsed = parseAdviceContent(adviceText);
-          const quoteText = story?.quote || story?.adviceQuote || parsed?.quote;
-          if (!quoteText) return null;
-          return (
-            <div className="glass-panel" style={{
-              padding: '1.25rem 1.75rem',
-              borderRadius: '16px',
-              marginBottom: '2.25rem',
-              borderLeft: '4px solid var(--text-primary)',
-              fontSize: '1.05rem',
-              lineHeight: '1.7',
-              color: 'var(--text-secondary)',
-              fontStyle: 'italic'
-            }}>
-              "{quoteText}"
+
+        {/* 1. Compensation & Offer */}
+        {hasCompensation && (
+          <section id="section-compensation" className="story-section" style={{ scrollMarginTop: '110px' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <Briefcase size={13} />
+                Verified Placement Offer
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Briefcase size={22} style={{ color: 'var(--text-primary)' }} />
+                Compensation & Offer
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Official compensation, stipend, and offer breakdown confirmed from college placement records
+              </p>
             </div>
-          );
-        })()}
 
-        {/* 4-Year Journey Timeline - Only rendered when genuine academic year milestones exist */}
-        {(() => {
-          const availableMilestones = [
-            story?.journey?.firstYear && {
-              yearNumber: 1,
-              yearTitle: 'First Year',
-              subtitle: 'Foundation & Exploration',
-              content: story.journey.firstYear,
-              phaseBadge: 'Phase 01'
-            },
-            story?.journey?.secondYear && {
-              yearNumber: 2,
-              yearTitle: 'Second Year',
-              subtitle: 'Core Skills & Projects',
-              content: story.journey.secondYear,
-              phaseBadge: 'Phase 02'
-            },
-            story?.journey?.thirdYear && {
-              yearNumber: 3,
-              yearTitle: 'Third Year',
-              subtitle: 'Internships & Preparation',
-              content: story.journey.thirdYear,
-              phaseBadge: 'Phase 03'
-            },
-            story?.journey?.fourthYear && {
-              yearNumber: 4,
-              yearTitle: 'Fourth Year',
-              subtitle: 'Placement & Career Launch',
-              content: story.journey.fourthYear,
-              phaseBadge: 'Phase 04'
-            }
-          ].filter(Boolean);
-
-          if (availableMilestones.length === 0) return null;
-
-          return (
-            <section id="section-journey" style={{ marginBottom: '2.75rem', scrollMarginTop: '110px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
-                <div>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.75rem', borderRadius: '20px', backgroundColor: 'rgba(212, 255, 50, 0.25)', border: '1px solid rgba(212, 255, 50, 0.45)', color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
-                    <Sparkles size={12} color="var(--accent-lime-dark)" />
-                    Curated Roadmaps
+            <div className="story-content-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                {(story.package || story.ctc) && (
+                  <div style={{ padding: '1.1rem', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.35rem' }}>Placement Package (CTC)</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+                      {story.package || story.ctc}
+                    </span>
                   </div>
-                  <h2 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 0.4rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
-                    College Academic Milestones
-                  </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                    Chronological academic milestones and technical progression through college
-                  </p>
-                </div>
+                )}
+                {story.stipend && (
+                  <div style={{ padding: '1.1rem', borderRadius: '12px', backgroundColor: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.35rem' }}>Internship Stipend</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+                      {story.stipend}
+                    </span>
+                  </div>
+                )}
+                {story.offerType && (
+                  <div style={{ padding: '1.1rem', borderRadius: '12px', backgroundColor: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.35rem' }}>Offer Type / Role</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {story.offerType}
+                    </span>
+                  </div>
+                )}
               </div>
+            </div>
+          </section>
+        )}
 
-              {/* Timeline Track with Vertical Rail Matching Image 4 */}
-              <div style={{ position: 'relative', paddingLeft: '2.75rem' }}>
-                {/* The vertical line running down the rail */}
-                <div style={{
-                  position: 'absolute',
-                  left: '11px',
-                  top: '24px',
-                  bottom: '30px',
-                  width: '2px',
-                  backgroundColor: 'var(--border-color)',
-                  zIndex: 0
-                }} />
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                  {availableMilestones.map((milestone) => {
-                    const isActive = activeTimelineYear === milestone.yearNumber;
-                    return (
-                      <div
-                        key={milestone.yearNumber}
-                        ref={(el) => (yearCardRefs.current[milestone.yearNumber] = el)}
-                        style={{ position: 'relative', zIndex: 1 }}
-                        onClick={() => scrollToYear(milestone.yearNumber)}
-                      >
-                        {/* Node on the rail matching Image 4 */}
-                        {isActive ? (
-                          /* Active Node: ◉ double concentric ring / solid center */
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              scrollToYear(milestone.yearNumber);
-                            }}
-                            style={{
-                              position: 'absolute',
-                              left: '-2.75rem',
-                              top: '1.25rem',
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '50%',
-                              border: '2.5px solid var(--text-primary)',
-                              backgroundColor: 'var(--bg-surface)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 0 0 4px var(--bg-primary), 0 2px 10px rgba(0,0,0,0.12)',
-                              cursor: 'pointer',
-                              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                              transform: 'scale(1.08)'
-                            }}
-                            title={`Year ${milestone.yearNumber} (Active)`}
-                          >
-                            <div
-                              style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                backgroundColor: 'var(--text-primary)'
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          /* Inactive Node: ○ clean hollow ring with border */
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              scrollToYear(milestone.yearNumber);
-                            }}
-                            style={{
-                              position: 'absolute',
-                              left: '-2.75rem',
-                              top: '1.25rem',
-                              width: '22px',
-                              height: '22px',
-                              borderRadius: '50%',
-                              border: '2px solid var(--border-hover)',
-                              backgroundColor: 'var(--bg-surface)',
-                              boxShadow: '0 0 0 4px var(--bg-primary)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                            }}
-                            title={`Click to view Year ${milestone.yearNumber}`}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = 'var(--text-primary)';
-                              e.currentTarget.style.transform = 'scale(1.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = 'var(--border-hover)';
-                              e.currentTarget.style.transform = 'scale(1)';
-                            }}
-                          />
-                        )}
-
-                        {/* Bento Card for the milestone (Matching Image 3 & 4) */}
-                        <div
-                          className="bento-card"
-                          style={{
-                            padding: '1.75rem',
-                            borderRadius: '20px',
-                            border: isActive ? '1.5px solid var(--text-primary)' : '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-surface)',
-                            boxShadow: isActive ? '0 12px 36px rgba(0, 0, 0, 0.08)' : 'var(--card-shadow)',
-                            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                            cursor: 'pointer',
-                            transform: isActive ? 'translateY(-2px)' : 'none'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            {/* Top Header Row */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '0.2rem 0.6rem',
-                                    borderRadius: '12px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 800,
-                                    letterSpacing: '0.04em',
-                                    backgroundColor: isActive ? 'var(--text-primary)' : 'var(--bg-tertiary)',
-                                    color: isActive ? 'var(--accent-inverse)' : 'var(--text-primary)'
-                                  }}
-                                >
-                                  {milestone.phaseBadge}
-                                </span>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                  {milestone.subtitle}
-                                </span>
-                              </div>
-
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                Year {milestone.yearNumber} of 4
-                              </span>
-                            </div>
-
-                            {/* Middle Content Row: Full Width Editorial Text */}
-                            <div>
-                              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.65rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                                {milestone.yearTitle}
-                              </h3>
-                              <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: '1.75', margin: 0 }}>
-                                {milestone.content}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+        {/* 2. Placement Journey & Interview Rounds */}
+        {hasSecured && (
+          <section id="section-rounds" className="story-section" style={{ scrollMarginTop: '110px' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <Layers size={13} />
+                Recruitment Process Flow
               </div>
-            </section>
-          );
-        })()}
-
-        {/* Preparation Strategy & Study Routine - Only rendered if genuine strategy exists */}
-        {story.journey?.prep && story.journey.prep.trim() && !story.journey.prep.includes('Focus consistently on Data Structures') && (
-          <section id="section-prep" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                  <Award size={13} />
-                  Daily Regimen & Milestones
-                </div>
-                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <Award size={22} style={{ color: 'var(--text-primary)' }} />
-                  Preparation Strategy & Study Routine
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                  Structured study hours, DSA problem-solving techniques, and core subjects revision
-                </p>
-              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Layers size={22} style={{ color: 'var(--text-primary)' }} />
+                Placement Journey & Interview Rounds
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Detailed selection process, stage-by-stage technical rounds, and interview questions directly from the candidate
+              </p>
             </div>
 
             {(() => {
-              const { intro, items, takeaway } = parsePrepContent(story.journey?.prep);
+              const { intro, stages, rawText } = parseHowSecuredStages(story.journey.howSecured);
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div className="story-content-layout">
                   {intro && (
-                    <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-                      {intro}
-                    </p>
+                    <div className="story-content-card">
+                      <FormattedText text={intro} />
+                    </div>
                   )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                    {items.map((item) => {
-                      const ItemIcon = item.icon;
-                      return (
-                        <div
-                          key={item.id}
-                          className="editorial-card"
-                          style={{
-                            padding: '1.25rem',
-                            borderRadius: '14px',
-                            border: `1px solid ${item.accentBorder || 'var(--border-color)'}`,
-                            backgroundColor: 'var(--bg-surface)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.75rem',
-                            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                padding: '0.2rem 0.55rem',
-                                borderRadius: '8px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                backgroundColor: item.badgeColor,
-                                color: item.textColor
-                              }}
-                            >
-                              <ItemIcon size={12} />
-                              {item.category}
+                  {stages.length > 0 ? (
+                    stages.map((stg) => (
+                      <div key={stg.stageNumber} className="story-content-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                              color: '#60a5fa',
+                              fontSize: '0.8rem',
+                              fontWeight: 800
+                            }}>
+                              {stg.stageNumber}
                             </span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                              #{String(item.id + 1).padStart(2, '0')}
-                            </span>
+                            <h3 style={{ fontSize: '1.18rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                              Stage {stg.stageNumber} — {stg.title}
+                            </h3>
                           </div>
-                          <p style={{ margin: 0, fontSize: '0.96rem', color: 'var(--text-primary)', lineHeight: 1.6, fontWeight: 500 }}>
-                            {item.text}
-                          </p>
+                          {stg.date && (
+                            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500, backgroundColor: 'var(--bg-tertiary)', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                              📅 {stg.date}
+                            </span>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
+                        {stg.content && <FormattedText text={stg.content} />}
+                      </div>
+                    ))
+                  ) : rawText ? (
+                    <div className="story-content-card">
+                      <FormattedText text={rawText} />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()}
+          </section>
+        )}
 
-                  {takeaway && (
-                    <div
-                      style={{
-                        marginTop: '0.5rem',
-                        padding: '1.25rem 1.5rem',
-                        borderRadius: '14px',
-                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.28)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '1rem'
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: '0.5rem',
-                          borderRadius: '10px',
-                          backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                          color: '#10b981',
-                          flexShrink: 0
-                        }}
-                      >
-                        <Lightbulb size={18} />
+        {/* 3. Preparation Strategy & Study Routine */}
+        {hasPrep && (
+          <section id="section-prep" className="story-section" style={{ scrollMarginTop: '110px' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <Award size={13} />
+                Preparation Blueprint
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Award size={22} style={{ color: 'var(--text-primary)' }} />
+                Preparation Strategy & Study Routine
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Candidate's verified preparation regimen, DSA problem-solving techniques, and subject strategies
+              </p>
+            </div>
+
+            {(() => {
+              const { intro, topics, rawText } = parsePrepTopics(story.journey?.prep, story.resources);
+              return (
+                <div className="story-content-layout">
+                  {intro && (
+                    <div className="story-content-card">
+                      <FormattedText text={intro} />
+                    </div>
+                  )}
+
+                  {topics.length > 0 ? (
+                    topics.map((tpc) => (
+                      <div key={tpc.topicNumber} className="story-content-card">
+                        <h3 style={{ fontSize: '1.18rem', fontWeight: 700, margin: '0 0 0.85rem 0', color: 'var(--text-primary)', paddingBottom: '0.6rem', borderBottom: '1px solid var(--border-color)' }}>
+                          {tpc.topicNumber}. {tpc.title}
+                        </h3>
+                        {tpc.content && <FormattedText text={tpc.content} />}
+                        {tpc.resources && tpc.resources.length > 0 && (
+                          <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed var(--border-color)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.6rem' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Resources:</span>
+                            {tpc.resources.map((r, rIdx) => {
+                              const link = getResourceLink(r);
+                              if (!link) return null;
+                              return (
+                                <a
+                                  key={rIdx}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="story-inline-link"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    padding: '0.3rem 0.75rem',
+                                    borderRadius: '8px',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    textDecoration: 'none'
+                                  }}
+                                >
+                                  <span>{r.name || 'Open Resource'}</span>
+                                  <ExternalLink size={12} />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#10b981', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                          Key Takeaway
-                        </h4>
-                        <p style={{ margin: 0, fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.65, fontStyle: 'italic' }}>
-                          "{takeaway}"
-                        </p>
-                      </div>
+                    ))
+                  ) : rawText ? (
+                    <div className="story-content-card">
+                      <FormattedText text={rawText} />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()}
+          </section>
+        )}
+
+        {/* 4. Advice to Juniors */}
+        {hasAdvice && (
+          <section id="section-advice" className="story-section" style={{ scrollMarginTop: '110px' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <Lightbulb size={13} />
+                Guidance For Juniors
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Lightbulb size={22} style={{ color: 'var(--text-primary)' }} />
+                Advice to Juniors
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Genuine advice, practical habits, and mindset recommendations directly from {story.name}
+              </p>
+            </div>
+
+            {(() => {
+              const adviceSec = story.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
+              const adviceText = (adviceSec?.content || story.advice || '').trim();
+              const { quote, raw } = parseAdviceContent(adviceText);
+              return (
+                <div className="story-content-layout">
+                  {quote && (
+                    <div className="story-content-card" style={{ borderLeft: '4px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.04)' }}>
+                      <p style={{ margin: 0, fontSize: '1.08rem', fontStyle: 'italic', lineHeight: 1.7, color: 'var(--text-primary)' }}>
+                        "{quote}"
+                      </p>
+                      <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        — {story.name}, {story.role} at {story.company}
+                      </span>
+                    </div>
+                  )}
+                  {raw && (
+                    <div className="story-content-card">
+                      <FormattedText text={raw} />
                     </div>
                   )}
                 </div>
@@ -1666,13 +1394,390 @@ export default function StoryDetail() {
           </section>
         )}
 
-        {/* Projects Built - Only rendered if genuine verified projects exist */}
-        {story.journey?.projects && story.journey.projects.trim() && story.journey.projects !== 'Core projects and domain architectures discussed in interview rounds.' && (
-          <section id="section-projects" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+        {/* 5. Resources Used */}
+        {hasResources && (
+          <section id="section-resources" className="story-section" style={{ scrollMarginTop: '110px' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#818cf8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <BookOpen size={13} />
+                Curated Preparation Links
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
+                Resources Used
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Direct links to study sheets, practice repositories, and documentation used during placement preparation
+              </p>
+            </div>
+
+            <div className="story-content-layout">
+              {story.resources.map((res, index) => {
+                const targetUrl = getResourceLink(res) || `https://www.google.com/search?q=${encodeURIComponent((res.name || 'study material') + ' preparation')}`;
+                return (
+                  <div
+                    key={index}
+                    className="story-content-card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '1rem',
+                      padding: '1.1rem 1.4rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ExternalLink size={16} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {res.name}
+                        </h4>
+                        {res.type && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            Type: {res.type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <a
+                      href={targetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '10px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-surface)'
+                      }}
+                    >
+                      <span>Open Resource</span>
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* 6. Attached Study Materials */}
+        {hasStudyMaterials && (
+          <section id="section-materials" className="story-section" style={{ scrollMarginTop: '110px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#f87171', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                  <FileText size={13} />
+                  Candidate Study Materials
+                </div>
+                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
+                  Study Materials
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                  Genuine handwritten notes, PDFs, and technical question sets shared by the candidate
+                </p>
+              </div>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {story.studyMaterials.length} verified {story.studyMaterials.length === 1 ? 'file' : 'files'}
+              </span>
+            </div>
+
+            <div className="story-content-layout">
+              {story.studyMaterials.map((mat, index) => {
+                const matUrl = mat.url || '';
+                const isExternalMat = matUrl && (matUrl.startsWith('http://') || matUrl.startsWith('https://'));
+                const isDriveMat = matUrl.includes('drive.google.com') || matUrl.includes('docs.google.com');
+                const isPdf = mat.type === 'PDF' || (mat.fileName && mat.fileName.toLowerCase().endsWith('.pdf'));
+
+                return (
+                  <div
+                    key={index}
+                    className="story-content-card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '1rem',
+                      padding: '1.15rem 1.4rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: isPdf ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: isPdf ? '#ef4444' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FileText size={20} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                            {mat.category || (isPdf ? 'PDF Document' : 'Study Notes')}
+                          </span>
+                          {mat.fileSize && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              • {mat.fileSize}
+                            </span>
+                          )}
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {mat.title || mat.fileName}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      {isExternalMat || isDriveMat ? (
+                        <a
+                          href={matUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="btn btn-secondary"
+                          style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '10px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-surface)'
+                          }}
+                        >
+                          <span>{isDriveMat ? 'Open in Drive ↗' : (isPdf ? 'View PDF ↗' : 'Open Material ↗')}</span>
+                          <ExternalLink size={14} />
+                        </a>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              const allFiles = getStoryFiles();
+                              const matDoc = allFiles[index + 1] || { ...mat, id: `mat-${story.id}-${index}` };
+                              navigate(`/preview/${matDoc.id}?storyId=${story.id}`, {
+                                state: {
+                                  file: matDoc,
+                                  files: allFiles,
+                                  storyTitle: story.name
+                                }
+                              });
+                            }}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '0.5rem 1rem',
+                              borderRadius: '10px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <FileText size={14} />
+                            <span>View File</span>
+                          </button>
+                          {mat.url && mat.url !== '#' && (
+                            <button
+                              onClick={() => handleDownloadFile(mat.fileName || mat.title + (isPdf ? '.pdf' : '.txt'), mat.url)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.45rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '36px', height: '36px' }}
+                              title="Download File"
+                            >
+                              <Download size={14} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* 7. College Academic Milestones */}
+        {hasJourney && (
+          <section id="section-journey" className="story-section" style={{ scrollMarginTop: '110px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.75rem', borderRadius: '20px', backgroundColor: 'rgba(212, 255, 50, 0.25)', border: '1px solid rgba(212, 255, 50, 0.45)', color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
+                  <Sparkles size={12} color="var(--accent-lime-dark)" />
+                  Academic Milestones
+                </div>
+                <h2 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 0.4rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+                  College Academic Milestones
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                  Chronological academic progression and technical development through engineering years
+                </p>
+              </div>
+            </div>
+
+            {/* Timeline Track with Vertical Rail */}
+            <div style={{ position: 'relative', paddingLeft: '2.75rem' }}>
+              <div style={{
+                position: 'absolute',
+                left: '11px',
+                top: '24px',
+                bottom: '30px',
+                width: '2px',
+                backgroundColor: 'var(--border-color)',
+                zIndex: 0
+              }} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {availableMilestones.map((milestone) => {
+                  const isActive = activeTimelineYear === milestone.yearNumber;
+                  return (
+                    <div
+                      key={milestone.yearNumber}
+                      ref={(el) => (yearCardRefs.current[milestone.yearNumber] = el)}
+                      style={{ position: 'relative', zIndex: 1 }}
+                      onClick={() => scrollToYear(milestone.yearNumber)}
+                    >
+                      {isActive ? (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollToYear(milestone.yearNumber);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: '-2.75rem',
+                            top: '1.25rem',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            border: '2.5px solid var(--text-primary)',
+                            backgroundColor: 'var(--bg-surface)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 0 0 4px var(--bg-primary), 0 2px 10px rgba(0,0,0,0.12)',
+                            cursor: 'pointer',
+                            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                            transform: 'scale(1.08)'
+                          }}
+                          title={`Year ${milestone.yearNumber} (Active)`}
+                        >
+                          <div
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: 'var(--text-primary)'
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollToYear(milestone.yearNumber);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: '-2.75rem',
+                            top: '1.25rem',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '50%',
+                            border: '2px solid var(--border-hover)',
+                            backgroundColor: 'var(--bg-surface)',
+                            boxShadow: '0 0 0 4px var(--bg-primary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                          }}
+                          title={`Click to view Year ${milestone.yearNumber}`}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--text-primary)';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border-hover)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        />
+                      )}
+
+                      <div
+                        className="bento-card"
+                        style={{
+                          padding: '1.75rem',
+                          borderRadius: '20px',
+                          border: isActive ? '1.5px solid var(--text-primary)' : '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-surface)',
+                          boxShadow: isActive ? '0 12px 36px rgba(0, 0, 0, 0.08)' : 'var(--card-shadow)',
+                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                          cursor: 'pointer',
+                          transform: isActive ? 'translateY(-2px)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '0.2rem 0.6rem',
+                                  borderRadius: '12px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  letterSpacing: '0.04em',
+                                  backgroundColor: isActive ? 'var(--text-primary)' : 'var(--bg-tertiary)',
+                                  color: isActive ? 'var(--accent-inverse)' : 'var(--text-primary)'
+                                }}
+                              >
+                                {milestone.phaseBadge}
+                              </span>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                {milestone.subtitle}
+                              </span>
+                            </div>
+
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Year {milestone.yearNumber} of 4
+                            </span>
+                          </div>
+
+                          <div>
+                            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.65rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                              {milestone.yearTitle}
+                            </h3>
+                            <FormattedText text={milestone.content} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* 8. Key Projects Built */}
+        {hasProjects && (
+          <section id="section-projects" className="story-section" style={{ scrollMarginTop: '110px' }}>
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', color: '#c084fc', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
                 <Code size={13} />
-                Technical Proof of Work
+                Technical Portfolio
               </div>
               <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <Code size={22} style={{ color: 'var(--text-primary)' }} />
@@ -1686,487 +1791,7 @@ export default function StoryDetail() {
           </section>
         )}
 
-        {/* The Recruitment Process - Rendered strictly from candidate's verified experience */}
-        {story.journey?.howSecured && story.journey.howSecured.trim() && (
-          <section id="section-secured" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-            <div style={{ marginBottom: '1.75rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <Layers size={13} />
-                Recruitment Process Flow
-              </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Layers size={22} style={{ color: 'var(--text-primary)' }} />
-                How I Secured the Role
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Verified selection process, interview rounds, and preparation experience directly from the candidate
-              </p>
-            </div>
-
-            {(() => {
-              const { rounds, narrative, structuredRounds } = parseHowSecuredRounds(story.journey?.howSecured, story);
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  {/* Structured Rounds summary badges if present */}
-                  {structuredRounds && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                      {structuredRounds.onlineAssessment && (
-                        <div className="editorial-card" style={{ padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase' }}>Online Assessment</span>
-                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{structuredRounds.onlineAssessment}</p>
-                        </div>
-                      )}
-                      {structuredRounds.technicalRounds && (
-                        <div className="editorial-card" style={{ padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>Technical Rounds</span>
-                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{structuredRounds.technicalRounds}</p>
-                        </div>
-                      )}
-                      {structuredRounds.hrRound && (
-                        <div className="editorial-card" style={{ padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase' }}>HR / Fitment Round</span>
-                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{structuredRounds.hrRound}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Candidate's Genuine Numbered Interview Rounds */}
-                  {rounds.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {rounds.map((rnd) => (
-                        <div
-                          key={rnd.roundNumber}
-                          className="editorial-card"
-                          style={{
-                            padding: '1.35rem 1.5rem',
-                            borderRadius: '16px',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-surface)',
-                            position: 'relative'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.1rem' }}>
-                            <div
-                              style={{
-                                width: '42px',
-                                height: '42px',
-                                borderRadius: '12px',
-                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                                color: '#60a5fa',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 800,
-                                fontSize: '0.95rem',
-                                flexShrink: 0,
-                                border: '1px solid rgba(59, 130, 246, 0.25)'
-                              }}
-                            >
-                              {String(rnd.roundNumber).padStart(2, '0')}
-                            </div>
-
-                            <div style={{ flexGrow: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                                  Stage {String(rnd.roundNumber).padStart(2, '0')}
-                                </span>
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                                  {rnd.title}
-                                </h3>
-                              </div>
-
-                              <div style={{ margin: 0, fontSize: '0.96rem', color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
-                                {rnd.content}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : narrative ? (
-                    <div
-                      className="editorial-card"
-                      style={{
-                        padding: '1.5rem 1.75rem',
-                        borderRadius: '16px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-surface)'
-                      }}
-                    >
-                      <div style={{ fontSize: '0.98rem', lineHeight: 1.75, color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-                        {narrative}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })()}
-          </section>
-        )}
-
-        {/* Custom Prompts / Sections: Advice, Hackathons & Others */}
-        {story.customSections && story.customSections.map((sec, index) => {
-          const lowerTitle = (sec.title || '').toLowerCase();
-          const isAdvice = lowerTitle.includes('advice');
-          const isHackathon = lowerTitle.includes('hackathon') || lowerTitle.includes('competition');
-
-          if (isAdvice) {
-            const { tips, quote } = parseAdviceContent(sec.content);
-            return (
-              <section key={index} id="section-advice" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                    <Lightbulb size={13} />
-                    Guidance For SPIT Juniors
-                  </div>
-                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <Lightbulb size={22} style={{ color: 'var(--text-primary)' }} />
-                    Advice to Juniors
-                  </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                    Practical tips, habits, and mindset shifts to maximize your 4 engineering years
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  {tips.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-                      {tips.map((tip, tIdx) => {
-                        const TipIcon = tip.icon;
-                        return (
-                          <div
-                            key={tIdx}
-                            className="editorial-card"
-                            style={{
-                              padding: '1.25rem',
-                              borderRadius: '14px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-surface)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '0.65rem',
-                              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                <div style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '8px',
-                                  backgroundColor: tip.bg,
-                                  color: tip.color,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}>
-                                  <TipIcon size={14} />
-                                </div>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: tip.color, letterSpacing: '0.04em' }}>
-                                  TIP {tip.number}
-                                </span>
-                              </div>
-                            </div>
-                            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                              {tip.text}
-                            </h4>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {quote && (
-                    <div
-                      className="editorial-card"
-                      style={{
-                        padding: '1.75rem 2rem',
-                        borderRadius: '18px',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)',
-                        position: 'relative',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      <div style={{
-                        position: 'absolute',
-                        top: '-10px',
-                        right: '15px',
-                        fontSize: '6rem',
-                        color: 'rgba(16, 185, 129, 0.06)',
-                        fontFamily: 'var(--font-serif)',
-                        pointerEvents: 'none',
-                        lineHeight: 1
-                      }}>
-                        “
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '20px',
-                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                          color: '#10b981',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em'
-                        }}>
-                          <Quote size={12} />
-                          Senior's Golden Rule
-                        </span>
-                      </div>
-
-                      <p style={{
-                        margin: '0 0 1rem 0',
-                        fontSize: '1.12rem',
-                        color: 'var(--text-primary)',
-                        lineHeight: 1.75,
-                        fontWeight: 500,
-                        fontStyle: 'italic'
-                      }}>
-                        "{quote}"
-                      </p>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>— {story.name}</span>
-                        <span>•</span>
-                        <span>{story.role} at {story.company}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
-            );
-          }
-
-          if (isHackathon) {
-            const { intro, achievements, skills, impact } = parseHackathonContent(sec.content);
-            return (
-              <section key={index} id="section-hackathons" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(212, 255, 50, 0.15)', border: '1px solid rgba(212, 255, 50, 0.35)', color: 'var(--accent-lime-dark)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                    <Trophy size={13} />
-                    Competitive Building
-                  </div>
-                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <Trophy size={22} style={{ color: 'var(--text-primary)' }} />
-                    Hackathons & Competitions
-                  </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                    Real-world prototyping, high-intensity hackathons, and verifiable technical achievements
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  {intro && (
-                    <p style={{ margin: 0, fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                      {intro}
-                    </p>
-                  )}
-
-                  {achievements.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {achievements.map((ach) => {
-                        const AchIcon = ach.icon;
-                        return (
-                          <div
-                            key={ach.id}
-                            className="editorial-card"
-                            style={{
-                              padding: '1.25rem',
-                              borderRadius: '14px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-surface)',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: '0.9rem',
-                              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-                            }}
-                          >
-                            <div style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '10px',
-                              backgroundColor: ach.badgeColor,
-                              color: ach.textColor,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              <AchIcon size={18} />
-                            </div>
-                            <div style={{ flexGrow: 1 }}>
-                              <span style={{ display: 'inline-block', fontSize: '0.7rem', fontWeight: 700, color: ach.textColor, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.25rem' }}>
-                                {ach.badgeText}
-                              </span>
-                              <p style={{ margin: 0, fontSize: '0.96rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                                {ach.text}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {skills.length > 0 && (
-                    <div
-                      className="editorial-card"
-                      style={{
-                        padding: '1.25rem 1.5rem',
-                        borderRadius: '14px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-surface)'
-                      }}
-                    >
-                      <h4 style={{ margin: '0 0 0.85rem 0', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-                        Core Skills Gained Under Tight Deadlines
-                      </h4>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
-                        {skills.map((sk, skIdx) => {
-                          const SkIcon = sk.icon;
-                          return (
-                            <div
-                              key={skIdx}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.45rem',
-                                padding: '0.45rem 0.85rem',
-                                borderRadius: '10px',
-                                backgroundColor: 'var(--bg-tertiary)',
-                                border: '1px solid var(--border-color)',
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                                color: 'var(--text-primary)'
-                              }}
-                              title={sk.desc}
-                            >
-                              <SkIcon size={14} style={{ color: 'var(--text-secondary)' }} />
-                              <span>{sk.name}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {impact && (
-                    <div
-                      style={{
-                        padding: '1.2rem 1.5rem',
-                        borderRadius: '14px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-color)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.85rem'
-                      }}
-                    >
-                      <Medal size={20} color="#fbbf24" style={{ flexShrink: 0 }} />
-                      <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        {impact}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </section>
-            );
-          }
-
-          return (
-            <section key={index} style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <Award size={22} style={{ color: 'var(--text-primary)' }} />
-                  {sec.title}
-                </h2>
-              </div>
-              <div
-                className="editorial-card"
-                style={{
-                  padding: '1.5rem',
-                  borderRadius: '14px',
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)'
-                }}
-              >
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: '1.75', margin: 0, whiteSpace: 'pre-wrap' }}>
-                  {sec.content}
-                </p>
-              </div>
-            </section>
-          );
-        })}
-
-
-
-        {/* Resources Used List */}
-        {story.resources && story.resources.length > 0 && (
-          <section id="section-resources" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
-              Resources Used
-            </h2>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {story.resources.map((res, index) => {
-                const targetUrl = getResourceLink(res) || `https://www.google.com/search?q=${encodeURIComponent((res.name || 'study material') + ' preparation')}`;
-                return (
-                  <a
-                    key={index}
-                    href={targetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="glass-panel"
-                    title={`Open ${res.name} in a new tab`}
-                    style={{
-                      padding: '0.75rem 1.25rem',
-                      borderRadius: '12px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.55rem',
-                      fontSize: '0.9rem',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-surface)',
-                      color: 'var(--text-primary)',
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                      maxWidth: '100%',
-                      overflowWrap: 'anywhere',
-                      boxShadow: 'var(--card-shadow)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--text-primary)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <span style={{ fontWeight: 600 }}>{res.name}</span>
-                    {res.type && (
-                      <span className="badge" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', borderRadius: '6px' }}>
-                        {res.type}
-                      </span>
-                    )}
-                    <ExternalLink size={13} style={{ color: 'var(--text-secondary)', flexShrink: 0, marginLeft: '0.2rem' }} />
-                  </a>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* Resume Preview & Download Section */}
+        {/* 9. Resume Preview & Download */}
         {(() => {
           const rf = story.resumeFile;
           const resumeRawUrl = getResourceFileUrl({
@@ -2174,14 +1799,14 @@ export default function StoryDetail() {
             resume: story.resume,
             url: rf?.url
           });
-          const hasResume = Boolean(
+          const hasResumeActual = Boolean(
             (rf && (rf.url || rf.fileName)) ||
             (typeof story.resume === 'object' && (story.resume.url || story.resume.fileName)) ||
             (typeof story.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim())) ||
             (resumeRawUrl && resumeRawUrl !== '#')
           );
 
-          if (!hasResume) return null;
+          if (!hasResumeActual) return null;
 
           const isDriveOrDocs = resumeRawUrl && (resumeRawUrl.includes('drive.google.com') || resumeRawUrl.includes('docs.google.com'));
           const isExternal = resumeRawUrl && (resumeRawUrl.startsWith('http://') || resumeRawUrl.startsWith('https://')) && !resumeRawUrl.includes(window.location.host);
@@ -2192,25 +1817,22 @@ export default function StoryDetail() {
           }
 
           return (
-            <section id="section-resume" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+            <section id="section-resume" className="story-section" style={{ scrollMarginTop: '110px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <FileText size={22} style={{ color: 'var(--text-primary)' }} />
+                  <Award size={22} style={{ color: 'var(--text-primary)' }} />
                   Resume
                 </h2>
-                <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.28)', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                <span style={{ backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.28)', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>
                   {isDriveOrDocs ? 'Google Drive Verified Document' : 'Standard Tech Resume (PDF)'}
                 </span>
               </div>
 
-              <div className="loop-card" style={{
+              <div className="story-content-card" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '1.5rem 2rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '16px',
+                padding: '1.5rem 1.8rem',
                 flexWrap: 'wrap',
                 gap: '1.25rem'
               }}>
@@ -2244,6 +1866,7 @@ export default function StoryDetail() {
                       href={resumeRawUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="btn btn-primary"
                       style={{ padding: '0.65rem 1.35rem', fontSize: '0.88rem', gap: '0.5rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontWeight: 600 }}
                       title="Open Verified Resume"
@@ -2317,257 +1940,27 @@ export default function StoryDetail() {
           );
         })()}
 
-        {/* Study Materials Uploaded Section */}
-        {story.studyMaterials && story.studyMaterials.length > 0 && (
-          <section id="section-materials" style={{ paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
-                Study Materials
-              </h2>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {story.studyMaterials.length} verified preparation {story.studyMaterials.length === 1 ? 'resource' : 'resources'}
-              </span>
-            </div>
+        {/* 10. Additional Custom Sections */}
+        {story.customSections && story.customSections.map((sec, index) => {
+          const lowerTitle = (sec.title || '').toLowerCase();
+          const isAdvice = lowerTitle.includes('advice');
+          if (isAdvice) return null;
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
-              gap: '1.25rem'
-            }}>
-              {story.studyMaterials.map((mat, index) => {
-                const isImage = mat.type === 'Image' && mat.url && mat.url !== '#';
-                const matUrl = mat.url || '';
-                const isExternalMat = matUrl && (matUrl.startsWith('http://') || matUrl.startsWith('https://'));
-                const isDriveMat = matUrl.includes('drive.google.com') || matUrl.includes('docs.google.com');
+          return (
+            <section key={index} id={`section-custom-${index}`} className="story-section" style={{ scrollMarginTop: '110px' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <Star size={22} style={{ color: 'var(--text-primary)' }} />
+                  {sec.title}
+                </h2>
+              </div>
+              <div className="story-content-card">
+                <FormattedText text={sec.content} />
+              </div>
+            </section>
+          );
+        })}
 
-                let category = mat.category || 'Study Material';
-                const tLower = (mat.title || '').toLowerCase();
-                const fLower = (mat.fileName || '').toLowerCase();
-                if (!mat.category || mat.category === 'Study Material') {
-                  if (tLower.includes('dsa') || tLower.includes('leetcode') || tLower.includes('striver') || tLower.includes('algorithm')) {
-                    category = 'DSA Preparation';
-                  } else if (tLower.includes('question') || tLower.includes('problem') || tLower.includes('oa')) {
-                    category = 'Coding Questions';
-                  } else if (tLower.includes('sql') || tLower.includes('dbms') || tLower.includes('os') || tLower.includes('system') || tLower.includes('core')) {
-                    category = 'Technical Interview Preparation';
-                  } else if (tLower.includes('aptitude') || tLower.includes('puzzle') || tLower.includes('quant')) {
-                    category = 'Aptitude Preparation';
-                  } else if (tLower.includes('guesstimate') || tLower.includes('case') || tLower.includes('company') || tLower.includes('archive')) {
-                    category = 'Company-Specific Preparation';
-                  } else if (tLower.includes('cheat') || tLower.includes('note') || tLower.includes('handwritten')) {
-                    category = 'Subject Notes';
-                  } else if (mat.type === 'PDF' || fLower.endsWith('.pdf')) {
-                    category = 'Interview Preparation PDFs';
-                  }
-                }
-
-                const categoryStyles = {
-                  'DSA Preparation': { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: 'rgba(16, 185, 129, 0.25)' },
-                  'Coding Questions': { bg: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.25)' },
-                  'Technical Interview Preparation': { bg: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: 'rgba(99, 102, 241, 0.25)' },
-                  'Aptitude Preparation': { bg: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.25)' },
-                  'Company-Specific Preparation': { bg: 'rgba(168, 85, 247, 0.1)', color: '#c084fc', border: 'rgba(168, 85, 247, 0.25)' },
-                  'Subject Notes': { bg: 'rgba(20, 184, 166, 0.1)', color: '#2dd4bf', border: 'rgba(20, 184, 166, 0.25)' },
-                  'Interview Preparation PDFs': { bg: 'rgba(239, 68, 68, 0.1)', color: '#f87171', border: 'rgba(239, 68, 68, 0.25)' }
-                };
-                const catStyle = categoryStyles[category] || { bg: 'rgba(255, 255, 255, 0.06)', color: 'var(--text-secondary)', border: 'var(--border-color)' };
-
-                if (isImage) {
-                  return (
-                    <div key={index} className="glass-panel" style={{
-                      padding: '1.25rem',
-                      borderRadius: '16px',
-                      border: '1px solid var(--border-color)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '1rem'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <span className="badge" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', backgroundColor: catStyle.bg, color: catStyle.color, border: `1px solid ${catStyle.border}`, borderRadius: '6px', marginBottom: '0.35rem', display: 'inline-block' }}>
-                            {category}
-                          </span>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                            {mat.title}
-                          </h4>
-                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                            <span className="badge" style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem' }}>
-                              {mat.type}
-                            </span>
-                            {mat.fileSize && (
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                                {mat.fileSize}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            if (mat.url && mat.url !== '#') {
-                              handleDownloadFile(mat.fileName || mat.title + '.png', mat.url);
-                            } else {
-                              alert('No image file available.');
-                            }
-                          }}
-                          className="btn btn-secondary"
-                          style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          title="Download Image"
-                        >
-                          <Download size={12} />
-                        </button>
-                      </div>
-
-                      <div 
-                        onClick={() => {
-                          const allFiles = getStoryFiles();
-                          const matDoc = allFiles[index + 1] || { ...mat, id: `mat-${story.id}-${index}`, type: 'Image' };
-                          navigate(`/preview/${matDoc.id}?storyId=${story.id}`, {
-                            state: {
-                              file: matDoc,
-                              files: allFiles,
-                              storyTitle: story.name
-                            }
-                          });
-                        }}
-                        style={{ 
-                          width: '100%', 
-                          height: '160px', 
-                          borderRadius: '8px', 
-                          overflow: 'hidden', 
-                          border: '1px solid var(--border-color)',
-                          cursor: 'pointer',
-                          backgroundColor: 'var(--bg-primary)',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          position: 'relative'
-                        }}
-                      >
-                        <img 
-                          src={mat.url} 
-                          alt={mat.title} 
-                          style={{ height: '100%', width: '100%', objectFit: 'contain', transition: 'transform 0.2s' }}
-                          className="material-preview-img"
-                        />
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '0.5rem',
-                          right: '0.5rem',
-                          background: 'rgba(0,0,0,0.6)',
-                          color: '#fff',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.65rem',
-                          fontWeight: 500
-                        }}>
-                          Click to Expand
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={index} className="glass-panel" style={{
-                    padding: '1.25rem',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '1rem'
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className="badge" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', backgroundColor: catStyle.bg, color: catStyle.color, border: `1px solid ${catStyle.border}`, borderRadius: '6px' }}>
-                          {category}
-                        </span>
-                        <span className="badge" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-                          {mat.type}
-                        </span>
-                        {mat.fileSize && (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                            {mat.fileSize}
-                          </span>
-                        )}
-                      </div>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: '1.35', margin: '0 0 0.25rem 0' }}>
-                        {mat.title}
-                      </h4>
-                      {mat.fileName && mat.fileName !== mat.title && (
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {mat.fileName}
-                        </p>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: 'auto' }}>
-                      {isExternalMat ? (
-                        <a 
-                          href={matUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-secondary"
-                          style={{
-                            padding: '0.45rem 0.9rem',
-                            borderRadius: '8px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                            color: 'var(--text-primary)',
-                            flexGrow: 1,
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <ExternalLink size={14} />
-                          <span>{mat.type === 'PDF' || fLower.endsWith('.pdf') ? 'View PDF ↗' : 'Open Material ↗'}</span>
-                        </a>
-                      ) : (
-                        <>
-                          <button 
-                            onClick={() => {
-                              const allFiles = getStoryFiles();
-                              const matDoc = allFiles[index + 1] || { ...mat, id: `mat-${story.id}-${index}` };
-                              navigate(`/preview/${matDoc.id}?storyId=${story.id}`, {
-                                state: {
-                                  file: matDoc,
-                                  files: allFiles,
-                                  storyTitle: story.name
-                                }
-                              });
-                            }}
-                            className="btn btn-secondary"
-                            style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', flexGrow: 1, justifyContent: 'center' }}
-                            title="View File"
-                          >
-                            <FileText size={14} />
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>View File</span>
-                          </button>
-                          {mat.url && mat.url !== '#' && (
-                            <button 
-                              onClick={() => {
-                                handleDownloadFile(mat.fileName || mat.title + (mat.type === 'PDF' ? '.pdf' : '.txt'), mat.url);
-                              }}
-                              className="btn btn-secondary"
-                              style={{ padding: '0.4rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '36px', height: '36px', flexShrink: 0 }}
-                              title="Download File"
-                            >
-                              <Download size={14} />
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         {/* Bottom Back to Stories & Quick Return Footer */}
         <div style={{

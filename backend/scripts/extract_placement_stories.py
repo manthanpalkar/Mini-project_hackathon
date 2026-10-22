@@ -563,6 +563,12 @@ def parse_experience(raw_text, filename, company_folder, full_path):
     if resume_file:
         resume_file['fileName'] = f"{name} — {company} — Resume — 2026.pdf"
 
+    # 11. Extract Candidate's Personal CGPA (Strict: Ignore company criteria or cutoffs)
+    cgpa = None
+    personal_cgpa_match = re.search(r'(?:my\s+cgpa\s*(?:is|was)|cgpa\s*(?:is|was)|(?:cgpa|gpa)[\s\S]{0,150}?high\s*\(\s*|what[\x27\u2019]s\s*your\s*cgpa[\s\S]{0,200}?\(\s*)([6-9]\.[0-9]+|10(?:\.0+)?)\)?', raw_text, re.I)
+    if personal_cgpa_match:
+        cgpa = personal_cgpa_match.group(1).strip()
+
     # ID resolution: Match existing story ID from backup or calculate deterministic ID
     name_clean = name.lower().strip()
     comp_clean = company.lower().strip()
@@ -581,6 +587,7 @@ def parse_experience(raw_text, filename, company_folder, full_path):
         "branch": branch,
         "subBranch": sub_branch,
         "passoutYear": "2026",
+        "cgpa": cgpa,
         "package": package,
         "ctc": ctc,
         "stipend": stipend,

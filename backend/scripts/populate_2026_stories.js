@@ -67,6 +67,7 @@ async function main() {
       branch: branchCode,
       subBranch: subBranchCode,
       passoutYear: s.passoutYear || '2026',
+      cgpa: s.cgpa || undefined,
       package: s.package || undefined,
       ctc: s.ctc || undefined,
       stipend: s.stipend || undefined,
@@ -107,6 +108,7 @@ async function main() {
         existing.branch = storyDataToSet.branch;
         existing.subBranch = storyDataToSet.subBranch;
         existing.passoutYear = storyDataToSet.passoutYear;
+        existing.cgpa = storyDataToSet.cgpa;
         existing.package = storyDataToSet.package;
         existing.ctc = storyDataToSet.ctc;
         existing.stipend = storyDataToSet.stipend;
