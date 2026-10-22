@@ -717,6 +717,32 @@ img {
   }
 }
 
+/* Stories Page Two-Column Sidebar & Grid Layout */
+.stories-page-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 2.25rem;
+  align-items: start;
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.stories-sidebar-sticky {
+  position: sticky;
+  top: 5.5rem;
+  z-index: 10;
+}
+
+@media (max-width: 900px) {
+  .stories-page-layout {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+  .stories-sidebar-sticky {
+    position: static;
+  }
+}
+
 /* Visibility display helper classes */
 .hide-on-mobile {
   display: block;

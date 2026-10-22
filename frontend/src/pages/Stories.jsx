@@ -121,7 +121,9 @@ function Story3DCard({ story, index, navigate }) {
           ? 'transform 0.12s ease-out, box-shadow 0.25s ease, border-color 0.25s ease'
           : 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.25s ease',
         transformStyle: 'preserve-3d',
-        willChange: 'transform, opacity'
+        willChange: 'transform, opacity',
+        width: '100%',
+        boxSizing: 'border-box'
       }}
     >
       <div style={{ flexGrow: 1, minWidth: '260px' }}>
@@ -743,17 +745,9 @@ export default function Stories() {
       </div>
 
       {/* Sidebar and Stories List Container */}
-      <div style={{
-        display: 'flex',
-        gap: '2.5rem',
-        marginTop: '2rem',
-        alignItems: 'flex-start',
-        flexWrap: 'wrap'
-      }}>
+      <div className="stories-page-layout">
         {/* Sidebar Filters */}
-        <div className="loop-card" style={{
-          width: '270px',
-          flexShrink: 0,
+        <div className="loop-card stories-sidebar-sticky" style={{
           padding: '1.25rem 1.15rem',
           borderRadius: '20px',
           backgroundColor: 'var(--bg-secondary)',
@@ -761,8 +755,6 @@ export default function Stories() {
           display: 'flex',
           flexDirection: 'column',
           gap: '1.25rem',
-          position: 'sticky',
-          top: '5.5rem',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
         }}>
           {/* Header */}
@@ -1074,7 +1066,7 @@ export default function Stories() {
         </div>
 
         {/* Stories List (on the right) */}
-        <div style={{ flexGrow: 1, minWidth: '260px', maxWidth: '100%' }}>
+        <div style={{ minWidth: 0, width: '100%' }}>
           {/* Search Bar */}
           <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
