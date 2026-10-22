@@ -143,7 +143,7 @@ function Story3DCard({ story, index, navigate }) {
             {story.company}
           </span>
           <span className="badge" style={{ fontSize: '0.68rem', borderRadius: '10px' }}>
-            {story.branch} {story.subBranch && `(${story.subBranch})`}
+            {story.branch} {story.subBranch && story.subBranch !== story.branch && `(${story.subBranch})`}
           </span>
           <span className="badge" style={{ fontSize: '0.68rem', borderRadius: '10px' }}>
             Class of {story.passoutYear}
@@ -499,6 +499,23 @@ export default function Stories() {
     return () => clearTimeout(handler);
   }, [inputValue]);
 
+  // Resilient branch & subBranch normalizers across standard codes and verbose department labels
+  const normalizeBranch = (b) => {
+    if (!b) return '';
+    const u = b.trim().toUpperCase();
+    if (u === 'CSE' || u.includes('COMPUTER SCIENCE') || u.includes('CS')) return 'CSE';
+    if (u === 'CE' || u.includes('COMPUTER ENGINEERING') || u.includes('COMPS') || u === 'MCA') return 'CE';
+    if (u === 'EXTC' || u.includes('ELECTRONICS') || u.includes('TELECOMMUNICATION')) return 'EXTC';
+    return u;
+  };
+
+  const normalizeSubBranch = (sb, b) => {
+    const combined = `${sb || ''} ${b || ''}`.toUpperCase();
+    if (combined.includes('AI') || combined.includes('AIML') || combined.includes('MACHINE LEARNING')) return 'AI';
+    if (combined.includes('DS') || combined.includes('DATA SCIENCE') || combined.includes('DATA')) return 'DS';
+    return 'CSE';
+  };
+
   // Filtered stories based on sidebar selections + search query
   const filteredStories = stories.filter(story => {
     // Search query match
@@ -518,12 +535,14 @@ export default function Stories() {
     }
 
     // Branch Match
-    const branchMatch = selectedBranches.includes(story.branch);
+    const normBranch = normalizeBranch(story.branch);
+    const branchMatch = selectedBranches.includes(normBranch) || selectedBranches.includes(story.branch);
     if (!branchMatch) return false;
     
     // If the story is CSE, also check if its subBranch is in selectedSubBranches
-    if (story.branch === 'CSE' && story.subBranch) {
-      const subMatch = selectedSubBranches.includes(story.subBranch);
+    if (normBranch === 'CSE') {
+      const normSubBranch = normalizeSubBranch(story.subBranch, story.branch);
+      const subMatch = selectedSubBranches.includes(normSubBranch) || (story.subBranch && selectedSubBranches.includes(story.subBranch));
       if (!subMatch) return false;
     }
     

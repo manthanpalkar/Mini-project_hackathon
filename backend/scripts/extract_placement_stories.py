@@ -144,16 +144,29 @@ def parse_experience(raw_text, filename, company_folder):
         elif "developer" in fn: role = "Technology Developer"
 
     # 4. Department / Branch
-    branch = "Computer Engineering"
+    branch = "CE"
+    sub_branch = "CE"
     m_branch = re.search(r'(EXTC|CSE-AIML|CSE-DS|CSE\s*AIML|CSE\s*DS|Comps\s*-\s*[AB]|Computer\s*Engineering|Information\s*Technology|MCA)', clean_text, re.IGNORECASE)
     if m_branch:
         b_raw = m_branch.group(1).upper()
-        if "EXTC" in b_raw: branch = "Electronics & Telecommunication"
-        elif "AIML" in b_raw: branch = "Computer Science (AI & ML)"
-        elif "DS" in b_raw: branch = "Computer Science (Data Science)"
-        elif "COMPS" in b_raw or "COMPUTER" in b_raw: branch = "Computer Engineering"
-        elif "IT" in b_raw: branch = "Information Technology"
-        elif "MCA" in b_raw: branch = "MCA"
+        if "EXTC" in b_raw:
+            branch = "EXTC"
+            sub_branch = "EXTC"
+        elif "AIML" in b_raw:
+            branch = "CSE"
+            sub_branch = "AI"
+        elif "DS" in b_raw:
+            branch = "CSE"
+            sub_branch = "DS"
+        elif "COMPS" in b_raw or "COMPUTER" in b_raw:
+            branch = "CE"
+            sub_branch = "CE"
+        elif "IT" in b_raw:
+            branch = "CSE"
+            sub_branch = "CSE"
+        elif "MCA" in b_raw:
+            branch = "CE"
+            sub_branch = "MCA"
 
     # 5. Offer Type, CTC, Stipend
     offer_type = "Placement"
@@ -243,6 +256,7 @@ def parse_experience(raw_text, filename, company_folder):
         "company": company,
         "role": role,
         "branch": branch,
+        "subBranch": sub_branch,
         "passoutYear": "2026",
         "ctc": ctc,
         "stipend": stipend,

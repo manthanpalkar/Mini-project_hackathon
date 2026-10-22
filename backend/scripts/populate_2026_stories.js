@@ -47,12 +47,36 @@ async function main() {
       continue;
     }
 
+    let branchCode = s.branch || 'CSE';
+    let subBranchCode = s.subBranch || '';
+    const bu = branchCode.toUpperCase();
+    if (bu.includes('AI') || bu.includes('AIML')) {
+      branchCode = 'CSE';
+      subBranchCode = 'AI';
+    } else if (bu.includes('DATA') || bu.includes('DS')) {
+      branchCode = 'CSE';
+      subBranchCode = 'DS';
+    } else if (bu.includes('COMPUTER SCIENCE') || bu === 'CSE') {
+      branchCode = 'CSE';
+      subBranchCode = subBranchCode || 'CSE';
+    } else if (bu.includes('ELECTRONICS') || bu.includes('TELECOMMUNICATION') || bu === 'EXTC') {
+      branchCode = 'EXTC';
+      subBranchCode = 'EXTC';
+    } else if (bu.includes('COMPUTER ENGINEERING') || bu.includes('COMPS') || bu === 'CE') {
+      branchCode = 'CE';
+      subBranchCode = 'CE';
+    } else if (bu === 'MCA') {
+      branchCode = 'CE';
+      subBranchCode = 'MCA';
+    }
+
     const storyDoc = new Story({
       id: s.id,
       name: s.name,
       company: s.company,
       role: s.role,
-      branch: s.branch,
+      branch: branchCode,
+      subBranch: subBranchCode,
       passoutYear: s.passoutYear || '2026',
       journey: {
         firstYear: s.journey.firstYear || undefined,

@@ -995,7 +995,7 @@ export default function StoryDetail() {
           <div style={{ flexGrow: 1, minWidth: '220px', maxWidth: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
               <span className="badge" style={{ fontSize: '0.7rem' }}>
-                {story.branch} {story.subBranch && `(${story.subBranch})`}
+                {story.branch} {story.subBranch && story.subBranch !== story.branch && `(${story.subBranch})`}
               </span>
               <span className="badge" style={{ fontSize: '0.7rem' }}>
                 Class of {story.passoutYear}
