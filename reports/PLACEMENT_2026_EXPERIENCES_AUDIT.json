@@ -500,7 +500,7 @@
     "has_third_year": true,
     "has_fourth_year": false,
     "resource_count": 11,
-    "study_material_count": 0,
+    "study_material_count": 1,
     "has_resume": false,
     "duplicate_of": null,
     "manual_review_needed": false
@@ -2087,7 +2087,7 @@
     "has_third_year": true,
     "has_fourth_year": false,
     "resource_count": 11,
-    "study_material_count": 0,
+    "study_material_count": 1,
     "has_resume": true,
     "duplicate_of": null,
     "manual_review_needed": false
@@ -2179,7 +2179,7 @@
     "has_third_year": true,
     "has_fourth_year": false,
     "resource_count": 16,
-    "study_material_count": 0,
+    "study_material_count": 2,
     "has_resume": false,
     "duplicate_of": null,
     "manual_review_needed": false
@@ -2570,7 +2570,7 @@
     "has_third_year": true,
     "has_fourth_year": false,
     "resource_count": 3,
-    "study_material_count": 0,
+    "study_material_count": 1,
     "has_resume": false,
     "duplicate_of": null,
     "manual_review_needed": false
@@ -2662,7 +2662,7 @@
     "has_third_year": true,
     "has_fourth_year": false,
     "resource_count": 16,
-    "study_material_count": 0,
+    "study_material_count": 1,
     "has_resume": false,
     "duplicate_of": null,
     "manual_review_needed": false
@@ -3030,7 +3030,7 @@
     "has_third_year": true,
     "has_fourth_year": false,
     "resource_count": 11,
-    "study_material_count": 0,
+    "study_material_count": 1,
     "has_resume": false,
     "duplicate_of": null,
     "manual_review_needed": false
@@ -3099,7 +3099,7 @@
     "has_third_year": true,
     "has_fourth_year": false,
     "resource_count": 8,
-    "study_material_count": 0,
+    "study_material_count": 1,
     "has_resume": false,
     "duplicate_of": null,
     "manual_review_needed": false

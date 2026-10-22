@@ -744,6 +744,25 @@ export default function AdminDashboard() {
     previewUrl: ''
   });
 
+  const [adminResumeMode, setAdminResumeMode] = useState('upload'); // 'upload' | 'link'
+  const [adminResumeLinkUrl, setAdminResumeLinkUrl] = useState('');
+  const [adminResumeLinkError, setAdminResumeLinkError] = useState('');
+
+  const [adminMaterialMode, setAdminMaterialMode] = useState('upload'); // 'upload' | 'link'
+  const [adminMaterialLinkTitle, setAdminMaterialLinkTitle] = useState('');
+  const [adminMaterialLinkCategory, setAdminMaterialLinkCategory] = useState('DSA Preparation');
+  const [adminMaterialLinkUrl, setAdminMaterialLinkUrl] = useState('');
+  const [adminMaterialLinkError, setAdminMaterialLinkError] = useState('');
+
+  const isValidUrl = (string) => {
+    try {
+      const parsed = new URL(string);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  };
+
   const processMaterialFile = (file) => {
     const extension = file.name.split('.').pop().toLowerCase();
     let determinedType = 'Notes';
@@ -1145,10 +1164,31 @@ export default function AdminDashboard() {
       customSections: item.customSections || []
     });
 
+    const rUrl = item.resumeFile?.url || (typeof item.resume === 'string' && item.resume.startsWith('http') ? item.resume : '');
+    if (rUrl && (rUrl.startsWith('http://') || rUrl.startsWith('https://'))) {
+      setAdminResumeMode('link');
+      setAdminResumeLinkUrl(rUrl);
+    } else {
+      setAdminResumeMode('upload');
+      setAdminResumeLinkUrl('');
+    }
+    setAdminResumeLinkError('');
+
+    setAdminMaterialMode('upload');
+    setAdminMaterialLinkTitle('');
+    setAdminMaterialLinkCategory('DSA Preparation');
+    setAdminMaterialLinkUrl('');
+    setAdminMaterialLinkError('');
+
     // Background fetch to load full details (including journey, resume, and study materials)
     try {
       const fullDetails = await getStoryById(item.id);
       if (fullDetails) {
+        const fullRUrl = fullDetails.resumeFile?.url || (typeof fullDetails.resume === 'string' && fullDetails.resume.startsWith('http') ? fullDetails.resume : '');
+        if (fullRUrl && (fullRUrl.startsWith('http://') || fullRUrl.startsWith('https://'))) {
+          setAdminResumeMode('link');
+          setAdminResumeLinkUrl(fullRUrl);
+        }
         setEditingItem(fullDetails);
         setEditStoryForm({
           name: fullDetails.name || '',
@@ -1200,11 +1240,30 @@ export default function AdminDashboard() {
     
     // Format the payload correctly for backend Mongoose schemas
     const payload = { ...editStoryForm };
-    if (payload.resume && typeof payload.resume === 'object') {
-      payload.resumeFile = payload.resume;
-      payload.resume = payload.resume.fileName;
+    if (adminResumeMode === 'link') {
+      if (adminResumeLinkUrl.trim()) {
+        if (!isValidUrl(adminResumeLinkUrl.trim())) {
+          setAdminResumeLinkError('Please enter a valid HTTP or HTTPS URL');
+          return;
+        }
+        const defaultDocName = `${payload.name || 'Candidate'} — ${payload.company || 'Placement'} — Resume — 2026.pdf`;
+        payload.resumeFile = {
+          fileName: defaultDocName,
+          fileSize: 'Google Drive Document',
+          url: adminResumeLinkUrl.trim()
+        };
+        payload.resume = defaultDocName;
+      } else {
+        payload.resumeFile = null;
+        payload.resume = '';
+      }
     } else {
-      payload.resumeFile = null;
+      if (payload.resume && typeof payload.resume === 'object') {
+        payload.resumeFile = payload.resume;
+        payload.resume = payload.resume.fileName;
+      } else if (!payload.resume) {
+        payload.resumeFile = null;
+      }
     }
 
     await updateStory(editingItem.id, payload);
@@ -3581,130 +3640,249 @@ export default function AdminDashboard() {
 
                 {/* Resume Section in Edit Modal */}
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-                    Senior Resume File
-                  </h4>
-                  
-                  <div 
-                    onClick={() => document.getElementById('edit-resume-file-upload')?.click()}
-                    style={{
-                      border: editStoryForm.resume ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
-                      borderRadius: '16px',
-                      padding: '1rem',
-                      textAlign: 'center',
-                      backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: '100px',
-                      color: 'var(--text-primary)'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
-                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) processResumeFile(file);
-                    }}
-                  >
-                    <input 
-                      type="file" 
-                      id="edit-resume-file-upload" 
-                      onChange={(e) => {
-                        const file = e.target.files[0];
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                      Senior Resume
+                    </h4>
+                    <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'var(--bg-primary)', padding: '0.2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setAdminResumeMode('upload')}
+                        style={{
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: adminResumeMode === 'upload' ? 700 : 500,
+                          backgroundColor: adminResumeMode === 'upload' ? 'var(--text-primary)' : 'transparent',
+                          color: adminResumeMode === 'upload' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                        }}
+                      >
+                        Upload PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdminResumeMode('link')}
+                        style={{
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: adminResumeMode === 'link' ? 700 : 500,
+                          backgroundColor: adminResumeMode === 'link' ? 'var(--text-primary)' : 'transparent',
+                          color: adminResumeMode === 'link' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                        }}
+                      >
+                        Google Drive Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {adminResumeMode === 'upload' ? (
+                    <div 
+                      onClick={() => document.getElementById('edit-resume-file-upload')?.click()}
+                      style={{
+                        border: editStoryForm.resume ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
+                        borderRadius: '16px',
+                        padding: '1rem',
+                        textAlign: 'center',
+                        backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '100px',
+                        color: 'var(--text-primary)'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
+                      onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const file = e.dataTransfer.files?.[0];
                         if (file) processResumeFile(file);
-                      }} 
-                      style={{ display: 'none' }}
-                      accept=".pdf"
-                    />
-                    {editStoryForm.resume ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
-                          <span style={{
-                            padding: '0.4rem',
-                            backgroundColor: 'var(--bg-primary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ff3b30'
-                          }}>
-                            <FileText size={18} />
-                          </span>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {typeof editStoryForm.resume === 'object' ? editStoryForm.resume.fileName : editStoryForm.resume}
+                      }}
+                    >
+                      <input 
+                        type="file" 
+                        id="edit-resume-file-upload" 
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) processResumeFile(file);
+                        }} 
+                        style={{ display: 'none' }}
+                        accept=".pdf"
+                      />
+                      {editStoryForm.resume ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
+                            <span style={{
+                              padding: '0.4rem',
+                              backgroundColor: 'var(--bg-primary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#ff3b30'
+                            }}>
+                              <FileText size={18} />
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              {typeof editStoryForm.resume === 'object' ? editStoryForm.resume.fileSize : '1.2 MB'}
-                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                {typeof editStoryForm.resume === 'object' ? editStoryForm.resume.fileName : editStoryForm.resume}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                {typeof editStoryForm.resume === 'object' ? editStoryForm.resume.fileSize : 'Uploaded File'}
+                              </span>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const currentResume = editStoryForm.resume;
+                                const resUrl = getResourceFileUrl({ resume: currentResume });
+                                const resumeDoc = {
+                                  id: `resume-${editingItem?.id || 'edit'}`,
+                                  title: `${editStoryForm.name || 'Candidate'}'s Resume`,
+                                  type: 'PDF',
+                                  fileName: typeof currentResume === 'object' ? currentResume.fileName : (currentResume || 'resume.pdf'),
+                                  fileSize: typeof currentResume === 'object' ? currentResume.fileSize : '',
+                                  url: resUrl || '',
+                                  previewUrl: resUrl || ''
+                                };
+                                navigate(`/preview/${resumeDoc.id}?storyId=${editingItem?.id || ''}`, {
+                                  state: {
+                                    file: resumeDoc,
+                                    files: [resumeDoc],
+                                    storyTitle: editStoryForm.name
+                                  }
+                                });
+                              }}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}
+                            >
+                              View Resume
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditStoryForm({ ...editStoryForm, resume: '' });
+                              }}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.35rem', color: '#ff453a', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                              title="Remove Resume"
+                            >
+                              <X size={16} />
+                            </button>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <button 
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const currentResume = editStoryForm.resume;
-                              const resUrl = getResourceFileUrl({ resume: currentResume });
-                              const resumeDoc = {
-                                id: `resume-${editingItem?.id || 'edit'}`,
-                                title: `${editStoryForm.name || 'Candidate'}'s Resume`,
-                                type: 'PDF',
-                                fileName: typeof currentResume === 'object' ? currentResume.fileName : (currentResume || 'resume.pdf'),
-                                fileSize: typeof currentResume === 'object' ? currentResume.fileSize : '',
-                                url: resUrl || '',
-                                previewUrl: resUrl || ''
-                              };
-                              navigate(`/preview/${resumeDoc.id}?storyId=${editingItem?.id || ''}`, {
-                                state: {
-                                  file: resumeDoc,
-                                  files: [resumeDoc],
-                                  storyTitle: editStoryForm.name
-                                }
-                              });
-                            }}
+                      ) : (
+                        <>
+                          <FileText size={22} style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }} />
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>
+                            Click to upload Resume PDF
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: '1.25rem',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '16px',
+                      backgroundColor: 'var(--bg-secondary)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.65rem'
+                    }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Google Drive Document or Public URL
+                      </label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input 
+                          type="url"
+                          className="input-field"
+                          placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                          value={adminResumeLinkUrl}
+                          onChange={(e) => {
+                            setAdminResumeLinkUrl(e.target.value);
+                            setAdminResumeLinkError('');
+                          }}
+                          style={{ flexGrow: 1, fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                        />
+                        {adminResumeLinkUrl && isValidUrl(adminResumeLinkUrl) && (
+                          <a 
+                            href={adminResumeLinkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="btn btn-secondary"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}
+                            style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
                           >
-                            View Resume
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditStoryForm({ ...editStoryForm, resume: '' });
-                            }}
-                            className="btn btn-secondary"
-                            style={{ padding: '0.35rem', color: '#ff453a', border: 'none', background: 'transparent', cursor: 'pointer' }}
-                            title="Remove Resume"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
+                            <ExternalLink size={14} />
+                            <span>Test Link ↗</span>
+                          </a>
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        <FileText size={22} style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }} />
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>
-                          Click to upload Resume PDF
-                        </p>
-                      </>
-                    )}
-                  </div>
+                      {adminResumeLinkError && (
+                        <span style={{ fontSize: '0.75rem', color: '#ff3b30' }}>{adminResumeLinkError}</span>
+                      )}
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        Enter a publicly accessible Google Drive or Docs link. LOOP will format it as: <code>[Student Name] — [Company] — Resume — 2026.pdf</code>
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Study Materials Section in Edit Modal */}
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-                    Study Materials / Files
-                  </h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                      Study Materials &amp; Resources
+                    </h4>
+                    <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'var(--bg-primary)', padding: '0.2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setAdminMaterialMode('upload')}
+                        style={{
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: adminMaterialMode === 'upload' ? 700 : 500,
+                          backgroundColor: adminMaterialMode === 'upload' ? 'var(--text-primary)' : 'transparent',
+                          color: adminMaterialMode === 'upload' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                        }}
+                      >
+                        Upload File
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdminMaterialMode('link')}
+                        style={{
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: adminMaterialMode === 'link' ? 700 : 500,
+                          backgroundColor: adminMaterialMode === 'link' ? 'var(--text-primary)' : 'transparent',
+                          color: adminMaterialMode === 'link' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                        }}
+                      >
+                        Google Drive / Link
+                      </button>
+                    </div>
+                  </div>
                   
                   {editStoryForm.studyMaterials && editStoryForm.studyMaterials.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -3734,12 +3912,24 @@ export default function AdminDashboard() {
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>{material.title}</span>
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                {material.type} {material.fileName ? `• ${material.fileName}` : ''}
+                                {material.category ? `${material.category} • ` : ''}{material.type} {material.fileName ? `• ${material.fileName}` : ''}
                               </span>
                             </div>
                           </div>
                           
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            {material.url && (material.url.startsWith('http://') || material.url.startsWith('https://')) ? (
+                              <a
+                                href={material.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-secondary"
+                                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                              >
+                                <ExternalLink size={12} />
+                                <span>Open Link ↗</span>
+                              </a>
+                            ) : (
                               <button 
                                 type="button"
                                 onClick={() => navigate(`/preview/mat-${editingItem?.id || 'edit'}-${idx}?storyId=${editingItem?.id || ''}`, {
@@ -3762,6 +3952,7 @@ export default function AdminDashboard() {
                               >
                                 View File
                               </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
@@ -3784,7 +3975,7 @@ export default function AdminDashboard() {
                     </p>
                   )}
 
-                  {/* Drag and Drop File Selector inside Edit Modal */}
+                  {/* Add Study Material block */}
                   <div style={{
                     padding: '1.25rem',
                     border: '1px dashed var(--border-color)',
@@ -3793,139 +3984,262 @@ export default function AdminDashboard() {
                     textAlign: 'left'
                   }}>
                     <h5 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
-                      Add Study Material
+                      Add Study Material ({adminMaterialMode === 'upload' ? 'Upload File' : 'Google Drive / External Link'})
                     </h5>
                     
-                    {/* Mock Dropzone Area */}
-                    <div 
-                      onClick={() => document.getElementById('edit-material-file-upload')?.click()}
-                      style={{
-                        border: editMaterialInput.previewUrl ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
-                        borderRadius: '16px',
-                        padding: editMaterialInput.previewUrl ? '1rem' : '1.5rem',
-                        textAlign: 'center',
-                        backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minHeight: '110px',
-                        marginBottom: '1rem',
-                        color: 'var(--text-primary)'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
-                      onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const file = e.dataTransfer.files?.[0];
-                        if (file) processMaterialFile(file);
-                      }}
-                    >
-                      <input 
-                        type="file" 
-                        id="edit-material-file-upload" 
-                        onChange={handleEditFileChange} 
-                        style={{ display: 'none' }}
-                        accept=".pdf,.png,.jpg,.jpeg"
-                      />
-                      
-                      {editMaterialInput.previewUrl ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', width: '100%' }}>
-                          {editMaterialInput.type === 'Image' ? (
-                            <div style={{ position: 'relative', width: '100%', height: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                              <img 
-                                src={editMaterialInput.previewUrl} 
-                                alt="Selected preview" 
-                                style={{ maxHeight: '100%', maxWidth: '100px', objectFit: 'contain', borderRadius: '6px' }}
-                              />
+                    {adminMaterialMode === 'upload' ? (
+                      <>
+                        <div 
+                          onClick={() => document.getElementById('edit-material-file-upload')?.click()}
+                          style={{
+                            border: editMaterialInput.previewUrl ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
+                            borderRadius: '16px',
+                            padding: editMaterialInput.previewUrl ? '1rem' : '1.5rem',
+                            textAlign: 'center',
+                            backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: '110px',
+                            marginBottom: '1rem',
+                            color: 'var(--text-primary)'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
+                          onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
+                          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) processMaterialFile(file);
+                          }}
+                        >
+                          <input 
+                            type="file" 
+                            id="edit-material-file-upload" 
+                            onChange={handleEditFileChange} 
+                            style={{ display: 'none' }}
+                            accept=".pdf,.png,.jpg,.jpeg"
+                          />
+                          
+                          {editMaterialInput.previewUrl ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', width: '100%' }}>
+                              {editMaterialInput.type === 'Image' ? (
+                                <div style={{ position: 'relative', width: '100%', height: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                  <img 
+                                    src={editMaterialInput.previewUrl} 
+                                    alt="Selected preview" 
+                                    style={{ maxHeight: '100%', maxWidth: '100px', objectFit: 'contain', borderRadius: '6px' }}
+                                  />
+                                </div>
+                              ) : (
+                                <FileText size={36} style={{ color: 'var(--text-primary)' }} />
+                              )}
+                              <span style={{ fontSize: '0.8rem', fontWeight: 600, wordBreak: 'break-all', color: 'var(--text-primary)' }}>
+                                {editMaterialInput.fileName}
+                              </span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                {editMaterialInput.fileSize}
+                              </span>
                             </div>
                           ) : (
-                            <FileText size={36} style={{ color: 'var(--text-primary)' }} />
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                              <Plus size={24} style={{ color: 'var(--text-secondary)' }} />
+                              <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                                Drag & drop study material here, or click to browse
+                              </span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                Supports PDF, PNG, JPG
+                              </span>
+                            </div>
                           )}
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600, wordBreak: 'break-all', color: 'var(--text-primary)' }}>
-                            {editMaterialInput.fileName}
-                          </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                            {editMaterialInput.fileSize}
-                          </span>
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                          <Plus size={24} style={{ color: 'var(--text-secondary)' }} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                            Drag & drop study material here, or click to browse
-                          </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            Supports PDF, PNG, JPG
-                          </span>
-                        </div>
-                      )}
-                    </div>
 
-                    {editMaterialInput.previewUrl && (
-                      <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '0.75rem' }}>
+                        {editMaterialInput.previewUrl && (
+                          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '0.75rem' }}>
+                              <div className="input-group" style={{ marginBottom: 0 }}>
+                                <label className="input-label" style={{ fontSize: '0.7rem' }}>Material Title *</label>
+                                <input 
+                                  type="text" 
+                                  value={editMaterialInput.title}
+                                  onChange={(e) => setEditMaterialInput({ ...editMaterialInput, title: e.target.value })}
+                                  className="input-field" 
+                                  placeholder="Material Title"
+                                  style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                                />
+                              </div>
+                              <div className="input-group" style={{ marginBottom: 0 }}>
+                                <label className="input-label" style={{ fontSize: '0.7rem' }}>File Type *</label>
+                                <select 
+                                  value={editMaterialInput.type}
+                                  onChange={(e) => setEditMaterialInput({ ...editMaterialInput, type: e.target.value })}
+                                  className="input-field"
+                                  style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                                >
+                                  <option value="PDF">PDF Document</option>
+                                  <option value="Image">Image Roadmap</option>
+                                  <option value="Notes">Notes File</option>
+                                </select>
+                              </div>
+                              <div className="input-group" style={{ marginBottom: 0 }}>
+                                <label className="input-label" style={{ fontSize: '0.7rem' }}>Category *</label>
+                                <select 
+                                  value={editMaterialInput.category || 'DSA Preparation'}
+                                  onChange={(e) => setEditMaterialInput({ ...editMaterialInput, category: e.target.value })}
+                                  className="input-field"
+                                  style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                                >
+                                  <option value="DSA Preparation">DSA Preparation</option>
+                                  <option value="Coding Questions">Coding Questions</option>
+                                  <option value="Technical Interview Preparation">Technical Prep</option>
+                                  <option value="Aptitude Preparation">Aptitude Prep</option>
+                                  <option value="Company-Specific Preparation">Company Prep</option>
+                                  <option value="Subject Notes">Subject Notes</option>
+                                  <option value="Interview Preparation PDFs">Interview PDFs</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
+                                }}
+                                className="btn btn-secondary"
+                                style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '8px' }}
+                              >
+                                Clear File
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (editMaterialInput.title.trim()) {
+                                    const newMaterial = {
+                                      title: editMaterialInput.title.trim(),
+                                      type: editMaterialInput.type,
+                                      category: editMaterialInput.category || 'DSA Preparation',
+                                      previewUrl: editMaterialInput.previewUrl,
+                                      fileName: editMaterialInput.fileName || (editMaterialInput.title.trim().toLowerCase().replace(/\s+/g, '_') + (editMaterialInput.type === 'PDF' ? '.pdf' : '.png')),
+                                      fileSize: editMaterialInput.fileSize
+                                    };
+                                    const updatedMaterials = [...(editStoryForm.studyMaterials || []), newMaterial];
+                                    setEditStoryForm({ ...editStoryForm, studyMaterials: updatedMaterials });
+                                    setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
+                                  } else {
+                                    alert('Please provide a title for the material.');
+                                  }
+                                }}
+                                className="btn btn-primary"
+                                style={{ padding: '0.45rem 1.2rem', fontSize: '0.8rem', borderRadius: '8px' }}
+                              >
+                                Add to Story
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
                           <div className="input-group" style={{ marginBottom: 0 }}>
-                            <label className="input-label" style={{ fontSize: '0.7rem' }}>Material Title *</label>
+                            <label className="input-label" style={{ fontSize: '0.7rem' }}>Title *</label>
                             <input 
-                              type="text" 
-                              value={editMaterialInput.title}
-                              onChange={(e) => setEditMaterialInput({ ...editMaterialInput, title: e.target.value })}
-                              className="input-field" 
-                              placeholder="Material Title"
+                              type="text"
+                              className="input-field"
+                              placeholder="e.g. Operating Systems Cheat Sheet"
+                              value={adminMaterialLinkTitle}
+                              onChange={(e) => setAdminMaterialLinkTitle(e.target.value)}
                               style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
                             />
                           </div>
                           <div className="input-group" style={{ marginBottom: 0 }}>
-                            <label className="input-label" style={{ fontSize: '0.7rem' }}>File Type *</label>
+                            <label className="input-label" style={{ fontSize: '0.7rem' }}>Category *</label>
                             <select 
-                              value={editMaterialInput.type}
-                              onChange={(e) => setEditMaterialInput({ ...editMaterialInput, type: e.target.value })}
+                              value={adminMaterialLinkCategory}
+                              onChange={(e) => setAdminMaterialLinkCategory(e.target.value)}
                               className="input-field"
                               style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
                             >
-                              <option value="PDF">PDF Document</option>
-                              <option value="Image">Image Roadmap</option>
-                              <option value="Notes">Notes File</option>
+                              <option value="DSA Preparation">DSA Preparation</option>
+                              <option value="Coding Questions">Coding Questions</option>
+                              <option value="Technical Interview Preparation">Technical Prep</option>
+                              <option value="Aptitude Preparation">Aptitude Prep</option>
+                              <option value="Company-Specific Preparation">Company Prep</option>
+                              <option value="Subject Notes">Subject Notes</option>
+                              <option value="Interview Preparation PDFs">Interview PDFs</option>
                             </select>
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                        <div className="input-group" style={{ marginBottom: 0 }}>
+                          <label className="input-label" style={{ fontSize: '0.7rem' }}>Google Drive Link / URL *</label>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input 
+                              type="url"
+                              className="input-field"
+                              placeholder="https://drive.google.com/... or https://..."
+                              value={adminMaterialLinkUrl}
+                              onChange={(e) => {
+                                setAdminMaterialLinkUrl(e.target.value);
+                                setAdminMaterialLinkError('');
+                              }}
+                              style={{ flexGrow: 1, padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                            />
+                            {adminMaterialLinkUrl && isValidUrl(adminMaterialLinkUrl) && (
+                              <a 
+                                href={adminMaterialLinkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-secondary"
+                                style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
+                              >
+                                <ExternalLink size={13} />
+                                <span>Test Link ↗</span>
+                              </a>
+                            )}
+                          </div>
+                          {adminMaterialLinkError && (
+                            <span style={{ fontSize: '0.72rem', color: '#ff3b30', marginTop: '0.2rem' }}>{adminMaterialLinkError}</span>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
                           <button
                             type="button"
                             onClick={() => {
-                              setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
-                            }}
-                            className="btn btn-secondary"
-                            style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '8px' }}
-                          >
-                            Clear File
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (editMaterialInput.title.trim()) {
-                                const newMaterial = {
-                                  title: editMaterialInput.title.trim(),
-                                  type: editMaterialInput.type,
-                                  previewUrl: editMaterialInput.previewUrl,
-                                  fileName: editMaterialInput.fileName || (editMaterialInput.title.trim().toLowerCase().replace(/\s+/g, '_') + (editMaterialInput.type === 'PDF' ? '.pdf' : '.png')),
-                                  fileSize: editMaterialInput.fileSize
-                                };
-                                const updatedMaterials = [...(editStoryForm.studyMaterials || []), newMaterial];
-                                setEditStoryForm({ ...editStoryForm, studyMaterials: updatedMaterials });
-                                setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
-                              } else {
-                                alert('Please provide a title for the material.');
+                              if (!adminMaterialLinkTitle.trim()) {
+                                setAdminMaterialLinkError('Please enter a title for the material');
+                                return;
                               }
+                              if (!adminMaterialLinkUrl.trim() || !isValidUrl(adminMaterialLinkUrl.trim())) {
+                                setAdminMaterialLinkError('Please enter a valid HTTP or HTTPS link');
+                                return;
+                              }
+                              const isDrive = adminMaterialLinkUrl.includes('drive.google.com') || adminMaterialLinkUrl.includes('docs.google.com');
+                              const isPdf = adminMaterialLinkUrl.toLowerCase().endsWith('.pdf');
+                              const newMat = {
+                                title: adminMaterialLinkTitle.trim(),
+                                type: isDrive ? 'Google Drive' : (isPdf ? 'PDF' : 'Link'),
+                                category: adminMaterialLinkCategory,
+                                fileName: adminMaterialLinkTitle.trim(),
+                                fileSize: isDrive ? 'Google Drive Resource' : 'External Link',
+                                url: adminMaterialLinkUrl.trim()
+                              };
+                              setEditStoryForm(prev => ({
+                                ...prev,
+                                studyMaterials: [...(prev.studyMaterials || []), newMat]
+                              }));
+                              setAdminMaterialLinkTitle('');
+                              setAdminMaterialLinkUrl('');
+                              setAdminMaterialLinkError('');
                             }}
                             className="btn btn-primary"
-                            style={{ padding: '0.45rem 1.2rem', fontSize: '0.8rem', borderRadius: '8px' }}
+                            style={{ padding: '0.45rem 1.25rem', fontSize: '0.8rem', borderRadius: '8px' }}
                           >
                             Add to Story
                           </button>

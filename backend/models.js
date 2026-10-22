@@ -46,6 +46,7 @@ const ResourceRefSchema = new mongoose.Schema({
 const StudyMaterialSchema = new mongoose.Schema({
   title: String,
   type: String,
+  category: String,
   fileName: String,
   fileSize: String,
   url: String

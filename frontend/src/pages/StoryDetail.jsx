@@ -682,6 +682,16 @@ export default function StoryDetail() {
     previewUrl: ''
   });
 
+  const [resumeMode, setResumeMode] = useState('upload'); // 'upload' | 'link'
+  const [resumeLinkUrl, setResumeLinkUrl] = useState('');
+  const [resumeLinkError, setResumeLinkError] = useState('');
+
+  const [materialMode, setMaterialMode] = useState('upload'); // 'upload' | 'link'
+  const [materialLinkTitle, setMaterialLinkTitle] = useState('');
+  const [materialLinkCategory, setMaterialLinkCategory] = useState('DSA Preparation');
+  const [materialLinkUrl, setMaterialLinkUrl] = useState('');
+  const [materialLinkError, setMaterialLinkError] = useState('');
+
   useEffect(() => {
     if (isEditing) {
       document.body.style.overflow = 'hidden';
@@ -737,7 +747,34 @@ export default function StoryDetail() {
     });
   };
 
+  const isValidUrl = (string) => {
+    try {
+      const parsed = new URL(string);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  };
+
   const startEdit = () => {
+    const initialResume = story.resumeFile || story.resume || '';
+    const initialResumeUrl = typeof initialResume === 'object' ? (initialResume.url || '') : (typeof initialResume === 'string' && initialResume.startsWith('http') ? initialResume : '');
+    
+    if (initialResumeUrl && (initialResumeUrl.startsWith('http://') || initialResumeUrl.startsWith('https://'))) {
+      setResumeMode('link');
+      setResumeLinkUrl(initialResumeUrl);
+    } else {
+      setResumeMode('upload');
+      setResumeLinkUrl('');
+    }
+    setResumeLinkError('');
+
+    setMaterialMode('upload');
+    setMaterialLinkTitle('');
+    setMaterialLinkCategory('DSA Preparation');
+    setMaterialLinkUrl('');
+    setMaterialLinkError('');
+
     setEditForm({
       name: story.name || '',
       company: story.company || '',
@@ -757,7 +794,7 @@ export default function StoryDetail() {
         howSecured: story.journey?.howSecured || ''
       },
       studyMaterials: story.studyMaterials || [],
-      resume: story.resumeFile || story.resume || ''
+      resume: initialResume
     });
     setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
     setIsEditing(true);
@@ -791,15 +828,35 @@ export default function StoryDetail() {
     try {
       const payload = { ...editForm };
       
-      if (payload.resume && typeof payload.resume === 'object') {
-        payload.resumeFile = {
-          fileName: payload.resume.fileName,
-          fileSize: payload.resume.fileSize,
-          url: payload.resume.url
-        };
-        payload.resume = payload.resume.fileName;
-      } else if (!payload.resume) {
-        payload.resumeFile = null;
+      if (resumeMode === 'link') {
+        if (resumeLinkUrl.trim()) {
+          if (!isValidUrl(resumeLinkUrl.trim())) {
+            setResumeLinkError('Please enter a valid HTTP or HTTPS URL (e.g. https://drive.google.com/...)');
+            setSubmitting(false);
+            return;
+          }
+          const defaultDocName = `${payload.name || 'Candidate'} — ${payload.company || 'Placement'} — Resume — 2026.pdf`;
+          payload.resumeFile = {
+            fileName: defaultDocName,
+            fileSize: 'Google Drive Document',
+            url: resumeLinkUrl.trim()
+          };
+          payload.resume = defaultDocName;
+        } else {
+          payload.resumeFile = null;
+          payload.resume = '';
+        }
+      } else {
+        if (payload.resume && typeof payload.resume === 'object') {
+          payload.resumeFile = {
+            fileName: payload.resume.fileName,
+            fileSize: payload.resume.fileSize,
+            url: payload.resume.url
+          };
+          payload.resume = payload.resume.fileName;
+        } else if (!payload.resume) {
+          payload.resumeFile = null;
+        }
       }
 
       if (isAdmin) {
@@ -1202,6 +1259,13 @@ export default function StoryDetail() {
           }
         ].filter(Boolean);
 
+        const hasResume = Boolean(
+          (story?.resumeFile && (story.resumeFile.url || story.resumeFile.fileName)) ||
+          (typeof story?.resume === 'object' && (story.resume.url || story.resume.fileName)) ||
+          (typeof story?.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim()))
+        );
+        const hasStudyMaterials = Array.isArray(story?.studyMaterials) && story.studyMaterials.length > 0;
+
         const navSections = [
           ...(availableMilestones.length > 0 ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
           { id: 'section-prep', label: 'Prep Strategy', icon: Award },
@@ -1211,7 +1275,8 @@ export default function StoryDetail() {
           ...(story?.customSections?.some(s => s.title && (s.title.toLowerCase().includes('hackathon') || s.title.toLowerCase().includes('competition'))) ? [{ id: 'section-hackathons', label: 'Hackathons', icon: Trophy }] : []),
           { id: 'section-takeaways', label: 'Key Takeaways', icon: Sparkles },
           ...(story?.resources && story.resources.length > 0 ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
-          { id: 'section-resume', label: 'Resume', icon: FileText }
+          ...(hasResume ? [{ id: 'section-resume', label: 'Resume', icon: FileText }] : []),
+          ...(hasStudyMaterials ? [{ id: 'section-materials', label: 'Study Materials', icon: BookOpen }] : [])
         ];
 
         return (
@@ -2252,114 +2317,212 @@ export default function StoryDetail() {
         )}
 
         {/* Resume Preview & Download Section */}
-        <section id="section-resume" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-          <h2 style={{ fontSize: '1.9rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <FileText size={22} style={{ color: 'var(--text-primary)' }} />
-            Resume
-          </h2>
+        {(() => {
+          const rf = story.resumeFile;
+          const resumeRawUrl = getResourceFileUrl({
+            resumeFile: rf,
+            resume: story.resume,
+            url: rf?.url
+          });
+          const hasResume = Boolean(
+            (rf && (rf.url || rf.fileName)) ||
+            (typeof story.resume === 'object' && (story.resume.url || story.resume.fileName)) ||
+            (typeof story.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim())) ||
+            (resumeRawUrl && resumeRawUrl !== '#')
+          );
 
-          <div className="loop-card" style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '1.5rem 2rem',
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{
-                padding: '0.75rem',
-                backgroundColor: 'var(--bg-primary)',
+          if (!hasResume) return null;
+
+          const isDriveOrDocs = resumeRawUrl && (resumeRawUrl.includes('drive.google.com') || resumeRawUrl.includes('docs.google.com'));
+          const isExternal = resumeRawUrl && (resumeRawUrl.startsWith('http://') || resumeRawUrl.startsWith('https://')) && !resumeRawUrl.includes(window.location.host);
+
+          let displayTitle = rf?.fileName || (typeof story.resume === 'object' ? story.resume.fileName : (typeof story.resume === 'string' && !story.resume.startsWith('http') ? story.resume : ''));
+          if (!displayTitle || displayTitle.toLowerCase() === 'resume.pdf' || displayTitle.toLowerCase() === 'candidate_verified_resume.pdf') {
+            displayTitle = `${story.name} — ${story.company} — Resume — 2026.pdf`;
+          }
+
+          return (
+            <section id="section-resume" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <FileText size={22} style={{ color: 'var(--text-primary)' }} />
+                  Resume
+                </h2>
+                <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.28)', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                  {isDriveOrDocs ? 'Google Drive Verified Document' : 'Standard Tech Resume (PDF)'}
+                </span>
+              </div>
+
+              <div className="loop-card" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '1.5rem 2rem',
+                backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                color: 'var(--text-primary)'
+                borderRadius: '16px',
+                flexWrap: 'wrap',
+                gap: '1.25rem'
               }}>
-                <FileText size={28} />
-              </div>
-              <div style={{ textAlign: 'left' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                  {typeof story.resume === 'object' ? story.resume.fileName : story.resume}
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Approved standard format resume (PDF)</p>
-              </div>
-            </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '260px' }}>
+                  <div style={{
+                    padding: '0.85rem',
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderRadius: '14px',
+                    color: '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <FileText size={28} />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                      {displayTitle}
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      {isDriveOrDocs ? 'Official candidate placement resume hosted on Google Drive' : 'Approved standard format tech resume (PDF)'}
+                    </p>
+                  </div>
+                </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <button 
-                onClick={() => {
-                  const allFiles = getStoryFiles();
-                  const resumeDoc = allFiles[0];
-                  navigate(`/preview/${resumeDoc.id}?storyId=${story.id}`, {
-                    state: {
-                      file: resumeDoc,
-                      files: allFiles,
-                      storyTitle: story.name
-                    }
-                  });
-                }}
-                className="btn btn-secondary"
-                style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                title="View Resume"
-              >
-                <FileText size={14} />
-                <span>View Resume</span>
-              </button>
-              <button 
-                onClick={() => {
-                  const rf = story.resumeFile;
-                  if (rf?.url && rf.url !== '#') {
-                    if (rf.url.startsWith('data:')) {
-                      const blob = dataURItoBlob(rf.url);
-                      if (blob) {
-                        const blobUrl = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = blobUrl;
-                        link.download = rf.fileName || 'resume.pdf';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-                      } else {
-                        alert('Failed to process resume file.');
-                      }
-                    } else {
-                      const link = document.createElement('a');
-                      link.href = rf.url;
-                      link.download = rf.fileName || 'resume.pdf';
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }
-                  } else {
-                    alert('No resume file was uploaded for this story.');
-                  }
-                }}
-                className="btn btn-primary"
-                style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem' }}
-              >
-                <Download size={14} />
-                <span>Download Resume</span>
-              </button>
-            </div>
-          </div>
-
-        </section>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {isDriveOrDocs || isExternal ? (
+                    <a
+                      href={resumeRawUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-primary"
+                      style={{ padding: '0.65rem 1.35rem', fontSize: '0.88rem', gap: '0.5rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontWeight: 600 }}
+                      title="Open Verified Resume"
+                    >
+                      <ExternalLink size={16} />
+                      <span>{isDriveOrDocs ? 'Open in Google Drive ↗' : 'View Resume ↗'}</span>
+                    </a>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => {
+                          const allFiles = getStoryFiles();
+                          const resumeDoc = allFiles[0] || {
+                            id: `resume-${story.id}`,
+                            title: `${story.name}'s Resume`,
+                            fileName: displayTitle,
+                            type: 'PDF',
+                            url: resumeRawUrl
+                          };
+                          navigate(`/preview/${resumeDoc.id}?storyId=${story.id}`, {
+                            state: {
+                              file: resumeDoc,
+                              files: allFiles,
+                              storyTitle: story.name
+                            }
+                          });
+                        }}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 600 }}
+                        title="View Resume"
+                      >
+                        <FileText size={14} />
+                        <span>View Resume ↗</span>
+                      </button>
+                      {resumeRawUrl && (
+                        <button 
+                          onClick={() => {
+                            if (resumeRawUrl.startsWith('data:')) {
+                              const blob = dataURItoBlob(resumeRawUrl);
+                              if (blob) {
+                                const blobUrl = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = blobUrl;
+                                link.download = displayTitle;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                              }
+                            } else {
+                              const link = document.createElement('a');
+                              link.href = resumeRawUrl;
+                              link.download = displayTitle;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }
+                          }}
+                          className="btn btn-primary"
+                          style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', fontWeight: 600 }}
+                        >
+                          <Download size={14} />
+                          <span>Download Resume</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Study Materials Uploaded Section */}
         {story.studyMaterials && story.studyMaterials.length > 0 && (
           <section id="section-materials" style={{ paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
-            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
-              Study Materials Uploaded
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
+                Study Materials
+              </h2>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {story.studyMaterials.length} verified preparation {story.studyMaterials.length === 1 ? 'resource' : 'resources'}
+              </span>
+            </div>
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
               gap: '1.25rem'
             }}>
               {story.studyMaterials.map((mat, index) => {
                 const isImage = mat.type === 'Image' && mat.url && mat.url !== '#';
+                const matUrl = mat.url || '';
+                const isExternalMat = matUrl && (matUrl.startsWith('http://') || matUrl.startsWith('https://'));
+                const isDriveMat = matUrl.includes('drive.google.com') || matUrl.includes('docs.google.com');
+
+                let category = mat.category || 'Study Material';
+                const tLower = (mat.title || '').toLowerCase();
+                const fLower = (mat.fileName || '').toLowerCase();
+                if (!mat.category || mat.category === 'Study Material') {
+                  if (tLower.includes('dsa') || tLower.includes('leetcode') || tLower.includes('striver') || tLower.includes('algorithm')) {
+                    category = 'DSA Preparation';
+                  } else if (tLower.includes('question') || tLower.includes('problem') || tLower.includes('oa')) {
+                    category = 'Coding Questions';
+                  } else if (tLower.includes('sql') || tLower.includes('dbms') || tLower.includes('os') || tLower.includes('system') || tLower.includes('core')) {
+                    category = 'Technical Interview Preparation';
+                  } else if (tLower.includes('aptitude') || tLower.includes('puzzle') || tLower.includes('quant')) {
+                    category = 'Aptitude Preparation';
+                  } else if (tLower.includes('guesstimate') || tLower.includes('case') || tLower.includes('company') || tLower.includes('archive')) {
+                    category = 'Company-Specific Preparation';
+                  } else if (tLower.includes('cheat') || tLower.includes('note') || tLower.includes('handwritten')) {
+                    category = 'Subject Notes';
+                  } else if (mat.type === 'PDF' || fLower.endsWith('.pdf')) {
+                    category = 'Interview Preparation PDFs';
+                  }
+                }
+
+                const categoryStyles = {
+                  'DSA Preparation': { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: 'rgba(16, 185, 129, 0.25)' },
+                  'Coding Questions': { bg: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.25)' },
+                  'Technical Interview Preparation': { bg: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: 'rgba(99, 102, 241, 0.25)' },
+                  'Aptitude Preparation': { bg: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.25)' },
+                  'Company-Specific Preparation': { bg: 'rgba(168, 85, 247, 0.1)', color: '#c084fc', border: 'rgba(168, 85, 247, 0.25)' },
+                  'Subject Notes': { bg: 'rgba(20, 184, 166, 0.1)', color: '#2dd4bf', border: 'rgba(20, 184, 166, 0.25)' },
+                  'Interview Preparation PDFs': { bg: 'rgba(239, 68, 68, 0.1)', color: '#f87171', border: 'rgba(239, 68, 68, 0.25)' }
+                };
+                const catStyle = categoryStyles[category] || { bg: 'rgba(255, 255, 255, 0.06)', color: 'var(--text-secondary)', border: 'var(--border-color)' };
+
                 if (isImage) {
                   return (
                     <div key={index} className="glass-panel" style={{
@@ -2372,6 +2535,9 @@ export default function StoryDetail() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
+                          <span className="badge" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', backgroundColor: catStyle.bg, color: catStyle.color, border: `1px solid ${catStyle.border}`, borderRadius: '6px', marginBottom: '0.35rem', display: 'inline-block' }}>
+                            {category}
+                          </span>
                           <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
                             {mat.title}
                           </h4>
@@ -2401,7 +2567,7 @@ export default function StoryDetail() {
                           <Download size={12} />
                         </button>
                       </div>
- 
+
                       <div 
                         onClick={() => {
                           const allFiles = getStoryFiles();
@@ -2451,80 +2617,99 @@ export default function StoryDetail() {
                     </div>
                   );
                 }
- 
+
                 return (
                   <div key={index} className="glass-panel" style={{
                     padding: '1.25rem',
                     borderRadius: '16px',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    gap: '1rem'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ 
-                        width: '40px', 
-                        height: '50px', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: '6px', 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center', 
-                        backgroundColor: mat.type === 'PDF' ? '#ffe5e5' : '#e5f1ff', 
-                        color: mat.type === 'PDF' ? '#ff3b30' : '#007aff', 
-                        fontWeight: 'bold', 
-                        fontSize: '0.7rem' 
-                      }}>
-                        {mat.type}
-                      </div>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: '1.3', marginBottom: '0.25rem' }}>
-                          {mat.title}
-                        </h4>
-                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                          <span className="badge" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-                            {mat.type}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                        <span className="badge" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', backgroundColor: catStyle.bg, color: catStyle.color, border: `1px solid ${catStyle.border}`, borderRadius: '6px' }}>
+                          {category}
+                        </span>
+                        <span className="badge" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+                          {mat.type}
+                        </span>
+                        {mat.fileSize && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                            {mat.fileSize}
                           </span>
-                          {mat.fileSize && (
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                              {mat.fileSize}
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: '1.35', margin: '0 0 0.25rem 0' }}>
+                        {mat.title}
+                      </h4>
+                      {mat.fileName && mat.fileName !== mat.title && (
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {mat.fileName}
+                        </p>
+                      )}
                     </div>
- 
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <button 
-                        onClick={() => {
-                          const allFiles = getStoryFiles();
-                          const matDoc = allFiles[index + 1] || { ...mat, id: `mat-${story.id}-${index}` };
-                          navigate(`/preview/${matDoc.id}?storyId=${story.id}`, {
-                            state: {
-                              file: matDoc,
-                              files: allFiles,
-                              storyTitle: story.name
-                            }
-                          });
-                        }}
-                        className="btn btn-secondary"
-                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
-                        title="View File"
-                      >
-                        <FileText size={14} />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>View File</span>
-                      </button>
-                      {mat.url && mat.url !== '#' && (
-                        <button 
-                          onClick={() => {
-                            handleDownloadFile(mat.fileName || mat.title + (mat.type === 'PDF' ? '.pdf' : '.txt'), mat.url);
-                          }}
+
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: 'auto' }}>
+                      {isExternalMat ? (
+                        <a 
+                          href={matUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="btn btn-secondary"
-                          style={{ padding: '0.4rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '32px', height: '32px' }}
-                          title="Download File"
+                          style={{
+                            padding: '0.45rem 0.9rem',
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            color: 'var(--text-primary)',
+                            flexGrow: 1,
+                            justifyContent: 'center'
+                          }}
                         >
-                          <Download size={14} />
-                        </button>
+                          <ExternalLink size={14} />
+                          <span>{mat.type === 'PDF' || fLower.endsWith('.pdf') ? 'View PDF ↗' : 'Open Material ↗'}</span>
+                        </a>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              const allFiles = getStoryFiles();
+                              const matDoc = allFiles[index + 1] || { ...mat, id: `mat-${story.id}-${index}` };
+                              navigate(`/preview/${matDoc.id}?storyId=${story.id}`, {
+                                state: {
+                                  file: matDoc,
+                                  files: allFiles,
+                                  storyTitle: story.name
+                                }
+                              });
+                            }}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', flexGrow: 1, justifyContent: 'center' }}
+                            title="View File"
+                          >
+                            <FileText size={14} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>View File</span>
+                          </button>
+                          {mat.url && mat.url !== '#' && (
+                            <button 
+                              onClick={() => {
+                                handleDownloadFile(mat.fileName || mat.title + (mat.type === 'PDF' ? '.pdf' : '.txt'), mat.url);
+                              }}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.4rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '36px', height: '36px', flexShrink: 0 }}
+                              title="Download File"
+                            >
+                              <Download size={14} />
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -2817,116 +3002,235 @@ export default function StoryDetail() {
 
               {/* Resume Section in Edit Modal */}
               <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', textAlign: 'left' }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-                  Senior Resume File
-                </h4>
-                
-                <div 
-                  onClick={() => document.getElementById('story-detail-resume-upload')?.click()}
-                  style={{
-                    border: editForm.resume ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
-                    borderRadius: '16px',
-                    padding: '1rem',
-                    textAlign: 'center',
-                    backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: '100px',
-                    color: 'var(--text-primary)'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
-                  onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file) processResumeFile(file);
-                  }}
-                >
-                  <input 
-                    type="file" 
-                    id="story-detail-resume-upload" 
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      
-                      fileToBase64(file).then(base64Url => {
-                        setEditForm({
-                          ...editForm,
-                          resume: {
-                            fileName: file.name,
-                            fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-                            url: base64Url
-                          }
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                    Senior Resume
+                  </h4>
+                  <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'var(--bg-primary)', padding: '0.2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setResumeMode('upload')}
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: resumeMode === 'upload' ? 700 : 500,
+                        backgroundColor: resumeMode === 'upload' ? 'var(--text-primary)' : 'transparent',
+                        color: resumeMode === 'upload' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                      }}
+                    >
+                      Upload PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResumeMode('link')}
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: resumeMode === 'link' ? 700 : 500,
+                        backgroundColor: resumeMode === 'link' ? 'var(--text-primary)' : 'transparent',
+                        color: resumeMode === 'link' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                      }}
+                    >
+                      Google Drive Link
+                    </button>
+                  </div>
+                </div>
+
+                {resumeMode === 'upload' ? (
+                  <div 
+                    onClick={() => document.getElementById('story-detail-resume-upload')?.click()}
+                    style={{
+                      border: editForm.resume ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
+                      borderRadius: '16px',
+                      padding: '1rem',
+                      textAlign: 'center',
+                      backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minHeight: '100px',
+                      color: 'var(--text-primary)'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
+                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) processResumeFile(file);
+                    }}
+                  >
+                    <input 
+                      type="file" 
+                      id="story-detail-resume-upload" 
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        
+                        fileToBase64(file).then(base64Url => {
+                          setEditForm({
+                            ...editForm,
+                            resume: {
+                              fileName: file.name,
+                              fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+                              url: base64Url
+                            }
+                          });
+                        }).catch(err => {
+                          console.error("Error reading file:", err);
+                          alert("Failed to read file.");
                         });
-                      }).catch(err => {
-                        console.error("Error reading file:", err);
-                        alert("Failed to read file.");
-                      });
-                    }} 
-                    style={{ display: 'none' }}
-                    accept=".pdf"
-                  />
-                  {editForm.resume ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
-                        <span style={{
-                          padding: '0.4rem',
-                          backgroundColor: 'var(--bg-primary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#ff3b30'
-                        }}>
-                          <FileText size={18} />
-                        </span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {typeof editForm.resume === 'object' ? editForm.resume.fileName : editForm.resume}
+                      }} 
+                      style={{ display: 'none' }}
+                      accept=".pdf"
+                    />
+                    {editForm.resume ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
+                          <span style={{
+                            padding: '0.4rem',
+                            backgroundColor: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ff3b30'
+                          }}>
+                            <FileText size={18} />
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            {typeof editForm.resume === 'object' ? editForm.resume.fileSize : '1.2 MB'}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {typeof editForm.resume === 'object' ? editForm.resume.fileName : editForm.resume}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              {typeof editForm.resume === 'object' ? editForm.resume.fileSize : 'Uploaded File'}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditForm({ ...editForm, resume: '' });
+                            }}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.35rem', color: '#ff453a', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                            title="Remove Resume"
+                          >
+                            <X size={16} />
+                          </button>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditForm({ ...editForm, resume: '' });
-                          }}
+                    ) : (
+                      <>
+                        <FileText size={22} style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }} />
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>
+                          Click to upload Resume PDF
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '1.25rem',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--bg-secondary)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem'
+                  }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      Google Drive Document or Public URL
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input 
+                        type="url"
+                        className="input-field"
+                        placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                        value={resumeLinkUrl}
+                        onChange={(e) => {
+                          setResumeLinkUrl(e.target.value);
+                          setResumeLinkError('');
+                        }}
+                        style={{ flexGrow: 1, fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                      />
+                      {resumeLinkUrl && isValidUrl(resumeLinkUrl) && (
+                        <a 
+                          href={resumeLinkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="btn btn-secondary"
-                          style={{ padding: '0.35rem', color: '#ff453a', border: 'none', background: 'transparent', cursor: 'pointer' }}
-                          title="Remove Resume"
+                          style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
                         >
-                          <X size={16} />
-                        </button>
-                      </div>
+                          <ExternalLink size={14} />
+                          <span>Test Link ↗</span>
+                        </a>
+                      )}
                     </div>
-                  ) : (
-                    <>
-                      <FileText size={22} style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }} />
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>
-                        Click to upload Resume PDF
-                      </p>
-                    </>
-                  )}
-                </div>
+                    {resumeLinkError && (
+                      <span style={{ fontSize: '0.75rem', color: '#ff3b30' }}>{resumeLinkError}</span>
+                    )}
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      Enter a publicly accessible Google Drive or Docs link. LOOP will format it as: <code>[Student Name] — [Company] — Resume — 2026.pdf</code>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Study Materials Section in Edit Modal */}
               <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '1.5rem', textAlign: 'left' }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-                  Study Materials / Files
-                </h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                    Study Materials &amp; Resources
+                  </h4>
+                  <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'var(--bg-primary)', padding: '0.2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setMaterialMode('upload')}
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: materialMode === 'upload' ? 700 : 500,
+                        backgroundColor: materialMode === 'upload' ? 'var(--text-primary)' : 'transparent',
+                        color: materialMode === 'upload' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                      }}
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMaterialMode('link')}
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: materialMode === 'link' ? 700 : 500,
+                        backgroundColor: materialMode === 'link' ? 'var(--text-primary)' : 'transparent',
+                        color: materialMode === 'link' ? 'var(--bg-primary)' : 'var(--text-secondary)'
+                      }}
+                    >
+                      Google Drive / External Link
+                    </button>
+                  </div>
+                </div>
                 
                 {editForm.studyMaterials && editForm.studyMaterials.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -2956,7 +3260,7 @@ export default function StoryDetail() {
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>{material.title}</span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              {material.type} {material.fileName ? `• ${material.fileName}` : ''}
+                              {material.category ? `${material.category} • ` : ''}{material.type} {material.fileName ? `• ${material.fileName}` : ''}
                             </span>
                           </div>
                         </div>
@@ -2993,130 +3297,238 @@ export default function StoryDetail() {
                   textAlign: 'left'
                 }}>
                   <h5 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
-                    Add Study Material
+                    Add Study Material ({materialMode === 'upload' ? 'Upload File' : 'Google Drive / External Link'})
                   </h5>
                   
-                  <div 
-                    onClick={() => document.getElementById('story-detail-material-upload')?.click()}
-                    style={{
-                      border: editMaterialInput.previewUrl ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
-                      borderRadius: '16px',
-                      padding: editMaterialInput.previewUrl ? '1rem' : '1.5rem',
-                      textAlign: 'center',
-                      backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: '110px',
-                      marginBottom: '1rem',
-                      color: 'var(--text-primary)'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
-                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) processMaterialFile(file);
-                    }}
-                  >
-                    <input 
-                      type="file" 
-                      id="story-detail-material-upload" 
-                      onChange={handleEditFileChange} 
-                      style={{ display: 'none' }}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    
-                    {editMaterialInput.previewUrl ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', width: '100%' }}>
-                        {editMaterialInput.type === 'Image' ? (
-                          <div style={{ position: 'relative', width: '100%', height: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                            <img 
-                              src={editMaterialInput.previewUrl} 
-                              alt="Selected preview" 
-                              style={{ maxHeight: '100%', maxWidth: '100px', objectFit: 'contain', borderRadius: '6px' }}
-                            />
+                  {materialMode === 'upload' ? (
+                    <>
+                      <div 
+                        onClick={() => document.getElementById('story-detail-material-upload')?.click()}
+                        style={{
+                          border: editMaterialInput.previewUrl ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
+                          borderRadius: '16px',
+                          padding: editMaterialInput.previewUrl ? '1rem' : '1.5rem',
+                          textAlign: 'center',
+                          backgroundColor: 'var(--bg-dropzone, rgba(0, 0, 0, 0.02))',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minHeight: '110px',
+                          marginBottom: '1rem',
+                          color: 'var(--text-primary)'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary, #0071e3)'}
+                        onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-dropzone, #000000)'}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) processMaterialFile(file);
+                        }}
+                      >
+                        <input 
+                          type="file" 
+                          id="story-detail-material-upload" 
+                          onChange={handleEditFileChange} 
+                          style={{ display: 'none' }}
+                          accept=".pdf,.png,.jpg,.jpeg"
+                        />
+                        
+                        {editMaterialInput.previewUrl ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', width: '100%' }}>
+                            {editMaterialInput.type === 'Image' ? (
+                              <div style={{ position: 'relative', width: '100%', height: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <img 
+                                  src={editMaterialInput.previewUrl} 
+                                  alt="Selected preview" 
+                                  style={{ maxHeight: '100%', maxWidth: '100px', objectFit: 'contain', borderRadius: '6px' }}
+                                />
+                              </div>
+                            ) : (
+                              <FileText size={36} style={{ color: 'var(--text-primary)' }} />
+                            )}
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, wordBreak: 'break-all', color: 'var(--text-primary)' }}>
+                              {editMaterialInput.fileName}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                              {editMaterialInput.fileSize}
+                            </span>
                           </div>
                         ) : (
-                          <FileText size={36} style={{ color: 'var(--text-primary)' }} />
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                            <Plus size={24} style={{ color: 'var(--text-secondary)' }} />
+                            <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                              Drag & drop file here, or click to browse
+                            </span>
+                          </div>
                         )}
-                        <span style={{ fontSize: '0.8rem', fontWeight: 600, wordBreak: 'break-all', color: 'var(--text-primary)' }}>
-                          {editMaterialInput.fileName}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                          {editMaterialInput.fileSize}
-                        </span>
                       </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                        <Plus size={24} style={{ color: 'var(--text-secondary)' }} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                          Drag & drop file here, or click to browse
-                        </span>
-                      </div>
-                    )}
-                  </div>
 
-                  {editMaterialInput.previewUrl && (
-                    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {editMaterialInput.previewUrl && (
+                        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div className="form-grid-2col" style={{ gap: '0.75rem' }}>
+                            <div className="input-group" style={{ marginBottom: 0 }}>
+                              <label className="input-label" style={{ fontSize: '0.7rem' }}>Material Title *</label>
+                              <input 
+                                type="text" 
+                                value={editMaterialInput.title}
+                                onChange={(e) => setEditMaterialInput({ ...editMaterialInput, title: e.target.value })}
+                                className="input-field" 
+                                placeholder="Material Title"
+                                style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                              />
+                            </div>
+                            <div className="input-group" style={{ marginBottom: 0 }}>
+                              <label className="input-label" style={{ fontSize: '0.7rem' }}>Category *</label>
+                              <select 
+                                value={editMaterialInput.category || 'DSA Preparation'}
+                                onChange={(e) => setEditMaterialInput({ ...editMaterialInput, category: e.target.value })}
+                                className="input-field"
+                                style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                              >
+                                <option value="DSA Preparation">DSA Preparation</option>
+                                <option value="Coding Questions">Coding Questions</option>
+                                <option value="Technical Interview Preparation">Technical Interview Preparation</option>
+                                <option value="Aptitude Preparation">Aptitude Preparation</option>
+                                <option value="Company-Specific Preparation">Company-Specific Preparation</option>
+                                <option value="Subject Notes">Subject Notes</option>
+                                <option value="Interview Preparation PDFs">Interview Preparation PDFs</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' })}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '8px' }}
+                            >
+                              Clear File
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editMaterialInput.title.trim()) {
+                                  const newMaterial = {
+                                    title: editMaterialInput.title.trim(),
+                                    type: editMaterialInput.type,
+                                    category: editMaterialInput.category || 'DSA Preparation',
+                                    previewUrl: editMaterialInput.previewUrl,
+                                    url: editMaterialInput.previewUrl,
+                                    fileName: editMaterialInput.fileName || 'file.pdf',
+                                    fileSize: editMaterialInput.fileSize || '1.0 MB'
+                                  };
+                                  setEditForm({ ...editForm, studyMaterials: [...editForm.studyMaterials, newMaterial] });
+                                  setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
+                                } else {
+                                  alert('Please provide a title');
+                                }
+                              }}
+                              className="btn btn-primary"
+                              style={{ padding: '0.45rem 1.25rem', fontSize: '0.8rem', borderRadius: '8px' }}
+                            >
+                              Add Material
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       <div className="form-grid-2col" style={{ gap: '0.75rem' }}>
                         <div className="input-group" style={{ marginBottom: 0 }}>
-                          <label className="input-label" style={{ fontSize: '0.7rem' }}>Material Title *</label>
+                          <label className="input-label" style={{ fontSize: '0.7rem' }}>Title *</label>
                           <input 
-                            type="text" 
-                            value={editMaterialInput.title}
-                            onChange={(e) => setEditMaterialInput({ ...editMaterialInput, title: e.target.value })}
-                            className="input-field" 
-                            placeholder="Material Title"
+                            type="text"
+                            className="input-field"
+                            placeholder="e.g. Complete DSA Cheat Sheet"
+                            value={materialLinkTitle}
+                            onChange={(e) => setMaterialLinkTitle(e.target.value)}
                             style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
                           />
                         </div>
                         <div className="input-group" style={{ marginBottom: 0 }}>
-                          <label className="input-label" style={{ fontSize: '0.7rem' }}>File Type *</label>
+                          <label className="input-label" style={{ fontSize: '0.7rem' }}>Category *</label>
                           <select 
-                            value={editMaterialInput.type}
-                            onChange={(e) => setEditMaterialInput({ ...editMaterialInput, type: e.target.value })}
+                            value={materialLinkCategory}
+                            onChange={(e) => setMaterialLinkCategory(e.target.value)}
                             className="input-field"
                             style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
                           >
-                            <option value="PDF">PDF Document</option>
-                            <option value="Image">Image Roadmap</option>
-                            <option value="Notes">Notes File</option>
+                            <option value="DSA Preparation">DSA Preparation</option>
+                            <option value="Coding Questions">Coding Questions</option>
+                            <option value="Technical Interview Preparation">Technical Interview Preparation</option>
+                            <option value="Aptitude Preparation">Aptitude Preparation</option>
+                            <option value="Company-Specific Preparation">Company-Specific Preparation</option>
+                            <option value="Subject Notes">Subject Notes</option>
+                            <option value="Interview Preparation PDFs">Interview Preparation PDFs</option>
                           </select>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                        <button
-                          type="button"
-                          onClick={() => setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' })}
-                          className="btn btn-secondary"
-                          style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '8px' }}
-                        >
-                          Clear File
-                        </button>
+                      <div className="input-group" style={{ marginBottom: 0 }}>
+                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Google Drive Link / URL *</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input 
+                            type="url"
+                            className="input-field"
+                            placeholder="https://drive.google.com/... or https://..."
+                            value={materialLinkUrl}
+                            onChange={(e) => {
+                              setMaterialLinkUrl(e.target.value);
+                              setMaterialLinkError('');
+                            }}
+                            style={{ flexGrow: 1, padding: '0.5rem 0.75rem', fontSize: '0.85rem', backgroundColor: 'var(--bg-primary)' }}
+                          />
+                          {materialLinkUrl && isValidUrl(materialLinkUrl) && (
+                            <a 
+                              href={materialLinkUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-secondary"
+                              style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
+                            >
+                              <ExternalLink size={13} />
+                              <span>Test Link ↗</span>
+                            </a>
+                          )}
+                        </div>
+                        {materialLinkError && (
+                          <span style={{ fontSize: '0.72rem', color: '#ff3b30', marginTop: '0.2rem' }}>{materialLinkError}</span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
                         <button
                           type="button"
                           onClick={() => {
-                            if (editMaterialInput.title.trim()) {
-                              const newMaterial = {
-                                title: editMaterialInput.title.trim(),
-                                type: editMaterialInput.type,
-                                previewUrl: editMaterialInput.previewUrl,
-                                url: editMaterialInput.previewUrl,
-                                fileName: editMaterialInput.fileName || 'file.pdf',
-                                fileSize: editMaterialInput.fileSize || '1.0 MB'
-                              };
-                              setEditForm({ ...editForm, studyMaterials: [...editForm.studyMaterials, newMaterial] });
-                              setEditMaterialInput({ title: '', type: 'PDF', fileName: '', fileSize: '', previewUrl: '' });
-                            } else {
-                              alert('Please provide a title');
+                            if (!materialLinkTitle.trim()) {
+                              setMaterialLinkError('Please enter a title for the material');
+                              return;
                             }
+                            if (!materialLinkUrl.trim() || !isValidUrl(materialLinkUrl.trim())) {
+                              setMaterialLinkError('Please enter a valid HTTP or HTTPS link');
+                              return;
+                            }
+                            const isDrive = materialLinkUrl.includes('drive.google.com') || materialLinkUrl.includes('docs.google.com');
+                            const isPdf = materialLinkUrl.toLowerCase().endsWith('.pdf');
+                            const newMat = {
+                              title: materialLinkTitle.trim(),
+                              type: isDrive ? 'Google Drive' : (isPdf ? 'PDF' : 'Link'),
+                              category: materialLinkCategory,
+                              fileName: materialLinkTitle.trim(),
+                              fileSize: isDrive ? 'Google Drive Resource' : 'External Link',
+                              url: materialLinkUrl.trim()
+                            };
+                            setEditForm({ ...editForm, studyMaterials: [...editForm.studyMaterials, newMat] });
+                            setMaterialLinkTitle('');
+                            setMaterialLinkUrl('');
+                            setMaterialLinkError('');
                           }}
                           className="btn btn-primary"
                           style={{ padding: '0.45rem 1.25rem', fontSize: '0.8rem', borderRadius: '8px' }}

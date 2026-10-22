@@ -190,19 +190,47 @@ def analyze_document_resources(file_path):
             # Check if downloadable PDF study material
             if u.endswith('.pdf') or '180dcsrcc.in' in netloc:
                 fn = os.path.basename(path) if path else 'Study_Material.pdf'
+                clean_fn_title = re.sub(r'[\-_]+', ' ', os.path.splitext(fn)[0]).title()
+                pdf_title = title or clean_fn_title
+                pdf_cat = 'Interview Preparation PDFs'
+                lower_title = pdf_title.lower()
+                if 'sql' in lower_title or 'dbms' in lower_title or 'os' in lower_title:
+                    pdf_cat = 'Technical Interview Preparation'
+                elif 'guesstimate' in lower_title or 'case' in lower_title or 'consulting' in lower_title:
+                    pdf_cat = 'Company-Specific Preparation'
+                elif 'dsa' in lower_title or 'algorithm' in lower_title:
+                    pdf_cat = 'DSA Preparation'
+                elif 'cheat' in lower_title or 'note' in lower_title:
+                    pdf_cat = 'Subject Notes'
+                elif 'aptitude' in lower_title or 'quant' in lower_title:
+                    pdf_cat = 'Aptitude Preparation'
+
                 study_materials.append({
-                    'title': title or 'Consulting Guesstimates & Case Study Guide',
+                    'title': pdf_title,
                     'type': 'PDF',
+                    'category': pdf_cat,
                     'fileName': fn,
                     'fileSize': 'Verified PDF Resource',
                     'url': u
                 })
                 resources.append({
-                    'name': title or 'Consulting Guesstimates & Case Study Guide',
+                    'name': pdf_title,
                     'type': 'Study Material (PDF)',
                     'url': u
                 })
                 continue
+
+            # Check if Google Drive folder with candidate's interview resources
+            if 'drive.google.com/drive/folders' in u or ('drive.google.com' in netloc and any(w in line.lower() for w in ['folder', 'material', 'notes', 'resources', 'guide'])):
+                cat = 'Interview Preparation PDFs' if 'pdf' in line.lower() else 'Company-Specific Preparation'
+                study_materials.append({
+                    'title': title or 'Placement Preparation & Study Archive',
+                    'type': 'Google Drive',
+                    'category': cat,
+                    'fileName': 'Interview_Preparation_Archive',
+                    'fileSize': 'Google Drive Archive',
+                    'url': u
+                })
 
             # Classify educational learning resource
             res_type = 'Study Resource'
@@ -460,6 +488,8 @@ def parse_experience(raw_text, filename, company_folder, full_path):
 
     # 10. Extract Educational Resources, Study Materials, and Verified Resumes
     resources, study_materials, resume_file = analyze_document_resources(full_path)
+    if resume_file:
+        resume_file['fileName'] = f"{name} — {company} — Resume — 2026.pdf"
 
     # ID resolution: Match existing story ID from backup or calculate deterministic ID
     name_clean = name.lower().strip()

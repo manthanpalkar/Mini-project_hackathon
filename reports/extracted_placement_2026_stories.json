@@ -42,9 +42,9 @@
         "url": "https://www.indiabix.com/aptitude/questions-and-answers/"
       }
     ],
-    "resume": "Candidate_Verified_Resume.pdf",
+    "resume": "Akshata Kumar \u2014 Mahindra Finance \u2014 Resume \u2014 2026.pdf",
     "resumeFile": {
-      "fileName": "Candidate_Verified_Resume.pdf",
+      "fileName": "Akshata Kumar \u2014 Mahindra Finance \u2014 Resume \u2014 2026.pdf",
       "fileSize": "Google Drive Verified Document",
       "url": "https://drive.google.com/file/d/17eG0Bp3AJ17knmxCVtFEpZ806bSAx3BQ/view?usp=sharing"
     },
@@ -191,9 +191,9 @@
         "url": "https://www.geeksforgeeks.org/aptitude/top-100-puzzles-asked-in-interviews/"
       }
     ],
-    "resume": "Candidate_Verified_Resume.pdf",
+    "resume": "Heenal Kishor Patel \u2014 HyperVerge \u2014 Resume \u2014 2026.pdf",
     "resumeFile": {
-      "fileName": "Candidate_Verified_Resume.pdf",
+      "fileName": "Heenal Kishor Patel \u2014 HyperVerge \u2014 Resume \u2014 2026.pdf",
       "fileSize": "Google Drive Verified Document",
       "url": "https://drive.google.com/file/d/1iA05QvTsDBWGn8sZZSeA5CvtHIHSC7_a/view?usp=share_link"
     },
@@ -320,7 +320,7 @@
         "url": "https://youtube.com/playlist?list=PLfqMhTWNBTe137I_EPQd34TsgV6IO55pt&si=Pn4HCfKdsUizLItS"
       },
       {
-        "name": "Consulting Guesstimates & Case Study Guide",
+        "name": "Guesstimates Book Volume 1 6",
         "type": "Study Material (PDF)",
         "url": "https://180dcsrcc.in/wp-content/uploads/2025/03/Guesstimates-Book-Volume-1-6.pdf"
       },
@@ -334,8 +334,9 @@
     "resumeFile": null,
     "studyMaterials": [
       {
-        "title": "Consulting Guesstimates & Case Study Guide",
+        "title": "Guesstimates Book Volume 1 6",
         "type": "PDF",
+        "category": "Company-Specific Preparation",
         "fileName": "guesstimates-book-volume-1-6.pdf",
         "fileSize": "Verified PDF Resource",
         "url": "https://180dcsrcc.in/wp-content/uploads/2025/03/Guesstimates-Book-Volume-1-6.pdf"
@@ -1055,7 +1056,16 @@
     ],
     "resume": null,
     "resumeFile": null,
-    "studyMaterials": [],
+    "studyMaterials": [
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/u/0/folders/1IH0WI5_KOV4KLq24lSOpyjBO9x6V7e-T"
+      }
+    ],
     "customSections": [
       {
         "title": "Compensation & Offer Breakdown",
@@ -1163,7 +1173,7 @@
         "url": "https://medium.com/@shivambhadani_/system-design-for-beginners-everything-you-need-in-one-article-c74eb702540b"
       },
       {
-        "name": "Consulting Guesstimates & Case Study Guide",
+        "name": "All Sql Cheat Sheet A4",
         "type": "Study Material (PDF)",
         "url": "https://learnsql.com/blog/ultimate-sql-cheat-sheet/All-sql-cheat-sheet-a4.pdf"
       }
@@ -1172,8 +1182,9 @@
     "resumeFile": null,
     "studyMaterials": [
       {
-        "title": "Consulting Guesstimates & Case Study Guide",
+        "title": "All Sql Cheat Sheet A4",
         "type": "PDF",
+        "category": "Technical Interview Preparation",
         "fileName": "all-sql-cheat-sheet-a4.pdf",
         "fileSize": "Verified PDF Resource",
         "url": "https://learnsql.com/blog/ultimate-sql-cheat-sheet/All-sql-cheat-sheet-a4.pdf"
@@ -4378,7 +4389,7 @@
         "url": "https://www.interviewbit.com/operating-system-interview-questions/"
       },
       {
-        "name": "Consulting Guesstimates & Case Study Guide",
+        "name": "Lecture1423905560",
         "type": "Study Material (PDF)",
         "url": "https://www.vssut.ac.in/lecture_notes/lecture1423905560.pdf"
       },
@@ -4392,8 +4403,9 @@
     "resumeFile": null,
     "studyMaterials": [
       {
-        "title": "Consulting Guesstimates & Case Study Guide",
+        "title": "Lecture1423905560",
         "type": "PDF",
+        "category": "Interview Preparation PDFs",
         "fileName": "lecture1423905560.pdf",
         "fileSize": "Verified PDF Resource",
         "url": "https://www.vssut.ac.in/lecture_notes/lecture1423905560.pdf"
@@ -4615,13 +4627,22 @@
         "url": "https://codeforces.com/"
       }
     ],
-    "resume": "Candidate_Verified_Resume.pdf",
+    "resume": "Harsh Kasliwal \u2014 InCred Financial Services \u2014 Resume \u2014 2026.pdf",
     "resumeFile": {
-      "fileName": "Candidate_Verified_Resume.pdf",
+      "fileName": "Harsh Kasliwal \u2014 InCred Financial Services \u2014 Resume \u2014 2026.pdf",
       "fileSize": "Google Drive Verified Document",
       "url": "https://docs.google.com/document/d/1Cv8GNrOWDDVUKWD8XLt2iTHaClXJIiXpQ0nQN-OrD98/edit?usp=sharing"
     },
-    "studyMaterials": [],
+    "studyMaterials": [
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/folders/16ELNfe_PzN1JZdCkkWxs-nxJ3JnetjGp?usp=sharing"
+      }
+    ],
     "customSections": [
       {
         "title": "Compensation & Offer Breakdown",
@@ -4876,7 +4897,24 @@
     ],
     "resume": null,
     "resumeFile": null,
-    "studyMaterials": [],
+    "studyMaterials": [
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/folders/1pB0VVklXksdpDpRxzSdvWzJwC1BNM-4k?usp=sharin"
+      },
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/folders/1pB0VVklXksdpDpRxzSdvWzJwC1BNM-4k?usp=sharing"
+      }
+    ],
     "customSections": [
       {
         "title": "Compensation & Offer Breakdown",
@@ -5875,7 +5913,16 @@
     ],
     "resume": null,
     "resumeFile": null,
-    "studyMaterials": [],
+    "studyMaterials": [
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/u/1/folders/1wKd2XO15yTiIgnWOS4UQ122qjqK2m4Zt"
+      }
+    ],
     "customSections": [
       {
         "title": "Compensation & Offer Breakdown",
@@ -6191,7 +6238,16 @@
     ],
     "resume": null,
     "resumeFile": null,
-    "studyMaterials": [],
+    "studyMaterials": [
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/u/0/folders/1GKBrp7_hX671XygTdWCoiv-8XItYWxfl"
+      }
+    ],
     "customSections": [
       {
         "title": "Compensation & Offer Breakdown",
@@ -7335,7 +7391,16 @@
     ],
     "resume": null,
     "resumeFile": null,
-    "studyMaterials": [],
+    "studyMaterials": [
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/folders/1eKch8SmX9pB06HVWl3HDtt4QOfx6RkY7?usp=sharing"
+      }
+    ],
     "customSections": [
       {
         "title": "Compensation & Offer Breakdown",
@@ -7531,7 +7596,16 @@
     ],
     "resume": null,
     "resumeFile": null,
-    "studyMaterials": [],
+    "studyMaterials": [
+      {
+        "title": "Placement Preparation & Study Archive",
+        "type": "Google Drive",
+        "category": "Company-Specific Preparation",
+        "fileName": "Interview_Preparation_Archive",
+        "fileSize": "Google Drive Archive",
+        "url": "https://drive.google.com/drive/folders/1hh8Wen1WvdYVIEbBLBLY4qjpuKE1vknc?usp=drive_link"
+      }
+    ],
     "customSections": [
       {
         "title": "Compensation & Offer Breakdown",
@@ -7674,7 +7748,7 @@
         "url": "https://www.geeksforgeeks.org/aptitude/top-100-puzzles-asked-in-interviews/"
       },
       {
-        "name": "Consulting Guesstimates & Case Study Guide",
+        "name": "",
         "type": "Study Material (PDF)",
         "url": "https://180dcsrcc.in/guesstimate-cheat-sheet-2024/"
       },
@@ -7703,8 +7777,9 @@
     "resumeFile": null,
     "studyMaterials": [
       {
-        "title": "Consulting Guesstimates & Case Study Guide",
+        "title": "",
         "type": "PDF",
+        "category": "Interview Preparation PDFs",
         "fileName": "",
         "fileSize": "Verified PDF Resource",
         "url": "https://180dcsrcc.in/guesstimate-cheat-sheet-2024/"
