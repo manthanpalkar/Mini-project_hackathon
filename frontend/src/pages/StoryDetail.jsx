@@ -1066,8 +1066,39 @@ export default function StoryDetail() {
 
       {/* Sticky Table of Contents & Quick Navigation Pill Bar */}
       {(() => {
+        const availableMilestones = [
+          story?.journey?.firstYear && {
+            yearNumber: 1,
+            yearTitle: 'First Year',
+            subtitle: 'Foundation & Exploration',
+            content: story.journey.firstYear,
+            phaseBadge: 'Phase 01'
+          },
+          story?.journey?.secondYear && {
+            yearNumber: 2,
+            yearTitle: 'Second Year',
+            subtitle: 'Core Skills & Projects',
+            content: story.journey.secondYear,
+            phaseBadge: 'Phase 02'
+          },
+          story?.journey?.thirdYear && {
+            yearNumber: 3,
+            yearTitle: 'Third Year',
+            subtitle: 'Internships & Preparation',
+            content: story.journey.thirdYear,
+            phaseBadge: 'Phase 03'
+          },
+          story?.journey?.fourthYear && {
+            yearNumber: 4,
+            yearTitle: 'Fourth Year',
+            subtitle: 'Placement & Career Launch',
+            content: story.journey.fourthYear,
+            phaseBadge: 'Phase 04'
+          }
+        ].filter(Boolean);
+
         const navSections = [
-          { id: 'section-journey', label: '4-Year Journey', icon: Compass },
+          ...(availableMilestones.length > 0 ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
           { id: 'section-prep', label: 'Prep Strategy', icon: Award },
           ...(story?.journey?.projects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
           { id: 'section-secured', label: 'How Secured', icon: Layers },
@@ -1156,202 +1187,210 @@ export default function StoryDetail() {
           "My biggest advice to SPIT juniors is to stay consistent. Don't wait for companies to arrive. Start building projects in your second year and begin coding practice daily. Your hard work will compounding."
         </div>
 
-        {/* 4-Year Journey Timeline */}
-        <section id="section-journey" style={{ marginBottom: '2.75rem', scrollMarginTop: '110px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
-            <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.75rem', borderRadius: '20px', backgroundColor: 'rgba(212, 255, 50, 0.25)', border: '1px solid rgba(212, 255, 50, 0.45)', color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
-                <Sparkles size={12} color="var(--accent-lime-dark)" />
-                Curated Roadmaps
-              </div>
-              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 0.4rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
-                My Four-Year Journey
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Chronological academic milestones and technical progression through college
-              </p>
-            </div>
-          </div>
+        {/* 4-Year Journey Timeline - Only rendered when genuine academic year milestones exist */}
+        {(() => {
+          const availableMilestones = [
+            story?.journey?.firstYear && {
+              yearNumber: 1,
+              yearTitle: 'First Year',
+              subtitle: 'Foundation & Exploration',
+              content: story.journey.firstYear,
+              phaseBadge: 'Phase 01'
+            },
+            story?.journey?.secondYear && {
+              yearNumber: 2,
+              yearTitle: 'Second Year',
+              subtitle: 'Core Skills & Projects',
+              content: story.journey.secondYear,
+              phaseBadge: 'Phase 02'
+            },
+            story?.journey?.thirdYear && {
+              yearNumber: 3,
+              yearTitle: 'Third Year',
+              subtitle: 'Internships & Preparation',
+              content: story.journey.thirdYear,
+              phaseBadge: 'Phase 03'
+            },
+            story?.journey?.fourthYear && {
+              yearNumber: 4,
+              yearTitle: 'Fourth Year',
+              subtitle: 'Placement & Career Launch',
+              content: story.journey.fourthYear,
+              phaseBadge: 'Phase 04'
+            }
+          ].filter(Boolean);
 
-          {/* Timeline Track with Vertical Rail Matching Image 4 */}
-          <div style={{ position: 'relative', paddingLeft: '2.75rem' }}>
-            {/* The vertical line running down the rail */}
-            <div style={{
-              position: 'absolute',
-              left: '11px',
-              top: '24px',
-              bottom: '30px',
-              width: '2px',
-              backgroundColor: 'var(--border-color)',
-              zIndex: 0
-            }} />
+          if (availableMilestones.length === 0) return null;
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              {[
-                {
-                  yearNumber: 1,
-                  yearTitle: 'First Year',
-                  subtitle: 'Foundation & Exploration',
-                  content: story.journey?.firstYear || 'Explored core engineering principles, built foundational logic in C/C++, engaged in coding workshops, and immersed in campus technical clubs.',
-                  phaseBadge: 'Phase 01'
-                },
-                {
-                  yearNumber: 2,
-                  yearTitle: 'Second Year',
-                  subtitle: 'Core Skills & Projects',
-                  content: story.journey?.secondYear || 'Deepened Data Structures & Algorithms, developed full-stack apps and systems projects, and participated in inter-college hackathons.',
-                  phaseBadge: 'Phase 02'
-                },
-                {
-                  yearNumber: 3,
-                  yearTitle: 'Third Year',
-                  subtitle: 'Internships & Preparation',
-                  content: story.journey?.thirdYear || 'Targeted summer internship hiring, studied Low/High-Level System Design, OS, DBMS, Computer Networks, and engaged in peer mock interviews.',
-                  phaseBadge: 'Phase 03'
-                },
-                {
-                  yearNumber: 4,
-                  yearTitle: 'Fourth Year',
-                  subtitle: 'Placement & Career Launch',
-                  content: story.journey?.fourthYear || 'Faced on-campus recruitment drives, cleared technical and managerial rounds, accepted offer, and mentored juniors in interview preparation.',
-                  phaseBadge: 'Phase 04'
-                }
-              ].map((milestone) => {
-                const isActive = activeTimelineYear === milestone.yearNumber;
-                return (
-                  <div
-                    key={milestone.yearNumber}
-                    ref={(el) => (yearCardRefs.current[milestone.yearNumber] = el)}
-                    style={{ position: 'relative', zIndex: 1 }}
-                    onClick={() => scrollToYear(milestone.yearNumber)}
-                  >
-                    {/* Node on the rail matching Image 4 */}
-                    {isActive ? (
-                      /* Active Node: ◉ double concentric ring / solid center */
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          scrollToYear(milestone.yearNumber);
-                        }}
-                        style={{
-                          position: 'absolute',
-                          left: '-2.75rem',
-                          top: '1.25rem',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          border: '2.5px solid var(--text-primary)',
-                          backgroundColor: 'var(--bg-surface)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 0 0 4px var(--bg-primary), 0 2px 10px rgba(0,0,0,0.12)',
-                          cursor: 'pointer',
-                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                          transform: 'scale(1.08)'
-                        }}
-                        title={`Year ${milestone.yearNumber} (Active)`}
-                      >
-                        <div
-                          style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: 'var(--text-primary)'
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      /* Inactive Node: ○ clean hollow ring with border */
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          scrollToYear(milestone.yearNumber);
-                        }}
-                        style={{
-                          position: 'absolute',
-                          left: '-2.75rem',
-                          top: '1.25rem',
-                          width: '22px',
-                          height: '22px',
-                          borderRadius: '50%',
-                          border: '2px solid var(--border-hover)',
-                          backgroundColor: 'var(--bg-surface)',
-                          boxShadow: '0 0 0 4px var(--bg-primary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                        }}
-                        title={`Click to view Year ${milestone.yearNumber}`}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--text-primary)';
-                          e.currentTarget.style.transform = 'scale(1.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--border-hover)';
-                          e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                      />
-                    )}
-
-                    {/* Bento Card for the milestone (Matching Image 3 & 4) */}
-                    <div
-                      className="bento-card"
-                      style={{
-                        padding: '1.75rem',
-                        borderRadius: '20px',
-                        border: isActive ? '1.5px solid var(--text-primary)' : '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-surface)',
-                        boxShadow: isActive ? '0 12px 36px rgba(0, 0, 0, 0.08)' : 'var(--card-shadow)',
-                        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                        cursor: 'pointer',
-                        transform: isActive ? 'translateY(-2px)' : 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        {/* Top Header Row */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                padding: '0.2rem 0.6rem',
-                                borderRadius: '12px',
-                                fontSize: '0.72rem',
-                                fontWeight: 800,
-                                letterSpacing: '0.04em',
-                                backgroundColor: isActive ? 'var(--text-primary)' : 'var(--bg-tertiary)',
-                                color: isActive ? 'var(--accent-inverse)' : 'var(--text-primary)'
-                              }}
-                            >
-                              {milestone.phaseBadge}
-                            </span>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                              {milestone.subtitle}
-                            </span>
-                          </div>
-
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Year {milestone.yearNumber} of 4
-                          </span>
-                        </div>
-
-                        {/* Middle Content Row: Full Width Editorial Text */}
-                        <div>
-                          <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.65rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                            {milestone.yearTitle}
-                          </h3>
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: '1.75', margin: 0 }}>
-                            {milestone.content}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+          return (
+            <section id="section-journey" style={{ marginBottom: '2.75rem', scrollMarginTop: '110px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
+                <div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.75rem', borderRadius: '20px', backgroundColor: 'rgba(212, 255, 50, 0.25)', border: '1px solid rgba(212, 255, 50, 0.45)', color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
+                    <Sparkles size={12} color="var(--accent-lime-dark)" />
+                    Curated Roadmaps
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+                  <h2 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 0.4rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+                    College Academic Milestones
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                    Chronological academic milestones and technical progression through college
+                  </p>
+                </div>
+              </div>
+
+              {/* Timeline Track with Vertical Rail Matching Image 4 */}
+              <div style={{ position: 'relative', paddingLeft: '2.75rem' }}>
+                {/* The vertical line running down the rail */}
+                <div style={{
+                  position: 'absolute',
+                  left: '11px',
+                  top: '24px',
+                  bottom: '30px',
+                  width: '2px',
+                  backgroundColor: 'var(--border-color)',
+                  zIndex: 0
+                }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  {availableMilestones.map((milestone) => {
+                    const isActive = activeTimelineYear === milestone.yearNumber;
+                    return (
+                      <div
+                        key={milestone.yearNumber}
+                        ref={(el) => (yearCardRefs.current[milestone.yearNumber] = el)}
+                        style={{ position: 'relative', zIndex: 1 }}
+                        onClick={() => scrollToYear(milestone.yearNumber)}
+                      >
+                        {/* Node on the rail matching Image 4 */}
+                        {isActive ? (
+                          /* Active Node: ◉ double concentric ring / solid center */
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              scrollToYear(milestone.yearNumber);
+                            }}
+                            style={{
+                              position: 'absolute',
+                              left: '-2.75rem',
+                              top: '1.25rem',
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              border: '2.5px solid var(--text-primary)',
+                              backgroundColor: 'var(--bg-surface)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 0 0 4px var(--bg-primary), 0 2px 10px rgba(0,0,0,0.12)',
+                              cursor: 'pointer',
+                              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                              transform: 'scale(1.08)'
+                            }}
+                            title={`Year ${milestone.yearNumber} (Active)`}
+                          >
+                            <div
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: 'var(--text-primary)'
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          /* Inactive Node: ○ clean hollow ring with border */
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              scrollToYear(milestone.yearNumber);
+                            }}
+                            style={{
+                              position: 'absolute',
+                              left: '-2.75rem',
+                              top: '1.25rem',
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              border: '2px solid var(--border-hover)',
+                              backgroundColor: 'var(--bg-surface)',
+                              boxShadow: '0 0 0 4px var(--bg-primary)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                            }}
+                            title={`Click to view Year ${milestone.yearNumber}`}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = 'var(--text-primary)';
+                              e.currentTarget.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = 'var(--border-hover)';
+                              e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                          />
+                        )}
+
+                        {/* Bento Card for the milestone (Matching Image 3 & 4) */}
+                        <div
+                          className="bento-card"
+                          style={{
+                            padding: '1.75rem',
+                            borderRadius: '20px',
+                            border: isActive ? '1.5px solid var(--text-primary)' : '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-surface)',
+                            boxShadow: isActive ? '0 12px 36px rgba(0, 0, 0, 0.08)' : 'var(--card-shadow)',
+                            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                            cursor: 'pointer',
+                            transform: isActive ? 'translateY(-2px)' : 'none'
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* Top Header Row */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '0.2rem 0.6rem',
+                                    borderRadius: '12px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    letterSpacing: '0.04em',
+                                    backgroundColor: isActive ? 'var(--text-primary)' : 'var(--bg-tertiary)',
+                                    color: isActive ? 'var(--accent-inverse)' : 'var(--text-primary)'
+                                  }}
+                                >
+                                  {milestone.phaseBadge}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  {milestone.subtitle}
+                                </span>
+                              </div>
+
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                Year {milestone.yearNumber} of 4
+                              </span>
+                            </div>
+
+                            {/* Middle Content Row: Full Width Editorial Text */}
+                            <div>
+                              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.65rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                                {milestone.yearTitle}
+                              </h3>
+                              <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: '1.75', margin: 0 }}>
+                                {milestone.content}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Preparation Strategy & Study Routine */}
         <section id="section-prep" style={{ marginBottom: '2.75rem', paddingTop: '1.75rem', borderTop: '1px solid var(--border-color)', scrollMarginTop: '110px' }}>
