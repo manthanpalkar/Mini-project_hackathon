@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
@@ -307,7 +307,23 @@ export default function Stories() {
   const [minYear, setMinYear] = useState('ALL');
   const [maxYear, setMaxYear] = useState('ALL');
   const [maxCGPA, setMaxCGPA] = useState(10.0);
-  const yearOptions = ['ALL', ...Array.from({ length: 36 }, (_, i) => 2000 + i)];
+  
+  // Only show passout years for which real placement story data actually exists
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set();
+    stories.forEach(s => {
+      const y = parseInt(s.passoutYear);
+      if (!isNaN(y) && y >= 2000 && y <= 2100) {
+        yearsSet.add(y);
+      }
+    });
+    if (yearsSet.size === 0) {
+      return [2024, 2025, 2026, 2027];
+    }
+    return Array.from(yearsSet).sort((a, b) => a - b);
+  }, [stories]);
+
+  const yearOptions = useMemo(() => ['ALL', ...availableYears], [availableYears]);
   const [inputValue, setInputValue] = useState(searchParams.get('q') || '');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [submitting, setSubmitting] = useState(false);
