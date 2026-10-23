@@ -255,7 +255,7 @@ function Story3DCard({ story, index, navigate }) {
       </div>
 
       {/* Action button */}
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
         <span style={{
           fontSize: '0.9rem',
           fontWeight: 700,
