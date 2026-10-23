@@ -796,6 +796,73 @@ export default function StoryDetail() {
     );
   };
 
+  // Available Milestones and Section Visibility
+  const availableMilestones = [
+    story?.journey?.firstYear && {
+      yearNumber: 1,
+      yearTitle: 'First Year',
+      subtitle: 'Foundation & Exploration',
+      content: story.journey.firstYear,
+      phaseBadge: 'Phase 01'
+    },
+    story?.journey?.secondYear && {
+      yearNumber: 2,
+      yearTitle: 'Second Year',
+      subtitle: 'Core Skills & Projects',
+      content: story.journey.secondYear,
+      phaseBadge: 'Phase 02'
+    },
+    story?.journey?.thirdYear && {
+      yearNumber: 3,
+      yearTitle: 'Third Year',
+      subtitle: 'Internships & Preparation',
+      content: story.journey.thirdYear,
+      phaseBadge: 'Phase 03'
+    },
+    story?.journey?.fourthYear && {
+      yearNumber: 4,
+      yearTitle: 'Fourth Year',
+      subtitle: 'Placement & Career Launch',
+      content: story.journey.fourthYear,
+      phaseBadge: 'Phase 04'
+    }
+  ].filter(Boolean);
+
+  const hasResume = Boolean(
+    (story?.resumeFile && (story.resumeFile.url || story.resumeFile.fileName)) ||
+    (typeof story?.resume === 'object' && (story.resume.url || story.resume.fileName)) ||
+    (typeof story?.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim()))
+  );
+  const hasStudyMaterials = Array.isArray(story?.studyMaterials) && story.studyMaterials.length > 0;
+  const hasCompensation = Boolean(story?.package || story?.ctc || story?.stipend || story?.offerType);
+  const hasSecured = Boolean(story?.journey?.howSecured && story.journey.howSecured.trim());
+  const hasPrep = Boolean(
+    story?.journey?.prep &&
+    story.journey.prep.trim() &&
+    !story.journey.prep.includes('Focus consistently on Data Structures')
+  );
+  const adviceSec = story?.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
+  const hasAdvice = Boolean((adviceSec && adviceSec.content && adviceSec.content.trim()) || (story?.advice && story.advice.trim()));
+  const hasResources = Boolean(story?.resources && story.resources.length > 0);
+  const hasProjects = Boolean(
+    story?.journey?.projects &&
+    story.journey.projects.trim() &&
+    story.journey.projects !== 'Core projects and domain architectures discussed in interview rounds.'
+  );
+  const hasJourney = availableMilestones.length > 0;
+
+  const navSections = [
+    ...(hasCompensation ? [{ id: 'section-compensation', label: 'Compensation & Offer', icon: Briefcase }] : []),
+    ...(hasSecured ? [{ id: 'section-rounds', label: 'Placement Journey', icon: Layers }] : []),
+    ...(hasPrep ? [{ id: 'section-prep', label: 'Prep Strategy', icon: Award }] : []),
+    ...(hasAdvice ? [{ id: 'section-advice', label: 'Advice to Juniors', icon: Lightbulb }] : []),
+    ...(hasResources ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
+    ...(hasStudyMaterials ? [{ id: 'section-materials', label: 'Study Materials', icon: FileText }] : []),
+    ...(hasJourney ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
+    ...(hasProjects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
+    ...(hasResume ? [{ id: 'section-resume', label: 'Resume', icon: FileText }] : [])
+  ];
+
   return (
     <>
       {/* Sticky Top Reading Progress Bar */}
@@ -1021,133 +1088,65 @@ export default function StoryDetail() {
       </header>
 
       {/* Sticky Table of Contents & Quick Navigation Pill Bar */}
-      {(() => {
-        const availableMilestones = [
-          story?.journey?.firstYear && {
-            yearNumber: 1,
-            yearTitle: 'First Year',
-            subtitle: 'Foundation & Exploration',
-            content: story.journey.firstYear,
-            phaseBadge: 'Phase 01'
-          },
-          story?.journey?.secondYear && {
-            yearNumber: 2,
-            yearTitle: 'Second Year',
-            subtitle: 'Core Skills & Projects',
-            content: story.journey.secondYear,
-            phaseBadge: 'Phase 02'
-          },
-          story?.journey?.thirdYear && {
-            yearNumber: 3,
-            yearTitle: 'Third Year',
-            subtitle: 'Internships & Preparation',
-            content: story.journey.thirdYear,
-            phaseBadge: 'Phase 03'
-          },
-          story?.journey?.fourthYear && {
-            yearNumber: 4,
-            yearTitle: 'Fourth Year',
-            subtitle: 'Placement & Career Launch',
-            content: story.journey.fourthYear,
-            phaseBadge: 'Phase 04'
-          }
-        ].filter(Boolean);
-
-        const hasResume = Boolean(
-          (story?.resumeFile && (story.resumeFile.url || story.resumeFile.fileName)) ||
-          (typeof story?.resume === 'object' && (story.resume.url || story.resume.fileName)) ||
-          (typeof story?.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim()))
-        );
-        const hasStudyMaterials = Array.isArray(story?.studyMaterials) && story.studyMaterials.length > 0;
-        const hasCompensation = Boolean(story?.package || story?.ctc || story?.stipend || story?.offerType);
-        const hasSecured = Boolean(story?.journey?.howSecured && story.journey.howSecured.trim());
-        const hasPrep = Boolean(
-          story?.journey?.prep &&
-          story.journey.prep.trim() &&
-          !story.journey.prep.includes('Focus consistently on Data Structures')
-        );
-        const adviceSec = story?.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
-        const hasAdvice = Boolean((adviceSec && adviceSec.content && adviceSec.content.trim()) || (story?.advice && story.advice.trim()));
-        const hasResources = Boolean(story?.resources && story.resources.length > 0);
-        const hasProjects = Boolean(
-          story?.journey?.projects &&
-          story.journey.projects.trim() &&
-          story.journey.projects !== 'Core projects and domain architectures discussed in interview rounds.'
-        );
-        const hasJourney = availableMilestones.length > 0;
-
-        const navSections = [
-          ...(hasCompensation ? [{ id: 'section-compensation', label: 'Compensation & Offer', icon: Briefcase }] : []),
-          ...(hasSecured ? [{ id: 'section-rounds', label: 'Placement Journey', icon: Layers }] : []),
-          ...(hasPrep ? [{ id: 'section-prep', label: 'Prep Strategy', icon: Award }] : []),
-          ...(hasAdvice ? [{ id: 'section-advice', label: 'Advice to Juniors', icon: Lightbulb }] : []),
-          ...(hasResources ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
-          ...(hasStudyMaterials ? [{ id: 'section-materials', label: 'Study Materials', icon: FileText }] : []),
-          ...(hasJourney ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
-          ...(hasProjects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
-          ...(hasResume ? [{ id: 'section-resume', label: 'Resume', icon: FileText }] : [])
-        ];
-
-        return (
-          <nav
-            aria-label="Story Quick Navigation"
-            style={{
-              position: 'sticky',
-              top: '0.85rem',
-              zIndex: 35,
-              marginBottom: '2.25rem',
-              padding: '0.45rem',
-              borderRadius: '24px',
-              backgroundColor: 'var(--glass-surface)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--border-color)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-              display: 'flex',
-              gap: '0.35rem',
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
-            }}
-          >
-            {navSections.map(sec => {
-              const Icon = sec.icon;
-              const isActive = activeSection === sec.id;
-              return (
-                <button
-                  key={sec.id}
-                  onClick={() => {
-                    const el = document.getElementById(sec.id);
-                    if (el) {
-                      const yOffset = -90;
-                      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                      window.scrollTo({ top: y, behavior: 'smooth' });
-                    }
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.45rem 0.85rem',
-                    borderRadius: '18px',
-                    border: 'none',
-                    fontSize: '0.8rem',
-                    fontWeight: isActive ? 700 : 500,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    backgroundColor: isActive ? 'var(--text-primary)' : 'transparent',
-                    color: isActive ? 'var(--accent-inverse)' : 'var(--text-secondary)'
-                  }}
-                >
-                  <Icon size={13} />
-                  <span>{sec.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        );
-      })()}
+      {navSections.length > 0 && (
+        <nav
+          aria-label="Story Quick Navigation"
+          style={{
+            position: 'sticky',
+            top: '0.85rem',
+            zIndex: 35,
+            marginBottom: '2.25rem',
+            padding: '0.45rem',
+            borderRadius: '24px',
+            backgroundColor: 'var(--glass-surface)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+            display: 'flex',
+            gap: '0.35rem',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          {navSections.map(sec => {
+            const Icon = sec.icon;
+            const isActive = activeSection === sec.id;
+            return (
+              <button
+                key={sec.id}
+                onClick={() => {
+                  const el = document.getElementById(sec.id);
+                  if (el) {
+                    const yOffset = -90;
+                    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '18px',
+                  border: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: isActive ? 700 : 500,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  backgroundColor: isActive ? 'var(--text-primary)' : 'transparent',
+                  color: isActive ? 'var(--accent-inverse)' : 'var(--text-secondary)'
+                }}
+              >
+                <Icon size={13} />
+                <span>{sec.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* Main Notion-Style Reading Block */}
       <main style={{ fontFamily: 'var(--font-sans)' }}>
