@@ -108,10 +108,12 @@ export default function ForgotPassword() {
     }
   };
 
-  // Resend code with cooldown protection
+  // Resend code with cooldown protection (bypassed if code is locked)
   const handleResendCode = async () => {
-    if (resendCooldown > 0 || loading) return;
+    if (loading) return;
+    if (!isLocked && resendCooldown > 0) return;
     setError('');
+    setNotice('');
     setSuccessMsg('');
 
     setLoading(true);
@@ -134,7 +136,7 @@ export default function ForgotPassword() {
         setIsNotFound(true);
         setStep(1);
       } else {
-        setError(err.message || 'Failed to resend verification code.');
+        setError(err.message || 'Failed to resend verification code. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -660,6 +662,17 @@ export default function ForgotPassword() {
                 {otpStage === 'verifying' && 'Processing security authentication'}
                 {otpStage === 'success' && 'Code verified successfully'}
               </p>
+              {otpStage === 'entry' && (
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.81rem',
+                  lineHeight: 1.45,
+                  marginTop: '0.45rem',
+                  marginBottom: 0
+                }}>
+                  Don't see the code in your inbox? Please check your <strong>Spam</strong> or <strong>Junk</strong> folder.
+                </p>
+              )}
             </div>
 
             {error && (
@@ -769,16 +782,18 @@ export default function ForgotPassword() {
                       color: 'var(--accent-inverse)',
                       fontWeight: 600,
                       fontSize: '0.9rem',
-                      cursor: loading ? 'not-allowed' : 'pointer',
+                      cursor: loading ? 'wait' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                      opacity: loading ? 0.75 : 1,
+                      transition: 'opacity 0.2s ease'
                     }}
                   >
                     <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-                    <span>Request New Recovery Code</span>
+                    <span>{loading ? 'Sending new recovery code...' : 'Request New Recovery Code'}</span>
                   </button>
                 ) : (
                   /* Resend Cooldown Section */
@@ -807,6 +822,14 @@ export default function ForgotPassword() {
                           : 'Resend verification code'}
                       </span>
                     </button>
+                    <p style={{
+                      margin: '0.45rem 0 0 0',
+                      fontSize: '0.79rem',
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.4
+                    }}>
+                      Check your <strong>Spam / Junk</strong> section if the code hasn't arrived.
+                    </p>
                   </div>
                 )}
               </div>
@@ -1240,21 +1263,6 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        {/* Footer Security Badge */}
-        <div style={{
-          marginTop: '2rem',
-          paddingTop: '1.25rem',
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.4rem',
-          color: 'var(--text-secondary)',
-          fontSize: '0.78rem'
-        }}>
-          <Shield size={14} color="#34C759" />
-          <span>Encrypted with 256-bit server-side verification</span>
-        </div>
       </div>
     </div>
   );

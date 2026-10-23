@@ -216,7 +216,10 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
       let matched = 0;
       for (const c of mockChallenges) {
         if (query.email && c.email.toLowerCase() !== query.email.toLowerCase()) continue;
-        if (query.status && c.status !== query.status) continue;
+        if (query.status) {
+          if (typeof query.status === 'string' && c.status !== query.status) continue;
+          if (query.status.$in && !query.status.$in.includes(c.status)) continue;
+        }
         if (update.$set) {
           Object.assign(c, update.$set);
         }
@@ -231,7 +234,10 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
         if (query.email && c.email.toLowerCase() !== query.email.toLowerCase()) continue;
         if (query.resetTokenHash && c.resetTokenHash !== query.resetTokenHash) continue;
         if (query.consumed !== undefined && c.consumed !== query.consumed) continue;
-        if (query.status && c.status !== query.status) continue;
+        if (query.status) {
+          if (typeof query.status === 'string' && c.status !== query.status) continue;
+          if (query.status.$in && !query.status.$in.includes(c.status)) continue;
+        }
         if (query.resetTokenExpiresAt && query.resetTokenExpiresAt.$gt) {
           if (new Date(c.resetTokenExpiresAt) <= query.resetTokenExpiresAt.$gt) continue;
         }

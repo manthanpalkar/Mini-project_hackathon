@@ -2019,9 +2019,9 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
       }
     }
 
-    // Invalidate existing pending challenges for this email
+    // Invalidate existing pending or locked challenges for this email
     await PasswordResetChallenge.updateMany(
-      { email: targetEmail, status: 'pending' },
+      { email: targetEmail, status: { $in: ['pending', 'locked'] } },
       { $set: { status: 'invalidated' } }
     );
 
@@ -2044,7 +2044,7 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
     } catch (sendErr) {
       // If Brevo delivery fails, invalidate challenge and report honest failure
       await PasswordResetChallenge.updateMany(
-        { email: targetEmail, status: 'pending' },
+        { email: targetEmail, status: { $in: ['pending', 'locked'] } },
         { $set: { status: 'invalidated' } }
       );
       console.error('[FORGOT_PASSWORD] Brevo dispatch error:', sendErr.message);
