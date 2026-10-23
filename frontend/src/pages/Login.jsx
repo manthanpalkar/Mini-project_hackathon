@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
-import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft } from 'lucide-react';
+import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 
 export default function Login() {
@@ -395,9 +395,9 @@ export default function Login() {
               theme: 'outline',
               size: 'large',
               text: 'continue_with',
-              shape: 'pill',
+              shape: 'rectangular',
               logo_alignment: 'left',
-              width: 380
+              width: 400
             });
             setIsGoogleAvailable(true);
           }
@@ -731,10 +731,10 @@ export default function Login() {
           {/* Top Logo and Branding */}
           <div style={{
             display: 'flex',
-            justifyContent: 'flex-start',
+            justifyContent: 'center',
             alignItems: 'center',
             gap: '0.45rem',
-            marginBottom: '2.5rem'
+            marginBottom: '1.75rem'
           }}>
             <img 
               src="/loop-logo.png" 
@@ -856,26 +856,27 @@ export default function Login() {
                 </p>
               </>
             ) : (
-              <>
+              <div style={{ textAlign: 'center' }}>
                 <h1 style={{
-                  fontSize: '2.1rem',
+                  fontSize: '2.25rem',
                   fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  marginBottom: '0.4rem',
+                  letterSpacing: '-0.035em',
+                  marginBottom: '0.45rem',
                   color: 'var(--text-primary)',
                   lineHeight: 1.15
                 }}>
-                  Welcome Back
+                  Sign in to LOOP
                 </h1>
                 <p style={{
                   color: 'var(--text-secondary)',
-                  fontSize: '0.92rem',
+                  fontSize: '0.94rem',
                   fontWeight: 400,
-                  lineHeight: 1.45
+                  lineHeight: 1.45,
+                  margin: 0
                 }}>
-                  Sign in with your verified account or SPIT ID
+                  Access placement stories and campus resources with your SPIT account.
                 </p>
-              </>
+              </div>
             )}
           </div>
 
@@ -1231,7 +1232,7 @@ export default function Login() {
           {googleAuthStep === 'IDLE' && (
             <>
               {/* Continue with Google Button Container */}
-              <div style={{ width: '100%', marginBottom: '1.25rem', minHeight: '46px', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '100%', marginBottom: '1.25rem', minHeight: '48px', display: 'flex', justifyContent: 'center' }}>
                 <div
                   ref={googleButtonRef}
                   className="google-btn-wrapper"
@@ -1240,7 +1241,7 @@ export default function Login() {
                     display: isGoogleAvailable ? 'flex' : 'none',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    borderRadius: '9999px',
+                    borderRadius: '12px',
                     transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}
                 />
@@ -1257,17 +1258,16 @@ export default function Login() {
                       justifyContent: 'center',
                       gap: '0.75rem',
                       width: '100%',
-                      maxWidth: '380px',
-                      height: '46px',
-                      borderRadius: '9999px',
+                      height: '48px',
+                      borderRadius: '12px',
                       backgroundColor: 'var(--bg-surface)',
                       border: '1px solid var(--border-color)',
                       color: 'var(--text-primary)',
                       fontSize: '0.92rem',
                       fontWeight: 600,
                       cursor: loading ? 'wait' : 'pointer',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                      transition: 'all 0.2s ease'
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -1285,12 +1285,12 @@ export default function Login() {
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                margin: '0.85rem 0 1.25rem 0',
+                margin: '1.1rem 0 1.35rem 0',
                 gap: '0.85rem'
               }}>
                 <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  or sign in with password
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  or continue with email
                 </span>
                 <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
               </div>
@@ -1306,7 +1306,7 @@ export default function Login() {
                 {/* Username or SPIT Email Field */}
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label" htmlFor="email-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                    Email Address or SPIT Username
+                    SPIT email or username
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -1318,7 +1318,7 @@ export default function Login() {
                       autoCapitalize="none"
                       spellCheck="false"
                       className="input-field"
-                      placeholder="Email address or SPIT username"
+                      placeholder="Enter your SPIT email or username"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onFocus={handleEmailFocus}
@@ -1388,58 +1388,38 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* Forgot Password Link */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.35rem', marginBottom: '0.1rem' }}>
-                  <Link
-                    to="/forgot-password"
-                    style={{
-                      fontSize: '0.82rem',
-                      fontWeight: 500,
-                      color: 'var(--text-secondary)',
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      transition: 'color 0.2s ease, outline 0.2s ease',
-                      borderRadius: '4px',
-                      padding: '2px 4px',
-                      outline: 'none'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.color = '#ef4444';
-                      e.currentTarget.style.outline = '2px solid rgba(239, 68, 68, 0.4)';
-                      e.currentTarget.style.outlineOffset = '2px';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                      e.currentTarget.style.outline = 'none';
-                    }}
-                  >
-                    Forgot Password?
-                  </Link>
-                </div>
-
-                {/* Remember me & Notice Row */}
+                {/* Remember me & Forgot Password Row */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  fontSize: '0.82rem',
-                  color: 'var(--text-secondary)'
+                  fontSize: '0.86rem',
+                  color: 'var(--text-secondary)',
+                  marginTop: '-0.15rem',
+                  marginBottom: '0.15rem'
                 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', userSelect: 'none' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
                     <input 
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                      style={{ cursor: 'pointer', accentColor: 'var(--accent-color)', width: '16px', height: '16px', borderRadius: '4px' }}
                     />
-                    <span>Remember me</span>
+                    <span style={{ fontSize: '0.86rem', color: 'var(--text-primary)' }}>Remember me</span>
                   </label>
 
-                  <span style={{ fontSize: '0.78rem', color: '#34C759', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <ShieldCheck size={12} strokeWidth={2.4} /> Privacy Protected
-                  </span>
+                  <Link
+                    to="/forgot-password"
+                    style={{
+                      fontSize: '0.86rem',
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
+                      textDecoration: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
 
                 {/* Submit Button */}
@@ -1447,7 +1427,6 @@ export default function Login() {
                   type="submit"
                   className="btn btn-primary"
                   style={{
-                    marginTop: '0.35rem',
                     height: '48px',
                     borderRadius: '12px',
                     width: '100%',
@@ -1468,89 +1447,102 @@ export default function Login() {
                 >
                   {loading ? 'Authenticating...' : (
                     <>
-                      <span>Sign In</span>
-                      <LogIn size={16} />
+                      <span>Sign in</span>
+                      <ArrowRight size={16} />
                     </>
                   )}
                 </button>
+
+                {/* Security Badge Banner */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.55rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.86rem',
+                  fontWeight: 600
+                }}>
+                  <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+                  <span>Restricted to authorized SPIT community members</span>
+                </div>
               </form>
 
-              {/* 1-Click Demo Logins */}
-              <div style={{
-                marginTop: '1.25rem',
-                display: 'flex',
-                gap: '0.65rem'
-              }}>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleQuickLogin('student@spit.ac.in', 'student123')}
-                  style={{
-                    flex: 1,
-                    height: '42px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    cursor: loading ? 'wait' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.35rem',
-                    transition: 'all 0.18s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.currentTarget.style.borderColor = 'var(--text-primary)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!loading) {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }
-                  }}
-                >
-                  <span>🎓</span> {loading ? '...' : 'Student Demo'}
-                </button>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleQuickLogin('admin@spit.ac.in', 'admin123')}
-                  style={{
-                    flex: 1,
-                    height: '42px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    cursor: loading ? 'wait' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.35rem',
-                    transition: 'all 0.18s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.currentTarget.style.borderColor = 'var(--text-primary)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!loading) {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }
-                  }}
-                >
-                  <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
-                </button>
+              {/* 1-Click Demo Logins (Accessible via ?demo=true) */}
+              {searchParams.get('demo') === 'true' && (
+                <div style={{
+                  marginTop: '1.25rem',
+                  display: 'flex',
+                  gap: '0.65rem'
+                }}>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('student@spit.ac.in', 'student123')}
+                    style={{
+                      flex: 1,
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: loading ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    <span>🎓</span> {loading ? '...' : 'Student Demo'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('admin@spit.ac.in', 'admin123')}
+                    style={{
+                      flex: 1,
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: loading ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
+                  </button>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
+                  Having trouble signing in?{' '}
+                  <a
+                    href="mailto:support@spit.ac.in"
+                    style={{
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    Contact support.
+                  </a>
+                </p>
               </div>
 
 
