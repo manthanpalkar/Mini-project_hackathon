@@ -172,7 +172,8 @@ function Story3DCard({ story, index, navigate }) {
             if (!rawPkg || rawPkg === '0' || rawPkg.toLowerCase() === '0 lpa' || rawPkg.toLowerCase() === 'n/a' || rawPkg.toLowerCase() === 'nil') {
               return null;
             }
-            const displayPkg = rawPkg.toLowerCase().includes('lpa') ? rawPkg : `${rawPkg} LPA`;
+            let displayPkg = rawPkg.toLowerCase().includes('lpa') ? rawPkg : `${rawPkg} LPA`;
+            displayPkg = displayPkg.replace(/\b1pa\b/gi, 'LPA').replace(/\bIpa\b/g, 'LPA');
             return (
               <span
                 style={{

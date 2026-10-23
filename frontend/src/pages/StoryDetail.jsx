@@ -21,6 +21,35 @@ function formatDisplayBranch(story) {
   return story.branch || 'CSE';
 }
 
+export function formatCurrencyText(val) {
+  if (!val) return '';
+  let s = String(val).trim();
+  // Sanitize misrecognized currency symbols (·, <, €, ₴) to official Indian Rupee ₹
+  s = s.replace(/[₴·<€]\s*(\d)/g, '₹$1');
+  s = s.replace(/\b1pa\b/gi, 'LPA');
+  s = s.replace(/\bIpa\b/g, 'LPA');
+  // Fix 7 used as ₹ in amounts
+  s = s.replace(/(?:^|[\s\+\(])7\s*(80,000|1,35,000|1,00,000|25,000|8,50,000|50,000|40,000|30,000)\b/g, ' ₹$1');
+  s = s.replace(/\b(?:Rs\.?|INR)\s*/gi, '₹');
+  
+  // Format bare numeric stipends
+  if (/^\d{4,6}$/.test(s)) {
+    const num = parseInt(s, 10);
+    return `₹${num.toLocaleString('en-IN')}/month`;
+  }
+  if (/^\d{1,2},\d{3}$/.test(s)) {
+    return `₹${s}/month`;
+  }
+  if (/^75k$/i.test(s)) {
+    return '₹75,000/month';
+  }
+  if (/^(\d+)k$/i.test(s)) {
+    const kMatch = s.match(/^(\d+)k$/i);
+    return `₹${kMatch[1]},000/month`;
+  }
+  return s;
+}
+
 
 // Structured Preparation Strategy & Study Routine Parser
 function parsePrepTopics(prepText, resources = []) {
@@ -1136,7 +1165,7 @@ export default function StoryDetail() {
                 Internship Stipend
               </p>
               <p style={{ fontWeight: 600, fontSize: '1rem', color: '#60a5fa' }}>
-                {story.stipend.includes('₹') || story.stipend.toLowerCase().includes('pm') || story.stipend.toLowerCase().includes('month') ? story.stipend : `₹${story.stipend}/month`}
+                {formatCurrencyText(story.stipend)}
               </p>
             </div>
           )}
@@ -1230,7 +1259,7 @@ export default function StoryDetail() {
                   <div style={{ padding: '1.1rem', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
                     <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.35rem' }}>Placement Package (CTC)</span>
                     <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-                      {story.ctc || story.package}
+                      {formatCurrencyText(story.ctc || story.package)}
                     </span>
                   </div>
                 )}
@@ -1238,7 +1267,7 @@ export default function StoryDetail() {
                   <div style={{ padding: '1.1rem', borderRadius: '12px', backgroundColor: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
                     <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.35rem' }}>Internship Stipend</span>
                     <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-                      {story.stipend}
+                      {formatCurrencyText(story.stipend)}
                     </span>
                   </div>
                 )}
