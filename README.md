@@ -5,7 +5,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cloud_Cache-red?logo=redis&style=flat-square)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-MongoDB_7.0_Staging-2496ED?logo=docker&style=flat-square)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Automated_Tests-214_Passed_(25_Suites)-success?style=flat-square)](backend/tests/)
+[![Tests](https://img.shields.io/badge/Automated_Tests-219_Passed_(26_Suites)-success?style=flat-square)](backend/tests/)
 [![Vite](https://img.shields.io/badge/Bundler-Vite_8-646CFF?logo=vite&style=flat-square)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
@@ -38,7 +38,7 @@
    - [Branch Categorization & Sovereign Presentation Architecture](#branch-categorization--sovereign-presentation-architecture)
 8. [Environment Variables & Configuration Reference](#environment-variables--configuration-reference)
 9. [Codebase Directory Structure](#codebase-directory-structure)
-10. [Automated Verification & Test Harness (214 Tests)](#automated-verification--test-harness-214-tests)
+10. [Automated Verification & Test Harness (219 Tests)](#automated-verification--test-harness-219-tests)
 11. [Local Development & Setup](#local-development--setup)
 12. [Security, Access Control & Integrity Policies](#security-access-control--integrity-policies)
 13. [License & Acknowledgments](#license--acknowledgments)
@@ -117,13 +117,12 @@ LOOP achieves its mission through four purpose-built subsystems:
 | **Distributed Query Cache** | Redis Cloud Free Tier | `diaphanous-celery-purpose-99869.db.redis.io` | **In-Memory Cache** |
 | **Transactional Email Engine**| Brevo Transactional API | `smtp-relay.brevo.com` | **Authenticated Delivery** |
 
-### Demo Credentials
-* **Student Account:**
-  * **Email:** `student@spit.ac.in`
-  * **Password:** `student123`
-* **Administrator Account:**
-  * **Email:** `admin@spit.ac.in`
-  * **Password:** *(Protected via campus administrative provisioning)*
+### Demo Credentials & One-Click Access
+* **One-Click Demo Login (Instant Access):**
+  * The [Login Page](https://loop-seven-delta.vercel.app/login) features direct **`🎓 Student Demo`** and **`🛡️ Admin Demo`** buttons for instant role evaluation without typing passwords.
+* **Manual Credentials (if preferred):**
+  * **Student Account:** `student@spit.ac.in` / `student123`
+  * **Administrator Account:** `admin@spit.ac.in` / `admin123`
 * **Campus Single Sign-On (SSO):**
   * Any student or faculty member possessing an active `@spit.ac.in` Google account can click **"Continue with Google"** to authenticate instantly without manual registration.
 
@@ -619,9 +618,10 @@ loop/
 │   │   ├── cacheService.js           # Distributed Redis Cloud & in-memory LRU cache
 │   │   ├── emailService.js           # Brevo transactional email & OTP dispatcher
 │   │   └── storageService.js         # GridFS streaming, adaptive chunking, fenced rollback
-│   ├── tests/                        # 214 automated unit & integration test suites
+│   ├── tests/                        # 219 automated unit & integration test suites
 │   │   ├── adminUserAuditAndEmailAuth.test.js
 │   │   ├── cacheService.test.js
+│   │   ├── demoLoginAndSessionHardening.test.js # Demo auth & session resilience tests
 │   │   ├── forgotPassword.test.js
 │   │   ├── googleAuth.test.js
 │   │   ├── onboardingAndCors.test.js
@@ -644,6 +644,7 @@ loop/
 │   ├── src/
 │   │   ├── assets/                   # Vector branding and illustrations
 │   │   ├── components/               # Modular UI widgets
+│   │   │   ├── ErrorBoundary.jsx     # React 19 rendering error recovery boundary
 │   │   │   ├── Navbar.jsx            # Campus navigation bar with role badges
 │   │   │   ├── UploadDock.jsx        # Floating multi-file background upload dock
 │   │   │   ├── PDFPreviewModal.jsx   # Client-side canvas PDF previewer
@@ -665,6 +666,7 @@ loop/
 │   ├── vercel.json                   # Edge CDN SPA rewrite rules
 │   └── package.json                  # Frontend dependencies & npm build scripts
 │
+├── vercel.json                       # Root Vercel SPA routing fallback configuration
 ├── reports/                          # Comprehensive audit, security, and performance reports
 │   ├── previous_reports/             # Historical engineering verification reports
 │   └── ...                           # All 49 technical benchmark and audit reports
@@ -674,18 +676,26 @@ loop/
 
 ---
 
-## Automated Verification & Test Harness (214 Tests)
+## Automated Verification & Test Harness (219 Tests)
 
-LOOP features an automated test harness executed with Node's native test runner (`node --test`), covering unit models, authentication edge cases, GridFS chunk fencing, and HTTP route authorization:
+LOOP features an automated test harness executed with Node's native test runner (`node --test`), covering unit models, authentication edge cases, GridFS chunk fencing, one-click demo logins, session cold-start resilience, and HTTP route authorization:
 
 ```bash
 cd backend
 npm test
 ```
 
-### Complete Test Results: 214 Passed Across 25 Suites (0 Failures)
+### Complete Test Results: 219 Passed Across 26 Suites (0 Failures)
 
 ```text
+▶ One-Click Demo Authentication & Session Resilience Test Suite
+  ✔ POST /api/auth/demo-login returns authenticated student session
+  ✔ POST /api/auth/demo-login returns authenticated admin session
+  ✔ sessionService.isSessionActive does not permanently revoke session on transient DB error
+  ✔ authenticateToken rejects forged tokens with HTTP 401
+  ✔ authenticateToken rejects expired tokens with HTTP 401
+✔ One-Click Demo Authentication & Session Resilience Test Suite
+
 ▶ MongoDB GridFS Storage Service & Upload Validation
   ▶ File Size Validation (200 MB Limit)
     ✔ enforces 200 MB maximum limit (209,715,200 bytes)
@@ -722,13 +732,13 @@ npm test
   ✔ HTTP Integration & File Streaming Authorization Tests
 ✔ MongoDB GridFS Storage Service & Upload Validation
 
-ℹ tests 214
-ℹ suites 25
-ℹ pass 214
+ℹ tests 219
+ℹ suites 26
+ℹ pass 219
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
-ℹ duration_ms 1548.36
+ℹ duration_ms 2787.03
 ```
 
 ---

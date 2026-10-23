@@ -3,7 +3,7 @@
 [![Node](https://img.shields.io/badge/Node.js-Express_4.19-green?logo=node.js&style=flat-square)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cloud_Cache-red?logo=redis&style=flat-square)](https://redis.io/)
-[![Tests](https://img.shields.io/badge/Automated_Tests-214_Passed_(25_Suites)-success?style=flat-square)](tests/)
+[![Tests](https://img.shields.io/badge/Automated_Tests-219_Passed_(26_Suites)-success?style=flat-square)](tests/)
 [![Deployment](https://img.shields.io/badge/Deployed-Render-46E3B7?logo=render&style=flat-square)](https://loop-qnh9.onrender.com/)
 
 The **LOOP Backend Engine** is an institutional REST API service built with Node.js and Express for **Sardar Patel Institute of Technology (SPIT), Mumbai**. It provides authenticated access to placement experiences, high-speed binary streaming of academic files up to 200 MB via MongoDB GridFS, distributed caching with Redis, and automated moderation pipelines.
@@ -28,6 +28,9 @@ The **LOOP Backend Engine** is an institutional REST API service built with Node
    - Salted bcrypt password hashing with rate-limited authentication boundaries (5 attempts per window).
    - Transactional 6-digit SHA-256 hashed OTP password resets delivered via Brevo.
    - Comprehensive audit logging tracking all administrative modifications and user sessions.
+5. **Session Resilience & One-Click Demo Engine:**
+   - Dedicated `POST /api/auth/demo-login` issuing genuine JWT sessions for Student and Admin roles with feature flag controls.
+   - Intelligent cold-start fault tolerance: distinguishes Atlas reconnection latency from genuine token expiration (returns 503 instead of 401), preventing false session purges across container sleep cycles.
 
 ---
 
@@ -57,9 +60,10 @@ backend/
 │   ├── cacheService.js     # Redis distributed cache with single-flight stampede defense
 │   ├── googleAuth.js       # Institutional Google OAuth 2.0 token verifier
 │   └── storageService.js   # GridFS streaming, chunk assembly & upload validation
-├── tests/                  # 214 Automated Node.js native test suites
+├── tests/                  # 219 Automated Node.js native test suites (26 suites)
 │   ├── activityLogs.test.js
 │   ├── cacheService.test.js
+│   ├── demoLoginAndSessionHardening.test.js # Demo auth & session cold-start tests
 │   ├── googleAuth.test.js
 │   ├── scalabilityPhase1.test.js
 │   ├── securityFixes.test.js
@@ -78,6 +82,7 @@ backend/
 ### Authentication & User Identity
 * `POST /api/auth/register` — Register a student account (restricted to `@spit.ac.in`).
 * `POST /api/auth/login` — Authenticate with email/password; returns sliding JWT session.
+* `POST /api/auth/demo-login` — Authenticate via one-click demo login (role: `student` or `admin`).
 * `POST /api/auth/google` — Authenticate or sign up via Google Identity Services (`@spit.ac.in` verified).
 * `POST /api/auth/forgot-password` — Request a 6-digit hashed OTP via Brevo.
 * `POST /api/auth/verify-otp` — Verify OTP token.
@@ -144,7 +149,7 @@ npm run dev
 ```
 
 ### Automated Verification Test Suite
-Execute the full native Node.js test harness (214 tests across 25 suites):
+Execute the full native Node.js test harness (219 tests across 26 suites):
 ```bash
 npm test
 ```

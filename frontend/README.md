@@ -33,13 +33,23 @@ The **LOOP Frontend** is a single-page application (SPA) engineered for **Sardar
    - Categorized study materials, cheatsheets, and interview problem sheets.
    - In-browser canvas PDF rendering without external cloud dependencies.
 
-4. **Multi-Stage Contribution Modal:**
+4. **One-Click Demo Authentication & Campus SSO (`/login`):**
+   - **One-Click Demo Login:** Features dedicated **`🎓 Student Demo`** and **`🛡️ Admin Demo`** buttons for immediate testing without manual credentials.
+   - **Google Identity Services (OAuth 2.0):** Domain-restricted to institutional `@spit.ac.in` accounts.
+   - **Animated dual-canvas login** with real-time character state interactions.
+
+5. **Multi-Stage Contribution Modal:**
    - 11-stage guided submission workflow with template insertion for projects and prep routines.
    - Auto-categorization of study attachments and verified resume linking.
 
-5. **Administrative Management (`/admin`):**
+6. **Administrative Management (`/admin`):**
    - Real-time moderation queues for pending stories and resources.
    - Campus user intelligence, login audit trails, and student role management.
+
+7. **Resilient SPA Routing & Error Boundaries:**
+   - **Zero White-Screen Guarantees:** Vercel SPA rewrites ensure `/stories`, `/resources`, and deep nested links load and refresh cleanly.
+   - **React 19 ErrorBoundary:** Catches runtime exceptions with graceful recovery UI.
+   - **Lazy Code Splitting:** Heavy PDF processing (`pdfjs-dist`: 918 kB) isolated into `vendor-pdf` chunk, keeping the initial JS bundle at ~386 kB (~116 kB gzip).
 
 ---
 
@@ -51,6 +61,7 @@ frontend/
 ├── src/
 │   ├── assets/             # Brand logos and illustration assets
 │   ├── components/         # Reusable presentation components
+│   │   ├── ErrorBoundary.jsx     # Top-level React 19 rendering error boundary
 │   │   ├── FileUploadModal.jsx   # Chunked file upload interface
 │   │   ├── Footer.jsx            # Platform footer with legal/campus links
 │   │   ├── FormattedText.jsx     # Safe markdown/link renderer for narrative fields
