@@ -394,7 +394,7 @@ export default function Login() {
               theme: 'outline',
               size: 'large',
               text: 'continue_with',
-              shape: 'rectangular',
+              shape: 'pill',
               logo_alignment: 'left',
               width: 400
             });
@@ -1242,7 +1242,8 @@ export default function Login() {
                     display: isGoogleAvailable ? 'flex' : 'none',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    borderRadius: '12px',
+                    borderRadius: '999px',
+                    overflow: 'hidden',
                     transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}
                 />
@@ -1260,7 +1261,7 @@ export default function Login() {
                       gap: '0.75rem',
                       width: '100%',
                       height: '48px',
-                      borderRadius: '12px',
+                      borderRadius: '999px',
                       backgroundColor: 'var(--bg-surface)',
                       border: '1px solid var(--border-color)',
                       color: 'var(--text-primary)',

@@ -862,7 +862,12 @@ input:-webkit-autofill:active {
 /* Aesthetic Google Sign-In Pill Styling */
 .google-btn-wrapper {
   border-radius: 9999px;
+  overflow: hidden;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.google-btn-wrapper iframe {
+  border-radius: 9999px !important;
 }
 
 .google-btn-wrapper:hover {
