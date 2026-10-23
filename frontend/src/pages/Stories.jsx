@@ -254,12 +254,12 @@ function Story3DCard({ story, index, navigate }) {
       </div>
 
       {/* Action button */}
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
         <span style={{
-          fontSize: '0.72rem',
-          fontWeight: 600,
-          color: 'var(--text-secondary)',
-          letterSpacing: '0.01em',
+          fontSize: '0.84rem',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          letterSpacing: '-0.01em',
           whiteSpace: 'nowrap'
         }}>
           Placement Preparation Journey
