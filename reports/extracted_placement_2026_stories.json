@@ -1367,11 +1367,6 @@
         "url": "https://www.geeksforgeeks.org/aptitude/top-100-puzzles-asked-in-interviews/"
       },
       {
-        "name": "mailto:vihaanshinde18@gmail.com",
-        "type": "Study Resource",
-        "url": "mailto:vihaanshinde18@gmail.com"
-      },
-      {
         "name": "Striver's A2Z DSA Sheet",
         "type": "Coding Practice / DSA",
         "url": "https://takeuforward.org/strivers-a2z-dsa-course/strivers-a2z-dsa-course-sheet-2/"
@@ -3066,11 +3061,6 @@
         "name": "Interview Preparation Video Lecture",
         "type": "Video Tutorial",
         "url": "https://www.youtube.com/watch?v=g7nvHCYzXQE&list=PL-q2MNxDekiSFUNcwCI-Q4-QqHWe5K42p"
-      },
-      {
-        "name": "mailto:vinay.marathe23@spit.ac.in",
-        "type": "Study Resource",
-        "url": "mailto:vinay.marathe23@spit.ac.in"
       }
     ],
     "resume": null,
@@ -3375,11 +3365,6 @@
         "name": "Next Learning Resource",
         "type": "Study Resource",
         "url": "http://next.js"
-      },
-      {
-        "name": "mailto:aashay.ranjit22@spit.ac.in",
-        "type": "Study Resource",
-        "url": "mailto:aashay.ranjit22@spit.ac.in"
       }
     ],
     "resume": null,
@@ -4691,13 +4676,7 @@
       "projects": null,
       "howSecured": "Stages: Resume Shortlist \u2192 Pen & Paper Test \u2192 Technical Interview \u2192 Final Interview Resume\n\nTips:\n\nThe shortlisting was relaxed with a 6.0+ CGPA cutoff. I submitted a tech-heavy resume, but in hindsight, adding one or two business case studies or cross-functional experiences would help. Focus on data-driven and machine learning projects. 1. Pen Paper Test:- Candidates Appeared: 102 | Test Duration: 1 hour \u25cf Section 1: Aptitude (8 Questions, +3/-1) Topics included: \u25cb Coordinate geometry (line/curve equations) \u25cb Speed-distance \u25cb Work-time \u25cb Number systems Time management is key -- solve this in 15-20 mins max. \u25cf Section 2: No Negative Marking (12 Marks Total) \u25cb Python Pseudo-code (4 Marks): \u25a0 Predict the sum of the series: 0, 2, 6, 12, 20, 30... (1 mark) \u2192 Pattern: n2+nn^2 + nn2+n \u25a0 Another sequence (3 marks): -1, -1, 5, 19... - slightly tricky and I couldn't fully crack it \u2192 Don't panic if one question goes wrong \u25cb SQL (8 Marks): Tables: Student, House, Test Sample queries: \u25a0 Avg/Max/Min marks per student \u25a0 Second-highest marks \u25a0 Rank houses based on top performer \u25a0 List test types and students who didn't attempt them Prep\n\nAdvice:\n\n\u25cf SQL: Leetcode Top 50 is enough \u25cf Apti: Practice from IndiaBIX \u25cf Python: Brush up number series logic & patterns \u25cf Tip: Don't freeze. Presence of mind > perfection Do the SQL top 50 on leetcode that would be enough. 2. 1st Technical Round:- 40 people advanced \u25cf Resume deep-dive (Types of ML Algorithms/Technologies used, and Why) \u25cf ML algorithm intuition: R\u00b2, RMSE, classification metrics. (Because It was on my resume) \u25cf Career goals and why shift from tech to analyst role Others were asked SQL joins, Pandas basics, API logic -- nothing too difficult if you built your projects yourself. 3. Final Round (Tech + HR + Case Study): 11 people advanced to this round A hybrid round testing communication, fitment, and problem-solving. Questions I was asked: \u25cf Tell me about yourself \u25cf Resume walkthrough \u25cf Case Study: Improve profitability of a logistics company with 1000 trucks \u25cb Ask clarifying questions \u25cb Segment the problem \u25cb I brought in AI/ML and compared with operations from airline industry \u25cf Guesstimate: \"How many tennis balls can fit inside an airplane?\" \u25cb I wasn't exact, but spoke aloud my approach and kept calm \u25cf Generic HR: 5-year goals, Why InCred?, Why this role? 3 students got placed in InCred"
     },
-    "resources": [
-      {
-        "name": "Jsh Agarwal",
-        "type": "Study Resource",
-        "url": "mailto:jsh.agarwal22@spit.ac.in"
-      }
-    ],
+    "resources": [],
     "resume": null,
     "resumeFile": null,
     "studyMaterials": [],

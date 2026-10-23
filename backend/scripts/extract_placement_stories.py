@@ -340,6 +340,8 @@ def analyze_document_resources_and_links(file_path):
 
         if 'linkedin.com' in netloc:
             continue
+        if u.startswith('mailto:') or 'mailto:' in u.lower():
+            continue
         if any(s in u.lower() for s in ['w3.org', 'adobe.com', 'schema.org']):
             continue
 
