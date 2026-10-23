@@ -20,6 +20,23 @@ function formatStoryDate(dateStr) {
   return null;
 }
 
+export function normalizeBranch(b) {
+  if (!b) return 'CSE';
+  const u = b.trim().toUpperCase();
+  if (u === 'CSE' || u.includes('COMPUTER SCIENCE') || u.includes('CS') || u.includes('AI') || u.includes('DS') || u.includes('MACHINE LEARNING') || u.includes('DATA SCIENCE')) return 'CSE';
+  if (u === 'CE' || u.includes('COMPUTER ENGINEERING') || u.includes('COMPS') || u === 'MCA') return 'CE';
+  if (u === 'EXTC' || u.includes('ELECTRONICS') || u.includes('TELECOMMUNICATION')) return 'EXTC';
+  return u;
+}
+
+export function formatDisplayBranch(story) {
+  if (!story) return 'CSE';
+  const sb = (story.subBranch || '').trim().toUpperCase();
+  if (['AI', 'DS', 'AIML'].includes(sb)) return 'CSE';
+  const norm = normalizeBranch(story.branch);
+  return norm || 'CSE';
+}
+
 function Story3DCard({ story, index, navigate }) {
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -145,7 +162,7 @@ function Story3DCard({ story, index, navigate }) {
             {story.company}
           </span>
           <span className="badge" style={{ fontSize: '0.68rem', borderRadius: '10px' }}>
-            {story.branch} {story.subBranch && story.subBranch !== story.branch && `(${story.subBranch})`}
+            {formatDisplayBranch(story)}
           </span>
           <span className="badge" style={{ fontSize: '0.68rem', borderRadius: '10px' }}>
             Class of {story.passoutYear}
@@ -289,8 +306,9 @@ export default function Stories() {
 
   const { data: cachedStories, loading, mutate } = useCachedData('stories', getStories);
   const stories = cachedStories || [];
+  const normInitialBranch = (initialBranch && initialBranch !== 'ALL') ? normalizeBranch(initialBranch) : 'ALL';
   const [selectedBranches, setSelectedBranchesState] = useState(
-    initialBranch === 'ALL' ? ['CSE', 'CE', 'EXTC'] : [initialBranch]
+    normInitialBranch === 'ALL' ? ['CSE', 'CE', 'EXTC'] : [normInitialBranch]
   );
 
   const setSelectedBranches = (branches) => {
@@ -303,7 +321,6 @@ export default function Stories() {
     });
   };
 
-  const [selectedSubBranches, setSelectedSubBranches] = useState(['CSE', 'AI', 'DS']);
   const [minYear, setMinYear] = useState('ALL');
   const [maxYear, setMaxYear] = useState('ALL');
   const [maxCGPA, setMaxCGPA] = useState(10.0);
@@ -561,23 +578,6 @@ export default function Stories() {
     return () => clearTimeout(handler);
   }, [inputValue]);
 
-  // Resilient branch & subBranch normalizers across standard codes and verbose department labels
-  const normalizeBranch = (b) => {
-    if (!b) return '';
-    const u = b.trim().toUpperCase();
-    if (u === 'CSE' || u.includes('COMPUTER SCIENCE') || u.includes('CS')) return 'CSE';
-    if (u === 'CE' || u.includes('COMPUTER ENGINEERING') || u.includes('COMPS') || u === 'MCA') return 'CE';
-    if (u === 'EXTC' || u.includes('ELECTRONICS') || u.includes('TELECOMMUNICATION')) return 'EXTC';
-    return u;
-  };
-
-  const normalizeSubBranch = (sb, b) => {
-    const combined = `${sb || ''} ${b || ''}`.toUpperCase();
-    if (combined.includes('AI') || combined.includes('AIML') || combined.includes('MACHINE LEARNING')) return 'AI';
-    if (combined.includes('DS') || combined.includes('DATA SCIENCE') || combined.includes('DATA')) return 'DS';
-    return 'CSE';
-  };
-
   // Filtered stories based on sidebar selections + search query
   const filteredStories = stories.filter(story => {
     // Search query match
@@ -596,17 +596,10 @@ export default function Stories() {
       if (!inName && !inCompany && !inRole && !inBranch && !inSubBranch && !inResources && !inPrep && !inHowSecured) return false;
     }
 
-    // Branch Match
-    const normBranch = normalizeBranch(story.branch);
+    // Branch Match (Unified: AI + DS + CSE = CSE only)
+    const normBranch = formatDisplayBranch(story);
     const branchMatch = selectedBranches.includes(normBranch) || selectedBranches.includes(story.branch);
     if (!branchMatch) return false;
-    
-    // If the story is CSE, also check if its subBranch is in selectedSubBranches
-    if (normBranch === 'CSE') {
-      const normSubBranch = normalizeSubBranch(story.subBranch, story.branch);
-      const subMatch = selectedSubBranches.includes(normSubBranch) || (story.subBranch && selectedSubBranches.includes(story.subBranch));
-      if (!subMatch) return false;
-    }
     
     // Year Match
     const year = parseInt(story.passoutYear);
@@ -866,7 +859,6 @@ export default function Stories() {
               </span>
             </div>
             {((selectedBranches.length < 3) ||
-              (selectedBranches.includes('CSE') && selectedSubBranches.length < 3) ||
               (minYear !== 'ALL') ||
               (maxYear !== 'ALL') ||
               (maxCGPA < 10.0)) && (
@@ -880,7 +872,6 @@ export default function Stories() {
                 letterSpacing: '0.02em'
               }}>
                 {(selectedBranches.length < 3 ? 1 : 0) +
-                 (selectedBranches.includes('CSE') && selectedSubBranches.length < 3 ? 1 : 0) +
                  (minYear !== 'ALL' || maxYear !== 'ALL' ? 1 : 0) +
                  (maxCGPA < 10.0 ? 1 : 0)} active
               </span>
@@ -903,94 +894,46 @@ export default function Stories() {
               {['CSE', 'CE', 'EXTC'].map((branch) => {
                 const isChecked = selectedBranches.includes(branch);
                 return (
-                  <div key={branch} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <label
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.45rem 0.65rem',
-                        borderRadius: '10px',
-                        cursor: 'pointer',
-                        backgroundColor: isChecked ? 'var(--bg-tertiary)' : 'transparent',
-                        border: '1px solid',
-                        borderColor: isChecked ? 'var(--border-color)' : 'transparent',
-                        transition: 'all 0.15s ease',
-                        userSelect: 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedBranches([...selectedBranches, branch]);
-                            } else {
-                              setSelectedBranches(selectedBranches.filter(b => b !== branch));
-                            }
-                          }}
-                          style={{
-                            accentColor: 'var(--text-primary)',
-                            width: '15px',
-                            height: '15px',
-                            cursor: 'pointer',
-                            margin: 0
-                          }}
-                        />
-                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {branch}
-                        </span>
-                      </div>
-                      {branch === 'CSE' && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                          {selectedBranches.includes('CSE') ? `${selectedSubBranches.length}/3 tracks` : '3 tracks'}
-                        </span>
-                      )}
-                    </label>
-
-                    {/* Sub-Branch Pills (For CSE only, visible when CSE is checked) */}
-                    {branch === 'CSE' && isChecked && (
-                      <div style={{
-                        display: 'flex',
-                        gap: '0.35rem',
-                        flexWrap: 'wrap',
-                        paddingLeft: '1.25rem',
-                        marginBottom: '0.2rem'
-                      }}>
-                        {['CSE', 'AI', 'DS'].map((sub) => {
-                          const isSubActive = selectedSubBranches.includes(sub);
-                          return (
-                            <button
-                              key={sub}
-                              type="button"
-                              onClick={() => {
-                                if (isSubActive) {
-                                  setSelectedSubBranches(selectedSubBranches.filter(s => s !== sub));
-                                } else {
-                                  setSelectedSubBranches([...selectedSubBranches, sub]);
-                                }
-                              }}
-                              style={{
-                                padding: '0.22rem 0.55rem',
-                                borderRadius: '9999px',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                                border: '1px solid',
-                                borderColor: isSubActive ? 'var(--text-primary)' : 'var(--border-color)',
-                                backgroundColor: isSubActive ? 'var(--text-primary)' : 'var(--bg-primary)',
-                                color: isSubActive ? 'var(--accent-inverse)' : 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {sub}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  <label
+                    key={branch}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      backgroundColor: isChecked ? 'var(--bg-tertiary)' : 'transparent',
+                      border: '1px solid',
+                      borderColor: isChecked ? 'var(--border-color)' : 'transparent',
+                      transition: 'all 0.15s ease',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedBranches([...selectedBranches, branch]);
+                          } else {
+                            setSelectedBranches(selectedBranches.filter(b => b !== branch));
+                          }
+                        }}
+                        style={{
+                          accentColor: 'var(--text-primary)',
+                          width: '15px',
+                          height: '15px',
+                          cursor: 'pointer',
+                          margin: 0
+                        }}
+                      />
+                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {branch}
+                      </span>
+                    </div>
+                  </label>
                 );
               })}
             </div>
@@ -1116,7 +1059,6 @@ export default function Stories() {
             type="button"
             onClick={() => {
               setSelectedBranches(['CSE', 'CE', 'EXTC']);
-              setSelectedSubBranches(['CSE', 'AI', 'DS']);
               setMinYear('ALL');
               setMaxYear('ALL');
               setMaxCGPA(10.0);
@@ -1455,7 +1397,7 @@ export default function Stories() {
 
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: formData.branch === 'CSE' ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
                     gap: '0.85rem',
                     marginBottom: '1rem'
                   }}>
@@ -1469,7 +1411,7 @@ export default function Stories() {
                           setFormData({ 
                             ...formData, 
                             branch: nextBranch, 
-                            subBranch: nextBranch === 'CSE' ? 'CSE' : '' 
+                            subBranch: '' 
                           });
                         }}
                       >
@@ -1478,21 +1420,6 @@ export default function Stories() {
                         <option value="EXTC">EXTC</option>
                       </select>
                     </div>
-
-                    {formData.branch === 'CSE' && (
-                      <div className="input-group" style={{ marginBottom: 0 }}>
-                        <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Sub-Category *</label>
-                        <select
-                          className="input-field"
-                          value={formData.subBranch || 'CSE'}
-                          onChange={(e) => setFormData({ ...formData, subBranch: e.target.value })}
-                        >
-                          <option value="CSE">CSE</option>
-                          <option value="AI">AI</option>
-                          <option value="DS">DS</option>
-                        </select>
-                      </div>
-                    )}
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Passout Year *</label>

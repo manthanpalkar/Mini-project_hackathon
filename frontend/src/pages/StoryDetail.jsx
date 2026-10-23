@@ -10,6 +10,17 @@ import {
 import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl } from '../utils/db';
 import FormattedText, { renderInlineWithLinks } from '../components/FormattedText';
 
+function formatDisplayBranch(story) {
+  if (!story) return 'CSE';
+  const sb = (story.subBranch || '').trim().toUpperCase();
+  if (['AI', 'DS', 'AIML', 'CSE'].includes(sb)) return 'CSE';
+  const b = (story.branch || '').trim().toUpperCase();
+  if (b === 'CSE' || b.includes('COMPUTER SCIENCE') || b.includes('CS') || b.includes('AI') || b.includes('DS') || b.includes('MACHINE LEARNING') || b.includes('DATA SCIENCE')) return 'CSE';
+  if (b === 'CE' || b.includes('COMPUTER ENGINEERING') || b.includes('COMPS') || b === 'MCA') return 'CE';
+  if (b === 'EXTC' || b.includes('ELECTRONICS') || b.includes('TELECOMMUNICATION')) return 'EXTC';
+  return story.branch || 'CSE';
+}
+
 
 // Structured Preparation Strategy & Study Routine Parser
 function parsePrepTopics(prepText, resources = []) {
@@ -1031,7 +1042,7 @@ export default function StoryDetail() {
           <div style={{ flexGrow: 1, minWidth: '220px', maxWidth: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
               <span className="badge" style={{ fontSize: '0.7rem' }}>
-                {story.branch} {story.subBranch && story.subBranch !== story.branch && `(${story.subBranch})`}
+                {formatDisplayBranch(story)}
               </span>
               <span className="badge" style={{ fontSize: '0.7rem' }}>
                 Class of {story.passoutYear}
@@ -2191,9 +2202,8 @@ export default function StoryDetail() {
                     style={{ backgroundColor: 'var(--bg-secondary)' }}
                   >
                     <option value="CSE">CSE</option>
-                    <option value="IT">IT</option>
+                    <option value="CE">CE</option>
                     <option value="EXTC">EXTC</option>
-                    <option value="AI & DS">AI & DS</option>
                   </select>
                 </div>
               </div>

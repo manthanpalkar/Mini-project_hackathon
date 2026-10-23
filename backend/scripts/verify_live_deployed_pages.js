@@ -64,17 +64,23 @@ async function run() {
 
   chromeProc.stderr.on('data', () => {}); // silence stderr
 
-  await sleep(2000);
-
   let versionInfo;
-  try {
-    const res = await fetch(`http://127.0.0.1:${PORT}/json/version`);
-    versionInfo = await res.json();
-    console.log('Connected to Chrome:', versionInfo.Browser);
-  } catch (e) {
-    console.error('Failed to connect to Chrome debugging port:', e);
-    chromeProc.kill();
-    process.exit(1);
+  for (let attempt = 1; attempt <= 15; attempt++) {
+    try {
+      await sleep(1000);
+      const res = await fetch(`http://127.0.0.1:${PORT}/json/version`);
+      versionInfo = await res.json();
+      if (versionInfo && versionInfo.Browser) {
+        console.log('Connected to Chrome:', versionInfo.Browser);
+        break;
+      }
+    } catch (e) {
+      if (attempt === 15) {
+        console.error('Failed to connect to Chrome debugging port after 15 attempts:', e);
+        chromeProc.kill();
+        process.exit(1);
+      }
+    }
   }
 
   // Create new target tab
