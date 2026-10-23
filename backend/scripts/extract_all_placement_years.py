@@ -104,22 +104,62 @@ def canonicalize_company(raw_name, folder_name=""):
     c = c.replace('_', ' ').replace('-', ' ').strip().title()
     return c or "Company"
 
-def format_package(ctc_str):
-    if not ctc_str:
-        return None
+def clean_and_format_compensation(ctc_str):
+    if not ctc_str: return None, None
     s = str(ctc_str).strip()
-    if not s or s.lower() in ['na', 'n/a', 'none', 'nil', '-', '—', 'not disclosed', 'not yet disclosed']:
-        return None
-    if re.search(r'\b(LPA|Lakhs?\s*per\s*annum)\b', s, re.I):
-        s = re.sub(r'Lakhs?\s*per\s*annum', 'LPA', s, flags=re.I)
-        return s.strip()
-    m2 = re.match(r'^([\d\.]+)\s*L\b', s, re.I)
-    if m2:
-        return f"{m2.group(1)} LPA"
-    m = re.match(r'^([\d\.]+(?:\s*\+\s*[\d\.]+(?:\s*\([^\)]+\))?)?)\s*L?$', s, re.I)
-    if m:
-        return f"{m.group(1).strip()} LPA"
-    return s
+    if not s or s.lower() in ["na", "n/a", "none", "nil", "-", "—", "not disclosed"]: return None, None
+
+    # OCR Rupee clean
+    s_cleaned = re.sub(r"(?:^|[\s\+\(])[7<]\s*([6-9]\d?,\d{2},\d{3})\b", r" ₹\1", s)
+    s_cleaned = re.sub(r"(?:^|[\s\+\(])[72<]\s*(1,00,000)\b", r" ₹\1", s_cleaned)
+    s_cleaned = re.sub(r"(?:^|[\s\+\(])7\s*(\d{5,})\b", r" ₹\1", s_cleaned)
+    s_cleaned = re.sub(r"€\s*(\d+)", r"₹\1", s_cleaned)
+    s_cleaned = re.sub(r"\s+", " ", s_cleaned).strip()
+
+    # TransUnion specific: 8,50,000 + 1,00,000 joining bonus
+    if ("8,50,000" in s_cleaned or "78,50" in s_cleaned) and ("1,00,000" in s_cleaned or "71,00" in s_cleaned):
+        return "8.5 + 1 (Joining Bonus) LPA", "₹8,50,000 + ₹1,00,000 joining bonus"
+
+    # If already mentions LPA:
+    if re.search(r"\b(LPA|Lakhs?\s*per\s*annum)\b", s_cleaned, re.I):
+        pkg = re.sub(r"Lakhs?\s*per\s*annum", "LPA", s_cleaned, flags=re.I).strip()
+        return pkg, s_cleaned
+
+    # Quantiphi Rahul Chalwadi: (Base- ₹ 850000 per Annum) + Variables
+    if "850000" in s_cleaned and "variable" in s_cleaned.lower():
+        return "8.5 LPA (Base) + Variables", "₹8,50,000 (Base) + Variables"
+
+    # ₹ 11,00,000 -> 11 LPA
+    m_rupee = re.search(r"₹?\s*(\d{1,2}),(\d{2}),000\b", s_cleaned)
+    if m_rupee:
+        lakhs = f"{m_rupee.group(1)}.{m_rupee.group(2)}" if m_rupee.group(2) != "00" else m_rupee.group(1)
+        extra = re.sub(r"₹?\s*\d{1,2},\d{2},000\s*(?:per\s*annum)?", "", s_cleaned, flags=re.I).strip()
+        extra = re.sub(r"^[\+\-\s]+", "", extra).strip()
+        pkg = f"{lakhs} LPA" if not extra else f"{lakhs} LPA + {extra}"
+        return pkg, s_cleaned
+
+    # Raw numbers: 900000 per Annum -> 9 LPA, 1523000 -> 15.23 LPA
+    m_raw = re.search(r"₹?\s*(\d{6,7})\b", s_cleaned)
+    if m_raw:
+        val = int(m_raw.group(1))
+        lakhs = round(val / 100000, 2)
+        lakhs_str = f"{lakhs:g}"
+        extra = s_cleaned.replace(m_raw.group(0), "").strip()
+        extra = re.sub(r"(?:per\s*annum)", "", extra, flags=re.I).strip()
+        extra = re.sub(r"^[\+\-\s]+", "", extra).strip()
+        pkg = f"{lakhs_str} LPA" if not extra else f"{lakhs_str} LPA + {extra}"
+        return pkg, s_cleaned
+
+    m2 = re.match(r"^([\d\.]+)\s*L\b", s_cleaned, re.I)
+    if m2: return f"{m2.group(1)} LPA", s_cleaned
+    m = re.match(r"^([\d\.]+(?:\s*\+\s*[\d\.]+(?:\s*\([^\)]+\))?)?)\s*L?$", s_cleaned, re.I)
+    if m: return f"{m.group(1).strip()} LPA", s_cleaned
+
+    return s_cleaned, s_cleaned
+
+def format_package(ctc_str):
+    pkg, _ = clean_and_format_compensation(ctc_str)
+    return pkg
 
 def clean_document_text(text):
     if not text:
@@ -648,18 +688,20 @@ def parse_experience(raw_text, filename, company_folder, full_path, passout_year
         offer_type = re.sub(r'\s+(CTC|Location|Date|Stipend|Process)\b.*', '', offer_type, flags=re.IGNORECASE).strip()
 
     ctc = None
+    package = None
     m_ctc = re.search(r'(?:CTC|Full-Time\s*PPO)\s*:\s*([^\n\r•]+)', clean_text, re.IGNORECASE)
     if m_ctc:
-        ctc = m_ctc.group(1).strip()
-        ctc = re.sub(r'\s+(Location|Process|Date|Placement|Useful|Tips).*', '', ctc, flags=re.IGNORECASE).strip()
+        raw_ctc = m_ctc.group(1).strip()
+        raw_ctc = re.sub(r'\s+(Location|Process|Date|Placement|Useful|Tips).*', '', raw_ctc, flags=re.IGNORECASE).strip()
+        package, ctc = clean_and_format_compensation(raw_ctc)
 
     stipend = None
     m_stipend = re.search(r'Internship\s*Stipend\s*:\s*([^\n\r•]+)', clean_text, re.IGNORECASE)
     if m_stipend:
         stipend = m_stipend.group(1).strip()
         stipend = re.sub(r'\s+(CTC|Location|Process|Date|Placement).*', '', stipend, flags=re.IGNORECASE).strip()
-
-    package = format_package(ctc)
+        stipend = re.sub(r'225,000', '25,000', stipend)
+        stipend = re.sub(r'€\s*25,000', '25,000', stipend)
 
     # 6. Preparation Strategy & Tips for Juniors
     prep_content = ""
@@ -706,16 +748,6 @@ def parse_experience(raw_text, filename, company_folder, full_path, passout_year
 
     # 10. Custom Sections
     custom_sections = []
-    comp_details = []
-    if package: comp_details.append(f"Placement Package: {package}")
-    elif ctc: comp_details.append(f"CTC: {ctc}")
-    if stipend: comp_details.append(f"Internship Stipend: {stipend}")
-    if offer_type: comp_details.append(f"Offer Type: {offer_type}")
-    if comp_details:
-        custom_sections.append({
-            "title": "Compensation & Offer Breakdown",
-            "content": "\n".join(comp_details)
-        })
 
     if tips_content:
         custom_sections.append({

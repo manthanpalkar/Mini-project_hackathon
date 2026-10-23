@@ -1219,7 +1219,7 @@ export default function StoryDetail() {
                   <div style={{ padding: '1.1rem', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
                     <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.35rem' }}>Placement Package (CTC)</span>
                     <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-                      {story.package || story.ctc}
+                      {story.ctc || story.package}
                     </span>
                   </div>
                 )}
@@ -2007,7 +2007,8 @@ export default function StoryDetail() {
         {story.customSections && story.customSections.map((sec, index) => {
           const lowerTitle = (sec.title || '').toLowerCase();
           const isAdvice = lowerTitle.includes('advice');
-          if (isAdvice) return null;
+          const isComp = lowerTitle.includes('compensation') || lowerTitle.includes('offer breakdown');
+          if (isAdvice || isComp) return null;
 
           return (
             <section key={index} id={`section-custom-${index}`} className="story-section" style={{ scrollMarginTop: '110px' }}>
