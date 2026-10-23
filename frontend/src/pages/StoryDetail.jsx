@@ -9,17 +9,7 @@ import {
 } from 'lucide-react';
 import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl } from '../utils/db';
 import FormattedText, { renderInlineWithLinks } from '../components/FormattedText';
-
-function formatDisplayBranch(story) {
-  if (!story) return 'CSE';
-  const sb = (story.subBranch || '').trim().toUpperCase();
-  if (['AI', 'DS', 'AIML', 'CSE'].includes(sb)) return 'CSE';
-  const b = (story.branch || '').trim().toUpperCase();
-  if (b === 'CSE' || b.includes('COMPUTER SCIENCE') || b.includes('CS') || b.includes('AI') || b.includes('DS') || b.includes('MACHINE LEARNING') || b.includes('DATA SCIENCE')) return 'CSE';
-  if (b === 'CE' || b.includes('COMPUTER ENGINEERING') || b.includes('COMPS') || b === 'MCA') return 'CE';
-  if (b === 'EXTC' || b.includes('ELECTRONICS') || b.includes('TELECOMMUNICATION')) return 'EXTC';
-  return story.branch || 'CSE';
-}
+import { formatDisplayBranch } from '../utils/branchUtils';
 
 export function formatCurrencyText(val) {
   if (!val) return '';
@@ -2233,6 +2223,7 @@ export default function StoryDetail() {
                     <option value="CSE">CSE</option>
                     <option value="CE">CE</option>
                     <option value="EXTC">EXTC</option>
+                    <option value="MCA">MCA</option>
                   </select>
                 </div>
               </div>

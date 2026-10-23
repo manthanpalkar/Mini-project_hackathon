@@ -20,22 +20,21 @@ function formatStoryDate(dateStr) {
   return null;
 }
 
-export function normalizeBranch(b) {
-  if (!b) return 'CSE';
-  const u = b.trim().toUpperCase();
-  if (u === 'CSE' || u.includes('COMPUTER SCIENCE') || u.includes('CS') || u.includes('AI') || u.includes('DS') || u.includes('MACHINE LEARNING') || u.includes('DATA SCIENCE')) return 'CSE';
-  if (u === 'CE' || u.includes('COMPUTER ENGINEERING') || u.includes('COMPS') || u === 'MCA') return 'CE';
-  if (u === 'EXTC' || u.includes('ELECTRONICS') || u.includes('TELECOMMUNICATION')) return 'EXTC';
-  return u;
-}
+import {
+  BRANCH_FILTER_CATEGORIES,
+  getFilterCategory,
+  formatDisplayBranch,
+  matchesBranchFilter,
+  normalizeBranch
+} from '../utils/branchUtils';
 
-export function formatDisplayBranch(story) {
-  if (!story) return 'CSE';
-  const sb = (story.subBranch || '').trim().toUpperCase();
-  if (['AI', 'DS', 'AIML'].includes(sb)) return 'CSE';
-  const norm = normalizeBranch(story.branch);
-  return norm || 'CSE';
-}
+export {
+  BRANCH_FILTER_CATEGORIES,
+  getFilterCategory,
+  formatDisplayBranch,
+  matchesBranchFilter,
+  normalizeBranch
+};
 
 function Story3DCard({ story, index, navigate }) {
   const cardRef = useRef(null);
@@ -252,17 +251,6 @@ function Story3DCard({ story, index, navigate }) {
             </>
           )}
         </div>
-
-        {/* Metric Bar */}
-        <div style={{ maxWidth: '380px', marginTop: '0.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-            <span>4-Year Roadmap & Preparation</span>
-            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Complete</span>
-          </div>
-          <div style={{ height: '5px', width: '100%', backgroundColor: 'var(--bg-tertiary)', borderRadius: '999px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: '100%', backgroundColor: 'var(--text-primary)', borderRadius: '999px' }} />
-          </div>
-        </div>
       </div>
 
       {/* Action button */}
@@ -309,7 +297,7 @@ export default function Stories() {
   const stories = cachedStories || [];
   const normInitialBranch = (initialBranch && initialBranch !== 'ALL') ? normalizeBranch(initialBranch) : 'ALL';
   const [selectedBranches, setSelectedBranchesState] = useState(
-    normInitialBranch === 'ALL' ? ['CSE', 'CE', 'EXTC'] : [normInitialBranch]
+    normInitialBranch === 'ALL' ? BRANCH_FILTER_CATEGORIES : [normInitialBranch]
   );
 
   const setSelectedBranches = (branches) => {
@@ -596,9 +584,8 @@ export default function Stories() {
       if (!inName && !inCompany && !inRole && !inBranch && !inSubBranch && !inResources && !inPrep && !inHowSecured) return false;
     }
 
-    // Branch Match (Unified: AI + DS + CSE = CSE only)
-    const normBranch = formatDisplayBranch(story);
-    const branchMatch = selectedBranches.includes(normBranch) || selectedBranches.includes(story.branch);
+    // Branch Match
+    const branchMatch = matchesBranchFilter(story, selectedBranches);
     if (!branchMatch) return false;
     
     // Year Match
@@ -853,7 +840,7 @@ export default function Stories() {
                 Filters
               </span>
             </div>
-            {((selectedBranches.length < 3) ||
+            {((selectedBranches.length < BRANCH_FILTER_CATEGORIES.length) ||
               (minYear !== 'ALL') ||
               (maxYear !== 'ALL')) && (
               <span style={{
@@ -865,7 +852,7 @@ export default function Stories() {
                 color: 'var(--bg-primary)',
                 letterSpacing: '0.02em'
               }}>
-                {(selectedBranches.length < 3 ? 1 : 0) +
+                {(selectedBranches.length < BRANCH_FILTER_CATEGORIES.length ? 1 : 0) +
                  (minYear !== 'ALL' || maxYear !== 'ALL' ? 1 : 0)} active
               </span>
             )}
@@ -884,7 +871,7 @@ export default function Stories() {
               Branch
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              {['CSE', 'CE', 'EXTC'].map((branch) => {
+              {BRANCH_FILTER_CATEGORIES.map((branch) => {
                 const isChecked = selectedBranches.includes(branch);
                 return (
                   <label
@@ -1003,7 +990,7 @@ export default function Stories() {
           <button 
             type="button"
             onClick={() => {
-              setSelectedBranches(['CSE', 'CE', 'EXTC']);
+              setSelectedBranches(BRANCH_FILTER_CATEGORIES);
               setMinYear('ALL');
               setMaxYear('ALL');
               setInputValue('');
@@ -1148,10 +1135,9 @@ export default function Stories() {
             }}>
               <p style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>No student stories found matching the filter.</p>
               <button onClick={() => {
-                setSelectedBranches(['CSE', 'CE', 'EXTC']);
-                setSelectedSubBranches(['CSE', 'AI', 'DS']);
-                setMinYear(2021);
-                setMaxYear(2026);
+                setSelectedBranches(BRANCH_FILTER_CATEGORIES);
+                setMinYear('ALL');
+                setMaxYear('ALL');
               }} 
                 className="btn btn-secondary"
                 style={{
