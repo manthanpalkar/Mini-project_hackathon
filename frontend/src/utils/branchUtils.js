@@ -1,36 +1,30 @@
 // Shared Branch Utilities for LOOP Placement Portal
 
-// Filter categories in exact specified order: 1. CSE, 2. CE, 3. EXTC, 4. MCA
-export const BRANCH_FILTER_CATEGORIES = ['CSE', 'CE', 'EXTC', 'MCA'];
+// Filter categories in exact specified order: 1. CSE, 2. CE, 3. EXTC
+export const BRANCH_FILTER_CATEGORIES = ['CSE', 'CE', 'EXTC'];
 
 /**
  * Maps a story to its high-level sidebar filter category:
  * - CSE: CSE, CSE-DS, CSE-AIML, AI, DS, and IT
- * - CE: CE / COMPS
+ * - CE: CE, COMPS, and MCA
  * - EXTC: EXTC
- * - MCA: MCA (Separate filter category; never under CE)
  */
 export function getFilterCategory(story) {
   if (!story) return 'CSE';
   const b = (story.branch || '').trim().toUpperCase();
   const sb = (story.subBranch || '').trim().toUpperCase();
 
-  // 1. MCA candidates must appear only under the MCA filter, never under CE
-  if (b === 'MCA' || sb === 'MCA') {
-    return 'MCA';
-  }
-
-  // 2. CE / COMPS
-  if (b === 'CE' || b.includes('COMPUTER ENGINEERING') || b.includes('COMPS')) {
+  // 1. CE / COMPS / MCA (MCA maps to CE)
+  if (b === 'CE' || b.includes('COMPUTER ENGINEERING') || b.includes('COMPS') || b === 'MCA' || sb === 'MCA') {
     return 'CE';
   }
 
-  // 3. EXTC / Electronics
+  // 2. EXTC / Electronics
   if (b === 'EXTC' || b.includes('ELECTRONICS') || b.includes('TELECOMMUNICATION') || b.includes('ETRX')) {
     return 'EXTC';
   }
 
-  // 4. IT, CSE-DS, CSE-AIML, AI, DS, and pure CSE all map to 'CSE' filter category
+  // 3. IT, CSE-DS, CSE-AIML, AI, DS, and pure CSE all map to 'CSE' filter category
   if (b === 'IT' || b.includes('INFORMATION TECHNOLOGY')) {
     return 'CSE';
   }
@@ -52,7 +46,7 @@ export function getFilterCategory(story) {
 }
 
 /**
- * Returns the precise display badge for story cards and story detail pages:
+ * Returns the display badge for story cards and story detail pages:
  * Stored Branch               Display Badge
  * CSE                         CSE
  * CSE-DS / DS                 CSE (DS)
@@ -60,16 +54,16 @@ export function getFilterCategory(story) {
  * IT                          IT
  * CE                          CE
  * EXTC                        EXTC
- * MCA                         MCA
+ * MCA                         CE
  */
 export function formatDisplayBranch(story) {
   if (!story) return 'CSE';
   const b = (story.branch || '').trim().toUpperCase();
   const sb = (story.subBranch || '').trim().toUpperCase();
 
-  // MCA
+  // MCA -> CE
   if (b === 'MCA' || sb === 'MCA') {
-    return 'MCA';
+    return 'CE';
   }
 
   // IT

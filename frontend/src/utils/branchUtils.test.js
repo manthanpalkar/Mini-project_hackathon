@@ -10,13 +10,12 @@ import {
   normalizeBranch
 } from './branchUtils.js';
 
-test('Branch Filter Categories: Exact order is [CSE, CE, EXTC, MCA]', () => {
-  assert.deepEqual(BRANCH_FILTER_CATEGORIES, ['CSE', 'CE', 'EXTC', 'MCA']);
-  assert.equal(BRANCH_FILTER_CATEGORIES.length, 4);
+test('Branch Filter Categories: Exact order is [CSE, CE, EXTC]', () => {
+  assert.deepEqual(BRANCH_FILTER_CATEGORIES, ['CSE', 'CE', 'EXTC']);
+  assert.equal(BRANCH_FILTER_CATEGORIES.length, 3);
   assert.equal(BRANCH_FILTER_CATEGORIES[0], 'CSE');
   assert.equal(BRANCH_FILTER_CATEGORIES[1], 'CE');
   assert.equal(BRANCH_FILTER_CATEGORIES[2], 'EXTC');
-  assert.equal(BRANCH_FILTER_CATEGORIES[3], 'MCA');
 });
 
 test('Display Labels: Preserves precise display badges independently of filter category', () => {
@@ -52,9 +51,9 @@ test('Display Labels: Preserves precise display badges independently of filter c
   assert.equal(formatDisplayBranch({ branch: 'EXTC' }), 'EXTC');
   assert.equal(formatDisplayBranch({ branch: 'Electronics and Telecommunication' }), 'EXTC');
 
-  // 7. MCA -> MCA
-  assert.equal(formatDisplayBranch({ branch: 'MCA' }), 'MCA');
-  assert.equal(formatDisplayBranch({ branch: 'MCA', subBranch: 'MCA' }), 'MCA');
+  // 7. MCA -> CE (seamless UI mapping under CE)
+  assert.equal(formatDisplayBranch({ branch: 'MCA' }), 'CE');
+  assert.equal(formatDisplayBranch({ branch: 'MCA', subBranch: 'MCA' }), 'CE');
 });
 
 test('Filter Mapping: Maps branches to correct high-level filter categories', () => {
@@ -65,18 +64,15 @@ test('Filter Mapping: Maps branches to correct high-level filter categories', ()
   assert.equal(getFilterCategory({ branch: 'IT' }), 'CSE', 'IT must be included under CSE filter');
   assert.equal(getFilterCategory({ branch: 'Information Technology' }), 'CSE');
 
-  // CE maps to CE
+  // CE maps to CE (including MCA)
   assert.equal(getFilterCategory({ branch: 'CE' }), 'CE');
   assert.equal(getFilterCategory({ branch: 'COMPS' }), 'CE');
   assert.equal(getFilterCategory({ branch: 'Computer Engineering' }), 'CE');
+  assert.equal(getFilterCategory({ branch: 'MCA' }), 'CE', 'MCA maps under CE filter category');
 
   // EXTC maps to EXTC
   assert.equal(getFilterCategory({ branch: 'EXTC' }), 'EXTC');
   assert.equal(getFilterCategory({ branch: 'Electronics' }), 'EXTC');
-
-  // MCA must appear ONLY under MCA filter, NEVER under CE
-  assert.equal(getFilterCategory({ branch: 'MCA' }), 'MCA');
-  assert.notEqual(getFilterCategory({ branch: 'MCA' }), 'CE');
 });
 
 test('Filter Result Inclusion: matchesBranchFilter behaves correctly', () => {
@@ -101,27 +97,19 @@ test('Filter Result Inclusion: matchesBranchFilter behaves correctly', () => {
   // 2. When only 'CE' is selected:
   const ceFilter = ['CE'];
   assert.equal(matchesBranchFilter(ceStory, ceFilter), true);
-  assert.equal(matchesBranchFilter(mcaStory, ceFilter), false, 'MCA must NEVER match CE filter');
+  assert.equal(matchesBranchFilter(mcaStory, ceFilter), true, 'MCA matches CE filter');
   assert.equal(matchesBranchFilter(cseStory, ceFilter), false);
   assert.equal(matchesBranchFilter(itStory, ceFilter), false);
   assert.equal(matchesBranchFilter(extcStory, ceFilter), false);
 
-  // 3. When only 'MCA' is selected:
-  const mcaFilter = ['MCA'];
-  assert.equal(matchesBranchFilter(mcaStory, mcaFilter), true, 'MCA must match MCA filter');
-  assert.equal(matchesBranchFilter(ceStory, mcaFilter), false);
-  assert.equal(matchesBranchFilter(cseStory, mcaFilter), false);
-  assert.equal(matchesBranchFilter(itStory, mcaFilter), false);
-  assert.equal(matchesBranchFilter(extcStory, mcaFilter), false);
-
-  // 4. When only 'EXTC' is selected:
+  // 3. When only 'EXTC' is selected:
   const extcFilter = ['EXTC'];
   assert.equal(matchesBranchFilter(extcStory, extcFilter), true);
   assert.equal(matchesBranchFilter(cseStory, extcFilter), false);
   assert.equal(matchesBranchFilter(ceStory, extcFilter), false);
   assert.equal(matchesBranchFilter(mcaStory, extcFilter), false);
 
-  // 5. Default all selected:
+  // 4. Default all selected:
   assert.equal(matchesBranchFilter(cseStory, BRANCH_FILTER_CATEGORIES), true);
   assert.equal(matchesBranchFilter(dsStory, BRANCH_FILTER_CATEGORIES), true);
   assert.equal(matchesBranchFilter(aimlStory, BRANCH_FILTER_CATEGORIES), true);
@@ -140,13 +128,11 @@ test('Real Candidate Records: Shubham Karampure & Prashant Tiwari', () => {
   assert.equal(getFilterCategory(shubham), 'CSE');
   assert.equal(matchesBranchFilter(shubham, ['CSE']), true);
   assert.equal(matchesBranchFilter(shubham, ['CE']), false);
-  assert.equal(matchesBranchFilter(shubham, ['MCA']), false);
 
   // Prashant Tiwari
-  assert.equal(formatDisplayBranch(prashant), 'MCA');
-  assert.equal(getFilterCategory(prashant), 'MCA');
-  assert.equal(matchesBranchFilter(prashant, ['MCA']), true);
-  assert.equal(matchesBranchFilter(prashant, ['CE']), false, 'Prashant must NOT appear under CE filter');
+  assert.equal(formatDisplayBranch(prashant), 'CE');
+  assert.equal(getFilterCategory(prashant), 'CE');
+  assert.equal(matchesBranchFilter(prashant, ['CE']), true, 'Prashant appears under CE filter');
   assert.equal(matchesBranchFilter(prashant, ['CSE']), false);
 });
 
@@ -160,24 +146,21 @@ test('Complete Placement Snapshot Verification: 430 Stories', () => {
   let cseCount = 0;
   let ceCount = 0;
   let extcCount = 0;
-  let mcaCount = 0;
 
   for (const s of stories) {
     const cat = getFilterCategory(s);
-    assert.ok(BRANCH_FILTER_CATEGORIES.includes(cat), `Category '${cat}' for story ${s.id} must be in [CSE, CE, EXTC, MCA]`);
+    assert.ok(BRANCH_FILTER_CATEGORIES.includes(cat), `Category '${cat}' for story ${s.id} must be in [CSE, CE, EXTC]`);
     if (cat === 'CSE') cseCount++;
     else if (cat === 'CE') ceCount++;
     else if (cat === 'EXTC') extcCount++;
-    else if (cat === 'MCA') mcaCount++;
 
-    // When all 4 categories are active, every story matches
+    // When all 3 categories are active, every story matches
     assert.equal(matchesBranchFilter(s, BRANCH_FILTER_CATEGORIES), true);
   }
 
   // Ensure total sum equals exactly 430
-  assert.equal(cseCount + ceCount + extcCount + mcaCount, 430);
+  assert.equal(cseCount + ceCount + extcCount, 430);
   assert.ok(cseCount > 0, 'CSE category must have stories');
   assert.ok(ceCount > 0, 'CE category must have stories');
   assert.ok(extcCount > 0, 'EXTC category must have stories');
-  assert.ok(mcaCount > 0, 'MCA category must have stories');
 });

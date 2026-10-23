@@ -2223,7 +2223,6 @@ export default function StoryDetail() {
                     <option value="CSE">CSE</option>
                     <option value="CE">CE</option>
                     <option value="EXTC">EXTC</option>
-                    <option value="MCA">MCA</option>
                   </select>
                 </div>
               </div>
