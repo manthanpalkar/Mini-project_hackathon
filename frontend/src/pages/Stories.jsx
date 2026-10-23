@@ -115,12 +115,12 @@ function Story3DCard({ story, index, navigate }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
-        padding: '1.75rem 2rem',
+        padding: '1.25rem 1.65rem',
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        minHeight: '140px',
+        minHeight: 'auto',
         position: 'relative',
         border: '1px solid var(--border-color)',
         borderRadius: '24px',
@@ -128,7 +128,8 @@ function Story3DCard({ story, index, navigate }) {
         boxShadow: tilt.active
           ? '0 24px 50px -10px rgba(0, 0, 0, 0.35), 0 0 1px 1px rgba(255, 255, 255, 0.15) inset'
           : 'var(--card-shadow)',
-        gap: '2rem',
+        columnGap: '1.5rem',
+        rowGap: '0.65rem',
         flexWrap: 'wrap',
         cursor: 'pointer',
         transform: transformStyle,
@@ -233,7 +234,7 @@ function Story3DCard({ story, index, navigate }) {
         </h2>
 
         {/* Role & Company */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
           <Briefcase size={14} style={{ color: 'var(--text-secondary)' }} />
           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
             {story.role}
@@ -254,12 +255,13 @@ function Story3DCard({ story, index, navigate }) {
       </div>
 
       {/* Action button */}
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.2rem' }}>
         <span style={{
-          fontSize: '0.84rem',
+          fontSize: '0.78rem',
           fontWeight: 700,
           color: 'var(--text-primary)',
           letterSpacing: '-0.01em',
+          lineHeight: 1.15,
           whiteSpace: 'nowrap'
         }}>
           Placement Preparation Journey
@@ -273,17 +275,17 @@ function Story3DCard({ story, index, navigate }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.4rem',
+            gap: '0.45rem',
+            padding: '0.65rem 1.35rem',
             borderRadius: '999px',
             border: '1px solid var(--border-color)',
-            fontSize: '0.88rem',
+            fontSize: '0.86rem',
             fontWeight: 700,
-            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+            boxShadow: '0 3px 12px rgba(0, 0, 0, 0.18)'
           }}
         >
           <span>Read Journey</span>
-          <ArrowRight size={16} />
+          <ArrowRight size={15} />
         </button>
       </div>
     </div>
