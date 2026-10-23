@@ -1333,6 +1333,33 @@ export default function Resources() {
         </div>
       )}
 
+      {/* FOLDER LOADING SKELETON */}
+      {currentFolderId && searchQuery.trim() === '' && !currentFolder && loading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '2rem 0' }}>
+          <div style={{ height: '100px', borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)', opacity: 0.6 }} />
+          <div style={{ height: '240px', borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)', opacity: 0.6 }} />
+        </div>
+      )}
+
+      {/* FOLDER NOT FOUND STATE */}
+      {currentFolderId && searchQuery.trim() === '' && !currentFolder && !loading && (
+        <div className="glass-panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', borderRadius: '18px', margin: '2rem 0' }}>
+          <Folder size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>Folder Not Found</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            The requested folder could not be found or has been removed.
+          </p>
+          <button
+            type="button"
+            onClick={() => setCurrentFolderId(null)}
+            className="btn btn-primary"
+            style={{ padding: '0.65rem 1.4rem', borderRadius: '12px' }}
+          >
+            Return to All Resources
+          </button>
+        </div>
+      )}
+
       {/* 100MB STREAMING FILE UPLOAD MODAL */}
       {isUploadModalOpen && createPortal(
         <div 

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
-  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw
+  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw, ExternalLink
 } from 'lucide-react';
 import { getStories, addPendingStory, fileToBase64 } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
@@ -95,11 +95,11 @@ function Story3DCard({ story, index, navigate }) {
   };
 
   const formattedDate = formatStoryDate(story.createdAt || story.date);
-  const isRecent = (() => {
+  const isRecent = useMemo(() => {
     if (!story.createdAt && !story.date) return false;
     const time = new Date(story.createdAt || story.date).getTime();
     return Date.now() - time < 14 * 24 * 60 * 60 * 1000;
-  })();
+  }, [story.createdAt, story.date]);
 
   const transformStyle = isVisible
     ? tilt.active
@@ -303,7 +303,13 @@ export default function Stories() {
   const initialBranch = paramBranch || location.state?.initialBranch || 'ALL';
 
   const userSession = localStorage.getItem('loop_current_user');
-  const currentUser = userSession ? JSON.parse(userSession) : null;
+  const currentUser = (() => {
+    try {
+      return userSession ? JSON.parse(userSession) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
 
   const { data: cachedStories, loading, mutate } = useCachedData('stories', getStories);
   const stories = cachedStories || [];

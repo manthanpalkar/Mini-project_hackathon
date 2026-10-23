@@ -4,21 +4,46 @@ import { ExternalLink } from 'lucide-react';
 import Navbar from './components/Navbar';
 import { UploadProvider } from './context/UploadContext';
 import UploadDock from './components/UploadDock';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Resilient code-splitting with automatic reload on stale chunk deployment
+function lazyWithRetry(componentImport) {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      const isChunkError = 
+        error?.name === 'ChunkLoadError' || 
+        error?.message?.includes('dynamically imported module') ||
+        error?.message?.includes('Failed to fetch');
+      
+      const retryKey = 'loop_chunk_retry_' + window.location.pathname;
+      const alreadyRetried = sessionStorage.getItem(retryKey);
+
+      if (isChunkError && !alreadyRetried) {
+        sessionStorage.setItem(retryKey, 'true');
+        window.location.reload();
+        return new Promise(() => {}); // Wait for reload
+      }
+      throw error;
+    }
+  });
+}
 
 // Route-level code-splitting with React.lazy for instant initial page loads
-const Login = lazy(() => import('./pages/Login'));
-const Landing = lazy(() => import('./pages/Landing'));
-const Stories = lazy(() => import('./pages/Stories'));
-const StoryDetail = lazy(() => import('./pages/StoryDetail'));
-const Resources = lazy(() => import('./pages/Resources'));
-const Achievements = lazy(() => import('./pages/Achievements'));
-const AchievementDetail = lazy(() => import('./pages/AchievementDetail'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
-const FilePreviewPage = lazy(() => import('./pages/FilePreviewPage'));
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
-const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Login = lazyWithRetry(() => import('./pages/Login'));
+const Landing = lazyWithRetry(() => import('./pages/Landing'));
+const Stories = lazyWithRetry(() => import('./pages/Stories'));
+const StoryDetail = lazyWithRetry(() => import('./pages/StoryDetail'));
+const Resources = lazyWithRetry(() => import('./pages/Resources'));
+const Achievements = lazyWithRetry(() => import('./pages/Achievements'));
+const AchievementDetail = lazyWithRetry(() => import('./pages/AchievementDetail'));
+const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard'));
+const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'));
+const FilePreviewPage = lazyWithRetry(() => import('./pages/FilePreviewPage'));
+const PrivacyPolicy = lazyWithRetry(() => import('./pages/PrivacyPolicy'));
+const TermsOfUse = lazyWithRetry(() => import('./pages/TermsOfUse'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
 
 // Lightweight Apple-style Route Loading Fallback
 function RouteLoadingFallback() {
@@ -299,29 +324,40 @@ function AppLayout() {
 }
 
 function SplashIntro() {
-  const [visible, setVisible] = React.useState(true);
+  const [visible, setVisible] = React.useState(() => {
+    // Only show splash once per browser session to prevent blocking page refreshes
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      return !sessionStorage.getItem('loop_splash_shown');
+    }
+    return true;
+  });
   const [fading, setFading] = React.useState(false);
 
   React.useEffect(() => {
+    if (!visible) return;
+    try {
+      sessionStorage.setItem('loop_splash_shown', 'true');
+    } catch (e) {}
+
     // Hide scrollbar on mount to avoid the right white line (scrollbar gutter) during splash animation
     document.body.style.overflow = 'hidden';
 
     const fadeTimer = setTimeout(() => {
       setFading(true);
-    }, 2000);
+    }, 1800);
 
     const removeTimer = setTimeout(() => {
       setVisible(false);
       // Restore scrollbar once splash is fully removed
       document.body.style.overflow = '';
-    }, 3000);
+    }, 2500);
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
       document.body.style.overflow = '';
     };
-  }, []);
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -335,10 +371,12 @@ function SplashIntro() {
 export default function App() {
   return (
     <Router>
-      <UploadProvider>
-        <SplashIntro />
-        <AppLayout />
-      </UploadProvider>
+      <ErrorBoundary>
+        <UploadProvider>
+          <SplashIntro />
+          <AppLayout />
+        </UploadProvider>
+      </ErrorBoundary>
     </Router>
   );
 }

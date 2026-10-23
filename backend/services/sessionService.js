@@ -82,8 +82,18 @@ async function isSessionActive(sessionId, email) {
   }
 
   if (mongoose.connection && mongoose.connection.readyState === 1) {
-    const session = await UserSession.findOne({ sessionId, revoked: false }).lean().catch(() => null);
+    let session = null;
+    try {
+      session = await UserSession.findOne({ sessionId, revoked: false }).lean();
+    } catch (dbErr) {
+      console.warn('[SESSION_SERVICE_WARN] UserSession query error:', dbErr.message);
+      // Transient database error or connection reconnect: DO NOT revoke the session!
+      // Fail open for cryptographically verified JWT tokens during transient DB hiccups.
+      return true;
+    }
+
     if (!session) {
+      // Document genuinely does not exist in DB or was explicitly revoked
       revokedSessionsCache.add(sessionId);
       return false;
     }

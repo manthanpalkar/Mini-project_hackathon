@@ -516,7 +516,13 @@ export default function StoryDetail() {
 
   // Auth and Ownership
   const userSession = localStorage.getItem('loop_current_user');
-  const currentUser = userSession ? JSON.parse(userSession) : null;
+  const currentUser = (() => {
+    try {
+      return userSession ? JSON.parse(userSession) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
   const isAdmin = currentUser?.isAdmin;
   const isOwner = currentUser && story && (
     currentUser.email.split('@')[0].replace(/\./g, ' ').toLowerCase() === story.name.toLowerCase() ||

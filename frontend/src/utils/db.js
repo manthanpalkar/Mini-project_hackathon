@@ -106,8 +106,20 @@ const authFetch = async (url, options = {}) => {
 
   if (res.status === 401) {
     if (!window.location.pathname.includes('/login')) {
-      notifyAuthExpired();
-      throw new Error('Session expired. Please login again.');
+      try {
+        const clone = res.clone();
+        const errPayload = await clone.json().catch(() => null);
+        const code = errPayload?.code;
+        // Only invalidate if the backend explicitly confirmed token expiration or session revocation
+        if (!code || code === 'TOKEN_EXPIRED' || code === 'SESSION_REVOKED' || code === 'TOKEN_MISSING' || code === 'INVALID_TOKEN' || code === 'USER_NOT_FOUND') {
+          notifyAuthExpired();
+          throw new Error('Session expired. Please login again.');
+        }
+      } catch (checkErr) {
+        if (checkErr.message?.includes('Session expired')) throw checkErr;
+        notifyAuthExpired();
+        throw new Error('Session expired. Please login again.');
+      }
     }
   }
   return res;
@@ -599,6 +611,39 @@ export const loginUser = async (email, password) => {
     throw new Error(errData.error || 'Failed to authenticate');
   }
   return res.json();
+};
+
+export const loginDemoUser = async (role = 'student') => {
+  const targetRole = role === 'admin' ? 'admin' : 'student';
+  try {
+    const res = await fetch(`${API_URL}/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: targetRole })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    // If endpoint is not found on older deployments, fall back to standard credential login
+    if (res.status === 404) {
+      const demoEmail = targetRole === 'admin' ? 'admin@spit.ac.in' : 'student@spit.ac.in';
+      const demoPass = targetRole === 'admin' ? 'admin123' : 'student123';
+      return await loginUser(demoEmail, demoPass);
+    }
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || 'Demo login failed');
+  } catch (err) {
+    if (err.message && err.message !== 'Demo login failed' && !err.message.includes('fetch') && !err.message.includes('network')) {
+      throw err;
+    }
+    try {
+      const demoEmail = targetRole === 'admin' ? 'admin@spit.ac.in' : 'student@spit.ac.in';
+      const demoPass = targetRole === 'admin' ? 'admin123' : 'student123';
+      return await loginUser(demoEmail, demoPass);
+    } catch {
+      throw err;
+    }
+  }
 };
 
 export const verifyGoogleAuth = async (idToken) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
-import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
+import { loginUser, loginDemoUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -308,22 +308,20 @@ export default function Login() {
     }, 500);
   };
 
-  const handleQuickLogin = async (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
+  const handleDemoLogin = async (role) => {
     setError('');
     setSuccessMsg('');
     setLoading(true);
     triggerCharacterState('LOGIN_SUBMITTED');
 
     try {
-      const userData = await loginUser(demoEmail, demoPassword);
+      const userData = await loginDemoUser(role);
       handleLoginSuccess(userData);
     } catch (err) {
       if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
         setError('Network or server connection error. Please try again.');
       } else {
-        setError(err.message || 'Invalid username/email or password. Please try again.');
+        setError(err.message || 'Demo authentication failed.');
       }
       triggerCharacterState('IDLE');
     } finally {
@@ -1445,17 +1443,38 @@ export default function Login() {
                 </button>
               </form>
 
-              {/* 1-Click Demo Logins (Accessible via ?demo=true) */}
-              {searchParams.get('demo') === 'true' && (
+              {/* 1-Click Demo Logins (Student & Admin) */}
+              <div style={{
+                marginTop: '1.25rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}>
                 <div style={{
-                  marginTop: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--text-tertiary)'
+                }}>
+                  <span>⚡</span>
+                  <span>One-Click Demo Login</span>
+                </div>
+
+                <div style={{
                   display: 'flex',
                   gap: '0.65rem'
                 }}>
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() => handleQuickLogin('student@spit.ac.in', 'student123')}
+                    onClick={() => handleDemoLogin('student')}
                     style={{
                       flex: 1,
                       height: '42px',
@@ -1463,14 +1482,22 @@ export default function Login() {
                       border: '1px solid var(--border-color)',
                       backgroundColor: 'var(--bg-tertiary)',
                       color: 'var(--text-primary)',
-                      fontSize: '0.82rem',
+                      fontSize: '0.84rem',
                       fontWeight: 600,
                       cursor: loading ? 'wait' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.35rem',
+                      gap: '0.4rem',
                       transition: 'all 0.18s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent-color)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
                     <span>🎓</span> {loading ? '...' : 'Student Demo'}
@@ -1478,7 +1505,7 @@ export default function Login() {
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() => handleQuickLogin('admin@spit.ac.in', 'admin123')}
+                    onClick={() => handleDemoLogin('admin')}
                     style={{
                       flex: 1,
                       height: '42px',
@@ -1486,20 +1513,28 @@ export default function Login() {
                       border: '1px solid var(--border-color)',
                       backgroundColor: 'var(--bg-tertiary)',
                       color: 'var(--text-primary)',
-                      fontSize: '0.82rem',
+                      fontSize: '0.84rem',
                       fontWeight: 600,
                       cursor: loading ? 'wait' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.35rem',
+                      gap: '0.4rem',
                       transition: 'all 0.18s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent-color)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
                     <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
                   </button>
                 </div>
-              )}
+              </div>
 
             </>
           )}

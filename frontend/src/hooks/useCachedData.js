@@ -63,7 +63,9 @@ const pruneCacheIfNeeded = () => {
 export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_CACHE_TTL_MS) => {
   // Stabilize fetcher reference to prevent infinite re-fetching loops from inline functions
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  });
 
   // Initialize state with in-memory or sessionStorage cached value
   const [data, setData] = useState(() => {

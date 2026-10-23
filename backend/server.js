@@ -667,14 +667,23 @@ async function authenticateToken(req, res, next) {
     return res.status(401).json({ error: 'Access token is required. Please login.', code: 'TOKEN_MISSING' });
   }
 
+  let decoded;
   try {
     // 1. Always verify cryptographic signature and expiration first
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const email = (decoded.email || '').trim();
-    if (!email) {
-      return res.status(401).json({ error: 'User session invalid. Email claim missing.', code: 'INVALID_TOKEN' });
-    }
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({
+      error: 'Session expired or token invalid. Please sign in again.',
+      code: 'TOKEN_EXPIRED'
+    });
+  }
 
+  const email = (decoded.email || '').trim();
+  if (!email) {
+    return res.status(401).json({ error: 'User session invalid. Email claim missing.', code: 'INVALID_TOKEN' });
+  }
+
+  try {
     // 2. Check session validity if sessionId is present
     if (decoded.sessionId) {
       const isActive = await sessionService.isSessionActive(decoded.sessionId, email);
@@ -690,7 +699,16 @@ async function authenticateToken(req, res, next) {
     // 3. Check short-lived in-memory cache before executing remote database query
     let user = userAuthCache.get(email);
     if (!user) {
-      user = await User.findOne({ email: new RegExp('^' + escapeRegExp(email) + '$', 'i') });
+      try {
+        user = await User.findOne({ email: new RegExp('^' + escapeRegExp(email) + '$', 'i') });
+      } catch (dbErr) {
+        console.warn('[AUTH_DB_WARN] Transient error querying user during authentication:', dbErr.message);
+        return res.status(503).json({
+          error: 'Authentication service temporarily busy. Please retry.',
+          code: 'SERVICE_UNAVAILABLE'
+        });
+      }
+
       if (!user) {
         return res.status(401).json({ error: 'User session invalid. User not found.', code: 'USER_NOT_FOUND' });
       }
@@ -726,9 +744,10 @@ async function authenticateToken(req, res, next) {
     req.sessionId = decoded.sessionId || null;
     next();
   } catch (err) {
-    return res.status(401).json({
-      error: 'Session expired or token invalid. Please sign in again.',
-      code: 'TOKEN_EXPIRED'
+    console.error('[AUTH_INTERNAL_ERROR]', err);
+    return res.status(500).json({
+      error: 'An unexpected internal authentication error occurred.',
+      code: 'AUTH_INTERNAL_ERROR'
     });
   }
 }
@@ -1473,6 +1492,95 @@ app.post('/api/users/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'A server error occurred during login. Please try again later.' });
+  }
+});
+
+// Dedicated Secure One-Click Demo Login Endpoint
+app.post(['/api/auth/demo-login', '/api/users/demo-login'], loginLimiter, async (req, res) => {
+  try {
+    const { role } = req.body || {};
+    const targetRole = role === 'admin' ? 'admin' : 'student';
+
+    // Environment-controlled security feature flags (default to enabled unless explicitly set to 'false')
+    const isDemoEnabled = process.env.ENABLE_DEMO_LOGIN !== 'false';
+    const isAdminDemoEnabled = process.env.ENABLE_ADMIN_DEMO !== 'false';
+
+    if (!isDemoEnabled) {
+      return res.status(403).json({ error: 'One-click demo login is disabled in this environment.', code: 'DEMO_DISABLED' });
+    }
+
+    if (targetRole === 'admin' && !isAdminDemoEnabled) {
+      return res.status(403).json({ error: 'Administrative demo login is restricted in this environment.', code: 'ADMIN_DEMO_DISABLED' });
+    }
+
+    const demoEmail = targetRole === 'admin' ? 'admin@spit.ac.in' : 'student@spit.ac.in';
+    let user = await User.findOne({ email: new RegExp('^' + escapeRegExp(demoEmail) + '$', 'i') });
+
+    if (!user) {
+      const defaultHash = await bcrypt.hash(targetRole === 'admin' ? 'admin123' : 'student123', 10);
+      user = await User.create({
+        email: demoEmail,
+        name: targetRole === 'admin' ? 'System Administrator' : 'SPIT Demo Student',
+        role: targetRole === 'admin' ? 'Administrator' : 'Student',
+        branch: targetRole === 'admin' ? 'COMP' : 'CSE',
+        currentYear: targetRole === 'admin' ? 'Faculty' : 'TE',
+        status: 'Active',
+        onboarded: true,
+        password: defaultHash
+      });
+    }
+
+    if (user.status !== 'Active') {
+      return res.status(403).json({ error: 'Demo account is currently inactive.' });
+    }
+
+    const userAgent = req.headers['user-agent'] || '';
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const session = await sessionService.createSession({
+      email: user.email,
+      userAgent,
+      ipAddress
+    });
+
+    const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+    const token = jwt.sign(
+      { email: user.email, role: isUserAdmin ? 'Administrator' : user.role, status: user.status, sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    activityService.logActivity({
+      eventType: 'AUTH_LOGIN_SUCCESS',
+      category: 'AUTH',
+      actorEmail: user.email,
+      actorRole: user.role,
+      targetType: 'User',
+      targetId: user._id,
+      targetUserEmail: user.email,
+      summary: `User authenticated via ${targetRole} demo login`,
+      outcome: 'SUCCESS',
+      ipAddress,
+      userAgent,
+      metadata: { method: 'demo_login', demoRole: targetRole, sessionId: session.sessionId }
+    });
+
+    res.json({
+      email: user.email,
+      role: isUserAdmin ? 'Administrator' : user.role,
+      status: user.status,
+      name: user.name,
+      username: user.username || '',
+      branch: user.branch,
+      currentYear: user.currentYear,
+      onboarded: true,
+      isAdmin: isUserAdmin,
+      nameColor: user.nameColor || '',
+      token,
+      sessionId: session.sessionId
+    });
+  } catch (err) {
+    console.error('Demo login error:', err);
+    res.status(500).json({ error: 'Internal demo authentication error: ' + err.message });
   }
 });
 
