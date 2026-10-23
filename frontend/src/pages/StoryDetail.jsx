@@ -174,10 +174,10 @@ function parseHowSecuredStages(howSecuredText) {
       headerText = headerText.replace(badgeMatch[0], '').trim();
     }
 
-    const dateMatch = headerText.match(/[-–—]\s*([0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?)|Date\s*:\s*([^\n]+)|\(([^)]*(?:2024|2025|2026)[^)]*\)/i);
+    const dateMatch = headerText.match(/(?:[–—\-]\s*([0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?)|Date\s*:\s*([^\n]+)|\(([^\)]*(?:2024|2025|2026)[^\)]*)\))/i);
     if (dateMatch) {
       date = (dateMatch[1] || dateMatch[2] || dateMatch[3]).trim();
-      headerText = headerText.replace(/[-–—]\s*[0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?|Date\s*:\s*[^\n]+|\([^)]*(?:2024|2025|2026)[^)]*\)/i, '').trim();
+      headerText = headerText.replace(/(?:[–—\-]\s*[0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?|Date\s*:\s*[^\n]+|\([^\)]*(?:2024|2025|2026)[^\)]*\))/i, '').trim();
     }
 
     headerText = headerText.replace(/^(?:(?:Round|Stage|Step)\s*\d+[:\-–—\s]*|[0-9]+[\.\)]\s*)/i, '').replace(/^[\[\(]|[\]\)]$/g, '').trim();
