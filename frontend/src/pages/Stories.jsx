@@ -323,7 +323,6 @@ export default function Stories() {
 
   const [minYear, setMinYear] = useState('ALL');
   const [maxYear, setMaxYear] = useState('ALL');
-  const [maxCGPA, setMaxCGPA] = useState(10.0);
   
   // Only show passout years for which real placement story data actually exists
   const availableYears = useMemo(() => {
@@ -608,11 +607,6 @@ export default function Stories() {
     const yearMatch = minMatch && maxMatch;
     if (!yearMatch) return false;
     
-    // CGPA Match (Opposite: filters up to selected maxCGPA, e.g. 4.0 to 9.0)
-    const cgpaVal = parseFloat(story.cgpa);
-    const cgpaMatch = (!isNaN(cgpaVal)) ? (cgpaVal >= 4.0 && cgpaVal <= maxCGPA) : true;
-    if (!cgpaMatch) return false;
-    
     return true;
   });
 
@@ -860,8 +854,7 @@ export default function Stories() {
             </div>
             {((selectedBranches.length < 3) ||
               (minYear !== 'ALL') ||
-              (maxYear !== 'ALL') ||
-              (maxCGPA < 10.0)) && (
+              (maxYear !== 'ALL')) && (
               <span style={{
                 fontSize: '0.68rem',
                 fontWeight: 700,
@@ -872,8 +865,7 @@ export default function Stories() {
                 letterSpacing: '0.02em'
               }}>
                 {(selectedBranches.length < 3 ? 1 : 0) +
-                 (minYear !== 'ALL' || maxYear !== 'ALL' ? 1 : 0) +
-                 (maxCGPA < 10.0 ? 1 : 0)} active
+                 (minYear !== 'ALL' || maxYear !== 'ALL' ? 1 : 0)} active
               </span>
             )}
           </div>
@@ -1006,54 +998,6 @@ export default function Stories() {
             </div>
           </div>
 
-          {/* CGPA Threshold */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <span style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em'
-              }}>
-                CGPA Range
-              </span>
-              <span style={{
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                fontVariantNumeric: 'tabular-nums'
-              }}>
-                4.0 – {maxCGPA.toFixed(1)}
-              </span>
-            </div>
-            <input 
-              type="range" 
-              min="4.0" 
-              max="10.0" 
-              step="0.5" 
-              value={maxCGPA} 
-              onChange={(e) => setMaxCGPA(parseFloat(e.target.value))}
-              className="filter-range-slider"
-              style={{
-                background: `linear-gradient(to right, var(--text-primary) 0%, var(--text-primary) ${Math.max(0, Math.min(100, ((maxCGPA - 4.0) / 6.0) * 100))}%, var(--bg-tertiary) ${Math.max(0, Math.min(100, ((maxCGPA - 4.0) / 6.0) * 100))}%, var(--bg-tertiary) 100%)`
-              }}
-            />
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: '0.68rem',
-              fontWeight: 600,
-              color: 'var(--text-muted)',
-              marginTop: '0.2rem',
-              padding: '0 2px'
-            }}>
-              <span>4.0</span>
-              <span>7.0</span>
-              <span>10.0</span>
-            </div>
-          </div>
-
           {/* Reset Filters */}
           <button 
             type="button"
@@ -1061,7 +1005,6 @@ export default function Stories() {
               setSelectedBranches(['CSE', 'CE', 'EXTC']);
               setMinYear('ALL');
               setMaxYear('ALL');
-              setMaxCGPA(10.0);
               setInputValue('');
               setSearchQuery('');
             }}
