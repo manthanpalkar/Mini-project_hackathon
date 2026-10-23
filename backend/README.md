@@ -3,7 +3,7 @@
 [![Node](https://img.shields.io/badge/Node.js-Express_4.19-green?logo=node.js&style=flat-square)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cloud_Cache-red?logo=redis&style=flat-square)](https://redis.io/)
-[![Tests](https://img.shields.io/badge/Automated_Tests-219_Passed_(26_Suites)-success?style=flat-square)](tests/)
+[![Tests](https://img.shields.io/badge/Automated_Tests-220_Passed_(26_Suites)-success?style=flat-square)](tests/)
 [![Deployment](https://img.shields.io/badge/Deployed-Render-46E3B7?logo=render&style=flat-square)](https://loop-qnh9.onrender.com/)
 
 The **LOOP Backend Engine** is an institutional REST API service built with Node.js and Express for **Sardar Patel Institute of Technology (SPIT), Mumbai**. It provides authenticated access to placement experiences, high-speed binary streaming of academic files up to 200 MB via MongoDB GridFS, distributed caching with Redis, and automated moderation pipelines.
@@ -60,7 +60,7 @@ backend/
 │   ├── cacheService.js     # Redis distributed cache with single-flight stampede defense
 │   ├── googleAuth.js       # Institutional Google OAuth 2.0 token verifier
 │   └── storageService.js   # GridFS streaming, chunk assembly & upload validation
-├── tests/                  # 219 Automated Node.js native test suites (26 suites)
+├── tests/                  # 220 Automated Node.js native test suites (26 suites)
 │   ├── activityLogs.test.js
 │   ├── cacheService.test.js
 │   ├── demoLoginAndSessionHardening.test.js # Demo auth & session cold-start tests
@@ -149,7 +149,7 @@ npm run dev
 ```
 
 ### Automated Verification Test Suite
-Execute the full native Node.js test harness (219 tests across 26 suites):
+Execute the full native Node.js test harness (220 tests across 26 suites):
 ```bash
 npm test
 ```

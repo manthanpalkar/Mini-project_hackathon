@@ -5,7 +5,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cloud_Cache-red?logo=redis&style=flat-square)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-MongoDB_7.0_Staging-2496ED?logo=docker&style=flat-square)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Automated_Tests-219_Passed_(26_Suites)-success?style=flat-square)](backend/tests/)
+[![Tests](https://img.shields.io/badge/Automated_Tests-220_Passed_(26_Suites)-success?style=flat-square)](backend/tests/)
 [![Vite](https://img.shields.io/badge/Bundler-Vite_8-646CFF?logo=vite&style=flat-square)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
@@ -38,7 +38,7 @@
    - [Branch Categorization & Sovereign Presentation Architecture](#branch-categorization--sovereign-presentation-architecture)
 8. [Environment Variables & Configuration Reference](#environment-variables--configuration-reference)
 9. [Codebase Directory Structure](#codebase-directory-structure)
-10. [Automated Verification & Test Harness (219 Tests)](#automated-verification--test-harness-219-tests)
+10. [Automated Verification & Test Harness (220 Tests)](#automated-verification--test-harness-220-tests)
 11. [Local Development & Setup](#local-development--setup)
 12. [Security, Access Control & Integrity Policies](#security-access-control--integrity-policies)
 13. [License & Acknowledgments](#license--acknowledgments)
@@ -676,18 +676,34 @@ loop/
 
 ---
 
-## Automated Verification & Test Harness (219 Tests)
+## Automated Verification & Test Harness (220 Tests)
 
-LOOP features an automated test harness executed with Node's native test runner (`node --test`), covering unit models, authentication edge cases, GridFS chunk fencing, one-click demo logins, session cold-start resilience, and HTTP route authorization:
+LOOP features an automated test harness executed with Node's native test runner (`node --test`), covering unit models, authentication edge cases, GridFS chunk fencing, one-click demo logins, session cold-start resilience, Redis compression, and HTTP route authorization:
 
 ```bash
 cd backend
 npm test
 ```
 
-### Complete Test Results: 219 Passed Across 26 Suites (0 Failures)
+### Complete Test Results: 220 Passed Across 26 Suites (0 Failures)
 
 ```text
+▶ Redis Cache Service & Resilient Fallback
+  ✔ Fallback Mode: Transparently queries fallback fetcher when Redis is disabled/offline
+  ✔ Cache Hit: Serves data directly from Redis when key exists
+  ✔ Cache Miss & Populate: Fetches from DB and populates Redis with correct TTL
+  ✔ Single-Flight / Stampede Prevention: Coalesces concurrent misses into single DB query
+  ✔ Malformed Cache Data Recovery: Purges corrupt entry and recovers from DB
+  ✔ Redis Client Failure Resiliency: Does not throw when Redis get/set fails
+  ✔ Domain Invalidation: invalidateStories removes list and detail keys
+  ✔ Domain Invalidation: invalidateResources, invalidateAchievements, and invalidateFolders work accurately
+  ✔ Configured Default TTLs are positive integers
+  ✔ Disconnection and Reconnection Lifecycle: Degrades gracefully on disconnect and recovers when reconnected
+  ✔ Cache Isolation: Keys for admin-only views never collide with public views
+  ✔ Single-Flight Error Resilience: Cleans in-flight promise on error so subsequent requests can retry
+  ✔ Payload Compression: Compresses large JSON payloads (>1KB) and restores them transparently
+✔ Redis Cache Service & Resilient Fallback
+
 ▶ One-Click Demo Authentication & Session Resilience Test Suite
   ✔ POST /api/auth/demo-login returns authenticated student session
   ✔ POST /api/auth/demo-login returns authenticated admin session
@@ -732,13 +748,13 @@ npm test
   ✔ HTTP Integration & File Streaming Authorization Tests
 ✔ MongoDB GridFS Storage Service & Upload Validation
 
-ℹ tests 219
+ℹ tests 220
 ℹ suites 26
-ℹ pass 219
+ℹ pass 220
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
-ℹ duration_ms 2787.03
+ℹ duration_ms 2855.95
 ```
 
 ---

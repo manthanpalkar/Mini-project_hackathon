@@ -11,20 +11,50 @@
  */
 
 const { createClient } = require('redis');
+const zlib = require('zlib');
 
 // Configuration from environment variables
 const isTestRunner = process.env.NODE_ENV === 'test' || process.execArgv.some(a => a.startsWith('--test'));
 const REDIS_URL = process.env.REDIS_URL || '';
 const REDIS_ENABLED = !isTestRunner && process.env.REDIS_ENABLED !== 'false' && Boolean(REDIS_URL);
 
+// High-speed compression settings to squeeze 5x more data into Redis RAM
+const COMPRESSION_THRESHOLD = 1024; // Compress payloads > 1 KB
+const GZIP_PREFIX = '__gz:';
+
+function compressPayload(str) {
+  if (typeof str !== 'string' || str.length < COMPRESSION_THRESHOLD) {
+    return str;
+  }
+  try {
+    const compressed = zlib.gzipSync(Buffer.from(str, 'utf-8'), { level: 6 });
+    return GZIP_PREFIX + compressed.toString('base64');
+  } catch (e) {
+    return str; // Fallback to raw string if compression error
+  }
+}
+
+function decompressPayload(raw) {
+  if (typeof raw !== 'string') return raw;
+  if (raw.startsWith(GZIP_PREFIX)) {
+    try {
+      const buf = Buffer.from(raw.slice(GZIP_PREFIX.length), 'base64');
+      return zlib.gunzipSync(buf).toString('utf-8');
+    } catch (e) {
+      throw new Error(`Failed to decompress cached payload: ${e.message}`);
+    }
+  }
+  return raw;
+}
+
 const DEFAULT_TTLS = {
-  stories: parseInt(process.env.REDIS_TTL_STORIES || '300', 10), // 5 minutes
-  storyDetail: parseInt(process.env.REDIS_TTL_STORY_DETAIL || '600', 10), // 10 minutes
-  resources: parseInt(process.env.REDIS_TTL_RESOURCES || '300', 10), // 5 minutes
-  resourceDetail: parseInt(process.env.REDIS_TTL_RESOURCE_DETAIL || '600', 10), // 10 minutes
-  achievements: parseInt(process.env.REDIS_TTL_ACHIEVEMENTS || '600', 10), // 10 minutes
-  folders: parseInt(process.env.REDIS_TTL_FOLDERS || '300', 10), // 5 minutes
-  default: 300
+  stories: parseInt(process.env.REDIS_TTL_STORIES || '900', 10), // 15 minutes
+  storyDetail: parseInt(process.env.REDIS_TTL_STORY_DETAIL || '1800', 10), // 30 minutes
+  resources: parseInt(process.env.REDIS_TTL_RESOURCES || '900', 10), // 15 minutes
+  resourceDetail: parseInt(process.env.REDIS_TTL_RESOURCE_DETAIL || '1800', 10), // 30 minutes
+  achievements: parseInt(process.env.REDIS_TTL_ACHIEVEMENTS || '1800', 10), // 30 minutes
+  folders: parseInt(process.env.REDIS_TTL_FOLDERS || '900', 10), // 15 minutes
+  default: 900
 };
 
 // In-flight promise map for Single-Flight / Stampede Prevention
@@ -145,7 +175,8 @@ async function getOrSet(key, fetcherFn, ttlSeconds = DEFAULT_TTLS.default) {
       if (raw) {
         cacheMetrics.hits++;
         try {
-          return JSON.parse(raw);
+          const decompressed = decompressPayload(raw);
+          return JSON.parse(decompressed);
         } catch (parseErr) {
           // If malformed cached data, delete key and fall through to fetcher
           console.warn(`[CacheService] Malformed JSON in cache key ${key}, purging: ${parseErr.message}`);
@@ -176,7 +207,8 @@ async function getOrSet(key, fetcherFn, ttlSeconds = DEFAULT_TTLS.default) {
           const payload = JSON.stringify(result);
           // Safety guard: Don't cache oversized strings (> 5MB)
           if (payload.length <= 5 * 1024 * 1024) {
-            await client.set(key, payload, { EX: Math.max(1, ttlSeconds) });
+            const dataToStore = compressPayload(payload);
+            await client.set(key, dataToStore, { EX: Math.max(1, ttlSeconds) });
             cacheMetrics.sets++;
           }
         } catch (setErr) {

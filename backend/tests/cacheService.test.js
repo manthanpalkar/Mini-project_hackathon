@@ -340,4 +340,36 @@ describe('Redis Cache Service & Resilient Fallback', () => {
     assert.equal(attempts, 2);
     assert.deepEqual(retryResult, [{ id: 'recovered-item' }]);
   });
+
+  test('Payload Compression: Compresses large JSON payloads (>1KB) and restores them transparently', async () => {
+    const store = new Map();
+    const mockClient = {
+      isOpen: true,
+      get: async (k) => store.get(k) || null,
+      set: async (k, v) => store.set(k, v),
+      del: async (k) => store.delete(k)
+    };
+    cacheService._setMockClient(mockClient);
+
+    // Create payload larger than 1 KB
+    const largeArray = Array.from({ length: 50 }, (_, i) => ({
+      id: `story-${i}`,
+      title: `Interview Debrief at Tech Firm ${i}`,
+      company: `Company ${i}`,
+      description: 'Extensive interview debrief detailing round-by-round selection criteria, coding challenges, system design, and managerial behavioral interview questions.'
+    }));
+
+    // Cache miss and populate
+    const result1 = await cacheService.getOrSet('loop:test:large_payload', async () => largeArray, 60);
+    assert.deepEqual(result1, largeArray);
+
+    // Verify stored payload in mock Redis starts with compression prefix '__gz:'
+    const rawStored = store.get('loop:test:large_payload');
+    assert.ok(rawStored.startsWith('__gz:'), 'Payload must be compressed with __gz: prefix');
+    assert.ok(rawStored.length < JSON.stringify(largeArray).length, 'Compressed payload must be smaller than raw JSON');
+
+    // Cache hit should transparently decompress
+    const result2 = await cacheService.getOrSet('loop:test:large_payload', async () => [], 60);
+    assert.deepEqual(result2, largeArray);
+  });
 });
