@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
 import { loginUser, loginDemoUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
+import { clearAllCaches } from '../hooks/useCachedData';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -297,6 +298,11 @@ export default function Login() {
   };
 
   const handleLoginSuccess = (userData) => {
+    // Zero cross-account leakage: strictly wipe prior session & memory caches on account switch
+    clearAllCaches();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('loop_login_success', { detail: userData }));
+    }
     localStorage.setItem('loop_current_user', JSON.stringify(userData));
     setTimeout(() => {
       const targetUrl = getRedirectUrl();

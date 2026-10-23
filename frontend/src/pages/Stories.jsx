@@ -101,6 +101,38 @@ function Story3DCard({ story, index, navigate }) {
     return Date.now() - time < 14 * 24 * 60 * 60 * 1000;
   }, [story.createdAt, story.date]);
 
+  // Hover-intent timer: prevents triggering network requests when the pointer sweeps past cards
+  const hoverTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCardMouseEnter = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+    // 80ms hover-intent delay: only prefetch if the student intentionally pauses on the card
+    hoverTimerRef.current = setTimeout(() => {
+      import('./StoryDetail');
+      if (story?.id) {
+        getStoryById(story.id).catch(() => {});
+      }
+    }, 80);
+  };
+
+  const handleCardMouseLeave = (e) => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    handleMouseLeave(e);
+  };
+
   const transformStyle = isVisible
     ? tilt.active
       ? `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(-6px) scale(1.015)`
@@ -112,14 +144,22 @@ function Story3DCard({ story, index, navigate }) {
       ref={cardRef}
       className="bento-card loop-card"
       onClick={() => navigate(`/stories/${story.id}`)}
-      onMouseEnter={() => {
+      onMouseEnter={handleCardMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleCardMouseLeave}
+      onFocus={() => {
         import('./StoryDetail');
-        if (story?.id) {
-          getStoryById(story.id).catch(() => {});
+        if (story?.id) getStoryById(story.id).catch(() => {});
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Placement journey of ${story.name} at ${story.company}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(`/stories/${story.id}`);
         }
       }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       style={{
         padding: '1.25rem 1.65rem',
         display: 'flex',
@@ -274,12 +314,6 @@ function Story3DCard({ story, index, navigate }) {
           Placement Preparation Journey
         </span>
         <button 
-          onMouseEnter={() => {
-            import('./StoryDetail');
-            if (story?.id) {
-              getStoryById(story.id).catch(() => {});
-            }
-          }}
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/stories/${story.id}`);

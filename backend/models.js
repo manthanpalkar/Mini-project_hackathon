@@ -90,11 +90,7 @@ const StorySchema = new mongoose.Schema({
   uploadedByEmail: String
 }, { timestamps: true });
 
-StorySchema.index({ createdAt: -1 });
 StorySchema.index({ createdAt: -1, _id: -1 });
-StorySchema.index({ company: 1, createdAt: -1 });
-StorySchema.index({ branch: 1, createdAt: -1 });
-StorySchema.index({ passoutYear: 1, createdAt: -1 });
 StorySchema.index({ company: 1, branch: 1, passoutYear: 1, createdAt: -1 });
 
 // Pending Story Schema
@@ -159,10 +155,8 @@ const ResourceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 ResourceSchema.index({ uploadId: 1 }, { unique: true, partialFilterExpression: { uploadId: { $type: 'string' } } });
-ResourceSchema.index({ folderId: 1, status: 1 });
 ResourceSchema.index({ folderId: 1, status: 1, createdAt: -1 });
 ResourceSchema.index({ folderId: 1, status: 1, type: 1, createdAt: -1 });
-ResourceSchema.index({ status: 1, category: 1, createdAt: -1 });
 ResourceSchema.index({ uploadedByEmail: 1 });
 ResourceSchema.index({ ownerId: 1 });
 ResourceSchema.index({ createdAt: -1 });
@@ -200,7 +194,6 @@ PendingResourceSchema.index({ uploadId: 1 }, { unique: true, partialFilterExpres
 PendingResourceSchema.index({ createdAt: -1 });
 PendingResourceSchema.index({ status: 1, createdAt: -1 });
 PendingResourceSchema.index({ activeId: 1 });
-PendingResourceSchema.index({ folderId: 1, status: 1 });
 
 // Achievement Schema
 const AchievementSchema = new mongoose.Schema({

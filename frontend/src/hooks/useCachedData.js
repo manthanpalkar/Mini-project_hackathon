@@ -237,12 +237,15 @@ export const clearAllCaches = () => {
   }
 };
 
-// Automatically listen to auth expiration and logout events to prevent cross-account cache leakage
+// Automatically listen to auth expiration, logout, and login events to guarantee cross-account cache isolation
 if (typeof window !== 'undefined') {
   window.addEventListener('loop_auth_expired', () => {
     clearAllCaches();
   });
   window.addEventListener('loop_logout', () => {
+    clearAllCaches();
+  });
+  window.addEventListener('loop_login_success', () => {
     clearAllCaches();
   });
 }

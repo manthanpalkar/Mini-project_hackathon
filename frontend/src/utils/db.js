@@ -249,6 +249,15 @@ export const getStories = async (params = {}) => {
   return adjustUrls(items);
 };
 
+const storyDetailInFlight = new Map();
+
+if (typeof window !== 'undefined') {
+  const resetInFlight = () => storyDetailInFlight.clear();
+  window.addEventListener('loop_logout', resetInFlight);
+  window.addEventListener('loop_auth_expired', resetInFlight);
+  window.addEventListener('loop_login_success', resetInFlight);
+}
+
 export const getStoryById = async (id) => {
   // Check client-side session cache for 0ms instant rendering
   try {
@@ -261,25 +270,37 @@ export const getStoryById = async (id) => {
     }
   } catch {}
 
-  try {
-    const res = await authFetch(`${API_URL}/stories/${id}`);
-    if (res.ok) {
-      const data = await res.json();
-      const adjusted = adjustUrls(data);
-      try {
-        sessionStorage.setItem(`loop_cache_story_detail_${id}`, JSON.stringify({
-          timestamp: Date.now(),
-          data: adjusted
-        }));
-      } catch {}
-      return adjusted;
-    }
-  } catch (e) {}
-  if (isLocal) {
-    const mock = localMockStories.find(m => String(m.id) === String(id));
-    if (mock) return adjustUrls(mock);
+  // In-flight deduplication: return existing shared promise if request is already active
+  if (storyDetailInFlight.has(id)) {
+    return storyDetailInFlight.get(id);
   }
-  throw new Error('Failed to fetch story details');
+
+  const fetchPromise = (async () => {
+    try {
+      const res = await authFetch(`${API_URL}/stories/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        const adjusted = adjustUrls(data);
+        try {
+          sessionStorage.setItem(`loop_cache_story_detail_${id}`, JSON.stringify({
+            timestamp: Date.now(),
+            data: adjusted
+          }));
+        } catch {}
+        return adjusted;
+      }
+    } catch (e) {}
+    if (isLocal) {
+      const mock = localMockStories.find(m => String(m.id) === String(id));
+      if (mock) return adjustUrls(mock);
+    }
+    throw new Error('Failed to fetch story details');
+  })().finally(() => {
+    storyDetailInFlight.delete(id);
+  });
+
+  storyDetailInFlight.set(id, fetchPromise);
+  return fetchPromise;
 };
 
 export const addStory = async (story) => {

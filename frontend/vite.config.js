@@ -1,17 +1,40 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Strip non-essential console.log and debugger statements from application code in production
+function dropConsolePlugin(mode) {
+  if (mode !== 'production') return null;
+  return {
+    name: 'drop-console',
+    transform(code, id) {
+      if (id.includes('node_modules')) return null;
+      if (!/\.(jsx?|tsx?)$/.test(id)) return null;
+      if (code.includes('console.log') || code.includes('debugger')) {
+        return {
+          code: code
+            .replace(/\bconsole\.log\s*\([^)]*\)\s*;?/g, '')
+            .replace(/\bdebugger\s*;?/g, ''),
+          map: null
+        };
+      }
+      return null;
+    }
+  };
+}
+
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    react(),
+    dropConsolePlugin(mode)
+  ].filter(Boolean),
   build: {
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('pdfjs-dist')) {
-              return 'vendor-pdf';
-            }
+            // Keep pdfjs-dist isolated in its own dynamic import chunks (not in manualChunks)
+            // to prevent Rollup from grouping __vitePreload into vendor-pdf and leaking into index.html
             if (id.includes('lucide-react')) {
               return 'vendor-icons';
             }
@@ -50,4 +73,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))
