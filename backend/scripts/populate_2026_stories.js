@@ -108,7 +108,12 @@ async function main() {
         existing.branch = storyDataToSet.branch;
         existing.subBranch = storyDataToSet.subBranch;
         existing.passoutYear = storyDataToSet.passoutYear;
-        existing.cgpa = storyDataToSet.cgpa;
+        if (storyDataToSet.cgpa) {
+          existing.cgpa = storyDataToSet.cgpa;
+        } else {
+          existing.cgpa = undefined;
+          existing.set('cgpa', undefined);
+        }
         existing.package = storyDataToSet.package;
         existing.ctc = storyDataToSet.ctc;
         existing.stipend = storyDataToSet.stipend;
@@ -117,9 +122,13 @@ async function main() {
         existing.customSections = storyDataToSet.customSections;
         if (storyDataToSet.resources && storyDataToSet.resources.length > 0) {
           existing.resources = storyDataToSet.resources;
+        } else {
+          existing.resources = [];
         }
         if (storyDataToSet.studyMaterials && storyDataToSet.studyMaterials.length > 0) {
           existing.studyMaterials = storyDataToSet.studyMaterials;
+        } else {
+          existing.studyMaterials = [];
         }
         if (storyDataToSet.resumeFile) {
           existing.resumeFile = storyDataToSet.resumeFile;

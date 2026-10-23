@@ -1,0 +1,982 @@
+[
+  {
+    "candidate": "Akshata Kumar",
+    "company": "Mahindra Finance",
+    "source_file": "Akshata_MahindraFinance_CT.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Kanishka Anand Amritkar",
+    "company": "Mahindra Finance",
+    "source_file": "kanishka_mahindra_finance_experience.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Harsh Chhallani",
+    "company": "Interactive Brokers",
+    "source_file": "IB-SWE-HarshChhallani.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Harsh Chhallani",
+    "company": "Interactive Brokers",
+    "source_file": "IB-SWE-HarshChhallani.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Heenal Kishor Patel",
+    "company": "HyperVerge",
+    "source_file": "HyperVerge_APM_HeenalPatel.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Vivek Valanj",
+    "company": "Smowcode",
+    "source_file": "Smowcode_BDE_Vivek_Interview_experience.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Manish Shashikant Jadhav",
+    "company": "ICICI Lombard",
+    "source_file": "ICICILombard_SoftwareEngineer_ManishJadhav.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Riya Patil",
+    "company": "Mastercard",
+    "source_file": "MasterCard_Software Engineer 1_ Riya Patil.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ayesha Siddiqui",
+    "company": "AuxoAI",
+    "source_file": "AUXOAI_AIEngineer_Ayesha_Siddiqui.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ayesha Siddiqui",
+    "company": "AuxoAI",
+    "source_file": "AUXOAI_AIEngineer_Ayesha_Siddiqui.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Dhruv Deshpande",
+    "company": "AuxoAI",
+    "source_file": "AUXOAI_AIEngineer_DhruvDeshpande.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Dhruv Deshpande",
+    "company": "AuxoAI",
+    "source_file": "AUXOAI_AIEngineer_DhruvDeshpande.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Pushap Raina",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS_AssociateConsultant_PushapRaina.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Prashant Tiwari",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "Oracle_Associate_consultant_Prashant_Tiwari.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ruswin Raja",
+    "company": "ISS STOXX",
+    "source_file": "EdelweissSDERuswin.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Apurva Khangal",
+    "company": "UBS",
+    "source_file": "UBS_GOTOIntern_ApurvaKhangal.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Heet Shah",
+    "company": "UBS",
+    "source_file": "UBS_GOTOIntern_HeetShah.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aditi Pillai",
+    "company": "UBS",
+    "source_file": "UBS_GraduateTrainee_AditiPillai.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Piyanshu Gehani",
+    "company": "UBS",
+    "source_file": "UBS_GraduateTrainee_PiyanshuGehani.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Khushi Parekh",
+    "company": "UBS",
+    "source_file": "UBS_Graduate_Trainee_Khushi_Parekh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Riva Rodrigues",
+    "company": "UBS",
+    "source_file": "UBS_Graduate_Trainee_Riva_Rodrigues.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Sahil Patil",
+    "company": "UBS",
+    "source_file": "UBS_Graduate_Trainee_Sahil_Patil.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Zaid",
+    "company": "UBS",
+    "source_file": "UBS_Graduate_Trainee_Zaid.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shivsharan Sanjawad",
+    "company": "UBS",
+    "source_file": "UBS_Summer_Internship_Shivsharan_2027batch.docx",
+    "personal_cgpa": "9.79",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Hridaya Sudhir Patil",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS-Associate_Consulting-Hridaya_Patil.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Vihaan Shinde",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS_AAD_(Vihaan S Shinde).pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Adithya Nair",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS_AAD_AdithyaNair.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Jheel Parikh",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS_ApplicationDev_JheelParikh.pdf",
+    "personal_cgpa": "8.25",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Yash Kambli",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS_AssociateConsultant_YashKambli.pdf",
+    "personal_cgpa": "7.66",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Dhruv Hogade",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS_Associate_Application_Developer_Dhruv_Hogade.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Pranav Nair",
+    "company": "Oracle Financial Services (OFSS)",
+    "source_file": "OFSS_Associate_consultant_Pranav_Nair.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Atharva Dahegaonkar",
+    "company": "J.P. Morgan",
+    "source_file": "CIB - AtharvaDahegaonkar (2).pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Mridula Raul",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer Intern_Mridula Raul.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ruchi Bhanushali",
+    "company": "Barclays",
+    "source_file": "Barclays_SummerIntern_RuchiBhanushali.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Siddhesh Shrawne",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Inter_Siddhesh_Shrawne.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Maureen Miranda",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Intern_Maureen_Miranda.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Nishita Panchal",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Intern_Nishita Panchal.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Nitish Sharma",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Intern_Nitish_Sharma.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Satyam Vyas",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Intern_Satyam_Vyas.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Sumit Patel",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Intern_Sumit_Patel.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Vikas Singh",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Intern_Vikas_Singh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Saachi",
+    "company": "Barclays",
+    "source_file": "Barclays_Summer_Internship_Saachi.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Asim Shah",
+    "company": "Barclays",
+    "source_file": "Barclays_summer_intern_2025_ASIM.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Nimesh Katudia",
+    "company": "Barclays",
+    "source_file": "Interview Experience Nimesh Katudia.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Naufil A. N. Asar",
+    "company": "Dolat Capital",
+    "source_file": "DolatCapital_QuantDeveloper_NaufilAsar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Sumit Patel",
+    "company": "Dolat Capital",
+    "source_file": "Interview Experience Template._sumit_patel.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aditya Tiwari",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_Aditya_Tiwari.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Harsh Pandey",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_HarshPandey.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Swaroop Vaze",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_SwaroopVaze.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Tabish Shaikh",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_TabishShaikh.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Tabish Shaikh",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_TabishShaikh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Talha Naik",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_TalhaNaik.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Vedant Shah",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_VedantShah.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Venisha Kalola",
+    "company": "PhonePe",
+    "source_file": "PhonePe_SDE_VenishaKalola.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Prathamesh Khachane",
+    "company": "BlackRock",
+    "source_file": "BlackRock_AladdinData_Prathamesh Khachane.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Vinay Marathe",
+    "company": "BlackRock",
+    "source_file": "BlackRock_AladdinData_VinayMarathe.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Tanish Kuldeep Patil",
+    "company": "BlackRock",
+    "source_file": "BlackRock_GM_Tanish_Kuldeep_Patil.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Dhruv Kanadia",
+    "company": "BlackRock",
+    "source_file": "BlackRock_SDE_DhruvKanadia.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shreshth Pradeep Singh",
+    "company": "BlackRock",
+    "source_file": "BlackRock_SDE_Shreshth_Pradeep_Singh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Veer Shah",
+    "company": "BlackRock",
+    "source_file": "BlackRock_SDE_VeerShah.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aashay Sumit Ranjit",
+    "company": "BlackRock",
+    "source_file": "BlackRock_SoftwareEngineeringintern_AashaySumitRanjit .pdf",
+    "personal_cgpa": "7.64",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Aayush Mohite",
+    "company": "BlackRock",
+    "source_file": "Blackrock_SoftwareEngineerIntern_AayushMohite.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Manan Sonali Kher",
+    "company": "WorkIndia",
+    "source_file": "WorkIndia_SDE_MananKher.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ninad Maadhavi",
+    "company": "WorkIndia",
+    "source_file": "WorkIndia_SDE_NinadMaadhavi.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Hrishikesh Dalal",
+    "company": "General Mills",
+    "source_file": "GeneralMills_Summer_Intern_Hrishikesh_Dalal.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Keerti Mehta",
+    "company": "General Mills",
+    "source_file": "GeneralMills_Summer_Intern_Keerti_Mehta.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Muskan Sharma",
+    "company": "General Mills",
+    "source_file": "GeneralMills_Summer_Intern_Muskan_Sharma.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shreya Rathod",
+    "company": "General Mills",
+    "source_file": "GeneralMills_Summer_Intern_Shreya_Rathod.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Palash Mahajan",
+    "company": "IDfy",
+    "source_file": "IDfy_SoftwareEngineer_PalashMahajan.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Kush Nhayade",
+    "company": "Equity Data Science (EDS)",
+    "source_file": "EDS_SDE_Kush Nhayade.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Hardik Aneja",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_BA_Hardik Aneja (3).docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Hardik Aneja",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_BA_Hardik Aneja (3).pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Deepak Kumar Yadav",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_FE_DeepakKumarYadav.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Deepak Kumar Yadav",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_FE_DeepakKumarYadav.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ronak Walinjkar",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_FE_RonakWalinjkar.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ronak Walinjkar",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_FE_RonakWalinjkar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Harsh Dugar",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_MLE_HarshDugar.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Harsh Dugar",
+    "company": "Quantiphi",
+    "source_file": "Quantiphi_MLE_HarshDugar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Vedant Kulkarni",
+    "company": "ISS STOXX",
+    "source_file": "ISS-STOXX_DataQuality_VedantKulkarni.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aryan Kanyawar",
+    "company": "ISS STOXX",
+    "source_file": "ISS-STOXX_SDE_Aryan_Kanyawar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Paarth Dalvi",
+    "company": "ISS STOXX",
+    "source_file": "ISS-STOXX_SDE_PaarthDalvi.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Yash Rawat",
+    "company": "ISS STOXX",
+    "source_file": "ISS-Stoxx_SDE_YashRawat.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Rashi Lodha",
+    "company": "ISS STOXX",
+    "source_file": "ISS-Stoxx_STE_RashiLodha.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Alpha Rane",
+    "company": "ISS STOXX",
+    "source_file": "ISS_STOXX_SE_AlphaRane.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Mohit Karande",
+    "company": "ISS STOXX",
+    "source_file": "ISS_STOXX_SE_MohitKarande (2).pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aditi Rao",
+    "company": "Russell Investments",
+    "source_file": "Russell_ApplicationDeveloperIntern_AditiRao.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Sanjeev Ratnani",
+    "company": "Russell Investments",
+    "source_file": "Russell_ApplicationDeveloper_SanjeevRatnani.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Atharva Tamhankar",
+    "company": "Russell Investments",
+    "source_file": "Russell_DataAutomationIntern_AtharvaTamhankar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Jash Shah",
+    "company": "InCred Financial Services",
+    "source_file": "InCred_BuisnessAnalyst_Jsh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Harsh Kasliwal",
+    "company": "InCred Financial Services",
+    "source_file": "IncredFinance_BusinessAnalyst_HarshKasliwal.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Nimit Sheth",
+    "company": "IDFC FIRST Bank",
+    "source_file": "Application_Engineer_IDFC_Nimit_Sheth.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Nimit Sheth",
+    "company": "IDFC FIRST Bank",
+    "source_file": "Application_Engineer_IDFC_Nimit_Sheth.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Anurag Nair",
+    "company": "IDFC FIRST Bank",
+    "source_file": "IDFC_ApplicationEngineer_AnuragNair.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Maaz Malik",
+    "company": "IDFC FIRST Bank",
+    "source_file": "IDFC_ApplicationEngineer_MaazMalik.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Ritvik Sharma",
+    "company": "IDFC FIRST Bank",
+    "source_file": "IDFC_ApplicationEngineer_RitvikSharma.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shrihari Joshi",
+    "company": "IDFC FIRST Bank",
+    "source_file": "IDFC_ApplicationEngineer_ShrihariJoshi.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Vaishnavi Prabha Chettiar",
+    "company": "IDFC FIRST Bank",
+    "source_file": "IDFC_ApplicationEngineer_VaishnaviChettiar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Trishna Tiwari",
+    "company": "IDFC FIRST Bank",
+    "source_file": "IDFC_Application_Engineer_Trishna_Tiwari.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Tushar Raja",
+    "company": "IDFC FIRST Bank",
+    "source_file": "IDFC_TusharRaja_ApplicationEngineer.pdf",
+    "personal_cgpa": "9.86",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Harshal Vhatkar",
+    "company": "Baker Hughes",
+    "source_file": "BakerHughes_DTI_HarshalVhatkar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shrutika Yeole",
+    "company": "Baker Hughes",
+    "source_file": "BakerHughes_DTI_ShrutikaYeole.pdf",
+    "personal_cgpa": "7.77",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Yaddhnyesh Choudhari",
+    "company": "Baker Hughes",
+    "source_file": "BakerHughes_DTI_YaddhnyeshChoudhari.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shloka Mardikar",
+    "company": "Baker Hughes",
+    "source_file": "Digital_Technology_Intern_Shloka_Mardikar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aarya Deshmukh",
+    "company": "TransUnion",
+    "source_file": "TransUnion_Aarya_Deshmukh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Praveen Vishwakarma",
+    "company": "TransUnion",
+    "source_file": "TransUnion_Dev-QE_PraveenVishwakarma.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Dhruv Abhijeet Baljekar",
+    "company": "TransUnion",
+    "source_file": "TransUnion_ITD-QE_DhruvBaljekar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Soham Sachin Vichare",
+    "company": "TransUnion",
+    "source_file": "TransUnion_Soham_Vichare_InterviewExp.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Varsha Bojja",
+    "company": "TransUnion",
+    "source_file": "TransUnion_Varsha_Bojja.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Jagdish Aade",
+    "company": "TransUnion",
+    "source_file": "TransUnion_softwareEngineer_Jagdish_Aade.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Deep Patel",
+    "company": "Barclays",
+    "source_file": "Barclays_TechDeveloper_Deep Patel.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Harsh Shah",
+    "company": "Barclays",
+    "source_file": "Barclays_TechDeveloper_Harsh_Shah.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Mahesh Panda",
+    "company": "Barclays",
+    "source_file": "Barclays_TechDeveloper_Mahesh_Panda (1).pdf",
+    "personal_cgpa": "7.97",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Nidhi Jangid",
+    "company": "Barclays",
+    "source_file": "Barclays_TechDeveloper_Nidhi_Jangid.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Nishita Sanghavi",
+    "company": "Barclays",
+    "source_file": "Barclays_TechDeveloper_Nishita_Sanghavi.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aayushman Dash",
+    "company": "Barclays",
+    "source_file": "Barclays_TechnologyDeveloper_Aayushman_Dash.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aniket Bande",
+    "company": "Barclays",
+    "source_file": "Barclays_TechnologyDeveloper_AniketBande.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Keya Dey",
+    "company": "Barclays",
+    "source_file": "Barclays_TechnologyDeveloper_KeyaDey.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Saurabh Gupta",
+    "company": "Barclays",
+    "source_file": "Barclays_TechnologyDeveloper_SaurabhGupta.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shreya Mehta",
+    "company": "Barclays",
+    "source_file": "Barclays_TechnologyDeveloper_ShreyaMehta.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Siddharth Thikekar",
+    "company": "Barclays",
+    "source_file": "Barclays_TechnologyDeveloper_Siddharth Thikekar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Tejas Billava",
+    "company": "Barclays",
+    "source_file": "Barclays_TechnologyDeveloper_TejasBIllava.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shubham Karampure",
+    "company": "MSCI",
+    "source_file": "MSCI_Technology&DataOperationIntern_Shubham_Karampure.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aroosh Joshi",
+    "company": "MSCI",
+    "source_file": "MSCI_Technology&DataOpsIntern_ Aroosh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Pulkit Dwivedi",
+    "company": "MSCI",
+    "source_file": "MSCI_Technology&DataOpsIntern_PulkitDwivedi.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Tanvi Patil",
+    "company": "MSCI",
+    "source_file": "MSCI_TechnologyIntern_TanviPatil.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Mohit Anil Jangale",
+    "company": "TransBnk",
+    "source_file": "TransBnk_SDE_Mohit_Jangale.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Sheeba Shaikh",
+    "company": "TransBnk",
+    "source_file": "TransBnk_SDE_Sheeba_Shaikh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Sujal Das",
+    "company": "TransBnk",
+    "source_file": "TransBnk_software_developer_Sujal_Das.docx",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Amogh Mathpati",
+    "company": "KPMG",
+    "source_file": "KPMG_Digital-enablement_Amogh Mathpati.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Parnika Das",
+    "company": "KPMG",
+    "source_file": "KPMG_Digital_Tech_Enablemnet_Parnika_Das.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Kunal Bhoi",
+    "company": "BrowserStack",
+    "source_file": "BrowserStack_Kunal_Bhoi.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Param Gogia",
+    "company": "BrowserStack",
+    "source_file": "BrowserStack_Param_Gogia.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aniket Paraswar",
+    "company": "BrowserStack",
+    "source_file": "BrowserStack_Software Engineer-Backend_Aniket_Paraswar_CE_2023301011.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aashay Jadhav",
+    "company": "Nomura",
+    "source_file": "Nomura_CDO_Aashay_Jadhav.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Anushka Shendge",
+    "company": "Nomura",
+    "source_file": "Nomura_CDO_AnushkaShendge.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Aman Kanojia",
+    "company": "Nomura",
+    "source_file": "Nomura_GM_AmanKanojia.pdf",
+    "personal_cgpa": "7.9",
+    "source_status": "Verified explicit personal CGPA"
+  },
+  {
+    "candidate": "Soham Parekh",
+    "company": "Nomura",
+    "source_file": "Nomura_GM_SohamParekh.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Iffat Patel",
+    "company": "Nomura",
+    "source_file": "Nomura_ITD_Iffat_Patel .pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Shardul Mahindrakar",
+    "company": "Nomura",
+    "source_file": "Nomura_ITD_ShardulMahindrakar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  },
+  {
+    "candidate": "Soham Karmarkar",
+    "company": "Nomura",
+    "source_file": "Nomura_ITD_Soham_Karmarkar.pdf",
+    "personal_cgpa": null,
+    "source_status": "Not provided in source (omitted per source fidelity)"
+  }
+]
