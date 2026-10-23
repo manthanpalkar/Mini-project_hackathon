@@ -182,6 +182,43 @@ export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_C
   return { data, loading, error, mutate, refresh: () => fetchData(false) };
 };
 
+/**
+ * Global helper to prefetch data into memory and sessionStorage on link/card hover.
+ * When the user navigates, the page renders instantly with zero loading delay.
+ */
+export const prefetchData = async (key, fetcher, ttlMs = DEFAULT_CACHE_TTL_MS) => {
+  if (typeof window === 'undefined' || typeof fetcher !== 'function') return null;
+  const memAge = Date.now() - (memoryTimestamps[key] || 0);
+  if (memoryCache[key] && memAge <= ttlMs) {
+    return memoryCache[key];
+  }
+  const sessionVal = getSessionCache(key, ttlMs);
+  if (sessionVal !== null) {
+    memoryCache[key] = sessionVal;
+    memoryTimestamps[key] = Date.now();
+    return sessionVal;
+  }
+  if (inFlightPromises.has(key)) {
+    return inFlightPromises.get(key);
+  }
+  const promise = (async () => {
+    try {
+      const res = await fetcher();
+      pruneCacheIfNeeded();
+      memoryCache[key] = res;
+      memoryTimestamps[key] = Date.now();
+      setSessionCache(key, res);
+      return res;
+    } catch {
+      return null;
+    } finally {
+      inFlightPromises.delete(key);
+    }
+  })();
+  inFlightPromises.set(key, promise);
+  return promise;
+};
+
 // Global helper to clear all caches (e.g. on logout or account switch)
 export const clearAllCaches = () => {
   Object.keys(memoryCache).forEach(k => {

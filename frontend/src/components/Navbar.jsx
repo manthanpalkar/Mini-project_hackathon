@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail, MessageSquare } from 'lucide-react';
-import { requestProfileEdit, updateUser, logoutUser } from '../utils/db';
+import { requestProfileEdit, updateUser, logoutUser, getStories, getResources, getFolders, getAchievements } from '../utils/db';
+import { prefetchData } from '../hooks/useCachedData';
 import FeedbackModal from './FeedbackModal';
 
 // Preset palette colors for the user name badge
@@ -330,29 +331,51 @@ export default function Navbar() {
               transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
               zIndex: 2
             }}>
-              <Link to="/stories" style={{
-                color: isActive('/stories') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                position: 'relative',
-                transition: 'color 0.2s ease'
-              }}>
+              <Link 
+                to="/stories" 
+                onMouseEnter={() => {
+                  import('../pages/Stories');
+                  prefetchData('stories', getStories);
+                }}
+                style={{
+                  color: isActive('/stories') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  position: 'relative',
+                  transition: 'color 0.2s ease'
+                }}
+              >
                 Stories
                 {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
               
-              <Link to="/resources" style={{
-                color: isActive('/resources') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                position: 'relative',
-                transition: 'color 0.2s ease'
-              }}>
+              <Link 
+                to="/resources" 
+                onMouseEnter={() => {
+                  import('../pages/Resources');
+                  prefetchData('resources', getResources);
+                  prefetchData('folders', getFolders);
+                }}
+                style={{
+                  color: isActive('/resources') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  position: 'relative',
+                  transition: 'color 0.2s ease'
+                }}
+              >
                 Resources
                 {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
 
-              <Link to="/achievements" style={{
-                color: isActive('/achievements') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                position: 'relative',
-                transition: 'color 0.2s ease'
-              }}>
+              <Link 
+                to="/achievements" 
+                onMouseEnter={() => {
+                  import('../pages/Achievements');
+                  prefetchData('achievements', getAchievements);
+                }}
+                style={{
+                  color: isActive('/achievements') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  position: 'relative',
+                  transition: 'color 0.2s ease'
+                }}
+              >
                 Achievements
                 {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
@@ -373,18 +396,24 @@ export default function Navbar() {
             zIndex: 3,
             pointerEvents: 'auto'
           }}>
-            <Link to="/home" style={{
-              fontSize: isScrolled ? '1.45rem' : '1.65rem',
-              fontWeight: 800,
-              fontFamily: 'var(--font-sans)',
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              display: 'flex',
-              alignItems: 'center',
-              gap: isScrolled ? '0.35rem' : '0.4rem',
-              marginRight: '-0.2em',
-              transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}>
+            <Link 
+              to="/home" 
+              onMouseEnter={() => {
+                import('../pages/Landing');
+              }}
+              style={{
+                fontSize: isScrolled ? '1.45rem' : '1.65rem',
+                fontWeight: 800,
+                fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                gap: isScrolled ? '0.35rem' : '0.4rem',
+                marginRight: '-0.2em',
+                transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
               <img 
                 src="/loop-logo.png" 
                 alt="LOOP Logo" 
@@ -422,18 +451,24 @@ export default function Navbar() {
             zIndex: 2
           }}>
             {user?.isAdmin && (
-              <Link to="/admin" style={{
-                color: isActive('/admin') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: isScrolled ? '3px 10px' : '4px 12px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '20px',
-                fontSize: isScrolled ? '0.8rem' : '0.84rem',
-                backgroundColor: isActive('/admin') ? 'var(--bg-tertiary)' : 'transparent',
-                transition: 'all 0.35s ease'
-              }}>
+              <Link 
+                to="/admin" 
+                onMouseEnter={() => {
+                  import('../pages/AdminDashboard');
+                }}
+                style={{
+                  color: isActive('/admin') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: isScrolled ? '3px 10px' : '4px 12px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '20px',
+                  fontSize: isScrolled ? '0.8rem' : '0.84rem',
+                  backgroundColor: isActive('/admin') ? 'var(--bg-tertiary)' : 'transparent',
+                  transition: 'all 0.35s ease'
+                }}
+              >
                 <Shield size={isScrolled ? 12 : 13} />
                 <span>Admin</span>
               </Link>

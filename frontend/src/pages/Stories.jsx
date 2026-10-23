@@ -5,7 +5,7 @@ import {
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
   Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw, ExternalLink
 } from 'lucide-react';
-import { getStories, addPendingStory, fileToBase64 } from '../utils/db';
+import { getStories, getStoryById, addPendingStory, fileToBase64 } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
 import { useUpload } from '../context/UploadContext';
 
@@ -112,6 +112,12 @@ function Story3DCard({ story, index, navigate }) {
       ref={cardRef}
       className="bento-card loop-card"
       onClick={() => navigate(`/stories/${story.id}`)}
+      onMouseEnter={() => {
+        import('./StoryDetail');
+        if (story?.id) {
+          getStoryById(story.id).catch(() => {});
+        }
+      }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
@@ -268,6 +274,12 @@ function Story3DCard({ story, index, navigate }) {
           Placement Preparation Journey
         </span>
         <button 
+          onMouseEnter={() => {
+            import('./StoryDetail');
+            if (story?.id) {
+              getStoryById(story.id).catch(() => {});
+            }
+          }}
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/stories/${story.id}`);

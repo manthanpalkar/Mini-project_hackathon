@@ -504,7 +504,24 @@ export default function StoryDetail() {
 
 
   useEffect(() => {
-    setLoading(true);
+    // Check if story was preloaded in sessionStorage for instant 0ms rendering
+    let hasCached = false;
+    try {
+      const raw = sessionStorage.getItem(`loop_cache_story_detail_${id}`);
+      if (raw) {
+        const entry = JSON.parse(raw);
+        if (entry && entry.data) {
+          setStory(entry.data);
+          setLoading(false);
+          hasCached = true;
+        }
+      }
+    } catch {}
+
+    if (!hasCached) {
+      setLoading(true);
+    }
+
     getStoryById(id).then(found => {
       setStory(found || null);
       setLoading(false);

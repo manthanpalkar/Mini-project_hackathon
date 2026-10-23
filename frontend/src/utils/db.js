@@ -250,11 +250,29 @@ export const getStories = async (params = {}) => {
 };
 
 export const getStoryById = async (id) => {
+  // Check client-side session cache for 0ms instant rendering
+  try {
+    const raw = sessionStorage.getItem(`loop_cache_story_detail_${id}`);
+    if (raw) {
+      const entry = JSON.parse(raw);
+      if (entry && entry.data && Date.now() - (entry.timestamp || 0) < 5 * 60 * 1000) {
+        return adjustUrls(entry.data);
+      }
+    }
+  } catch {}
+
   try {
     const res = await authFetch(`${API_URL}/stories/${id}`);
     if (res.ok) {
       const data = await res.json();
-      return adjustUrls(data);
+      const adjusted = adjustUrls(data);
+      try {
+        sessionStorage.setItem(`loop_cache_story_detail_${id}`, JSON.stringify({
+          timestamp: Date.now(),
+          data: adjusted
+        }));
+      } catch {}
+      return adjusted;
     }
   } catch (e) {}
   if (isLocal) {
@@ -265,6 +283,9 @@ export const getStoryById = async (id) => {
 };
 
 export const addStory = async (story) => {
+  try {
+    sessionStorage.removeItem('loop_cache_stories');
+  } catch {}
   const res = await authFetch(`${API_URL}/stories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -278,6 +299,10 @@ export const addStory = async (story) => {
 };
 
 export const deleteStory = async (id) => {
+  try {
+    sessionStorage.removeItem(`loop_cache_story_detail_${id}`);
+    sessionStorage.removeItem('loop_cache_stories');
+  } catch {}
   try {
     const res = await authFetch(`${API_URL}/stories/${id}`, {
       method: 'DELETE'
@@ -293,6 +318,10 @@ export const deleteStory = async (id) => {
 };
 
 export const updateStory = async (id, updatedStory) => {
+  try {
+    sessionStorage.removeItem(`loop_cache_story_detail_${id}`);
+    sessionStorage.removeItem('loop_cache_stories');
+  } catch {}
   const res = await authFetch(`${API_URL}/stories/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },

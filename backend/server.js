@@ -179,6 +179,8 @@ app.use(cors({
 // Selective HTTP Response Compression (Gzip / Deflate for JSON, skips binary file streaming)
 app.use(compression({
   threshold: 1024, // Only compress payloads > 1KB
+  level: 6, // Optimal balance between compression ratio and CPU usage
+  memLevel: 8,
   filter: (req, res) => {
     // Skip binary files and streaming endpoints that are already compressed or chunked
     if (req.headers['x-no-compression'] || req.path.includes('/file') || req.path.includes('/storage') || req.path.includes('/chunk')) {
