@@ -645,30 +645,36 @@ def parse_experience(raw_text, filename, company_folder, full_path):
         elif "intern" in fn: role = "Summer Technology Intern"
         elif "developer" in fn: role = "Technology Developer"
 
-    # 4. Department / Branch
-    branch = "CE"
-    sub_branch = "CE"
-    m_branch = re.search(r'(EXTC|CSE-AIML|CSE-DS|CSE\s*AIML|CSE\s*DS|Comps\s*-\s*[AB]|Computer\s*Engineering|Information\s*Technology|MCA)', clean_text, re.IGNORECASE)
-    if m_branch:
-        b_raw = m_branch.group(1).upper()
-        if "EXTC" in b_raw:
-            branch = "EXTC"
-            sub_branch = "EXTC"
-        elif "AIML" in b_raw:
-            branch = "CSE-AIML"
-            sub_branch = "AI"
-        elif "DS" in b_raw:
-            branch = "CSE-DS"
-            sub_branch = "DS"
-        elif "COMPS" in b_raw or "COMPUTER" in b_raw:
-            branch = "CE"
-            sub_branch = "CE"
-        elif "IT" in b_raw:
-            branch = "CSE"
-            sub_branch = "CSE"
-        elif "MCA" in b_raw:
-            branch = "CE"
-            sub_branch = "MCA"
+    # 4. Department / Branch (Strict Candidate Header Extraction - Never from Eligibility!)
+    comp_idx = re.search(r'\bCompany\s*:', clean_text, re.IGNORECASE)
+    cand_header = clean_text[:comp_idx.start()] if comp_idx else clean_text[:500]
+    cand_header = re.sub(r'--- PAGE \d+ ---', '', cand_header)
+    h_tokens = re.sub(r'[\[\]\(\),:]', ' ', cand_header)
+
+    branch = ""
+    sub_branch = ""
+
+    if re.search(r'\b(CSE[-_\s]*AIML|CSE[-_\s]*AI)\b', h_tokens, re.IGNORECASE):
+        branch = "CSE-AIML"
+        sub_branch = "AI"
+    elif re.search(r'\b(CSE[-_\s]*DS|CSE[-_\s]*DATA)\b', h_tokens, re.IGNORECASE):
+        branch = "CSE-DS"
+        sub_branch = "DS"
+    elif re.search(r'\b(CSE|Computer\s*Science(?!\s*Engineering\s*\(COMPS\)))\b', h_tokens, re.IGNORECASE):
+        branch = "CSE"
+        sub_branch = "CSE"
+    elif re.search(r'\b(COMPS|Computer\s*Engineering|CE\b)', h_tokens, re.IGNORECASE):
+        branch = "CE"
+        sub_branch = "CE"
+    elif re.search(r'\b(EXTC|ETRX|Electronics|Telecommunication)\b', h_tokens, re.IGNORECASE):
+        branch = "EXTC"
+        sub_branch = "EXTC"
+    elif re.search(r'\b(Information\s*Technology|\bIT\b)', h_tokens, re.IGNORECASE):
+        branch = "IT"
+        sub_branch = "IT"
+    elif re.search(r'\bMCA\b', h_tokens, re.IGNORECASE):
+        branch = "MCA"
+        sub_branch = "MCA"
 
     # 5. Offer Type, CTC, Stipend, Package
     offer_type = "Placement"
