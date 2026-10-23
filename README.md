@@ -34,6 +34,8 @@
    - [Brevo 6-Digit Hashed OTP Password Reset](#brevo-6-digit-hashed-otp-password-reset)
    - [High-Speed Adaptive Chunking GridFS Upload Pipeline](#high-speed-adaptive-chunking-gridfs-upload-pipeline)
    - [Social Sharing & High-Contrast Favicon Engineering](#social-sharing--high-contrast-favicon-engineering)
+   - [Placement Document Ingestion & Extraction Engine](#placement-document-ingestion--extraction-engine)
+   - [Branch Categorization & Sovereign Presentation Architecture](#branch-categorization--sovereign-presentation-architecture)
 8. [Environment Variables & Configuration Reference](#environment-variables--configuration-reference)
 9. [Codebase Directory Structure](#codebase-directory-structure)
 10. [Automated Verification & Test Harness (214 Tests)](#automated-verification--test-harness-214-tests)
@@ -473,6 +475,101 @@ When students share LOOP URLs on WhatsApp, LinkedIn, Twitter, or iMessage, crawl
   1. **Open Graph Banner (`/og-image.png`):** A custom $1200 \times 630\text{ px}$ graphic featuring a deep midnight-slate background (`#0A0E17`), ambient violet glow, bold white typography, the SPIT Mumbai emblem, and feature badges.
   2. **High-Contrast Squircle Favicon (`/favicon.png`):** A 512×512 icon featuring a dark rounded squircle badge enclosing the white infinity logo, guaranteeing 100% visibility on light-themed browser tabs and white WhatsApp preview cards.
   3. **Adaptive Vector Favicon (`/favicon.svg`):** Scalable vector asset for high-DPI retina displays.
+
+---
+
+### Placement Document Ingestion & Extraction Engine
+
+LOOP features a dedicated Python and Swift data extraction pipeline ([`backend/scripts/extract_all_placement_years.py`](backend/scripts/extract_all_placement_years.py) and [`backend/scripts/extract_placement_stories.py`](backend/scripts/extract_placement_stories.py)) that audits, normalizes, and extracts placement narratives from **450 raw local documents** into **430 published, verified database stories**:
+
+```mermaid
+flowchart TD
+    subgraph S1["1. Raw Document Source Layer (450 Files)"]
+        A1["Digital PDF Files (.pdf)"]
+        A2["Scanned / Canva PDFs"]
+        A3["Word Documents (.docx / .doc)"]
+    end
+
+    subgraph S2["2. Document Reading & Text Extraction Engine"]
+        B1["pypdf Reader"]
+        B2["PDF Annotations Parser (/Annots)"]
+        B3["Native Apple Vision OCR (ocr_pdf.swift)"]
+        B4["python-docx Parser (Paragraphs & Tables)"]
+        
+        A1 --> B1
+        A1 --> B2
+        A2 -->|"Text < 50 chars or fragmented"| B3
+        A3 --> B4
+    end
+
+    subgraph S3["3. Text Normalization & Cleaning Layer"]
+        C1["Unicode & Quote Sanitizer ('—', '–', '\u00a0')"]
+        C2["List Item Re-segmenter (1. ... 2. ...)"]
+        C3["OCR Currency Repair (Converts '7' / '<' / '€' -> '₹')"]
+        
+        B1 & B3 & B4 --> C1 --> C2 --> C3
+    end
+
+    subgraph S4["4. Regex & Entity Extraction Engine"]
+        D1["Candidate Name Resolver\n(Filename + Header tokens)"]
+        D2["Company Canonicalizer\n(50+ Campus Recruiter Map)"]
+        D3["Candidate Branch Detector\n(Sovereign: CSE, CE, EXTC, IT, MCA)"]
+        D4["Compensation Parser\n(CTC, Fixed, Bonus, Stipend)"]
+        D5["Narrative Stage Parser\n(OA, Technical Rounds, HR)"]
+        D6["Hyperlink Extractor\n(LeetCode, GitHub, LinkedIn)"]
+
+        C3 --> D1
+        C3 --> D2
+        C3 --> D3
+        C3 --> D4
+        C3 --> D5
+        B2 --> D6
+    end
+
+    subgraph S5["5. Validation & Payload Assembly"]
+        E1["Deterministic Story ID Generator\n('story_YYYY_hash')"]
+        E2["Placement Story JSON Schema\n(430 Verified Stories)"]
+        
+        D1 & D2 & D3 & D4 & D5 & D6 --> E1 --> E2
+    end
+
+    subgraph S6["6. Storage & Website Delivery Layer"]
+        F1[("MongoDB Atlas Database\n('stories' collection)")]
+        F2["Node.js / Express API\n('/api/stories')"]
+        F3["LOOP Frontend (React + Vite)\n(Cards, Badges, Detail Views)"]
+
+        E2 --> F1 --> F2 --> F3
+    end
+```
+
+#### Placement Story Count Breakdown:
+
+| Passout Batch | Raw Documents | Published Verified Stories | Verification Status |
+| :--- | :---: | :---: | :--- |
+| **Class of 2024** | 61 files | **59 stories** | 2 non-story template files excluded |
+| **Class of 2025** | 123 files | **121 stories** | 2 duplicate format files excluded |
+| **Class of 2026** | 141 files | **131 stories** | 10 duplicate PDF/DOCX pairs deduplicated |
+| **Class of 2027** | 125 files | **119 stories** | 6 duplicate format pairs excluded |
+| **Total** | **450 files** | **430 stories** | **100% verified against original campus records** |
+
+---
+
+### Branch Categorization & Sovereign Presentation Architecture
+
+To preserve strict source fidelity while providing intuitive student search:
+1. **Three Filter Categories:** The sidebar presents exactly three branch filter categories: `1. CSE`, `2. CE`, `3. EXTC`.
+2. **Unified Tracks:**
+   - **CSE Track:** Includes `CSE`, `CSE-AIML`, `CSE-DS`, and `IT` (162 total stories).
+   - **CE Track:** Includes `CE` / Computer Engineering and `MCA` (190 total stories).
+   - **EXTC Track:** Includes `EXTC` / Electronics & Telecommunication (78 total stories).
+3. **Sovereign Branch Badges:** Regardless of high-level category groupings, candidate detail badges display their exact degree track:
+   - `CSE-DS` $\to$ `CSE (DS)`
+   - `CSE-AIML` $\to$ `CSE (AI/ML)`
+   - `IT` $\to$ `IT`
+   - `CSE` $\to$ `CSE`
+   - `CE` / `MCA` $\to$ `CE`
+   - `EXTC` $\to$ `EXTC`
+4. **Anti-Contamination Rule:** A candidate's degree branch is strictly preserved from their self-reported header and never inferred or overridden from company recruitment eligibility criteria (e.g., `Eligibility: CE/CSE`).
 
 ---
 
