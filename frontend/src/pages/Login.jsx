@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
-import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
 import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 
 export default function Login() {
@@ -18,7 +18,6 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -733,35 +732,37 @@ export default function Login() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '0.45rem',
-            marginBottom: '1.75rem'
+            gap: '0.75rem',
+            marginBottom: '2rem'
           }}>
             <img 
               src="/loop-logo.png" 
               alt="LOOP Logo" 
               style={{ 
-                height: '24px', 
+                height: '42px', 
                 width: 'auto', 
                 filter: 'var(--logo-filter)',
-                marginRight: '0.2rem'
+                marginRight: '0.3rem'
               }} 
             />
             <span style={{
-              fontSize: '1.25rem',
+              fontSize: '2.1rem',
               fontWeight: 800,
-              letterSpacing: '0.18em',
+              letterSpacing: '0.14em',
               textTransform: 'uppercase',
-              fontFamily: 'var(--font-display)'
+              fontFamily: 'var(--font-display)',
+              lineHeight: 1
             }}>
               Loop
             </span>
             <span style={{
-              fontSize: '0.55rem',
-              letterSpacing: '0.04em',
-              padding: '1px 5px',
-              border: '1px solid var(--text-primary)',
-              borderRadius: '4px',
-              fontWeight: '700'
+              fontSize: '0.78rem',
+              letterSpacing: '0.05em',
+              padding: '3px 8px',
+              border: '1.5px solid var(--text-primary)',
+              borderRadius: '6px',
+              fontWeight: '800',
+              lineHeight: 1.2
             }}>SPIT</span>
           </div>
 
@@ -1388,32 +1389,21 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* Remember me & Forgot Password Row */}
+                {/* Forgot Password Link */}
                 <div style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
+                  justifyContent: 'flex-end',
                   alignItems: 'center',
                   fontSize: '0.86rem',
-                  color: 'var(--text-secondary)',
-                  marginTop: '-0.15rem',
-                  marginBottom: '0.15rem'
+                  marginTop: '-0.25rem',
+                  marginBottom: '0.1rem'
                 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
-                    <input 
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      style={{ cursor: 'pointer', accentColor: 'var(--accent-color)', width: '16px', height: '16px', borderRadius: '4px' }}
-                    />
-                    <span style={{ fontSize: '0.86rem', color: 'var(--text-primary)' }}>Remember me</span>
-                  </label>
-
                   <Link
                     to="/forgot-password"
                     style={{
                       fontSize: '0.86rem',
                       fontWeight: 500,
-                      color: 'var(--text-primary)',
+                      color: 'var(--text-secondary)',
                       textDecoration: 'none',
                       cursor: 'pointer'
                     }}
@@ -1452,24 +1442,6 @@ export default function Login() {
                     </>
                   )}
                 </button>
-
-                {/* Security Badge Banner */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.55rem',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '12px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.86rem',
-                  fontWeight: 600
-                }}>
-                  <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
-                  <span>Restricted to authorized SPIT community members</span>
-                </div>
               </form>
 
               {/* 1-Click Demo Logins (Accessible via ?demo=true) */}
@@ -1527,24 +1499,6 @@ export default function Login() {
                   </button>
                 </div>
               )}
-
-              {/* Footer */}
-              <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
-                  Having trouble signing in?{' '}
-                  <a
-                    href="mailto:support@spit.ac.in"
-                    style={{
-                      color: 'var(--text-primary)',
-                      fontWeight: 600,
-                      textDecoration: 'none'
-                    }}
-                  >
-                    Contact support.
-                  </a>
-                </p>
-              </div>
-
 
             </>
           )}
