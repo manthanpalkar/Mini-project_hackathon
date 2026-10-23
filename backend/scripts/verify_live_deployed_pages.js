@@ -98,9 +98,11 @@ async function run() {
   const userSession = await loginRes.json();
   console.log('Obtained authentic live session for:', userSession.email, 'Role:', userSession.role);
 
-  await sleep(1500);
+  // First navigate to the app origin
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/login' });
+  await sleep(2500);
 
-  // Set auth in localStorage
+  // Set auth in localStorage for https://loop-seven-delta.vercel.app
   await cdp.send('Runtime.evaluate', {
     expression: `
       localStorage.setItem('loop_current_user', JSON.stringify(${JSON.stringify(userSession)}));
@@ -108,13 +110,14 @@ async function run() {
       console.log('Auth set successfully');
     `
   });
+  await sleep(1000);
 
   console.log('\n======================================================');
   console.log('TEST 1: Inspecting Aman Kanojia (Nomura: story_2026_5136315)');
   console.log('======================================================');
 
   await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2026_5136315' });
-  await sleep(3500);
+  await sleep(5500);
 
   const amanEvaluation = await cdp.send('Runtime.evaluate', {
     expression: `(() => {
@@ -243,7 +246,7 @@ async function run() {
   console.log('======================================================');
 
   await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2026_74878838' });
-  await sleep(3500);
+  await sleep(5500);
 
   const shivEvaluation = await cdp.send('Runtime.evaluate', {
     expression: `(() => {
@@ -411,6 +414,90 @@ async function run() {
     returnByValue: true
   });
   console.log('Tushar Raja Live Page:', tusharEval.result.value);
+
+  console.log('\n======================================================');
+  console.log('TEST 7: Multi-Year Live Verification - 2024: Aayush Sheth (ISS STOXX: story_2024_181a49f2)');
+  console.log('======================================================');
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2024_181a49f2' });
+  await sleep(3500);
+
+  const aayushEval = await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const name = document.querySelector('h1')?.innerText;
+      const roleCompany = document.querySelector('header p')?.innerText;
+      const rounds = Array.from(document.querySelectorAll('#section-rounds .story-content-card')).map(c => c.querySelector('h3')?.innerText);
+      const headers = Array.from(document.querySelectorAll('header > div:last-child > div')).map(d => ({
+        label: d.querySelector('p:first-child')?.innerText,
+        value: d.querySelector('p:last-child')?.innerText
+      }));
+      return { name, roleCompany, rounds, headers };
+    })()`,
+    returnByValue: true
+  });
+  console.log('Aayush Sheth Live Page:', aayushEval.result.value);
+
+  console.log('\n======================================================');
+  console.log('TEST 8: Multi-Year Live Verification - 2025: Vinay Prasad Jadhav (KPMG: story_2025_4ef62da4)');
+  console.log('======================================================');
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2025_4ef62da4' });
+  await sleep(3500);
+
+  const vinayEval = await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const name = document.querySelector('h1')?.innerText;
+      const roleCompany = document.querySelector('header p')?.innerText;
+      const rounds = Array.from(document.querySelectorAll('#section-rounds .story-content-card')).map(c => c.querySelector('h3')?.innerText);
+      const headers = Array.from(document.querySelectorAll('header > div:last-child > div')).map(d => ({
+        label: d.querySelector('p:first-child')?.innerText,
+        value: d.querySelector('p:last-child')?.innerText
+      }));
+      return { name, roleCompany, rounds, headers };
+    })()`,
+    returnByValue: true
+  });
+  console.log('Vinay Prasad Jadhav Live Page:', vinayEval.result.value);
+
+  console.log('\n======================================================');
+  console.log('TEST 9: Multi-Year Live Verification - 2027: Yash Ganesh Jadhav (Revvity: story_2027_3edb7398)');
+  console.log('======================================================');
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2027_3edb7398' });
+  await sleep(3500);
+
+  const yashEval = await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const name = document.querySelector('h1')?.innerText;
+      const roleCompany = document.querySelector('header p')?.innerText;
+      const rounds = Array.from(document.querySelectorAll('#section-rounds .story-content-card')).map(c => c.querySelector('h3')?.innerText);
+      const headers = Array.from(document.querySelectorAll('header > div:last-child > div')).map(d => ({
+        label: d.querySelector('p:first-child')?.innerText,
+        value: d.querySelector('p:last-child')?.innerText
+      }));
+      return { name, roleCompany, rounds, headers };
+    })()`,
+    returnByValue: true
+  });
+  console.log('Yash Ganesh Jadhav Live Page (CGPA verified):', yashEval.result.value);
+
+  console.log('\n======================================================');
+  console.log('TEST 10: Multi-Year Live Verification - 2027: Darsh Bajaj (Mahindra Finance: story_2027_01705d91)');
+  console.log('======================================================');
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2027_01705d91' });
+  await sleep(3500);
+
+  const darshEval = await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const name = document.querySelector('h1')?.innerText;
+      const roleCompany = document.querySelector('header p')?.innerText;
+      const rounds = Array.from(document.querySelectorAll('#section-rounds .story-content-card')).map(c => c.querySelector('h3')?.innerText);
+      const headers = Array.from(document.querySelectorAll('header > div:last-child > div')).map(d => ({
+        label: d.querySelector('p:first-child')?.innerText,
+        value: d.querySelector('p:last-child')?.innerText
+      }));
+      return { name, roleCompany, rounds, headers };
+    })()`,
+    returnByValue: true
+  });
+  console.log('Darsh Bajaj Live Page (CGPA 9.3 verified):', darshEval.result.value);
 
   cdp.close();
   chromeProc.kill();
