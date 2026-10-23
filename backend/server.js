@@ -107,6 +107,18 @@ const feedbackLimiter = rateLimit({
   message: { error: 'Too many feedback submissions from this IP, please try again after 15 minutes.' }
 });
 
+// Define OTP Verification Rate Limiter (Max 5 attempts per 15 min per IP)
+const verifyOtpLimiter = rateLimit({
+  windowMs: RATE_LIMIT_CONFIG.WINDOW_MS,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many verification attempts (maximum 5 attempts). Please wait 15 minutes before trying again.',
+    code: 'RATE_LIMIT_EXCEEDED'
+  }
+});
+
 // Multer memory storage for feedback screenshot attachments (max 5MB)
 const feedbackUpload = multer({
   storage: multer.memoryStorage(),
@@ -303,11 +315,13 @@ app.use(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], log
 app.use([
   '/api/auth/forgot-password',
   '/api/users/forgot-password',
-  '/api/auth/verify-reset-code',
-  '/api/users/verify-reset-code',
   '/api/auth/reset-password',
   '/api/users/reset-password'
 ], loginLimiter);
+app.use([
+  '/api/auth/verify-reset-code',
+  '/api/users/verify-reset-code'
+], verifyOtpLimiter);
 
 // Apply granular rate limiting to resource downloads and file upload sessions
 app.use(['/api/resources/:id/file', '/api/pending-resources/:id/file'], fileDownloadLimiter);
@@ -1954,9 +1968,15 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
       ]
     });
 
+    if (!user) {
+      return res.status(404).json({
+        error: 'No account found with this email. Please sign up with Google using your SPIT email.',
+        code: 'ACCOUNT_NOT_FOUND'
+      });
+    }
+
     // Only accounts with local passwords are eligible for password recovery
     const hasLocalPassword = Boolean(
-      user && 
       user.password && 
       typeof user.password === 'string' && 
       user.password.trim() &&
@@ -1964,95 +1984,94 @@ app.post(['/api/auth/forgot-password', '/api/users/forgot-password'], async (req
     );
 
     // Case B: Account registered through Google only (no local password set)
-    if (user && !hasLocalPassword && (user.googleSub || user.authProvider === 'google')) {
+    if (!hasLocalPassword && (user.googleSub || user.authProvider === 'google')) {
       return res.status(400).json({
         error: 'Password reset isn’t available for this account. If you signed up with Google, return to Login and choose Continue with Google.',
         code: 'GOOGLE_ACCOUNT_ONLY'
       });
     }
 
-    if (user && hasLocalPassword) {
-      const targetEmail = (user.email || normalizedEmail).trim().toLowerCase();
+    if (!hasLocalPassword) {
+      return res.status(400).json({
+        error: 'This account does not have a password set. Please log in using Google with your SPIT email.',
+        code: 'NO_LOCAL_PASSWORD'
+      });
+    }
 
-      // Check 60-second cooldown on existing pending challenges
-      const activeChallenge = await PasswordResetChallenge.findOne({
-        email: targetEmail,
-        status: 'pending',
-        expiresAt: { $gt: new Date() }
-      }).sort({ createdAt: -1 });
+    const targetEmail = (user.email || normalizedEmail).trim().toLowerCase();
 
-      if (activeChallenge && activeChallenge.lastIssuedAt) {
-        const elapsedMs = Date.now() - new Date(activeChallenge.lastIssuedAt).getTime();
-        if (elapsedMs < 60000) {
-          const remainingSeconds = Math.ceil((60000 - elapsedMs) / 1000);
-          return res.status(429).json({
-            error: `A reset code was recently sent. Please wait ${remainingSeconds} second(s) before requesting another code.`,
-            code: 'COOLDOWN_ACTIVE',
-            retryAfter: remainingSeconds
-          });
-        }
+    // Check 60-second cooldown on existing pending challenges
+    const activeChallenge = await PasswordResetChallenge.findOne({
+      email: targetEmail,
+      status: 'pending',
+      expiresAt: { $gt: new Date() }
+    }).sort({ createdAt: -1 });
+
+    if (activeChallenge && activeChallenge.lastIssuedAt) {
+      const elapsedMs = Date.now() - new Date(activeChallenge.lastIssuedAt).getTime();
+      if (elapsedMs < 60000) {
+        const remainingSeconds = Math.ceil((60000 - elapsedMs) / 1000);
+        return res.status(429).json({
+          error: `A reset code was recently sent. Please wait ${remainingSeconds} second(s) before requesting another code.`,
+          code: 'COOLDOWN_ACTIVE',
+          retryAfter: remainingSeconds
+        });
       }
+    }
 
-      // Invalidate existing pending challenges for this email
+    // Invalidate existing pending challenges for this email
+    await PasswordResetChallenge.updateMany(
+      { email: targetEmail, status: 'pending' },
+      { $set: { status: 'invalidated' } }
+    );
+
+    // Generate cryptographically secure 6-digit code
+    const code = crypto.randomInt(100000, 1000000).toString();
+    const codeHash = crypto.createHmac('sha256', RESET_SECRET).update(code).digest('hex');
+
+    await PasswordResetChallenge.create({
+      email: targetEmail,
+      codeHash,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      attempts: 0,
+      lastIssuedAt: new Date(),
+      status: 'pending'
+    });
+
+    // Send email via Brevo email service to registered account email
+    try {
+      await sendPasswordResetEmail(targetEmail, code);
+    } catch (sendErr) {
+      // If Brevo delivery fails, invalidate challenge and report honest failure
       await PasswordResetChallenge.updateMany(
         { email: targetEmail, status: 'pending' },
         { $set: { status: 'invalidated' } }
       );
-
-      // Generate cryptographically secure 6-digit code
-      const code = crypto.randomInt(100000, 1000000).toString();
-      const codeHash = crypto.createHmac('sha256', RESET_SECRET).update(code).digest('hex');
-
-      await PasswordResetChallenge.create({
-        email: targetEmail,
-        codeHash,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-        attempts: 0,
-        lastIssuedAt: new Date(),
-        status: 'pending'
-      });
-
-      // Send email via Brevo email service to registered account email
-      try {
-        await sendPasswordResetEmail(targetEmail, code);
-      } catch (sendErr) {
-        // If Brevo delivery fails, invalidate challenge and report honest failure
-        await PasswordResetChallenge.updateMany(
-          { email: targetEmail, status: 'pending' },
-          { $set: { status: 'invalidated' } }
-        );
-        console.error('[FORGOT_PASSWORD] Brevo dispatch error:', sendErr.message);
-        const isConfigError = sendErr.message.includes('not configured');
-        return res.status(502).json({
-          error: isConfigError
-            ? 'Failed to deliver verification code email: BREVO_API_KEY is not configured in server environment variables. Please check server settings.'
-            : 'Failed to deliver verification code email. Please check your network and try again later.',
-          code: 'EMAIL_DELIVERY_FAILED'
-        });
-      }
-
-      activityService.logActivity({
-        eventType: 'AUTH_PASSWORD_RESET_REQ',
-        category: 'AUTH',
-        actorEmail: targetEmail,
-        actorRole: user.role || 'Student',
-        targetUserEmail: targetEmail,
-        summary: `Password reset verification challenge requested for ${targetEmail}`,
-        outcome: 'SUCCESS',
-        ipAddress: req.ip || '127.0.0.1',
-        userAgent: req.get('user-agent') || ''
-      });
-
-      return res.json({
-        success: true,
-        message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
+      console.error('[FORGOT_PASSWORD] Brevo dispatch error:', sendErr.message);
+      const isConfigError = sendErr.message.includes('not configured');
+      return res.status(502).json({
+        error: isConfigError
+          ? 'Failed to deliver verification code email: BREVO_API_KEY is not configured in server environment variables. Please check server settings.'
+          : 'Failed to deliver verification code email. Please check your network and try again later.',
+        code: 'EMAIL_DELIVERY_FAILED'
       });
     }
 
-    // Always return an identical generic response to prevent user enumeration
+    activityService.logActivity({
+      eventType: 'AUTH_PASSWORD_RESET_REQ',
+      category: 'AUTH',
+      actorEmail: targetEmail,
+      actorRole: user.role || 'Student',
+      targetUserEmail: targetEmail,
+      summary: `Password reset verification challenge requested for ${targetEmail}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.get('user-agent') || ''
+    });
+
     return res.json({
       success: true,
-      message: 'If an account with that email exists and has password recovery enabled, a verification code has been sent.'
+      message: 'A 6-digit recovery code has been sent to your registered SPIT email address.'
     });
   } catch (err) {
     console.error('Forgot password error:', err);

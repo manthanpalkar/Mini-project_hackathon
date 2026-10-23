@@ -646,20 +646,22 @@ export const requestPasswordReset = async (email) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
   });
-  if (res.status === 404) {
+  let data = await res.json().catch(() => ({}));
+  if (res.status === 404 && !data.code) {
     res = await fetch(`${API_URL}/users/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
+    data = await res.json().catch(() => ({}));
   }
-  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 404) {
+    if (res.status === 404 && !data.code) {
       throw new Error('Password recovery service is deploying or updating. Please try again in a few moments.');
     }
     const err = new Error(data.error || 'Failed to request password reset');
     err.code = data.code;
+    err.isNotFound = data.code === 'ACCOUNT_NOT_FOUND';
     err.isGoogleOnly = data.code === 'GOOGLE_ACCOUNT_ONLY';
     throw err;
   }
@@ -672,19 +674,24 @@ export const verifyPasswordResetCode = async ({ email, code }) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, code })
   });
-  if (res.status === 404) {
+  let data = await res.json().catch(() => ({}));
+  if (res.status === 404 && !data.code) {
     res = await fetch(`${API_URL}/users/verify-reset-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code })
     });
+    data = await res.json().catch(() => ({}));
   }
-  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 404) {
+    if (res.status === 404 && !data.code) {
       throw new Error('Verification service is deploying or updating. Please try again in a few moments.');
     }
-    throw new Error(data.error || 'Failed to verify reset code');
+    const err = new Error(data.error || 'Failed to verify reset code');
+    err.code = data.code;
+    err.remainingAttempts = data.remainingAttempts;
+    err.isLocked = data.code === 'MAX_ATTEMPTS_EXCEEDED' || data.code === 'RATE_LIMIT_EXCEEDED';
+    throw err;
   }
   return data;
 };

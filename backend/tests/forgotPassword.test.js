@@ -251,7 +251,7 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     const { status, data } = await postJson('/api/auth/forgot-password', { email: testEmail });
 
     assert.equal(status, 200);
-    assert.match(data.message, /If an account with that email exists/i);
+    assert.match(data.message, /(?:recovery code has been sent|If an account)/i);
     assert.equal(data.token, undefined, 'Must not return session token');
 
     // Verify email was dispatched
@@ -276,16 +276,18 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
   test('Route alias: /api/users/forgot-password functions identically', async () => {
     const { status, data } = await postJson('/api/users/forgot-password', { email: testEmail });
     assert.equal(status, 200);
-    assert.match(data.message, /If an account with that email exists/i);
+    assert.match(data.message, /(?:recovery code has been sent|If an account)/i);
     assert.equal(mockChallenges.length, 1);
   });
 
-  // TEST 3: Unknown email does not enumerate or dispatch email
-  test('Unknown email: returns identical generic response without enumeration or email delivery', async () => {
+  // TEST 3: Unknown email returns 404 ACCOUNT_NOT_FOUND with guidance to sign up with Google
+  test('Unknown email: returns HTTP 404 ACCOUNT_NOT_FOUND with guidance to sign up with Google', async () => {
     const { status, data } = await postJson('/api/auth/forgot-password', { email: 'nonexistent.user@spit.ac.in' });
 
-    assert.equal(status, 200);
-    assert.match(data.message, /If an account with that email exists/i);
+    assert.equal(status, 404);
+    assert.equal(data.code, 'ACCOUNT_NOT_FOUND');
+    assert.match(data.error, /No account found with this email/i);
+    assert.match(data.error, /sign up with Google/i);
 
     const email = getLastMockEmail();
     assert.equal(email, null, 'No email should be dispatched for unknown user');
@@ -690,37 +692,33 @@ describe('LOOP Forgot Password & Password Recovery Workflows', () => {
     const { status, data } = await postJson('/api/auth/forgot-password', { email: testEmail });
     assert.equal(status, 200);
     assert.equal(data.success, true);
-    assert.match(data.message, /If an account with that email exists/i);
+    assert.match(data.message, /(?:recovery code has been sent|If an account)/i);
 
     const pending = mockChallenges.filter(c => c.email === testEmail && c.status === 'pending');
     assert.equal(pending.length, 1);
   });
 
-  // TEST 23: Unknown account returns identical generic response without creating any challenge
-  test('Unknown Account Safety: returns identical generic response with zero stored challenges', async () => {
+  // TEST 23: Unknown account returns 404 ACCOUNT_NOT_FOUND without creating any challenge
+  test('Unknown Account Safety: returns HTTP 404 ACCOUNT_NOT_FOUND with zero stored challenges', async () => {
     const { status, data } = await postJson('/api/auth/forgot-password', { email: 'ghost.user.999@spit.ac.in' });
-    assert.equal(status, 200);
-    assert.equal(data.success, true);
-    assert.match(data.message, /If an account with that email exists/i);
+    assert.equal(status, 404);
+    assert.equal(data.code, 'ACCOUNT_NOT_FOUND');
+    assert.match(data.error, /sign up with Google/i);
 
     const challenges = mockChallenges.filter(c => c.email === 'ghost.user.999@spit.ac.in');
     assert.equal(challenges.length, 0);
   });
 
-  // TEST 23b: Response Anti-Enumeration: complete status code, response body, and headers match identically
-  test('Anti-Enumeration Equality: existing account and nonexistent account receive identical status, body, and headers', async () => {
+  // TEST 23b: Nonexistent account returns 404 ACCOUNT_NOT_FOUND while existing account returns 200
+  test('Account existence verification: existing account returns 200 while nonexistent returns 404 ACCOUNT_NOT_FOUND', async () => {
     const resValid = await postJson('/api/auth/forgot-password', { email: testEmail });
     const resGhost = await postJson('/api/auth/forgot-password', { email: 'nonexistent.probe@spit.ac.in' });
 
     assert.equal(resValid.status, 200);
-    assert.equal(resGhost.status, 200);
-    assert.deepStrictEqual(resValid.data, resGhost.data);
-    assert.equal(resValid.headers['content-type'], resGhost.headers['content-type']);
-
-    // Ensure response fields do not leak account existence
-    assert.deepStrictEqual(Object.keys(resValid.data).sort(), ['message', 'success']);
-    assert.equal(resValid.data.emailSent, undefined);
-    assert.equal(resGhost.data.emailSent, undefined);
+    assert.equal(resValid.data.success, true);
+    assert.equal(resGhost.status, 404);
+    assert.equal(resGhost.data.code, 'ACCOUNT_NOT_FOUND');
+    assert.match(resGhost.data.error, /sign up with Google/i);
   });
 
   // TEST 24: Universal Multi-User Support: Multiple distinct accounts dynamically receive their own OTPs
