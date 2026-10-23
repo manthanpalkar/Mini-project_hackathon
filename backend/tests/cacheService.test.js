@@ -363,13 +363,124 @@ describe('Redis Cache Service & Resilient Fallback', () => {
     const result1 = await cacheService.getOrSet('loop:test:large_payload', async () => largeArray, 60);
     assert.deepEqual(result1, largeArray);
 
-    // Verify stored payload in mock Redis starts with compression prefix '__gz:'
+    // Verify stored payload in mock Redis starts with versioned compression prefix '__gz:v1:'
     const rawStored = store.get('loop:test:large_payload');
-    assert.ok(rawStored.startsWith('__gz:'), 'Payload must be compressed with __gz: prefix');
+    assert.ok(rawStored.startsWith('__gz:v1:'), 'Payload must be compressed with __gz:v1: prefix');
     assert.ok(rawStored.length < JSON.stringify(largeArray).length, 'Compressed payload must be smaller than raw JSON');
 
     // Cache hit should transparently decompress
     const result2 = await cacheService.getOrSet('loop:test:large_payload', async () => [], 60);
     assert.deepEqual(result2, largeArray);
+  });
+
+  test('Legacy & Uncompressed Compatibility: Seamlessly decodes legacy __gz: and raw JSON strings', async () => {
+    const zlib = require('zlib');
+    const store = new Map();
+    
+    // 1. Raw uncompressed JSON
+    const uncompressedObj = { type: 'uncompressed', timestamp: 123456 };
+    store.set('loop:test:legacy_raw', JSON.stringify(uncompressedObj));
+
+    // 2. Legacy unversioned __gz: base64
+    const legacyObj = { type: 'legacy_gzip', data: 'SPIT Campus Placement' };
+    const legacyGz = '__gz:' + zlib.gzipSync(Buffer.from(JSON.stringify(legacyObj), 'utf-8')).toString('base64');
+    store.set('loop:test:legacy_gz', legacyGz);
+
+    const mockClient = {
+      isOpen: true,
+      get: async (k) => store.get(k) || null,
+      set: async (k, v) => store.set(k, v),
+      del: async (k) => store.delete(k)
+    };
+    cacheService._setMockClient(mockClient);
+
+    const readRaw = await cacheService.getOrSet('loop:test:legacy_raw', async () => null, 60);
+    assert.deepEqual(readRaw, uncompressedObj);
+
+    const readLegacy = await cacheService.getOrSet('loop:test:legacy_gz', async () => null, 60);
+    assert.deepEqual(readLegacy, legacyObj);
+  });
+
+  test('Corrupt Cache Entry Recovery: Purges corrupt gzip entry and falls back to DB cleanly', async () => {
+    const store = new Map();
+    store.set('loop:test:corrupt_gz', '__gz:v1:not-valid-base64-corrupted-bytes!!!');
+
+    let deletedKey = null;
+    const mockClient = {
+      isOpen: true,
+      get: async (k) => store.get(k) || null,
+      set: async (k, v) => store.set(k, v),
+      del: async (k) => {
+        deletedKey = k;
+        store.delete(k);
+      }
+    };
+    cacheService._setMockClient(mockClient);
+
+    let dbCalled = false;
+    const result = await cacheService.getOrSet('loop:test:corrupt_gz', async () => {
+      dbCalled = true;
+      return { recovered: true };
+    }, 60);
+
+    assert.equal(dbCalled, true, 'Must fall back to DB on decompression error');
+    assert.deepEqual(result, { recovered: true });
+    assert.equal(deletedKey, 'loop:test:corrupt_gz', 'Corrupt key must be purged from Redis');
+  });
+
+  test('Circuit Breaker: Bypasses Redis after threshold consecutive errors and fast-fails to DB', async () => {
+    let redisAttemptCount = 0;
+    const mockFailingClient = {
+      isOpen: true,
+      get: async () => {
+        redisAttemptCount++;
+        throw new Error('ETIMEDOUT: Redis socket connection timed out');
+      },
+      set: async () => {},
+      del: async () => {}
+    };
+    cacheService._setMockClient(mockFailingClient);
+
+    // Trip circuit breaker with 5 consecutive failures
+    for (let i = 0; i < 5; i++) {
+      const res = await cacheService.getOrSet(`loop:test:cb_${i}`, async () => ({ db: i }), 60);
+      assert.deepEqual(res, { db: i });
+    }
+
+    assert.equal(redisAttemptCount, 5);
+    const cb = cacheService._getCircuitBreaker();
+    assert.equal(cb.state, 'OPEN', 'Circuit breaker must transition to OPEN');
+
+    // 6th call while circuit is OPEN must fast-fail directly to DB without calling Redis get()
+    const callStart = Date.now();
+    const res6 = await cacheService.getOrSet('loop:test:cb_open', async () => ({ fast: true }), 60);
+    const callDuration = Date.now() - callStart;
+
+    assert.deepEqual(res6, { fast: true });
+    assert.equal(redisAttemptCount, 5, 'Must NOT attempt Redis GET while circuit is OPEN');
+    assert.ok(callDuration < 50, 'Bypassed call must execute with zero Redis waiting latency');
+  });
+
+  test('Empty Result Short TTL: Caches empty search results with bounded TTL to prevent cache pollution', async () => {
+    const store = new Map();
+    const ttls = new Map();
+    const mockClient = {
+      isOpen: true,
+      get: async (k) => store.get(k) || null,
+      set: async (k, v, opts) => {
+        store.set(k, v);
+        if (opts && opts.EX) ttls.set(k, opts.EX);
+      },
+      del: async (k) => store.delete(k)
+    };
+    cacheService._setMockClient(mockClient);
+
+    // Caching empty array [] with requested 1800s TTL should be clamped to 30s
+    await cacheService.getOrSet('loop:test:empty_search', async () => [], 1800);
+    assert.equal(ttls.get('loop:test:empty_search'), 30, 'Empty results must be clamped to 30s TTL');
+
+    // Non-empty array must retain full requested TTL
+    await cacheService.getOrSet('loop:test:valid_search', async () => [{ id: '1' }], 1800);
+    assert.equal(ttls.get('loop:test:valid_search'), 1800, 'Non-empty results must preserve requested TTL');
   });
 });

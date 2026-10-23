@@ -18,17 +18,33 @@ const isTestRunner = process.env.NODE_ENV === 'test' || process.execArgv.some(a 
 const REDIS_URL = process.env.REDIS_URL || '';
 const REDIS_ENABLED = !isTestRunner && process.env.REDIS_ENABLED !== 'false' && Boolean(REDIS_URL);
 
-// High-speed compression settings to squeeze 5x more data into Redis RAM
-const COMPRESSION_THRESHOLD = 1024; // Compress payloads > 1 KB
-const GZIP_PREFIX = '__gz:';
+// High-speed compression settings with versioned encoding & zip-bomb protection
+const COMPRESSION_THRESHOLD = parseInt(process.env.REDIS_COMPRESSION_THRESHOLD || '1024', 10);
+const GZIP_V1_PREFIX = '__gz:v1:';
+const LEGACY_GZIP_PREFIX = '__gz:';
+const MAX_DECOMPRESSED_BYTES = 10 * 1024 * 1024; // 10 MB limit to prevent heap exhaustion
+
+// Maximum concurrent in-flight deduplications to bound memory
+const MAX_IN_FLIGHT_KEYS = 500;
+
+// Empty result TTL (30 seconds) to prevent non-matching searches from polluting cache
+const EMPTY_RESULT_TTL = parseInt(process.env.REDIS_TTL_EMPTY || '30', 10);
 
 function compressPayload(str) {
-  if (typeof str !== 'string' || str.length < COMPRESSION_THRESHOLD) {
+  if (typeof str !== 'string' || Buffer.byteLength(str, 'utf-8') < COMPRESSION_THRESHOLD) {
     return str;
   }
   try {
-    const compressed = zlib.gzipSync(Buffer.from(str, 'utf-8'), { level: 6 });
-    return GZIP_PREFIX + compressed.toString('base64');
+    const rawBuf = Buffer.from(str, 'utf-8');
+    const compressed = zlib.gzipSync(rawBuf, { level: 6 });
+    // Only use compressed if it achieves at least 10% space saving
+    if (compressed.length < rawBuf.length * 0.9) {
+      const b64 = compressed.toString('base64');
+      cacheMetrics.compressionSavingsBytes += Math.max(0, rawBuf.length - b64.length);
+      cacheMetrics.compressedSets++;
+      return GZIP_V1_PREFIX + b64;
+    }
+    return str;
   } catch (e) {
     return str; // Fallback to raw string if compression error
   }
@@ -36,14 +52,23 @@ function compressPayload(str) {
 
 function decompressPayload(raw) {
   if (typeof raw !== 'string') return raw;
-  if (raw.startsWith(GZIP_PREFIX)) {
+
+  let base64Data = null;
+  if (raw.startsWith(GZIP_V1_PREFIX)) {
+    base64Data = raw.slice(GZIP_V1_PREFIX.length);
+  } else if (raw.startsWith(LEGACY_GZIP_PREFIX)) {
+    base64Data = raw.slice(LEGACY_GZIP_PREFIX.length);
+  }
+
+  if (base64Data !== null) {
     try {
-      const buf = Buffer.from(raw.slice(GZIP_PREFIX.length), 'base64');
-      return zlib.gunzipSync(buf).toString('utf-8');
+      const buf = Buffer.from(base64Data, 'base64');
+      return zlib.gunzipSync(buf, { maxOutputLength: MAX_DECOMPRESSED_BYTES }).toString('utf-8');
     } catch (e) {
       throw new Error(`Failed to decompress cached payload: ${e.message}`);
     }
   }
+
   return raw;
 }
 
@@ -57,6 +82,37 @@ const DEFAULT_TTLS = {
   default: 900
 };
 
+// Lightweight Circuit Breaker for Redis Availability
+const CIRCUIT_BREAKER = {
+  state: 'CLOSED', // 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+  failureCount: 0,
+  threshold: parseInt(process.env.REDIS_CIRCUIT_BREAKER_THRESHOLD || '5', 10),
+  resetTimeoutMs: parseInt(process.env.REDIS_CIRCUIT_BREAKER_RESET_MS || '30000', 10), // 30s
+  openUntil: 0,
+  totalTrips: 0
+};
+
+function recordSuccess() {
+  if (CIRCUIT_BREAKER.state === 'HALF_OPEN') {
+    console.log('[CacheService] Circuit breaker restored to CLOSED after successful Redis probe.');
+  }
+  CIRCUIT_BREAKER.state = 'CLOSED';
+  CIRCUIT_BREAKER.failureCount = 0;
+}
+
+function recordFailure(err) {
+  CIRCUIT_BREAKER.failureCount++;
+  cacheMetrics.errors++;
+  cacheMetrics.lastError = err?.message || String(err);
+
+  if (CIRCUIT_BREAKER.failureCount >= CIRCUIT_BREAKER.threshold && CIRCUIT_BREAKER.state !== 'OPEN') {
+    CIRCUIT_BREAKER.state = 'OPEN';
+    CIRCUIT_BREAKER.openUntil = Date.now() + CIRCUIT_BREAKER.resetTimeoutMs;
+    CIRCUIT_BREAKER.totalTrips++;
+    console.warn(`[CacheService] Circuit breaker tripped to OPEN (${CIRCUIT_BREAKER.failureCount} consecutive errors). Bypassing Redis for ${CIRCUIT_BREAKER.resetTimeoutMs / 1000}s.`);
+  }
+}
+
 // In-flight promise map for Single-Flight / Stampede Prevention
 const inFlightPromises = new Map();
 
@@ -66,6 +122,8 @@ const cacheMetrics = {
   misses: 0,
   errors: 0,
   sets: 0,
+  compressedSets: 0,
+  compressionSavingsBytes: 0,
   invalidations: 0,
   lastError: null,
   connected: false,
@@ -144,10 +202,23 @@ if (REDIS_ENABLED) {
 }
 
 /**
- * Safely check if Redis is active and ready
+ * Safely check if Redis is active and ready, taking Circuit Breaker into account
  */
 function isRedisReady() {
-  return Boolean(client && client.isOpen && cacheMetrics.connected);
+  if (!client || !client.isOpen || !cacheMetrics.connected) {
+    return false;
+  }
+
+  // Circuit breaker state check
+  if (CIRCUIT_BREAKER.state === 'OPEN') {
+    if (Date.now() >= CIRCUIT_BREAKER.openUntil) {
+      CIRCUIT_BREAKER.state = 'HALF_OPEN';
+      return true; // Trial single probe in HALF_OPEN
+    }
+    return false; // Fast-fail to DB without waiting on Redis timeouts
+  }
+
+  return true;
 }
 
 /**
@@ -168,24 +239,27 @@ function makeKey(namespace, identifier = '') {
  * @returns {Promise<any>}
  */
 async function getOrSet(key, fetcherFn, ttlSeconds = DEFAULT_TTLS.default) {
+  let redisReadFailed = false;
+
   // 1. If Redis is ready, check cache first
   if (isRedisReady()) {
     try {
       const raw = await client.get(key);
       if (raw) {
         cacheMetrics.hits++;
+        recordSuccess();
         try {
           const decompressed = decompressPayload(raw);
           return JSON.parse(decompressed);
         } catch (parseErr) {
-          // If malformed cached data, delete key and fall through to fetcher
-          console.warn(`[CacheService] Malformed JSON in cache key ${key}, purging: ${parseErr.message}`);
+          // If malformed or decompression error, delete key and fall through to fetcher
+          console.warn(`[CacheService] Corrupt cache entry in key ${key}, purging: ${parseErr.message}`);
           await client.del(key).catch(() => {});
         }
       }
     } catch (err) {
-      cacheMetrics.errors++;
-      cacheMetrics.lastError = err.message;
+      redisReadFailed = true;
+      recordFailure(err);
       console.warn(`[CacheService] Redis GET error on key ${key}: ${err.message}`);
     }
   }
@@ -197,33 +271,48 @@ async function getOrSet(key, fetcherFn, ttlSeconds = DEFAULT_TTLS.default) {
     return inFlightPromises.get(key);
   }
 
+  // Bounded in-flight execution guard
+  const canCoalesce = inFlightPromises.size < MAX_IN_FLIGHT_KEYS;
+
   const promise = (async () => {
     try {
       const result = await fetcherFn();
 
       // Only cache valid, defined non-null payloads (avoid caching null/undefined as successful hits)
-      if (result !== undefined && result !== null && isRedisReady()) {
+      // Skip writing if Redis just threw an error on read to avoid socket stall
+      if (result !== undefined && result !== null && !redisReadFailed && isRedisReady()) {
         try {
           const payload = JSON.stringify(result);
           // Safety guard: Don't cache oversized strings (> 5MB)
           if (payload.length <= 5 * 1024 * 1024) {
             const dataToStore = compressPayload(payload);
-            await client.set(key, dataToStore, { EX: Math.max(1, ttlSeconds) });
+            
+            // Optimization: Cache empty result arrays with short TTL to avoid cache pollution
+            let effectiveTtl = Math.max(1, ttlSeconds);
+            if (Array.isArray(result) && result.length === 0) {
+              effectiveTtl = Math.min(effectiveTtl, EMPTY_RESULT_TTL);
+            }
+
+            await client.set(key, dataToStore, { EX: effectiveTtl });
             cacheMetrics.sets++;
+            recordSuccess();
           }
         } catch (setErr) {
-          cacheMetrics.errors++;
-          cacheMetrics.lastError = setErr.message;
+          recordFailure(setErr);
         }
       }
 
       return result;
     } finally {
-      inFlightPromises.delete(key);
+      if (canCoalesce) {
+        inFlightPromises.delete(key);
+      }
     }
   })();
 
-  inFlightPromises.set(key, promise);
+  if (canCoalesce) {
+    inFlightPromises.set(key, promise);
+  }
   return promise;
 }
 
@@ -235,9 +324,9 @@ async function del(key) {
   try {
     await client.del(key);
     cacheMetrics.invalidations++;
+    recordSuccess();
   } catch (err) {
-    cacheMetrics.errors++;
-    cacheMetrics.lastError = err.message;
+    recordFailure(err);
   }
 }
 
@@ -257,9 +346,9 @@ async function delByPattern(pattern) {
         cacheMetrics.invalidations += keys.length;
       }
     } while (cursor !== 0 && cursor !== '0');
+    recordSuccess();
   } catch (err) {
-    cacheMetrics.errors++;
-    cacheMetrics.lastError = err.message;
+    recordFailure(err);
     console.warn(`[CacheService] delByPattern error for pattern ${pattern}: ${err.message}`);
   }
 }
@@ -315,10 +404,18 @@ function getMetrics() {
   return {
     enabled: REDIS_ENABLED,
     connected: isRedisReady(),
+    circuitBreaker: {
+      state: CIRCUIT_BREAKER.state,
+      failureCount: CIRCUIT_BREAKER.failureCount,
+      totalTrips: CIRCUIT_BREAKER.totalTrips,
+      threshold: CIRCUIT_BREAKER.threshold
+    },
     hits: cacheMetrics.hits,
     misses: cacheMetrics.misses,
     hitRate: `${hitRate}%`,
     sets: cacheMetrics.sets,
+    compressedSets: cacheMetrics.compressedSets,
+    compressionSavingsBytes: Math.max(0, cacheMetrics.compressionSavingsBytes),
     invalidations: cacheMetrics.invalidations,
     errors: cacheMetrics.errors,
     lastError: cacheMetrics.lastError,
@@ -355,9 +452,18 @@ function _resetMetrics() {
   cacheMetrics.misses = 0;
   cacheMetrics.errors = 0;
   cacheMetrics.sets = 0;
+  cacheMetrics.compressedSets = 0;
+  cacheMetrics.compressionSavingsBytes = 0;
   cacheMetrics.invalidations = 0;
   cacheMetrics.lastError = null;
+  CIRCUIT_BREAKER.state = 'CLOSED';
+  CIRCUIT_BREAKER.failureCount = 0;
+  CIRCUIT_BREAKER.openUntil = 0;
   inFlightPromises.clear();
+}
+
+function _getCircuitBreaker() {
+  return CIRCUIT_BREAKER;
 }
 
 module.exports = {
@@ -375,5 +481,6 @@ module.exports = {
   shutdown,
   DEFAULT_TTLS,
   _setMockClient,
-  _resetMetrics
+  _resetMetrics,
+  _getCircuitBreaker
 };

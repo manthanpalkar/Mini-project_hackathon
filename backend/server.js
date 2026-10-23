@@ -3009,6 +3009,11 @@ app.delete('/api/pending-stories/:id', authenticateToken, requireAdmin, async (r
     const pending = await PendingStory.findOne(query);
     await PendingStory.deleteOne(query);
 
+    await cacheService.invalidateStories(pending?.activeId || pending?.id || id).catch(() => {});
+    if (pending?._id) {
+      await cacheService.del(cacheService.makeKey('stories:detail', String(pending._id))).catch(() => {});
+    }
+
     if (pending) {
       activityService.logActivity({
         eventType: 'CONTENT_STORY_REJECT',
@@ -3066,7 +3071,10 @@ app.post('/api/pending-stories/:id/approve', authenticateToken, requireAdmin, as
     }
 
     await PendingStory.deleteOne({ _id: pending._id });
-    await cacheService.invalidateStories(pending.activeId).catch(() => {});
+    await cacheService.invalidateStories(pending.activeId || pending.id || id).catch(() => {});
+    if (pending._id) {
+      await cacheService.del(cacheService.makeKey('stories:detail', String(pending._id))).catch(() => {});
+    }
 
     activityService.logActivity({
       eventType: 'CONTENT_STORY_APPROVE',
@@ -4177,6 +4185,9 @@ app.post('/api/resources', authenticateToken, requireOnboarded, async (req, res)
     resourceData.status = isAdmin ? 'approved' : 'pending';
 
     const resource = await Resource.create(resourceData);
+    if (resource.status === 'approved') {
+      await cacheService.invalidateResources(resource.id).catch(() => {});
+    }
     res.status(201).json(resource);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -4375,6 +4386,8 @@ const handleStreamingUpload = (req, res, { isPending = false } = {}) => {
           tags: fields.tags ? fields.tags.split(',').map(t => t.trim()) : []
         });
 
+        await cacheService.invalidateResources(newResource.id).catch(() => {});
+
         res.status(201).json(newResource);
       } catch (err) {
         console.error('Save resource error:', err);
@@ -4559,6 +4572,11 @@ app.delete('/api/pending-resources/:id', authenticateToken, requireAdmin, async 
     const pending = await PendingResource.findOne(query);
     await PendingResource.deleteOne(query);
 
+    await cacheService.invalidateResources(pending?.activeId || pending?.id || id).catch(() => {});
+    if (pending?._id) {
+      await cacheService.del(cacheService.makeKey('resources:detail', String(pending._id))).catch(() => {});
+    }
+
     if (pending) {
       activityService.logActivity({
         eventType: 'CONTENT_RESOURCE_REJECT',
@@ -4616,7 +4634,10 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
     }
 
     await PendingResource.deleteOne({ _id: pending._id });
-    await cacheService.invalidateResources(pending.activeId || req.params.id).catch(() => {});
+    await cacheService.invalidateResources(pending.activeId || pending.id || req.params.id).catch(() => {});
+    if (pending._id) {
+      await cacheService.del(cacheService.makeKey('resources:detail', String(pending._id))).catch(() => {});
+    }
 
     activityService.logActivity({
       eventType: 'ADMIN_APPROVE_RESOURCE',
