@@ -401,7 +401,7 @@ export default function StoryDetail() {
         }
       }
 
-      // 3. 4-Year Journey milestone spy
+      // 3. Placement Preparation Journey milestone spy
       const years = [1, 2, 3, 4];
       const viewportMid = window.innerHeight * 0.42;
       let matchedYear = 1;
