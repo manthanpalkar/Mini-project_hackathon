@@ -21,8 +21,16 @@ function parsePrepTopics(prepText, resources = []) {
   // Clean up personal contact details
   text = text.replace(/(?:FEEL\s*FREE\s*TO\s*REACH\s*OUT|Contact\s*:\s*\d{8,}|Phone\s*:\s*\d{8,})[\s\S]*$/gi, '').trim();
 
-  // Split on numbered items: e.g. "1) ", "2) ", "1. ", "2. "
-  const topicSplitRegex = /(?:^|\n\s*\n+)(?=(?:[0-9]+[\.\)]|\([0-9]+\))\s+)/;
+  // 1. Normalize punctuation spacing (myself.I -> myself. I)
+  text = text.replace(/([a-z0-9\)])\.([A-Z])/g, '$1. $2');
+  text = text.replace(/([a-z0-9\)])\?([A-Z])/g, '$1? $2');
+  text = text.replace(/([a-z0-9\)])\!([A-Z])/g, '$1! $2');
+
+  // 2. Separate inline numbered list items that were accidentally on the same line
+  text = text.replace(/([.:!?])\s+([0-9]+[\.\)])\s+/g, '$1\n\n$2 ');
+
+  // Split on numbered items: e.g. "1) ", "2) ", "1. ", "2. ", "(1) "
+  const topicSplitRegex = /(?:^|\n+)(?=(?:[0-9]+[\.\)]|\([0-9]+\))\s+)/;
   const rawParts = text.split(topicSplitRegex).map(p => p.trim()).filter(Boolean);
 
   if (rawParts.length >= 2) {
@@ -34,7 +42,7 @@ function parsePrepTopics(prepText, resources = []) {
       if (match) {
         const fullBody = match[3].trim();
         const lines = fullBody.split('\n').map(l => l.trim()).filter(Boolean);
-        let title = lines[0] || `Topic ${topics.length + 1}`;
+        let title = lines[0] || `Strategy ${topics.length + 1}`;
         let body = fullBody;
 
         if (title.length > 70) {
@@ -45,7 +53,7 @@ function parsePrepTopics(prepText, resources = []) {
           } else if (dashIdx > 0 && dashIdx < 50) {
             title = title.substring(0, dashIdx).trim();
           } else {
-            title = `Topic ${topics.length + 1}`;
+            title = `Strategy ${topics.length + 1}`;
           }
         } else {
           body = lines.slice(1).join('\n').trim();
@@ -100,52 +108,89 @@ function parsePrepTopics(prepText, resources = []) {
 function parseHowSecuredStages(howSecuredText) {
   if (!howSecuredText || typeof howSecuredText !== 'string') return { intro: '', stages: [], rawText: '' };
 
-  const raw = howSecuredText.replace(/^[🏆🎉💼]\s*/u, '').trim();
+  let raw = howSecuredText.replace(/^[🏆🎉💼]\s*/u, '').trim();
   if (!raw) return { intro: '', stages: [], rawText: '' };
 
-  const stageHeaderRegex = /(?:^|\n\s*\n+)(?=(?:(?:Round|Stage|Step)\s*\d+|[0-9]+[\.\)]\s*(?:\[[^\]]+\]|[A-Z][a-zA-Z\s\(\)\/\-]{2,40})|(?:Technical\s*Round|HR\s*Round|Techno\s*HR|Group\s*Discussion|Online\s*Assessment|Aptitude\s*Test|Pre-placement\s*Talk)\b))/i;
+  // Normalize punctuation spacing
+  raw = raw.replace(/([a-z0-9\)])\.([A-Z])/g, '$1. $2');
+  raw = raw.replace(/([a-z0-9\)])\?([A-Z])/g, '$1? $2');
+  raw = raw.replace(/([a-z0-9\)])\!([A-Z])/g, '$1! $2');
 
-  const parts = raw.split(stageHeaderRegex).map(p => p.trim()).filter(Boolean);
+  const roundKeywords = "(?:Group\\s*Discussion|Technical|HR|Techno|Virtual|Online\\s*Assessment|Open\\s*Assessment|OA|Aptitude|Pre-placement|Coding|Managerial|Behavioral|Personal\\s*Interview)";
+  const roundHeaderLine = new RegExp("^(?:(?:Round|Stage|Step)\\s*\\d+[:\\-–—\\s]+|[0-9]+[\\.\\)]\\s*(?:\\[?\\s*" + roundKeywords + "[^\\]\\n]*\\]?|" + roundKeywords + "\\b[^:\\n]*)|(?:Technical\\s*(?:Round|Interview)|HR\\s*(?:Round|Interview)|Techno\\s*HR|Group\\s*Discussion|Online\\s*Assessment|Open\\s*Assessment|Aptitude\\s*Test|Managerial\\s*Round|Behavioral\\s*Round|Personal\\s*Interview)\\b)", "i");
 
-  let intro = '';
-  const stages = [];
+  const lines = raw.split('\n');
+  const candidateHeaders = [];
 
-  parts.forEach((part) => {
-    const lines = part.split('\n').map(l => l.trim()).filter(Boolean);
-    const firstLine = lines[0] || '';
-
-    const match = firstLine.match(/^(?:(?:Round|Stage|Step)\s*(\d+)[:\-]?|[0-9]+[\.\)]\s*)\s*(?:\[([^\]]+)\]|(.*))$/i);
-    const isNamedRound = /^(?:Technical\s*Round|HR\s*Round|Techno\s*HR|Group\s*Discussion|Online\s*Assessment|Aptitude\s*Test|Pre-placement\s*Talk)\b/i.test(firstLine);
-
-    if (match || isNamedRound) {
-      let stageTitle = firstLine;
-      let date = null;
-
-      const dateMatch = firstLine.match(/[-–—]\s*([0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?)|Date\s*:\s*([^\n]+)/i);
-      if (dateMatch) {
-        date = (dateMatch[1] || dateMatch[2]).trim();
-        stageTitle = stageTitle.replace(/[-–—]\s*[0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?|Date\s*:\s*[^\n]+/i, '').trim();
-      }
-
-      stageTitle = stageTitle.replace(/^(?:(?:Round|Stage|Step)\s*\d+[:\-]?|[0-9]+[\.\)])\s*/i, '').replace(/^[\[\(]|[\]\)]$/g, '').trim();
-      if (!stageTitle) stageTitle = `Interview Stage ${stages.length + 1}`;
-
-      const content = lines.slice(1).join('\n').trim() || '';
-
-      stages.push({
-        stageNumber: stages.length + 1,
-        title: stageTitle,
-        date: date,
-        content: content
-      });
-    } else {
-      if (stages.length === 0) {
-        intro = intro ? `${intro}\n\n${part}` : part;
-      } else {
-        stages[stages.length - 1].content += `\n\n${part}`;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i].trim();
+    if (roundHeaderLine.test(l)) {
+      // Exclude interview questions inside rounds
+      if (!/^[0-9]+[\.\)]\s*(?:What|How|Explain|Define|Implement|Write|Difference|Describe|Why|Can|Which|Is|Are|Tell|Based\s+on)\b/i.test(l)) {
+        candidateHeaders.push({ index: i, line: l });
       }
     }
-  });
+  }
+
+  // If candidate has an introductory schedule list first where numbering restarts later:
+  let finalHeaders = candidateHeaders;
+  let restartIdx = -1;
+  for (let j = 1; j < candidateHeaders.length; j++) {
+    const prevMatch = candidateHeaders[j - 1].line.match(/^([0-9]+)[\.\)]/);
+    const currMatch = candidateHeaders[j].line.match(/^([0-9]+)[\.\)]/);
+    if (prevMatch && currMatch) {
+      const prevNum = parseInt(prevMatch[1], 10);
+      const currNum = parseInt(currMatch[1], 10);
+      if (currNum <= prevNum && currNum === 1) {
+        restartIdx = j;
+        break;
+      }
+    }
+  }
+
+  if (restartIdx !== -1) {
+    finalHeaders = candidateHeaders.slice(restartIdx);
+  }
+
+  if (finalHeaders.length === 0) {
+    return { intro: raw, stages: [], rawText: raw };
+  }
+
+  const intro = lines.slice(0, finalHeaders[0].index).join('\n').trim();
+  const stages = [];
+
+  for (let k = 0; k < finalHeaders.length; k++) {
+    const startLine = finalHeaders[k].index;
+    const endLine = k + 1 < finalHeaders.length ? finalHeaders[k + 1].index : lines.length;
+    let headerText = lines[startLine].trim();
+    const content = lines.slice(startLine + 1, endLine).join('\n').trim();
+
+    let date = null;
+    let badge = null;
+
+    const badgeMatch = headerText.match(/\[\s*([^\]]+(?:students?|candidates?|appeared|shortlisted|cleared|eligibility)[^\]]*)\s*\]/i);
+    if (badgeMatch) {
+      badge = badgeMatch[1].trim();
+      headerText = headerText.replace(badgeMatch[0], '').trim();
+    }
+
+    const dateMatch = headerText.match(/[-–—]\s*([0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?)|Date\s*:\s*([^\n]+)|\(([^)]*(?:2024|2025|2026)[^)]*\)/i);
+    if (dateMatch) {
+      date = (dateMatch[1] || dateMatch[2] || dateMatch[3]).trim();
+      headerText = headerText.replace(/[-–—]\s*[0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+(?:\s+[0-9]{4})?|Date\s*:\s*[^\n]+|\([^)]*(?:2024|2025|2026)[^)]*\)/i, '').trim();
+    }
+
+    headerText = headerText.replace(/^(?:(?:Round|Stage|Step)\s*\d+[:\-–—\s]*|[0-9]+[\.\)]\s*)/i, '').replace(/^[\[\(]|[\]\)]$/g, '').trim();
+    if (!headerText) headerText = `Interview Stage ${k + 1}`;
+
+    stages.push({
+      stageNumber: k + 1,
+      title: headerText,
+      badge: badge,
+      date: date,
+      content: content
+    });
+  }
 
   return { intro, stages, rawText: raw };
 }
@@ -1221,7 +1266,13 @@ export default function StoryDetail() {
               return (
                 <div className="story-content-layout">
                   {intro && (
-                    <div className="story-content-card">
+                    <div className="story-content-card" style={{ borderLeft: '4px solid #3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.03)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <Sparkles size={16} style={{ color: '#3b82f6' }} />
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3b82f6' }}>
+                          Placement Overview & Timeline
+                        </h4>
+                      </div>
                       <FormattedText text={intro} />
                     </div>
                   )}
@@ -1230,7 +1281,7 @@ export default function StoryDetail() {
                     stages.map((stg) => (
                       <div key={stg.stageNumber} className="story-content-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                             <span style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1248,6 +1299,19 @@ export default function StoryDetail() {
                             <h3 style={{ fontSize: '1.18rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                               Stage {stg.stageNumber} — {stg.title}
                             </h3>
+                            {stg.badge && (
+                              <span style={{
+                                fontSize: '0.78rem',
+                                color: '#10b981',
+                                fontWeight: 600,
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                                padding: '0.15rem 0.55rem',
+                                borderRadius: '12px'
+                              }}>
+                                👥 {stg.badge}
+                              </span>
+                            )}
                           </div>
                           {stg.date && (
                             <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500, backgroundColor: 'var(--bg-tertiary)', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>

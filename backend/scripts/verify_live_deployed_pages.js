@@ -87,21 +87,16 @@ async function run() {
   await cdp.send('DOM.enable');
   await cdp.send('Runtime.enable');
 
-  console.log('CDP connection established. Setting auth session in localStorage...');
+  console.log('CDP connection established. Authenticating with live backend...');
 
-  // Generate valid signed JWT
-  const token = jwt.sign(
-    { email: 'admin@spit.ac.in', isAdmin: true },
-    process.env.JWT_SECRET,
-    { expiresIn: '2h' }
-  );
-  const userSession = {
-    token,
-    email: 'admin@spit.ac.in',
-    isAdmin: true,
-    onboarded: true,
-    name: 'Administrator'
-  };
+  // Authenticate with live backend to obtain authentic signed session with valid sessionId
+  const loginRes = await fetch('https://loop-qnh9.onrender.com/api/users/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'admin@spit.ac.in', password: 'admin123' })
+  });
+  const userSession = await loginRes.json();
+  console.log('Obtained authentic live session for:', userSession.email, 'Role:', userSession.role);
 
   await sleep(1500);
 
@@ -344,6 +339,78 @@ async function run() {
   const ssModal = await cdp.send('Page.captureScreenshot', { format: 'png' });
   fs.writeFileSync(path.join(__dirname, '../target_edit_story_modal.png'), Buffer.from(ssModal.data, 'base64'));
   console.log('Saved modal screenshot to backend/target_edit_story_modal.png');
+
+  // Close modal
+  await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const closeBtn = document.querySelector('button[aria-label="Close modal"]') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Cancel') || b.innerText.includes('×'));
+      if (closeBtn) closeBtn.click();
+    })()`
+  });
+  await sleep(1000);
+
+  console.log('\n======================================================');
+  console.log('TEST 4: Inspecting Muskan Sharma (General Mills: story_2026_2903ffd0)');
+  console.log('======================================================');
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2026_2903ffd0' });
+  await sleep(3500);
+
+  const muskanEval = await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const name = document.querySelector('h1')?.innerText;
+      const roleCompany = document.querySelector('header p')?.innerText;
+      const rounds = Array.from(document.querySelectorAll('#section-rounds .story-content-card')).map(c => c.querySelector('h3')?.innerText);
+      const stipend = Array.from(document.querySelectorAll('header > div:last-child > div')).map(d => ({
+        label: d.querySelector('p:first-child')?.innerText,
+        value: d.querySelector('p:last-child')?.innerText
+      }));
+      return { name, roleCompany, rounds, stipend };
+    })()`,
+    returnByValue: true
+  });
+  console.log('Muskan Sharma Live Page:', muskanEval.result.value);
+
+  console.log('\n======================================================');
+  console.log('TEST 5: Inspecting Soham Karmarkar (Nomura: story_2026_9980d9b1)');
+  console.log('======================================================');
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2026_9980d9b1' });
+  await sleep(3500);
+
+  const sohamEval = await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const name = document.querySelector('h1')?.innerText;
+      const roleCompany = document.querySelector('header p')?.innerText;
+      const rounds = Array.from(document.querySelectorAll('#section-rounds .story-content-card')).map(c => c.querySelector('h3')?.innerText);
+      const pkg = Array.from(document.querySelectorAll('header > div:last-child > div')).map(d => ({
+        label: d.querySelector('p:first-child')?.innerText,
+        value: d.querySelector('p:last-child')?.innerText
+      }));
+      return { name, roleCompany, rounds, pkg };
+    })()`,
+    returnByValue: true
+  });
+  console.log('Soham Karmarkar Live Page:', sohamEval.result.value);
+
+  console.log('\n======================================================');
+  console.log('TEST 6: Inspecting Tushar Raja (IDFC FIRST Bank: story_2026_64109481)');
+  console.log('======================================================');
+  await cdp.send('Page.navigate', { url: 'https://loop-seven-delta.vercel.app/stories/story_2026_64109481' });
+  await sleep(3500);
+
+  const tusharEval = await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const name = document.querySelector('h1')?.innerText;
+      const roleCompany = document.querySelector('header p')?.innerText;
+      const headers = Array.from(document.querySelectorAll('header > div:last-child > div')).map(d => ({
+        label: d.querySelector('p:first-child')?.innerText,
+        value: d.querySelector('p:last-child')?.innerText
+      }));
+      const resumeLink = document.querySelector('a[href*="drive.google.com"], a[target="_blank"]')?.href;
+      return { name, roleCompany, headers, resumeLink };
+    })()`,
+    returnByValue: true
+  });
+  console.log('Tushar Raja Live Page:', tusharEval.result.value);
 
   cdp.close();
   chromeProc.kill();
