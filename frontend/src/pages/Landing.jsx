@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowDown, CornerRightDown } from 'lucide-react';
 import SEOHead from '../components/SEOHead';
+import BRAND from '../constants/branding';
 
 const heroImage = '/images/spit-college.jpg';
 const labImage = '/images/loop-labs.png';
@@ -201,7 +202,7 @@ export default function Landing() {
   const [activePhoto, setActivePhoto] = useState(null);
 
   useEffect(() => {
-    document.title = 'LOOP | Home';
+    document.title = `${BRAND.fullName} | Home`;
   }, []);
 
   useEffect(() => {
@@ -227,16 +228,16 @@ export default function Landing() {
   return (
     <div className="animate-fade-in" style={{ backgroundColor: 'var(--bg-primary)', overflowX: 'hidden' }}>
       <SEOHead 
-        title="LOOP — Student Placement Stories & Career Knowledge Hub | SPIT Mumbai"
-        description="Official placement knowledge hub for Sardar Patel Institute of Technology (SPIT). Explore verified interview debriefs, compensation packages, and senior academic resources."
+        title={`${BRAND.fullName} | ${BRAND.collegeShort}`}
+        description={`${BRAND.tagline} ${BRAND.shortDescription}`}
         canonicalUrl="/home"
         ogType="website"
-        keywords="SPIT, Sardar Patel Institute of Technology, Placements, Interview Experiences, CTC Packages, Engineering Placements, SPIT Mumbai, DSA Prep"
+        keywords="LOOP, Limitless Opportunities One Platform, SPIT, Sardar Patel Institute of Technology, Placements, Interview Experiences, CTC Packages, Engineering Placements, SPIT Mumbai, DSA Prep"
         structuredData={[
           {
             '@context': 'https://schema.org',
             '@type': 'WebSite',
-            name: 'LOOP — Sardar Patel Institute of Technology',
+            name: `${BRAND.fullName} — ${BRAND.college}`,
             url: 'https://loop-seven-delta.vercel.app/',
             potentialAction: {
               '@type': 'SearchAction',
@@ -276,29 +277,53 @@ export default function Landing() {
         padding: '3rem 1.5rem',
         borderBottom: '1px solid var(--border-color)'
       }}>
-        <div style={{ maxWidth: '800px', zIndex: 2 }}>
+        <div style={{ maxWidth: '840px', zIndex: 2 }}>
+          {/* Branded Identity Pill */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            padding: '0.45rem 1.15rem',
+            borderRadius: '9999px',
+            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.28)',
+            fontSize: '0.85rem',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            fontWeight: 700,
+            color: '#ffffff',
+            marginBottom: '1.5rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+          }}>
+            <span style={{ letterSpacing: '0.12em' }}>{BRAND.name}</span>
+            <span style={{ opacity: 0.6 }}>•</span>
+            <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: '0.02em' }}>{BRAND.fullForm}</span>
+          </div>
+
           <h1 style={{
             fontSize: 'calc(2.2rem + 2vw)',
             fontFamily: 'var(--font-serif)',
             fontWeight: 600,
             lineHeight: '1.15',
             letterSpacing: '-0.02em',
-            marginBottom: '2rem',
+            marginBottom: '1.5rem',
             color: '#ffffff',
             textShadow: '0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)'
           }}>
-            Your Guide to Corporate Success
+            {BRAND.tagline}
           </h1>
           <p style={{
             fontSize: '1.15rem',
             color: 'rgba(255, 255, 255, 0.92)',
             textShadow: '0 2px 16px rgba(0, 0, 0, 0.7)',
             marginBottom: '3rem',
-            maxWidth: '560px',
+            maxWidth: '640px',
             margin: '0 auto 3rem auto',
             lineHeight: '1.6'
           }}>
-            No fluff. Cut the endless scrolling. Connect instantly with the SPIT seniors who made it, and unlock the exact step-by-step playbooks and raw study materials they used to get hired.
+            {BRAND.description}
           </p>
 
           <button 
@@ -751,7 +776,7 @@ export default function Landing() {
               color: 'var(--text-secondary)',
               marginBottom: '2.5rem'
             }}>
-              Contribute to a culture of transparent learning. We welcome seniors and alumni to document their placement journeys, interview rounds, and study resources to mentor the upcoming batches.
+              Contribute to a continuous cycle of knowledge sharing. LOOP connects college juniors, seniors, and alumni: today's juniors become tomorrow's seniors, who then guide the next generation. We welcome seniors and alumni to document their placement journeys, interview rounds, and study resources.
             </p>
             
             <button 

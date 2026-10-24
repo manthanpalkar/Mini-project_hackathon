@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
+import BRAND from '../constants/branding';
 import { 
   ArrowLeft, 
   FileCheck2, 
@@ -88,8 +89,8 @@ export default function TermsOfUse() {
       animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
       <SEOHead 
-        title="Terms of Use | LOOP SPIT"
-        description="Terms of Use for LOOP, the student placement debrief and academic preparation platform at Sardar Patel Institute of Technology (SPIT)."
+        title={`Terms of Use | ${BRAND.fullName}`}
+        description={`${BRAND.tagline} Terms of Use for ${BRAND.fullName}, the student placement and academic preparation platform at Sardar Patel Institute of Technology (SPIT).`}
         canonicalUrl="/terms"
         ogType="website"
         breadcrumbs={[
@@ -392,7 +393,7 @@ export default function TermsOfUse() {
             <div className="section-badge">01</div>
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing, browsing, registering for, or contributing to <strong>LOOP</strong> (Senior Network), you acknowledge that you have read, understood, and agreed to be bound by these <strong>Terms of Use</strong>, alongside our <Link to="/privacy-policy" style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'underline' }}>Privacy Policy</Link> and relevant Sardar Patel Institute of Technology campus student conduct policies.
+              By accessing, browsing, registering for, or contributing to <strong>LOOP</strong> (Limitless Opportunities, One Platform), you acknowledge that you have read, understood, and agreed to be bound by these <strong>Terms of Use</strong>, alongside our <Link to="/privacy-policy" style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'underline' }}>Privacy Policy</Link> and relevant Sardar Patel Institute of Technology campus student conduct policies.
             </p>
             <p>
               If you do not agree with any provision set forth in these terms, you must refrain from accessing the platform or uploading materials to LOOP.
@@ -404,7 +405,7 @@ export default function TermsOfUse() {
             <div className="section-badge">02</div>
             <h2>2. About LOOP</h2>
             <p>
-              LOOP is an internal, non-commercial peer-mentorship platform and digital placement repository created for the academic and student community of <strong>Sardar Patel Institute of Technology (SPIT)</strong>, Mumbai.
+              LOOP (Limitless Opportunities, One Platform) is an internal, non-commercial peer-mentorship platform and digital placement repository created for the academic and student community of <strong>Sardar Patel Institute of Technology (SPIT)</strong>, Mumbai.
             </p>
             <p>
               The platform facilitates the structured exchange of campus recruitment experiences, interview preparation strategy roadmaps, categorized department study resources, and peer guidance to empower undergraduates across academic semesters.
@@ -671,7 +672,7 @@ export default function TermsOfUse() {
               boxShadow: 'var(--card-shadow)'
             }}>
               <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
-                LOOP — SPIT Senior Network Administration
+                LOOP — Limitless Opportunities, One Platform Administration
               </div>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
                 Department of Computer Engineering & Placement Cell<br />

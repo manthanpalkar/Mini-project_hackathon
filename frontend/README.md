@@ -1,11 +1,12 @@
 # LOOP — Frontend Web Client
+### *Limitless Opportunities, One Platform* • *Their Journey. Your Opportunity.*
 
 [![React](https://img.shields.io/badge/React-19.0-blue?logo=react&style=flat-square)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?logo=vite&style=flat-square)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Deployment](https://img.shields.io/badge/Deployed-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
 
-The **LOOP Frontend** is a single-page application (SPA) engineered for **Sardar Patel Institute of Technology (SPIT), Mumbai**. It provides a fast, responsive user interface for exploring senior placement experiences, downloading verified campus resources, previewing academic PDFs in-browser, and submitting interview debriefs.
+The **LOOP Frontend** is the single-page application (SPA) client for **LOOP (Limitless Opportunities, One Platform)** engineered for **Sardar Patel Institute of Technology (SPIT), Mumbai**. Built around the motto *"Their Journey. Your Opportunity."*, it provides a fast, responsive user interface for exploring senior placement experiences, downloading verified campus resources, previewing academic PDFs in-browser, and submitting interview debriefs.
 
 ---
 

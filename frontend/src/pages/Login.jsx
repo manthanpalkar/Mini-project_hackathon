@@ -4,6 +4,7 @@ import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from
 import { loginUser, loginDemoUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 import { clearAllCaches } from '../hooks/useCachedData';
 import SEOHead from '../components/SEOHead';
+import BRAND from '../constants/branding';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -229,7 +230,7 @@ export default function Login() {
   }, [location.state]);
 
   useEffect(() => {
-    document.title = 'LOOP | Login';
+    document.title = `Login | ${BRAND.fullName}`;
     // Ensure email and password start completely blank without browser autofill
     setEmail('');
     setPassword('');
@@ -564,8 +565,8 @@ export default function Login() {
       overflowX: 'hidden'
     }}>
       <SEOHead 
-        title="Sign In | LOOP SPIT"
-        description="Sign in to LOOP SPIT with your Sardar Patel Institute of Technology student account or Google authentication."
+        title={`Sign In | ${BRAND.fullName}`}
+        description={`${BRAND.tagline} Sign in to ${BRAND.name} with your Sardar Patel Institute of Technology student account or Google authentication.`}
         canonicalUrl="/login"
         noIndex={true}
       />
@@ -662,7 +663,7 @@ export default function Login() {
               textTransform: 'uppercase',
               color: '#1d1d1f'
             }}>
-              Senior Network
+              {BRAND.fullForm}
             </span>
           </div>
 
@@ -704,7 +705,7 @@ export default function Login() {
             marginBottom: '0.55rem',
             fontFamily: 'var(--font-sans)'
           }}>
-            Get Everything You Want
+            {BRAND.tagline}
           </h2>
           <p style={{
             fontSize: '0.94rem',
@@ -712,7 +713,7 @@ export default function Login() {
             lineHeight: 1.55,
             maxWidth: '430px'
           }}>
-            Real interview journeys, departmental resources, and peer guidance from SPIT seniors.
+            {BRAND.fullName}. Connect with seniors and alumni, learn from placement experiences, and discover career opportunities.
           </p>
         </div>
       </div>
@@ -766,7 +767,7 @@ export default function Login() {
               fontFamily: 'var(--font-display)',
               lineHeight: 1
             }}>
-              Loop
+              {BRAND.name}
             </span>
             <span style={{
               fontSize: '0.78rem',

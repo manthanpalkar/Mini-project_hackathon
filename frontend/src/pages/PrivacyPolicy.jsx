@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
+import BRAND from '../constants/branding';
 import { 
   ArrowLeft, 
   ShieldCheck, 
@@ -87,8 +88,8 @@ export default function PrivacyPolicy() {
       animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
       <SEOHead 
-        title="Privacy Policy | LOOP SPIT"
-        description="LOOP Privacy Policy. Learn how student records, placement debriefs, GridFS documents, and authentication credentials are secure at SPIT Mumbai."
+        title={`Privacy Policy | ${BRAND.fullName}`}
+        description={`${BRAND.tagline} LOOP Privacy Policy. Learn how student records, placement debriefs, and authentication credentials are secure at SPIT Mumbai.`}
         canonicalUrl="/privacy-policy"
         ogType="website"
         breadcrumbs={[
@@ -391,7 +392,7 @@ export default function PrivacyPolicy() {
             <div className="section-badge">01</div>
             <h2>1. Introduction</h2>
             <p>
-              Welcome to <strong>LOOP</strong> (Senior Network), an academic, peer-mentoring, and career preparation platform designed exclusively for students, senior cohorts, and alumni of <strong>Sardar Patel Institute of Technology (SPIT)</strong>, Mumbai.
+              Welcome to <strong>LOOP</strong> (Limitless Opportunities, One Platform), an academic, peer-mentoring, and career preparation platform designed exclusively for students, senior cohorts, and alumni of <strong>Sardar Patel Institute of Technology (SPIT)</strong>, Mumbai.
             </p>
             <p>
               LOOP was built to bridge the guidance gap between graduating seniors and aspiring undergraduates. By hosting genuine interview breakdowns, company-specific preparation playbooks, curated department resources, and academic notes, LOOP fosters a collaborative, non-commercial environment for collegiate excellence.
@@ -700,7 +701,7 @@ export default function PrivacyPolicy() {
               boxShadow: 'var(--card-shadow)'
             }}>
               <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
-                LOOP — SPIT Senior Network Administration
+                LOOP — Limitless Opportunities, One Platform Administration
               </div>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
                 Department of Computer Engineering & Placement Cell<br />

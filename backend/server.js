@@ -28,6 +28,7 @@ const cacheService = require('./services/cacheService');
 const { sendPasswordResetEmail } = require('./services/emailService');
 const sessionService = require('./services/sessionService');
 const activityService = require('./services/activityService');
+const BRAND = require('./config/branding');
 const {
   RESUME_MAX_FILE_SIZE_BYTES,
   validateResume,
@@ -953,7 +954,9 @@ app.get(['/api/email-provider-health', '/email-provider-health'], (req, res) => 
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'healthy',
-    name: 'LOOP Backend API',
+    name: BRAND.fullName,
+    tagline: BRAND.tagline,
+    college: BRAND.college,
     version: '2.2.0-gridfs-streaming',
     uploadRoutes: true
   });
@@ -962,7 +965,11 @@ app.get('/', (req, res) => {
 // Dedicated Public robots.txt Endpoint
 app.get(['/robots.txt', '/api/robots.txt'], (req, res) => {
   res.type('text/plain');
-  res.send(`User-agent: *
+  res.send(`# robots.txt for ${BRAND.fullName}
+# ${BRAND.tagline}
+# Production Domain: https://loop-seven-delta.vercel.app
+
+User-agent: *
 Allow: /
 Allow: /home
 Allow: /stories

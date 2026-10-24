@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
+import BRAND from '../constants/branding';
 
-const SITE_URL = 'https://loop-seven-delta.vercel.app';
-const DEFAULT_TITLE = 'LOOP — Life of Other Placements | SPIT Mumbai';
-const DEFAULT_DESCRIPTION = 'Official placement knowledge hub for Sardar Patel Institute of Technology (SPIT). Explore verified interview debriefs, compensation packages, and senior academic resources.';
+const SITE_URL = BRAND.portalUrl;
+const DEFAULT_TITLE = `${BRAND.fullName} | ${BRAND.collegeShort}`;
+const DEFAULT_DESCRIPTION = `${BRAND.tagline} ${BRAND.shortDescription}`;
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
 function setMetaTag(name, content, attributeName = 'name') {
@@ -63,7 +64,7 @@ export default function SEOHead({
     setMetaTag('og:url', canonical, 'property');
     setMetaTag('og:type', ogType, 'property');
     setMetaTag('og:image', fullOgImage, 'property');
-    setMetaTag('og:site_name', 'LOOP — SPIT Mumbai', 'property');
+    setMetaTag('og:site_name', BRAND.fullName, 'property');
     setMetaTag('og:locale', 'en_US', 'property');
 
     // 5. Twitter Card Meta Tags

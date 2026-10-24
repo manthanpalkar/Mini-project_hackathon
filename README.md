@@ -1,18 +1,20 @@
-# LOOP — Life of Other Placements
+# LOOP — Limitless Opportunities, One Platform
+
+### *Their Journey. Your Opportunity.*
 
 [![React](https://img.shields.io/badge/React-19.0-blue?logo=react&style=flat-square)](https://react.dev/)
 [![Node](https://img.shields.io/badge/Node.js-Express_4.19-green?logo=node.js&style=flat-square)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cloud_Cache-red?logo=redis&style=flat-square)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-MongoDB_7.0_Staging-2496ED?logo=docker&style=flat-square)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Automated_Tests-220_Passed_(26_Suites)-success?style=flat-square)](backend/tests/)
+[![Tests](https://img.shields.io/badge/Automated_Tests-267_Passed_(28_Suites)-success?style=flat-square)](backend/tests/)
 [![Vite](https://img.shields.io/badge/Bundler-Vite_8-646CFF?logo=vite&style=flat-square)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
 [![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&style=flat-square)](https://loop-qnh9.onrender.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-> **LOOP** is an institutional placement intelligence, peer mentorship, and academic vault ecosystem engineered for **Sardar Patel Institute of Technology (SPIT), Mumbai**. It bridges the gap between campus academics and high-tier engineering recruitment by publishing verified 4-year roadmaps, actual round-by-round interview debriefs, compensation packages, senior resumes, and curated study materials.
+> **LOOP** (**Limitless Opportunities, One Platform**) is an institutional placement intelligence, peer mentorship, and academic vault ecosystem engineered for **Sardar Patel Institute of Technology (SPIT), Mumbai**. It connects college juniors, seniors, and alumni under the guiding motto *"Their Journey. Your Opportunity."* by publishing verified 4-year roadmaps, actual round-by-round interview debriefs, compensation packages, senior resumes, and curated study materials.
 
 ---
 
@@ -38,7 +40,7 @@
    - [Branch Categorization & Sovereign Presentation Architecture](#branch-categorization--sovereign-presentation-architecture)
 8. [Environment Variables & Configuration Reference](#environment-variables--configuration-reference)
 9. [Codebase Directory Structure](#codebase-directory-structure)
-10. [Automated Verification & Test Harness (220 Tests)](#automated-verification--test-harness-220-tests)
+10. [Automated Verification & Test Harness (267 Tests)](#automated-verification--test-harness-267-tests)
 11. [Local Development & Setup](#local-development--setup)
 12. [Security, Access Control & Integrity Policies](#security-access-control--integrity-policies)
 13. [License & Acknowledgments](#license--acknowledgments)
@@ -47,14 +49,16 @@
 
 ## Project Overview: What is LOOP?
 
-**LOOP (Life of Other Placements)** is a purpose-built, institutional engineering platform developed to empower students at **Sardar Patel Institute of Technology (SPIT), Mumbai** throughout their campus recruitment journey.
+**LOOP** stands for **Limitless Opportunities, One Platform**. It is a purpose-built, institutional engineering platform developed to empower students at **Sardar Patel Institute of Technology (SPIT), Mumbai** throughout their campus recruitment and career journey.
 
-During undergraduate engineering, students face intense recruitment cycles for top-tier technology firms, investment banks, and product startups (such as Morgan Stanley, J.P. Morgan Chase, Barclays, Deutsche Bank, Quantiphi, LTI, and PhonePe). However, the crucial knowledge needed to succeed—what questions are asked in technical rounds, what coding problems appear in Online Assessments (OAs), how to navigate HR interviews, and what study materials are truly relevant—has historically been fragmented, informal, and ephemeral.
+The platform represents a **continuous cycle of knowledge sharing**: today’s juniors become tomorrow’s seniors, who then guide the next generation. It connects college juniors, seniors, and alumni, allowing students to learn from real placement experiences, discover career opportunities, access verified preparation resources, and benefit from the knowledge of students who have already navigated the placement process.
+
+During undergraduate engineering, students face intense recruitment cycles for top-tier technology firms, investment banks, and product startups (such as Microsoft, Google, Amazon, Morgan Stanley, J.P. Morgan Chase, Barclays, Deutsche Bank, Quantiphi, LTI, and PhonePe). However, the crucial knowledge needed to succeed—what questions are asked in technical rounds, what coding problems appear in Online Assessments (OAs), how to navigate HR interviews, and what study materials are truly relevant—has historically been fragmented, informal, and ephemeral.
 
 **LOOP** replaces this informal whisper network with a **permanent, verified, high-performance institutional knowledge vault**. It provides:
 * **Round-by-Round Interview Debriefs:** Direct firsthand accounts from seniors who cleared competitive placement drives, detailing every coding problem, system design question, and HR discussion.
 * **4-Year Departmental Roadmaps:** Step-by-step preparation schedules covering Data Structures & Algorithms (DSA), System Design, Core CS Fundamentals (DBMS, OS, CN), and specialization tracks (AI/ML, Web Dev, Cloud).
-* **200 MB Academic & Resume Vault:** A high-speed digital repository where students access senior resumes, placement handbooks, previous year exam papers, and faculty lecture presentations.
+* **High-Speed Binary Vault (MongoDB GridFS):** A high-speed digital repository where students access senior resumes, placement handbooks, previous year exam papers, and faculty lecture presentations with zero arbitrary application file-size caps.
 * **Strict Campus Domain Verification:** Every contributor is verified against SPIT's institutional directory (`@spit.ac.in`), preventing external spam, commercial promotions, and fabricated interview claims.
 
 ---

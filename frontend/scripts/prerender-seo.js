@@ -18,18 +18,18 @@ const templateHtml = fs.readFileSync(templatePath, 'utf8');
 const PAGES = [
   {
     route: '/home',
-    title: 'SPIT Placement Stories & Knowledge Hub | LOOP',
-    description: 'Explore verified interview debriefs, CTC package trends, coding round questions, and senior study notes for SPIT engineering students.',
-    h1: 'LOOP — Student Placement Stories & Career Knowledge Hub',
+    title: 'LOOP — Limitless Opportunities, One Platform | SPIT Mumbai',
+    description: 'Their Journey. Your Opportunity. Explore verified interview debriefs, placement journeys, company package archives, and curated study materials from SPIT seniors.',
+    h1: 'LOOP — Limitless Opportunities, One Platform',
     paragraphs: [
-      'Welcome to LOOP, the premier peer-to-peer placement archive and academic preparation resource at Sardar Patel Institute of Technology (SPIT), Mumbai. Designed by students for students, LOOP provides authentic, first-hand accounts of campus recruitment drives, company selection processes, and career journeys across technology, finance, and engineering sectors.',
+      'Welcome to LOOP (Limitless Opportunities, One Platform), the premier student placement and career preparation network at Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the core principle "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni: today\'s juniors become tomorrow\'s seniors, who then guide the next generation.',
       'Our platform bridges the generational knowledge gap between graduating seniors and aspiring juniors. Here you will find extensive interview debriefs detailing technical rounds, system design questions, LeetCode problem patterns, core engineering concepts (DBMS, Operating Systems, Computer Networks), and human resource discussions for leading employers including Microsoft, Google, Amazon, Morgan Stanley, Deutsche Bank, and innovative startups.',
       'In addition to career journeys, LOOP hosts student-contributed study materials, handwritten formulas, subject syllabus notes, and past examination papers curated to accelerate academic excellence and technical readiness.'
     ],
     schema: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'LOOP — Sardar Patel Institute of Technology',
+      name: 'LOOP — Limitless Opportunities, One Platform',
       url: 'https://loop-seven-delta.vercel.app/'
     }
   },
@@ -144,7 +144,7 @@ const PAGES = [
       '@type': 'Article',
       headline: 'Aarav Sharma — Microsoft Software Engineer Placement Experience',
       author: { '@type': 'Person', name: 'Aarav Sharma' },
-      publisher: { '@type': 'Organization', name: 'LOOP — SPIT Mumbai' }
+      publisher: { '@type': 'Organization', name: 'LOOP — Limitless Opportunities, One Platform' }
     }
   },
   {
@@ -162,7 +162,7 @@ const PAGES = [
       '@type': 'Article',
       headline: 'Priya Verma — Amazon SDE-1 Placement Experience',
       author: { '@type': 'Person', name: 'Priya Verma' },
-      publisher: { '@type': 'Organization', name: 'LOOP — SPIT Mumbai' }
+      publisher: { '@type': 'Organization', name: 'LOOP — Limitless Opportunities, One Platform' }
     }
   },
   {
@@ -180,7 +180,7 @@ const PAGES = [
       '@type': 'Article',
       headline: 'Rohan Patil — Google Software Engineer Placement Experience',
       author: { '@type': 'Person', name: 'Rohan Patil' },
-      publisher: { '@type': 'Organization', name: 'LOOP — SPIT Mumbai' }
+      publisher: { '@type': 'Organization', name: 'LOOP — Limitless Opportunities, One Platform' }
     }
   }
 ];
@@ -237,7 +237,7 @@ function prerenderPage(page) {
 
   const semanticShell = `
     <header style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
-      <a href="/home" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — SPIT Mumbai</a>
+      <a href="/home" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — Limitless Opportunities, One Platform</a>
       <nav style="display: flex; gap: 1.5rem; font-weight: 600; flex-wrap: wrap;">
         <a href="/home">Home</a>
         <a href="/stories">Stories</a>

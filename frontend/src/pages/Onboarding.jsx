@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, GraduationCap, BookOpen, Calendar, ArrowRight, ChevronDown } from 'lucide-react';
 import { onboardUser } from '../utils/db';
+import BRAND from '../constants/branding';
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ export default function Onboarding() {
   }, [navigate]);
 
   useEffect(() => {
-    document.title = 'LOOP | Student Onboarding';
+    document.title = `${BRAND.name} | Student Onboarding`;
   }, []);
 
   const handleSubmit = async (e) => {
@@ -150,17 +151,26 @@ export default function Onboarding() {
             fontWeight: '800',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            marginBottom: '0.5rem',
+            marginBottom: '0.4rem',
             fontFamily: 'var(--font-display)'
           }}>
-            Welcome to Loop
+            Welcome to {BRAND.name}
           </h1>
+          <p style={{
+            color: 'var(--accent-primary)',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            marginBottom: '0.5rem'
+          }}>
+            {BRAND.fullForm}
+          </p>
           <p style={{
             color: 'var(--text-secondary)',
             fontSize: '0.9rem',
             fontWeight: 400
           }}>
-            Please complete your profile details
+            {BRAND.tagline} Complete your student profile to get started.
           </p>
         </div>
 

@@ -7,6 +7,8 @@
  * Test Mode: In-memory simulation when NODE_ENV=test
  */
 
+const BRAND = require('../config/branding');
+
 let mockEmails = [];
 let mockSender = null;
 
@@ -71,18 +73,21 @@ function buildLoopEmailHtml({ to, code }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOOP — Your password reset verification code</title>
+  <title>${BRAND.name} — Your password reset verification code</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111111;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; width: 100%; padding: 40px 16px;">
     <tr>
       <td align="left">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <!-- Simple LOOP and SPIT Branding -->
+          <!-- LOOP Branding -->
           <tr>
             <td style="padding: 0 0 24px 0;">
-              <span style="font-size: 22px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: #111111;">LOOP</span>
-              <span style="display: inline-block; margin-left: 10px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #555555; background-color: #f1f1f1; border-radius: 4px; vertical-align: middle; letter-spacing: 0.05em;">SPIT</span>
+              <div>
+                <span style="font-size: 22px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: #111111;">${BRAND.name}</span>
+                <span style="display: inline-block; margin-left: 10px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #555555; background-color: #f1f1f1; border-radius: 4px; vertical-align: middle; letter-spacing: 0.05em;">SPIT</span>
+              </div>
+              <div style="font-size: 13px; color: #666666; font-weight: 500; margin-top: 4px;">${BRAND.fullForm}</div>
             </td>
           </tr>
           <!-- Heading -->
@@ -97,20 +102,21 @@ function buildLoopEmailHtml({ to, code }) {
           <tr>
             <td style="padding: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #333333;">
               <p style="margin: 0 0 16px 0;">Hello,</p>
-              <p style="margin: 0 0 24px 0;">We received a request to reset the password for your LOOP account (${to ? `<strong style="color: #111111;">${to}</strong>` : 'associated with this email'}).</p>
+              <p style="margin: 0 0 24px 0;">We received a request to reset the password for your ${BRAND.name} account (${to ? `<strong style="color: #111111;">${to}</strong>` : 'associated with this email'}).</p>
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #666666;">Your verification code is:</p>
               <div style="font-size: 42px; font-weight: 700; letter-spacing: 0.25em; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; color: #111111; padding: 12px 0 20px 0; line-height: 1;">
                 ${code}
               </div>
-              <p style="margin: 0 0 16px 0;">Enter this code on the LOOP password-reset page to continue.</p>
+              <p style="margin: 0 0 16px 0;">Enter this code on the ${BRAND.name} password-reset page to continue.</p>
               <p style="margin: 0 0 24px 0; color: #666666; font-size: 14px;">This code expires in 10 minutes. If you did not request a password reset, you can safely ignore this email.</p>
-              <p style="margin: 0; line-height: 1.5;">Thanks,<br><strong>The LOOP Team</strong></p>
+              <p style="margin: 0; line-height: 1.5;">Thanks,<br><strong>The ${BRAND.name} Team</strong></p>
             </td>
           </tr>
           <!-- Subtle Divider & Footer -->
           <tr>
             <td style="border-top: 1px solid #eeeeee; padding: 24px 0 0 0; font-size: 12px; color: #888888; line-height: 1.5;">
-              Sardar Patel Institute of Technology (SPIT), Mumbai &bull; Confidential &amp; Secure
+              <strong>${BRAND.fullName}</strong><br>
+              <em>${BRAND.tagline}</em> &bull; ${BRAND.college}
             </td>
           </tr>
         </table>
@@ -126,24 +132,25 @@ function buildLoopEmailHtml({ to, code }) {
  */
 function buildLoopEmailText({ to, code }) {
   return [
-    'LOOP',
+    `${BRAND.fullName}`,
+    `${BRAND.tagline}`,
     '',
     'Your password reset verification code',
     '',
     'Hello,',
     '',
-    `We received a request to reset the password for your LOOP account (${to || 'associated with this email'}).`,
+    `We received a request to reset the password for your ${BRAND.name} account (${to || 'associated with this email'}).`,
     '',
     'Your verification code is:',
     '',
     code,
     '',
-    'Enter this code on the LOOP password-reset page to continue.',
+    `Enter this code on the ${BRAND.name} password-reset page to continue.`,
     '',
     'This code expires in 10 minutes. If you did not request a password reset, you can safely ignore this email.',
     '',
     'Thanks,',
-    'The LOOP Team'
+    `The ${BRAND.name} Team`
   ].join('\n');
 }
 

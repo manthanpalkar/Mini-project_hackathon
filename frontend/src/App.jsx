@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import { UploadProvider } from './context/UploadContext';
 import UploadDock from './components/UploadDock';
 import ErrorBoundary from './components/ErrorBoundary';
+import BRAND from './constants/branding';
 
 // Resilient code-splitting with automatic reload on stale chunk deployment
 function lazyWithRetry(componentImport) {
@@ -231,10 +232,10 @@ function AppLayout() {
             gap: '1.5rem'
           }}>
             <div>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                LOOP — SPIT ALUMNI & SENIOR NETWORK
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem', letterSpacing: '0.02em' }}>
+                {BRAND.fullName}
               </p>
-              <p>Designed for educational mentoring and professional peer guidance.</p>
+              <p>{BRAND.tagline} Designed for educational mentoring and peer placement guidance.</p>
             </div>
             
             <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>

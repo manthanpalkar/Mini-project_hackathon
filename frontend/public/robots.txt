@@ -1,4 +1,5 @@
-# robots.txt for LOOP - Student Placement Stories & Career Preparation Platform
+# robots.txt for LOOP - Limitless Opportunities, One Platform
+# Their Journey. Your Opportunity.
 # Production Domain: https://loop-seven-delta.vercel.app
 
 User-agent: *
