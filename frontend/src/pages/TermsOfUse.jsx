@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import { 
   ArrowLeft, 
   FileCheck2, 
@@ -86,6 +87,16 @@ export default function TermsOfUse() {
       paddingBottom: '5rem',
       animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
+      <SEOHead 
+        title="Terms of Use | LOOP SPIT"
+        description="Terms of Use for LOOP, the student placement debrief and academic preparation platform at Sardar Patel Institute of Technology (SPIT)."
+        canonicalUrl="/terms"
+        ogType="website"
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Terms of Use', url: '/terms' }
+        ]}
+      />
       {/* Top Banner Navigation & Breadcrumbs */}
       <div style={{
         borderBottom: '1px solid var(--border-color)',

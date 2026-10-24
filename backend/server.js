@@ -782,6 +782,21 @@ async function authenticateToken(req, res, next) {
   }
 }
 
+async function optionalAuthenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  // If a token was provided, enforce full cryptographic verification and onboarding guards
+  authenticateToken(req, res, () => {
+    requireOnboarded(req, res, next);
+  });
+}
+
 function isUserAdmin(user) {
   if (!user) return false;
   const email = (user.email || '').toLowerCase().trim();
@@ -944,12 +959,109 @@ app.get('/', (req, res) => {
   });
 });
 
+// Dedicated Public robots.txt Endpoint
+app.get(['/robots.txt', '/api/robots.txt'], (req, res) => {
+  res.type('text/plain');
+  res.send(`User-agent: *
+Allow: /
+Allow: /home
+Allow: /stories
+Allow: /stories/*
+Allow: /resources
+Allow: /achievements
+Allow: /achievements/*
+Allow: /privacy-policy
+Allow: /terms
+
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /onboarding
+Disallow: /preview/
+Disallow: /preview/*
+Disallow: /api/
+Disallow: /uploads/resume-
+Disallow: /uploads/material-
+
+Sitemap: https://loop-seven-delta.vercel.app/sitemap.xml
+`);
+});
+
+// Dedicated Public Dynamic XML Sitemap Endpoint
+app.get(['/sitemap.xml', '/api/sitemap.xml'], async (req, res) => {
+  try {
+    const cacheKey = cacheService.makeKey('seo', 'sitemap_xml');
+    const xml = await cacheService.getOrSet(cacheKey, async () => {
+      const baseUrl = 'https://loop-seven-delta.vercel.app';
+      const staticPages = [
+        { path: '/', priority: '1.0', changefreq: 'daily' },
+        { path: '/home', priority: '0.9', changefreq: 'daily' },
+        { path: '/stories', priority: '0.9', changefreq: 'daily' },
+        { path: '/resources', priority: '0.8', changefreq: 'weekly' },
+        { path: '/achievements', priority: '0.7', changefreq: 'weekly' },
+        { path: '/privacy-policy', priority: '0.3', changefreq: 'monthly' },
+        { path: '/terms', priority: '0.3', changefreq: 'monthly' }
+      ];
+
+      // Query approved stories from MongoDB Atlas
+      let stories = [];
+      try {
+        stories = await Story.find({}).select('id updatedAt createdAt').lean();
+      } catch (e) {
+        console.warn('[SITEMAP_WARN] Could not fetch stories for sitemap:', e.message);
+      }
+
+      // Query approved achievements
+      let achievements = [];
+      try {
+        achievements = await Achievement.find({}).select('id updatedAt createdAt').lean();
+      } catch (e) {
+        console.warn('[SITEMAP_WARN] Could not fetch achievements for sitemap:', e.message);
+      }
+
+      let entries = '';
+      const now = new Date().toISOString();
+
+      for (const p of staticPages) {
+        entries += `  <url>\n    <loc>${baseUrl}${p.path}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
+      }
+
+      for (const s of stories) {
+        if (!s.id) continue;
+        const lastmod = (s.updatedAt || s.createdAt || new Date()).toISOString();
+        entries += `  <url>\n    <loc>${baseUrl}/stories/${encodeURIComponent(s.id)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      }
+
+      for (const a of achievements) {
+        const achId = a.id || (a._id ? a._id.toString() : null);
+        if (!achId) continue;
+        const lastmod = (a.updatedAt || a.createdAt || new Date()).toISOString();
+        entries += `  <url>\n    <loc>${baseUrl}/achievements/${encodeURIComponent(achId)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+      }
+
+      return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}</urlset>`;
+    }, 3600);
+
+    res.set({
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600, s-maxage=3600'
+    });
+    return res.send(xml);
+  } catch (err) {
+    console.error('[SITEMAP_GEN_ERROR]', err);
+    res.status(500).set('Content-Type', 'text/plain').send('Error generating XML sitemap');
+  }
+});
+
 // Middleware to check database connection status before handling API requests
 app.use((req, res, next) => {
   if (
     req.path === '/health' ||
     req.path === '/api/health' ||
     req.path === '/' ||
+    req.path === '/robots.txt' ||
+    req.path === '/api/robots.txt' ||
+    req.path === '/sitemap.xml' ||
+    req.path === '/api/sitemap.xml' ||
     req.path === '/api/upload-route-health' ||
     req.path === '/upload-route-health' ||
     req.path === '/api/email-provider-health' ||
@@ -968,7 +1080,7 @@ app.use((req, res, next) => {
 // Routes
 
 // 1. Folders
-app.get('/api/folders', authenticateToken, requireOnboarded, async (req, res) => {
+app.get('/api/folders', optionalAuthenticateToken, async (req, res) => {
   try {
     const { category, parentId } = req.query;
     const isAdmin = isUserAdmin(req.user);
@@ -2876,7 +2988,7 @@ function validateStoryFiles(payload) {
 }
 
 // 3. Stories
-app.get('/api/stories', authenticateToken, requireOnboarded, async (req, res) => {
+app.get('/api/stories', optionalAuthenticateToken, async (req, res) => {
   try {
     const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
 
@@ -2893,17 +3005,31 @@ app.get('/api/stories', authenticateToken, requireOnboarded, async (req, res) =>
         return { stories, total };
       }, cacheService.DEFAULT_TTLS.stories);
 
+      // Redact private email if unauthenticated
+      if (!req.user && payload && Array.isArray(payload.stories)) {
+        payload.stories.forEach(s => { delete s.uploadedByEmail; });
+      }
+
       return sendPaginatedResponse(res, payload.stories, payload.total, page, limit);
     }
 
     // Exclude heavy fields from the listing payload and sort newest first with deterministic order
     const cacheKey = cacheService.makeKey('stories:list', 'all');
-    const stories = await cacheService.getOrSet(cacheKey, async () => {
+    let stories = await cacheService.getOrSet(cacheKey, async () => {
       return await Story.find({})
         .sort({ createdAt: -1, _id: -1 })
         .select('-journey -resumeFile -studyMaterials -customSections -photo -resume')
         .lean();
     }, cacheService.DEFAULT_TTLS.stories);
+
+    // Redact private email if unauthenticated
+    if (!req.user && Array.isArray(stories)) {
+      stories = stories.map(s => {
+        const copy = { ...s };
+        delete copy.uploadedByEmail;
+        return copy;
+      });
+    }
 
     res.set('X-Total-Count', String(stories.length));
     res.json(stories);
@@ -2912,10 +3038,12 @@ app.get('/api/stories', authenticateToken, requireOnboarded, async (req, res) =>
   }
 });
 
-app.get(['/api/stories/:id', '/api/pending-stories/:id'], authenticateToken, requireOnboarded, async (req, res) => {
+app.get(['/api/stories/:id', '/api/pending-stories/:id'], optionalAuthenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const sanitizedId = sanitizeString(id);
+    const isPendingRoute = req.path.includes('/pending-stories/');
+
     const cacheKey = cacheService.makeKey('stories:detail', sanitizedId);
 
     const story = await cacheService.getOrSet(cacheKey, async () => {
@@ -2933,12 +3061,30 @@ app.get(['/api/stories/:id', '/api/pending-stories/:id'], authenticateToken, req
       return res.status(404).json({ error: 'Story not found.' });
     }
 
-    if (story.status === 'pending') {
+    if (story.status === 'pending' || isPendingRoute) {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Access token is required. Please login.', code: 'TOKEN_MISSING' });
+      }
       const isAdmin = isUserAdmin(req.user);
       const isAuthor = story.uploadedByEmail && req.user && (story.uploadedByEmail.toLowerCase() === req.user.email.toLowerCase());
       if (!isAdmin && !isAuthor) {
         return res.status(403).json({ error: 'Access denied to pending story.' });
       }
+    }
+
+    // If request is unauthenticated, redact private contact and protect raw resume download
+    if (!req.user) {
+      const publicDoc = { ...story };
+      delete publicDoc.uploadedByEmail;
+      delete publicDoc.resume;
+      if (publicDoc.resumeFile) {
+        publicDoc.resumeFile = {
+          fileName: publicDoc.resumeFile.fileName,
+          fileSize: publicDoc.resumeFile.fileSize,
+          requiresAuth: true
+        };
+      }
+      return res.json(publicDoc);
     }
 
     res.json(story);
@@ -3920,7 +4066,7 @@ app.delete('/api/resources/upload/:uploadId', authenticateToken, requireOnboarde
 app.delete('/api/pending-resources/upload/:uploadId', authenticateToken, requireOnboarded, handleUploadCancel);
 
 // List Resources with folder privacy & permission checks
-app.get('/api/resources', authenticateToken, requireOnboarded, async (req, res) => {
+app.get('/api/resources', optionalAuthenticateToken, async (req, res) => {
   try {
     const { folderId, search, type, visibility } = req.query;
     const isAdmin = isUserAdmin(req.user);
@@ -4029,7 +4175,7 @@ app.get('/api/resources', authenticateToken, requireOnboarded, async (req, res) 
 });
 
 // Single Resource Metadata
-app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken, requireOnboarded, async (req, res) => {
+app.get(['/api/resources/:id', '/api/pending-resources/:id'], optionalAuthenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const sanitizedId = sanitizeString(id);
@@ -4050,14 +4196,14 @@ app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken,
     const isUploader = resource.uploadedByEmail && req.user && (resource.uploadedByEmail.toLowerCase() === req.user.email.toLowerCase());
 
     const isPendingDoc = resource.status === 'pending';
-    if (isPendingDoc && !isAdmin && !isUploader) {
-      return res.status(403).json({ error: 'Access denied to pending resource.' });
+    if (isPendingDoc && (!req.user || (!isAdmin && !isUploader))) {
+      return res.status(req.user ? 403 : 401).json({ error: 'Access denied to pending resource.' });
     }
 
     if (folder && folder.visibility === 'private') {
-      const isFolderOwner = folder.ownerEmail === req.user.email || (folder.ownerId && String(folder.ownerId) === String(req.user.id));
-      if (!isFolderOwner && !isUploader && !isAdmin) {
-        return res.status(403).json({ error: 'Access denied to private resource.' });
+      const isFolderOwner = req.user && (folder.ownerEmail === req.user.email || (folder.ownerId && String(folder.ownerId) === String(req.user.id)));
+      if (!req.user || (!isFolderOwner && !isUploader && !isAdmin)) {
+        return res.status(req.user ? 403 : 401).json({ error: 'Access denied to private resource.' });
       }
     }
 
@@ -5178,7 +5324,7 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
 });
 
 // 7. Achievements
-app.get('/api/achievements', authenticateToken, requireOnboarded, async (req, res) => {
+app.get('/api/achievements', optionalAuthenticateToken, async (req, res) => {
   try {
     const cacheKey = cacheService.makeKey('achievements:list');
     const achievements = await cacheService.getOrSet(cacheKey, async () => {

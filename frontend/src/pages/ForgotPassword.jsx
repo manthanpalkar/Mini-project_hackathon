@@ -6,6 +6,7 @@ import {
   Check, Info 
 } from 'lucide-react';
 import { requestPasswordReset, verifyPasswordResetCode, resetPassword } from '../utils/db';
+import SEOHead from '../components/SEOHead';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -323,6 +324,12 @@ export default function ForgotPassword() {
         fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)'
       }}
     >
+      <SEOHead 
+        title="Reset Password | LOOP SPIT"
+        description="Reset your password for LOOP SPIT."
+        canonicalUrl="/forgot-password"
+        noIndex={true}
+      />
       <div 
         style={{
           width: '100%',

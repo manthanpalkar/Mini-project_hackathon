@@ -189,38 +189,16 @@ function AppLayout() {
               </ProtectedRoute>
             } />
 
-            {/* Protected Main Routes */}
-            <Route path="/" element={<Navigate to="/home" replace />} />
-            <Route path="/home" element={
-              <ProtectedRoute>
-                <Landing />
-              </ProtectedRoute>
-            } />
-            <Route path="/stories" element={
-              <ProtectedRoute>
-                <Stories />
-              </ProtectedRoute>
-            } />
-            <Route path="/stories/:id" element={
-              <ProtectedRoute>
-                <StoryDetail />
-              </ProtectedRoute>
-            } />
-            <Route path="/resources" element={
-              <ProtectedRoute>
-                <Resources />
-              </ProtectedRoute>
-            } />
-             <Route path="/achievements" element={
-              <ProtectedRoute>
-                <Achievements />
-              </ProtectedRoute>
-            } />
-            <Route path="/achievements/:id" element={
-              <ProtectedRoute>
-                <AchievementDetail />
-              </ProtectedRoute>
-            } />
+            {/* Public Canonical Content Routes (Crawleable & Accessible) */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/home" element={<Landing />} />
+            <Route path="/stories" element={<Stories />} />
+            <Route path="/stories/:id" element={<StoryDetail />} />
+            <Route path="/resources" element={<Resources />} />
+            <Route path="/achievements" element={<Achievements />} />
+            <Route path="/achievements/:id" element={<AchievementDetail />} />
+
+            {/* Authenticated Administrative & Management Routes */}
             <Route path="/admin" element={
               <ProtectedRoute>
                 <AdminDashboard />

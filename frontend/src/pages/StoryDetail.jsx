@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import { 
   ArrowLeft, Download, FileText, Award, Code, BookOpen, Layers, X, Edit, Trash2, Plus, 
   ExternalLink, Sparkles, CheckCircle2, Trophy, Medal, Lightbulb, Quote, Target, Cpu, 
@@ -1109,7 +1110,82 @@ export default function StoryDetail() {
         />
       </div>
 
+      <SEOHead 
+        title={`${story.name} — ${story.company} ${story.role || 'Placement'} Interview Experience | LOOP SPIT`}
+        description={`Read ${story.name}'s verified interview debrief for ${story.company} (${story.role || 'Engineering'}). Covers interview rounds, DSA prep, college journey at SPIT, and placement advice.`}
+        canonicalUrl={`/stories/${id}`}
+        ogType="article"
+        keywords={`${story.company} interview experience, ${story.role || 'Software Engineer'} placement, SPIT placement story, ${story.name}, coding rounds, technical interview preparation`}
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Placement Stories', url: '/stories' },
+          { name: `${story.company} — ${story.name}`, url: `/stories/${id}` }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: `${story.name} — ${story.company} ${story.role || 'Placement'} Interview Experience`,
+          description: `Detailed placement interview debrief, technical preparation strategy, and college journey at Sardar Patel Institute of Technology (SPIT).`,
+          author: {
+            '@type': 'Person',
+            name: story.name,
+            affiliation: {
+              '@type': 'EducationalOrganization',
+              name: 'Sardar Patel Institute of Technology'
+            }
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: 'LOOP — SPIT Mumbai',
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://loop-seven-delta.vercel.app/loop-logo.png'
+            }
+          },
+          datePublished: story.createdAt || '2025-01-01',
+          dateModified: story.updatedAt || story.createdAt || '2025-01-01',
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `https://loop-seven-delta.vercel.app/stories/${id}`
+          }
+        }}
+      />
+
       <div className="container animate-fade-in" style={{ paddingTop: '6rem', paddingBottom: '5rem', maxWidth: '880px' }}>
+        {/* Semantic Crawlable Breadcrumbs */}
+        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+          <Link to="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Home</Link>
+          <span>/</span>
+          <Link to="/stories" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Stories</Link>
+          <span>/</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{story.company} — {story.name}</span>
+        </nav>
+
+        {/* Public Visitor Informational Banner */}
+        {!currentUser && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.75rem',
+            borderRadius: '12px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            fontSize: '0.88rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Sparkles size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+              <span>Viewing verified public debrief. Sign in to access full senior resumes, study materials, and share your experience.</span>
+            </div>
+            <Link to="/login" className="btn btn-primary" style={{ padding: '0.35rem 0.95rem', fontSize: '0.82rem', borderRadius: '18px', whiteSpace: 'nowrap' }}>
+              Sign In
+            </Link>
+          </div>
+        )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         {/* Back button with smooth hover animation */}
         <button 

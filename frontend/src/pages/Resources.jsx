@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import { 
   Search, Download, Plus, X, Folder, Lock, Globe, Shield, 
   Trash2, Edit, ChevronRight, ArrowLeft, FileText, Image as ImageIcon, 
@@ -696,6 +697,24 @@ export default function Resources() {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1.5rem', minHeight: '85vh' }}>
+      <SEOHead 
+        title="Senior Academic Resources & Placement Prep Materials | LOOP SPIT"
+        description="Access curated semester notes, syllabus materials, handwritten cheat sheets, and technical interview roadmaps from SPIT engineering seniors."
+        canonicalUrl="/resources"
+        ogType="website"
+        keywords="engineering study materials, SPIT placement notes, semester question papers, DSA sheets, computer engineering notes, SPIT Mumbai"
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Resources', url: '/resources' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'SPIT Academic Resources & Placement Preparation Materials',
+          description: 'Curated engineering study materials, semester notes, and technical placement guides at SPIT Mumbai.',
+          url: 'https://loop-seven-delta.vercel.app/resources'
+        }}
+      />
       
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.25rem', marginBottom: '2rem' }}>

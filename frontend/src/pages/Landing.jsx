@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowDown, CornerRightDown } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const heroImage = '/images/spit-college.jpg';
 const labImage = '/images/loop-labs.png';
@@ -225,6 +226,38 @@ export default function Landing() {
 
   return (
     <div className="animate-fade-in" style={{ backgroundColor: 'var(--bg-primary)', overflowX: 'hidden' }}>
+      <SEOHead 
+        title="LOOP — Student Placement Stories & Career Knowledge Hub | SPIT Mumbai"
+        description="Official placement knowledge hub for Sardar Patel Institute of Technology (SPIT). Explore verified interview debriefs, compensation packages, and senior academic resources."
+        canonicalUrl="/home"
+        ogType="website"
+        keywords="SPIT, Sardar Patel Institute of Technology, Placements, Interview Experiences, CTC Packages, Engineering Placements, SPIT Mumbai, DSA Prep"
+        structuredData={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'LOOP — Sardar Patel Institute of Technology',
+            url: 'https://loop-seven-delta.vercel.app/',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: 'https://loop-seven-delta.vercel.app/stories?q={search_term_string}',
+              'query-input': 'required name=search_term_string'
+            }
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'EducationalOrganization',
+            name: 'Sardar Patel Institute of Technology',
+            alternateName: 'SPIT Mumbai',
+            url: 'https://www.spit.ac.in/',
+            logo: 'https://loop-seven-delta.vercel.app/loop-logo.png',
+            sameAs: [
+              'https://www.spit.ac.in/',
+              'https://en.wikipedia.org/wiki/Sardar_Patel_Institute_of_Technology'
+            ]
+          }
+        ]}
+      />
       
       {/* SECTION 1: HERO BANNER (Full-bleed high-contrast banner) */}
       <section style={{

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import { 
   ArrowLeft, 
   ShieldCheck, 
@@ -85,6 +86,16 @@ export default function PrivacyPolicy() {
       paddingBottom: '5rem',
       animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
+      <SEOHead 
+        title="Privacy Policy | LOOP SPIT"
+        description="LOOP Privacy Policy. Learn how student records, placement debriefs, GridFS documents, and authentication credentials are secure at SPIT Mumbai."
+        canonicalUrl="/privacy-policy"
+        ogType="website"
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Privacy Policy', url: '/privacy-policy' }
+        ]}
+      />
       {/* Top Banner Navigation & Breadcrumbs */}
       <div style={{
         borderBottom: '1px solid var(--border-color)',

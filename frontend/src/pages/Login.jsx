@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-do
 import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
 import { loginUser, loginDemoUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 import { clearAllCaches } from '../hooks/useCachedData';
+import SEOHead from '../components/SEOHead';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -562,6 +563,12 @@ export default function Login() {
       position: 'relative',
       overflowX: 'hidden'
     }}>
+      <SEOHead 
+        title="Sign In | LOOP SPIT"
+        description="Sign in to LOOP SPIT with your Sardar Patel Institute of Technology student account or Google authentication."
+        canonicalUrl="/login"
+        noIndex={true}
+      />
       {/* LEFT HALF (50%): FULL-BLEED VIDEO HERO PANEL (NO BOX) */}
       <div className="login-media-half" style={{
         width: '50%',

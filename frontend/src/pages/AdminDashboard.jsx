@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import { 
   Check, X, ShieldAlert, Plus, Trash2, Users, Clock, Edit, FileText, 
   ChevronDown, ChevronUp, ChevronRight, Search, Folder, HardDrive, 
@@ -1379,6 +1380,12 @@ export default function AdminDashboard() {
 
   return (
     <>
+      <SEOHead 
+        title="Administrator Dashboard | LOOP SPIT"
+        description="LOOP Administrator controls."
+        canonicalUrl="/admin"
+        noIndex={true}
+      />
       <div className="container animate-fade-in" style={{ paddingTop: '6.5rem', paddingBottom: '5rem' }}>
       
       {/* Header */}

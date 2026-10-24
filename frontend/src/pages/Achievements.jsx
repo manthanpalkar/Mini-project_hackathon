@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Calendar, ArrowUpRight, Search, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import { getAchievements } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
 
@@ -386,6 +387,24 @@ export default function Achievements() {
 
   return (
     <div className="container animate-fade-in" style={{ paddingTop: '6.5rem', paddingBottom: '5rem' }}>
+      <SEOHead 
+        title="Student Achievements & Campus Accolades | LOOP SPIT"
+        description="Discover hackathon victories, placement milestones, technical publications, and student leadership accomplishments from SPIT Mumbai."
+        canonicalUrl="/achievements"
+        ogType="website"
+        keywords="SPIT achievements, student hackathon winners, campus accolades, placement records, engineering milestones, SPIT Mumbai"
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Achievements', url: '/achievements' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'SPIT Student Achievements & Accolades',
+          description: 'Campus competition victories, placement triumphs, and research awards from Sardar Patel Institute of Technology.',
+          url: 'https://loop-seven-delta.vercel.app/achievements'
+        }}
+      />
       
       {/* Page Header */}
       <div style={{ marginBottom: '2.5rem' }}>

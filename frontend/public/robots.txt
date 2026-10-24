@@ -1,0 +1,26 @@
+# robots.txt for LOOP - Student Placement Stories & Career Preparation Platform
+# Production Domain: https://loop-seven-delta.vercel.app
+
+User-agent: *
+Allow: /
+Allow: /home
+Allow: /stories
+Allow: /stories/*
+Allow: /resources
+Allow: /achievements
+Allow: /achievements/*
+Allow: /privacy-policy
+Allow: /terms
+
+# Disallow authenticated, administrative, preview, and private staging routes
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /onboarding
+Disallow: /preview/
+Disallow: /preview/*
+Disallow: /api/
+Disallow: /uploads/resume-
+Disallow: /uploads/material-
+
+# Reference to the XML Sitemap
+Sitemap: https://loop-seven-delta.vercel.app/sitemap.xml

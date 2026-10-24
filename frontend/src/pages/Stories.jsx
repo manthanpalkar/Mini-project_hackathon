@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import { 
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
   Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw, ExternalLink
@@ -882,6 +883,24 @@ export default function Stories() {
 
   return (
     <div className="container" style={{ paddingTop: '6.5rem', paddingBottom: '5rem' }}>
+      <SEOHead 
+        title="Engineering Placement Stories & Interview Debriefs | LOOP SPIT"
+        description="Browse verified campus placement experiences, interview questions, coding rounds, and preparation journeys from SPIT engineering seniors."
+        canonicalUrl="/stories"
+        ogType="website"
+        keywords="campus placement interview experiences, SPIT placement stories, software engineer debrief, company interview rounds, coding round questions, engineering placements"
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Placement Stories', url: '/stories' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'Engineering Placement Stories & Interview Experiences',
+          description: 'Verified student placement debriefs, technical interview rounds, and preparation strategies at Sardar Patel Institute of Technology.',
+          url: 'https://loop-seven-delta.vercel.app/stories'
+        }}
+      />
       {/* Header and Filter panel */}
       <div style={{
         display: 'flex',

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getAchievements } from '../utils/db';
 import { ArrowLeft, Calendar } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 function formatAchievementDate(dateStr) {
   if (!dateStr) return '';
@@ -125,6 +126,18 @@ export default function AchievementDetail() {
 
   return (
     <div className="container animate-fade-in" style={{ paddingTop: '6.5rem', paddingBottom: '6rem', maxWidth: '1000px' }}>
+      <SEOHead 
+        title={`${achievement.title} | LOOP SPIT Achievements`}
+        description={achievement.description?.slice(0, 160) || 'Student achievement, competition milestone, and honor from Sardar Patel Institute of Technology.'}
+        canonicalUrl={`/achievements/${id}`}
+        ogType="article"
+        ogImage={achievement.image || '/og-image.png'}
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Achievements', url: '/achievements' },
+          { name: achievement.title, url: `/achievements/${id}` }
+        ]}
+      />
       
       {/* Back link */}
       <button 
