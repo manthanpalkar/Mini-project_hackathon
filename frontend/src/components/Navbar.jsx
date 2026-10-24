@@ -113,13 +113,32 @@ export default function Navbar() {
   }, [user, showProfileModal]);
 
   useEffect(() => {
-    // Check for user session
-    const currentUser = localStorage.getItem('loop_current_user');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUser(currentUser ? JSON.parse(currentUser) : null);
+    // Check for user session and synchronize across events and storage updates
+    const syncUser = () => {
+      try {
+        const currentUser = localStorage.getItem('loop_current_user');
+        setUser(currentUser ? JSON.parse(currentUser) : null);
+      } catch (e) {
+        setUser(null);
+      }
+    };
+
+    syncUser();
 
     // Enforce light theme by default, just like Hinge
     document.documentElement.setAttribute('data-theme', 'light');
+
+    window.addEventListener('loop_login_success', syncUser);
+    window.addEventListener('loop_session_refreshed', syncUser);
+    window.addEventListener('loop_logout', syncUser);
+    window.addEventListener('storage', syncUser);
+
+    return () => {
+      window.removeEventListener('loop_login_success', syncUser);
+      window.removeEventListener('loop_session_refreshed', syncUser);
+      window.removeEventListener('loop_logout', syncUser);
+      window.removeEventListener('storage', syncUser);
+    };
   }, [location]);
 
   const handleLogout = () => {

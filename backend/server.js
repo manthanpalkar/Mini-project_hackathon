@@ -2363,6 +2363,7 @@ app.post(['/api/auth/reset-password', '/api/users/reset-password'], async (req, 
     await user.save();
 
     userAuthCache.invalidate(normalizedEmail);
+    await sessionService.revokeOtherSessions(normalizedEmail, null);
 
     activityService.logActivity({
       eventType: 'AUTH_PASSWORD_RESET_SUCCESS',
@@ -2528,6 +2529,13 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
     userAuthCache.invalidate(email);
 
     if (passwordChanged) {
+      await sessionService.revokeOtherSessions(user.email, req.user?.sessionId || null);
+    }
+    if (status !== undefined && isUserAdmin && status !== 'Active') {
+      await sessionService.revokeOtherSessions(user.email, null);
+    }
+
+    if (passwordChanged) {
       activityService.logActivity({
         eventType: 'AUTH_PASSWORD_CHANGE',
         category: 'AUTH',
@@ -2648,6 +2656,7 @@ app.delete('/api/users/:email', authenticateToken, requireAdmin, async (req, res
     const cleanEmail = email.trim().toLowerCase();
     await User.deleteOne({ email: new RegExp('^' + escapeRegExp(cleanEmail) + '$', 'i') });
     userAuthCache.invalidate(cleanEmail);
+    await sessionService.revokeOtherSessions(cleanEmail, null);
 
     activityService.logActivity({
       eventType: 'USER_DELETE',

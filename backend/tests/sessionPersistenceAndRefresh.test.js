@@ -579,4 +579,40 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
     const postLogoutData = await postLogoutRefresh.json();
     assert.equal(postLogoutData.code, 'SESSION_REVOKED');
   });
+
+  test('14. In-memory cache eviction (trimCache) prevents unbounded growth', async () => {
+    const testMap = new Map();
+    for (let i = 0; i < 10005; i++) {
+      testMap.set(`key-${i}`, `val-${i}`);
+    }
+    assert.equal(testMap.size, 10005);
+    sessionService._trimCache(testMap);
+    assert.equal(testMap.size, sessionService.MAX_CACHE_ENTRIES, 'Cache must be trimmed to MAX_CACHE_ENTRIES');
+    assert.equal(testMap.has('key-0'), false, 'Oldest item must be evicted');
+    assert.equal(testMap.has('key-10004'), true, 'Newest item must be retained');
+  });
+
+  test('15. revokeOtherSessions revokes active sessions across cache and persistence layer', async () => {
+    const email = 'multidevice@spit.ac.in';
+    const s1 = await sessionService.createSession({ email });
+    const s2 = await sessionService.createSession({ email });
+    const s3 = await sessionService.createSession({ email });
+
+    // Verify all 3 sessions are initially active
+    assert.equal(await sessionService.isSessionActive(s1.sessionId, email), true);
+    assert.equal(await sessionService.isSessionActive(s2.sessionId, email), true);
+    assert.equal(await sessionService.isSessionActive(s3.sessionId, email), true);
+
+    // Revoke all sessions except s3
+    await sessionService.revokeOtherSessions(email, s3.sessionId);
+
+    // s1 and s2 must be inactive; s3 remains active
+    assert.equal(await sessionService.isSessionActive(s1.sessionId, email), false);
+    assert.equal(await sessionService.isSessionActive(s2.sessionId, email), false);
+    assert.equal(await sessionService.isSessionActive(s3.sessionId, email), true);
+
+    // Revoke remaining session s3 (passing null currentSessionId)
+    await sessionService.revokeOtherSessions(email, null);
+    assert.equal(await sessionService.isSessionActive(s3.sessionId, email), false);
+  });
 });

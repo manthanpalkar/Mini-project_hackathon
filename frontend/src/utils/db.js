@@ -149,13 +149,8 @@ const authFetch = async (url, options = {}, isRetry = false) => {
     }
   }
 
-  let res;
-  try {
-    res = await fetch(url, { ...options, headers });
-  } catch (fetchErr) {
-    // Network errors (DNS, offline, Render cold start timeout) - DO NOT log out!
-    throw fetchErr;
-  }
+  // Network errors (DNS, offline, Render cold start timeout) will naturally throw without logging out
+  const res = await fetch(url, { ...options, headers });
 
   // Handle sliding session token rotation safely without race conditions
   try {

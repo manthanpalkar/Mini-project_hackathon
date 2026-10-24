@@ -54,7 +54,7 @@ export default defineConfig(({ mode }) => ({
         target: 'http://127.0.0.1:5001',
         changeOrigin: true,
         configure: (proxy) => {
-          proxy.on('error', (err, req, res) => {
+          proxy.on('error', (err) => {
             console.error('[VITE_PROXY_ERROR]', err);
           });
         }

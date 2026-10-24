@@ -3,10 +3,21 @@ const mongoose = require('mongoose');
 const { UserSession } = require('../models');
 
 // In-memory revoked session cache for high-speed authentication verification
+const MAX_CACHE_ENTRIES = 10000;
 const revokedSessionsCache = new Set();
 const activeSessionsCache = new Map(); // sessionId -> { email, refreshTokenHash, expiresAt }
 const sessionRefreshLocks = new Map(); // sessionId -> Promise for in-flight mutex serialization
 const DEFAULT_SESSION_DURATION_HOURS = 24 * 30; // 30-day persistent session
+
+function trimCache(collection) {
+  if (!collection || collection.size <= MAX_CACHE_ENTRIES) return;
+  const excess = collection.size - MAX_CACHE_ENTRIES;
+  const iterator = collection.keys ? collection.keys() : collection.values();
+  for (let i = 0; i < excess; i++) {
+    const item = iterator.next().value;
+    if (item !== undefined) collection.delete(item);
+  }
+}
 
 /**
  * Determine a concise human-readable device and browser summary from userAgent
@@ -62,6 +73,7 @@ async function createSession({ email, userAgent = '', ipAddress = '127.0.0.1', d
     refreshTokenHash,
     expiresAt 
   });
+  trimCache(activeSessionsCache);
 
   return {
     sessionId,
@@ -107,6 +119,7 @@ async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddre
     if (!session) {
       // Session not found in database or was permanently removed/revoked
       revokedSessionsCache.add(sessionId);
+      trimCache(revokedSessionsCache);
       activeSessionsCache.delete(sessionId);
       return { success: false, code: 'SESSION_REVOKED', error: 'Session has expired or was terminated.' };
     }
@@ -165,6 +178,7 @@ async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddre
       refreshTokenHash: newHash,
       expiresAt: newExpiresAt
     });
+    trimCache(activeSessionsCache);
 
     return {
       success: true,
@@ -218,6 +232,7 @@ async function isSessionActive(sessionId, email) {
     if (!session) {
       // Document genuinely does not exist in DB or was explicitly revoked
       revokedSessionsCache.add(sessionId);
+      trimCache(revokedSessionsCache);
       return false;
     }
 
@@ -226,6 +241,7 @@ async function isSessionActive(sessionId, email) {
     }
 
     activeSessionsCache.set(sessionId, { email: session.email, expiresAt: new Date(session.expiresAt) });
+    trimCache(activeSessionsCache);
   }
 
   return true;
@@ -241,6 +257,7 @@ function touchSession(sessionId) {
   const lastTouch = lastTouchMap.get(sessionId) || 0;
   if (now - lastTouch > 5 * 60 * 1000) {
     lastTouchMap.set(sessionId, now);
+    trimCache(lastTouchMap);
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       // Extend expiration by 30 days on active interaction
       const newExpiresAt = new Date(now + DEFAULT_SESSION_DURATION_HOURS * 3600 * 1000);
@@ -258,6 +275,7 @@ function touchSession(sessionId) {
 async function revokeSession(sessionId, email = null, reason = 'User requested logout') {
   if (!sessionId) return;
   revokedSessionsCache.add(sessionId);
+  trimCache(revokedSessionsCache);
   activeSessionsCache.delete(sessionId);
 
   const filter = { sessionId };
@@ -289,6 +307,7 @@ async function revokeOtherSessions(email, currentSessionId) {
       activeSessionsCache.delete(sId);
     }
   }
+  trimCache(revokedSessionsCache);
 
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     const sessionsToRevoke = await UserSession.find(query, { sessionId: 1 }).lean().catch(() => []);
@@ -296,6 +315,7 @@ async function revokeOtherSessions(email, currentSessionId) {
       revokedSessionsCache.add(s.sessionId);
       activeSessionsCache.delete(s.sessionId);
     }
+    trimCache(revokedSessionsCache);
 
     return UserSession.updateMany(
       query,
@@ -360,5 +380,7 @@ module.exports = {
   revokeOtherSessions,
   listUserSessions,
   parseDeviceSummary,
-  DEFAULT_SESSION_DURATION_HOURS
+  DEFAULT_SESSION_DURATION_HOURS,
+  MAX_CACHE_ENTRIES,
+  _trimCache: trimCache
 };
