@@ -802,13 +802,13 @@ export default function AdminDashboard() {
         fileSize: res.fileSize,
         previewUrl: res.url,
         url: res.url,
-        storageProvider: 'supabase',
-        storagePath: res.storagePath,
+        storageProvider: 'gridfs',
+        gridFsFileId: res.gridFsFileId,
         mimeType: res.mimeType,
         sizeBytes: res.sizeBytes
       });
     }).catch(err => {
-      console.error("Error uploading material to Supabase Storage:", err);
+      console.error("Error uploading material to GridFS:", err);
       alert(err.message || "Failed to upload study material.");
     });
   };
@@ -837,14 +837,14 @@ export default function AdminDashboard() {
           fileName: res.fileName,
           fileSize: res.fileSize,
           url: res.url,
-          storageProvider: 'supabase',
-          storagePath: res.storagePath,
+          storageProvider: 'gridfs',
+          gridFsFileId: res.gridFsFileId,
           mimeType: res.mimeType,
           sizeBytes: res.sizeBytes
         }
       }));
     }).catch(err => {
-      console.error("Error uploading resume to Supabase Storage:", err);
+      console.error("Error uploading resume to GridFS:", err);
       alert(err.message || "Failed to upload resume to storage.");
     });
   };

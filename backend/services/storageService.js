@@ -6,6 +6,9 @@ const path = require('path');
 // 200 MB maximum upload limit (209,715,200 bytes)
 const MAX_FILE_SIZE = 200 * 1024 * 1024;
 
+// Strict 10 MiB resume maximum (10,485,760 bytes)
+const RESUME_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 // Configurable chunk size and concurrency
 const GRIDFS_CHUNK_SIZE_MB = Math.max(1, Math.min(32, parseInt(process.env.GRIDFS_CHUNK_SIZE_MB || '8', 10)));
 const CHUNK_SIZE_BYTES = GRIDFS_CHUNK_SIZE_MB * 1024 * 1024; // Default: 8 MB
@@ -102,6 +105,40 @@ function isAllowedFile({ filename = '', mimeType = '' }) {
 }
 
 /**
+ * Validate resume format (PDF only) and strict 10 MiB size limit
+ */
+function validateResume({ filename = '', mimeType = '', sizeBytes = 0 } = {}) {
+  const cleanExt = (filename || '').split('.').pop().toLowerCase().trim();
+  const cleanMime = (mimeType || '').toLowerCase().split(';')[0].trim();
+  const isPdf = cleanExt === 'pdf' || cleanMime === 'application/pdf';
+
+  if (!isPdf) {
+    return {
+      valid: false,
+      error: 'Resumes must strictly be in PDF (.pdf) format.',
+      code: 'INVALID_FILE_TYPE'
+    };
+  }
+
+  if (sizeBytes && sizeBytes > RESUME_MAX_FILE_SIZE_BYTES) {
+    return {
+      valid: false,
+      error: 'Resume size exceeds the 10 MB limit. Please compress your PDF and try again.',
+      code: 'FILE_TOO_LARGE'
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Sanitize filename to prevent directory traversal and invalid characters
+ */
+function sanitizeFilename(filename = '') {
+  return path.basename(filename || '').replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+/**
  * Classify file into human-readable category for UI badges
  */
 function getFileTypeCategory(mimeType = '', filename = '') {
@@ -136,7 +173,14 @@ function formatBytes(bytes, decimals = 1) {
  * Get or initialize main GridFSBucket instance ('loop_resources')
  */
 let gridFsBucket = null;
+let customGridFsBucket = null;
+
+function setGridFSBucket(bucket) {
+  customGridFsBucket = bucket;
+}
+
 function getGridFSBucket() {
+  if (customGridFsBucket) return customGridFsBucket;
   if (!gridFsBucket) {
     if (!mongoose.connection || !mongoose.connection.db) {
       throw new Error('MongoDB connection is not established.');
@@ -449,11 +493,18 @@ function uploadToGridFS(readableStream, filename, mimeType, metadata = {}) {
  * Supports HTTP Range requests (206 Partial Content), ETag, and 304 caching.
  */
 async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType, isPrivate = false) {
-  const rawId = (storageKey || '').replace(/^gridfs:/, '');
-  let objectId;
-  try {
-    objectId = new ObjectId(rawId);
-  } catch (e) {
+  let rawId = '';
+  if (storageKey) {
+    if (typeof storageKey === 'object') {
+      rawId = (storageKey._id || storageKey.gridFsFileId || storageKey.id || storageKey.storageKey || storageKey).toString();
+    } else {
+      rawId = String(storageKey);
+    }
+  }
+  rawId = rawId.replace(/^gridfs:/, '').trim();
+
+  const isPrefixed = typeof storageKey === 'string' && storageKey.startsWith('gridfs:');
+  if (!rawId || (isPrefixed && (!ObjectId.isValid(rawId) || rawId.length !== 24))) {
     return res.status(400).json({ error: 'Invalid file ID format.' });
   }
 
@@ -464,12 +515,45 @@ async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType
     return res.status(503).json({ error: 'Database storage service unavailable.' });
   }
 
-  const files = await bucket.find({ _id: objectId }).toArray();
-  if (!files || files.length === 0) {
-    return res.status(404).json({ error: 'File not found in storage.' });
+  let file = null;
+  if (ObjectId.isValid(rawId) && rawId.length === 24) {
+    const objectId = new ObjectId(rawId);
+    const files = await bucket.find({ _id: objectId }).toArray();
+    if (files && files.length > 0) file = files[0];
   }
 
-  const file = files[0];
+  if (!file) {
+    // Attempt lookup by filename, storagePath, or metadata
+    const query = {
+      $or: [
+        { filename: rawId },
+        { filename: path.basename(rawId) },
+        { 'metadata.storagePath': rawId },
+        { 'metadata.originalFileName': path.basename(rawId) }
+      ]
+    };
+    const files = await bucket.find(query).toArray();
+    if (files && files.length > 0) file = files[0];
+  }
+
+  if (!file) {
+    // Check if legacy local uploads file exists
+    const uploadsDir = path.resolve(__dirname, '..', 'uploads');
+    const localTarget = path.resolve(uploadsDir, path.basename(rawId));
+    if (localTarget.startsWith(uploadsDir + path.sep) && fs.existsSync(localTarget)) {
+      const stats = fs.statSync(localTarget);
+      const filename = originalFileName || path.basename(localTarget);
+      const cleanExt = filename.includes('.') ? filename.split('.').pop().toLowerCase() : '';
+      let resolvedContentType = mimeType || (cleanExt === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+      const isDownload = req.query.download === '1' || req.query.download === 'true';
+      res.setHeader('Content-Type', resolvedContentType);
+      res.setHeader('Content-Length', stats.size);
+      res.setHeader('Content-Disposition', `${isDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(filename)}"`);
+      return fs.createReadStream(localTarget).pipe(res);
+    }
+
+    return res.status(404).json({ error: 'File not found in storage.' });
+  }
   const fileSize = file.length;
   const filename = originalFileName || file.filename || 'download';
   const cleanExt = filename.includes('.') ? filename.split('.').pop().toLowerCase() : '';
@@ -530,7 +614,7 @@ async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType
     res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
     res.setHeader('Content-Length', chunkSize);
 
-    const downloadStream = bucket.openDownloadStream(objectId, {
+    const downloadStream = bucket.openDownloadStream(file._id, {
       start,
       end: end + 1
     });
@@ -553,7 +637,7 @@ async function streamFromGridFS(storageKey, req, res, originalFileName, mimeType
     downloadStream.pipe(res);
   } else {
     res.setHeader('Content-Length', fileSize);
-    const downloadStream = bucket.openDownloadStream(objectId);
+    const downloadStream = bucket.openDownloadStream(file._id);
 
     downloadStream.on('error', (err) => {
       console.error('[GridFS Stream] Error:', err);
@@ -627,6 +711,9 @@ async function deleteFile(storageKeyOrObj, storageProvider) {
 
 module.exports = {
   MAX_FILE_SIZE,
+  RESUME_MAX_FILE_SIZE_BYTES,
+  validateResume,
+  sanitizeFilename,
   GRIDFS_CHUNK_SIZE_MB,
   CHUNK_SIZE_BYTES,
   GRIDFS_UPLOAD_CONCURRENCY,
@@ -637,6 +724,7 @@ module.exports = {
   getFileTypeCategory,
   formatBytes,
   getGridFSBucket,
+  setGridFSBucket,
   getTempChunksBucket,
   saveTempChunk,
   getUploadedChunkIndexes,

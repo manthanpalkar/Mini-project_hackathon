@@ -50,11 +50,12 @@ const StudyMaterialSchema = new mongoose.Schema({
   fileName: String,
   fileSize: String,
   url: String,
-  storageProvider: { type: String, default: 'supabase' },
-  storagePath: String,
+  storageProvider: { type: String, default: 'gridfs' },
+  gridFsFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
   mimeType: String,
   sizeBytes: Number,
-  bucket: String
+  uploadedAt: { type: Date, default: Date.now },
+  uploadedByEmail: String
 }, { _id: false });
 
 // Custom Section Subschema
@@ -68,11 +69,12 @@ const ResumeFileSchema = new mongoose.Schema({
   fileName: String,
   fileSize: String,
   url: String,
-  storageProvider: { type: String, default: 'supabase' },
-  storagePath: String,
+  storageProvider: { type: String, default: 'gridfs' },
+  gridFsFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
   mimeType: String,
   sizeBytes: Number,
-  bucket: String
+  uploadedAt: { type: Date, default: Date.now },
+  uploadedByEmail: String
 }, { _id: false });
 
 // Story Schema

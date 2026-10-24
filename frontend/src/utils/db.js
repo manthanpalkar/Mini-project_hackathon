@@ -527,7 +527,7 @@ export const rejectPendingStory = async (id) => {
   return res.json();
 };
 
-// Supabase Storage Upload Helpers for Resumes and Study Materials
+// MongoDB GridFS Storage Upload Helpers for Resumes and Study Materials
 export const uploadResumeFile = async (file, onProgress) => {
   if (!file) throw new Error('No resume file selected');
   if (file.size > 10 * 1024 * 1024) {

@@ -596,13 +596,13 @@ export default function Stories() {
         fileSize: res.fileSize,
         previewUrl: res.url,
         url: res.url,
-        storageProvider: 'supabase',
-        storagePath: res.storagePath,
+        storageProvider: 'gridfs',
+        gridFsFileId: res.gridFsFileId,
         mimeType: res.mimeType,
         sizeBytes: res.sizeBytes
       });
     } catch (err) {
-      console.error("Error uploading study material to Supabase Storage:", err);
+      console.error("Error uploading study material to GridFS:", err);
       alert(err.message || "Failed to upload study material.");
     } finally {
       setIsUploadingMaterial(false);
@@ -633,13 +633,13 @@ export default function Stories() {
         fileName: res.fileName,
         fileSize: res.fileSize,
         url: res.url,
-        storageProvider: 'supabase',
-        storagePath: res.storagePath,
+        storageProvider: 'gridfs',
+        gridFsFileId: res.gridFsFileId,
         mimeType: res.mimeType,
         sizeBytes: res.sizeBytes
       });
     } catch (err) {
-      console.error("Error uploading resume to Supabase Storage:", err);
+      console.error("Error uploading resume to GridFS:", err);
       alert(err.message || "Failed to upload resume to storage.");
     } finally {
       setIsUploadingResume(false);
