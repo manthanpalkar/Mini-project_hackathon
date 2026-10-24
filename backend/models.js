@@ -278,6 +278,9 @@ PasswordResetChallengeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 86400
 const UserSessionSchema = new mongoose.Schema({
   sessionId: { type: String, required: true, unique: true, index: true },
   email: { type: String, required: true, lowercase: true, trim: true, index: true },
+  refreshTokenHash: { type: String, default: null, index: true },
+  previousRefreshTokenHash: { type: String, default: null },
+  previousTokenExpiresAt: { type: Date, default: null },
   deviceSummary: { type: String, default: 'Web Browser' },
   ipAddress: { type: String, default: 'Unknown' },
   userAgent: { type: String, default: '' },

@@ -1491,6 +1491,7 @@ app.post('/api/users/login', async (req, res) => {
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || '',
       token,
+      refreshToken: session.refreshToken,
       sessionId: session.sessionId
     });
   } catch (err) {
@@ -1580,6 +1581,7 @@ app.post(['/api/auth/demo-login', '/api/users/demo-login'], loginLimiter, async 
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || '',
       token,
+      refreshToken: session.refreshToken,
       sessionId: session.sessionId
     });
   } catch (err) {
@@ -1807,6 +1809,7 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
         isAdmin: isUserAdmin,
         nameColor: existingByEmail.nameColor || '',
         token,
+        refreshToken: session.refreshToken,
         sessionId: session.sessionId
       });
     }
@@ -1943,6 +1946,7 @@ app.post(['/api/auth/google/signup', '/api/users/google/signup', '/api/users/aut
       isAdmin: false,
       nameColor: newUser.nameColor || '',
       token,
+      refreshToken: session.refreshToken,
       sessionId: session.sessionId
     });
   } catch (err) {
@@ -2038,6 +2042,7 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || '',
       token,
+      refreshToken: session.refreshToken,
       sessionId: session.sessionId
     });
   } catch (err) {
@@ -4819,6 +4824,101 @@ app.post('/api/sessions/my/revoke-others', authenticateToken, async (req, res) =
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to revoke other sessions.' });
+  }
+});
+
+// Session Refresh Endpoint (Exchanges valid 30-day refresh token for a fresh access token)
+app.post(['/api/auth/refresh', '/api/users/refresh'], async (req, res) => {
+  try {
+    const { sessionId, refreshToken } = req.body || {};
+    if (!sessionId || !refreshToken) {
+      return res.status(400).json({
+        error: 'Both sessionId and refreshToken are required.',
+        code: 'MISSING_REFRESH_CREDENTIALS'
+      });
+    }
+
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || '';
+
+    const refreshResult = await sessionService.refreshSession({
+      sessionId,
+      refreshToken,
+      userAgent,
+      ipAddress
+    });
+
+    if (!refreshResult.success) {
+      return res.status(401).json({
+        error: refreshResult.error,
+        code: refreshResult.code
+      });
+    }
+
+    // Authoritative account status check: always query database during token refresh
+    userAuthCache.invalidate(refreshResult.email);
+    const email = refreshResult.email;
+    const user = await User.findOne({ email: new RegExp('^' + escapeRegExp(email) + '$', 'i') });
+    if (!user) {
+      return res.status(401).json({
+        error: 'User account not found.',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    if (user.status !== 'Active') {
+      userAuthCache.invalidate(email);
+      return res.status(403).json({
+        error: 'Your account is inactive or pending approval.',
+        code: 'ACCOUNT_INACTIVE'
+      });
+    }
+
+    const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+    const newAccessToken = jwt.sign(
+      {
+        email: user.email,
+        role: isUserAdmin ? 'Administrator' : user.role,
+        status: user.status,
+        sessionId: refreshResult.sessionId
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    activityService.logActivity({
+      eventType: 'AUTH_SESSION_REFRESHED',
+      category: 'AUTH',
+      actorEmail: user.email,
+      actorRole: user.role,
+      summary: `User session refreshed successfully`,
+      outcome: 'SUCCESS',
+      ipAddress,
+      userAgent,
+      metadata: { sessionId: refreshResult.sessionId }
+    });
+
+    return res.json({
+      token: newAccessToken,
+      refreshToken: refreshResult.refreshToken,
+      sessionId: refreshResult.sessionId,
+      email: user.email,
+      role: isUserAdmin ? 'Administrator' : user.role,
+      status: user.status,
+      name: user.name,
+      username: user.username || '',
+      branch: user.branch,
+      currentYear: user.currentYear,
+      onboarded: isUserAdmin ? true : user.onboarded,
+      isAdmin: isUserAdmin,
+      nameColor: user.nameColor || ''
+    });
+  } catch (err) {
+    console.error('[AUTH_REFRESH_ERROR]', err);
+    return res.status(500).json({
+      error: 'An internal error occurred while refreshing session.',
+      code: 'REFRESH_INTERNAL_ERROR'
+    });
   }
 });
 

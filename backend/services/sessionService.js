@@ -4,7 +4,9 @@ const { UserSession } = require('../models');
 
 // In-memory revoked session cache for high-speed authentication verification
 const revokedSessionsCache = new Set();
-const activeSessionsCache = new Map(); // sessionId -> { email, expiresAt }
+const activeSessionsCache = new Map(); // sessionId -> { email, refreshTokenHash, expiresAt }
+const sessionRefreshLocks = new Map(); // sessionId -> Promise for in-flight mutex serialization
+const DEFAULT_SESSION_DURATION_HOURS = 24 * 30; // 30-day persistent session
 
 /**
  * Determine a concise human-readable device and browser summary from userAgent
@@ -29,16 +31,19 @@ function parseDeviceSummary(userAgent = '') {
 }
 
 /**
- * Create a new user session upon successful login
+ * Create a new user session upon successful login (default 30-day persistence)
  */
-async function createSession({ email, userAgent = '', ipAddress = '127.0.0.1', durationHours = 24 * 7 }) {
+async function createSession({ email, userAgent = '', ipAddress = '127.0.0.1', durationHours = DEFAULT_SESSION_DURATION_HOURS }) {
   const sessionId = `SES-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
+  const refreshToken = `RT-${Date.now()}-${crypto.randomBytes(32).toString('hex')}`;
+  const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
   const deviceSummary = parseDeviceSummary(userAgent);
   const expiresAt = new Date(Date.now() + durationHours * 3600 * 1000);
 
   const session = new UserSession({
     sessionId,
     email: email.toLowerCase().trim(),
+    refreshTokenHash,
     deviceSummary,
     ipAddress: (ipAddress || '127.0.0.1').replace('::ffff:', ''),
     userAgent: userAgent.slice(0, 255),
@@ -52,13 +57,131 @@ async function createSession({ email, userAgent = '', ipAddress = '127.0.0.1', d
       console.warn('[SESSION_SERVICE_WARN] Session save failed:', err.message);
     });
   }
-  activeSessionsCache.set(sessionId, { email: email.toLowerCase().trim(), expiresAt });
+  activeSessionsCache.set(sessionId, { 
+    email: email.toLowerCase().trim(), 
+    refreshTokenHash,
+    expiresAt 
+  });
 
   return {
     sessionId,
+    refreshToken,
     deviceSummary,
     expiresAt
   };
+}
+
+/**
+ * Refresh an existing user session with refresh token rotation and multi-request race protection
+ */
+async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddress = '127.0.0.1' }) {
+  if (!sessionId || typeof sessionId !== 'string' || !refreshToken || typeof refreshToken !== 'string') {
+    return { success: false, code: 'INVALID_INPUT', error: 'Session ID and refresh token are required.' };
+  }
+
+  // In-flight serialization: If a refresh for this sessionId is currently executing, wait for it
+  if (sessionRefreshLocks.has(sessionId)) {
+    try {
+      const lockResult = await sessionRefreshLocks.get(sessionId);
+      if (lockResult && lockResult.success) {
+        return lockResult;
+      }
+    } catch (e) {}
+  }
+
+  const runRefresh = async () => {
+    if (revokedSessionsCache.has(sessionId)) {
+      return { success: false, code: 'SESSION_REVOKED', error: 'Session has been revoked or signed out.' };
+    }
+
+    let session = null;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        session = await UserSession.findOne({ sessionId, revoked: false });
+      } catch (err) {
+        console.warn('[SESSION_SERVICE_WARN] Error looking up session for refresh:', err.message);
+        return { success: false, code: 'DB_ERROR', error: 'Database temporarily unavailable.' };
+      }
+    }
+
+    if (!session) {
+      // Session not found in database or was permanently removed/revoked
+      revokedSessionsCache.add(sessionId);
+      activeSessionsCache.delete(sessionId);
+      return { success: false, code: 'SESSION_REVOKED', error: 'Session has expired or was terminated.' };
+    }
+
+    // Check 30-day session expiration
+    if (session.expiresAt && Date.now() > new Date(session.expiresAt).getTime()) {
+      return { success: false, code: 'SESSION_EXPIRED', error: 'Session has expired. Please sign in again.' };
+    }
+
+    // Validate incoming refresh token against SHA-256 hash
+    const incomingHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const incomingBuf = Buffer.from(incomingHash);
+
+    let isMatch = false;
+    if (session.refreshTokenHash) {
+      const currentBuf = Buffer.from(session.refreshTokenHash);
+      if (incomingBuf.length === currentBuf.length && crypto.timingSafeEqual(incomingBuf, currentBuf)) {
+        isMatch = true;
+      }
+    }
+
+    // Check 60-second grace window for concurrent requests that used previous token during rotation
+    if (!isMatch && session.previousRefreshTokenHash && session.previousTokenExpiresAt) {
+      const prevBuf = Buffer.from(session.previousRefreshTokenHash);
+      const isGraceWindow = Date.now() < new Date(session.previousTokenExpiresAt).getTime();
+      if (isGraceWindow && incomingBuf.length === prevBuf.length && crypto.timingSafeEqual(incomingBuf, prevBuf)) {
+        isMatch = true;
+      }
+    }
+
+    if (!isMatch) {
+      return { success: false, code: 'INVALID_REFRESH_TOKEN', error: 'Invalid refresh token.' };
+    }
+
+    // Generate new rotated refresh token and extend session for 30 more days
+    const newRefreshToken = `RT-${Date.now()}-${crypto.randomBytes(32).toString('hex')}`;
+    const newHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+    const newExpiresAt = new Date(Date.now() + DEFAULT_SESSION_DURATION_HOURS * 3600 * 1000);
+
+    session.previousRefreshTokenHash = session.refreshTokenHash;
+    session.previousTokenExpiresAt = new Date(Date.now() + 60 * 1000); // 60s grace window
+    session.refreshTokenHash = newHash;
+    session.expiresAt = newExpiresAt;
+    session.lastActive = new Date();
+    if (ipAddress) session.ipAddress = ipAddress.replace('::ffff:', '');
+    if (userAgent) session.userAgent = userAgent.slice(0, 255);
+
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      await session.save().catch(err => {
+        console.warn('[SESSION_SERVICE_WARN] Error saving rotated session:', err.message);
+      });
+    }
+
+    activeSessionsCache.set(sessionId, {
+      email: session.email,
+      refreshTokenHash: newHash,
+      expiresAt: newExpiresAt
+    });
+
+    return {
+      success: true,
+      email: session.email,
+      sessionId: session.sessionId,
+      refreshToken: newRefreshToken,
+      expiresAt: newExpiresAt
+    };
+  };
+
+  const promise = runRefresh();
+  sessionRefreshLocks.set(sessionId, promise);
+  try {
+    return await promise;
+  } finally {
+    sessionRefreshLocks.delete(sessionId);
+  }
 }
 
 /**
@@ -109,7 +232,7 @@ async function isSessionActive(sessionId, email) {
 }
 
 /**
- * Touch session to update lastActive timestamp (throttled to once every 5 minutes)
+ * Touch session to update lastActive timestamp and extend expiration (throttled to once every 5 minutes)
  */
 const lastTouchMap = new Map();
 function touchSession(sessionId) {
@@ -119,7 +242,12 @@ function touchSession(sessionId) {
   if (now - lastTouch > 5 * 60 * 1000) {
     lastTouchMap.set(sessionId, now);
     if (mongoose.connection && mongoose.connection.readyState === 1) {
-      UserSession.updateOne({ sessionId }, { $set: { lastActive: new Date() } }).catch(() => {});
+      // Extend expiration by 30 days on active interaction
+      const newExpiresAt = new Date(now + DEFAULT_SESSION_DURATION_HOURS * 3600 * 1000);
+      UserSession.updateOne(
+        { sessionId },
+        { $set: { lastActive: new Date(), expiresAt: newExpiresAt } }
+      ).catch(() => {});
     }
   }
 }
@@ -225,10 +353,12 @@ async function listUserSessions(email, currentSessionId = '') {
 
 module.exports = {
   createSession,
+  refreshSession,
   isSessionActive,
   touchSession,
   revokeSession,
   revokeOtherSessions,
   listUserSessions,
-  parseDeviceSummary
+  parseDeviceSummary,
+  DEFAULT_SESSION_DURATION_HOURS
 };

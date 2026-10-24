@@ -118,15 +118,37 @@ function AppLayout() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.pathname]);
 
-  // Smooth SPA authentication expiration navigation (prevents hard window.location.href reload)
+  // Smooth SPA authentication expiration navigation & cross-tab synchronization
   useEffect(() => {
     const handleAuthExpired = () => {
       if (!location.pathname.includes('/login')) {
         navigate('/login', { replace: true, state: { message: 'Your session has expired. Please sign in again.' } });
       }
     };
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'loop_current_user') {
+        if (!e.newValue && !location.pathname.includes('/login')) {
+          navigate('/login', { replace: true, state: { message: 'You have signed out in another tab.' } });
+        } else if (e.newValue && e.oldValue) {
+          try {
+            const oldUser = JSON.parse(e.oldValue);
+            const newUser = JSON.parse(e.newValue);
+            if (oldUser?.email && newUser?.email && oldUser.email.toLowerCase() !== newUser.email.toLowerCase()) {
+              window.dispatchEvent(new CustomEvent('loop_login_success', { detail: newUser }));
+              navigate('/home', { replace: true });
+            }
+          } catch (parseErr) {}
+        }
+      }
+    };
+
     window.addEventListener('loop_auth_expired', handleAuthExpired);
-    return () => window.removeEventListener('loop_auth_expired', handleAuthExpired);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('loop_auth_expired', handleAuthExpired);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [navigate, location.pathname]);
 
   return (

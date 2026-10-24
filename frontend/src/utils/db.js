@@ -70,7 +70,70 @@ const notifyAuthExpired = () => {
   setTimeout(() => { authExpiredDispatched = false; }, 3000);
 };
 
-const authFetch = async (url, options = {}) => {
+// Single-flight refresh token mutex / promise coalescer to prevent concurrent refresh storms
+let refreshPromise = null;
+
+export const refreshAuthSession = async () => {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const userSessionRaw = localStorage.getItem('loop_current_user');
+      if (!userSessionRaw) {
+        return null;
+      }
+      const sessionData = JSON.parse(userSessionRaw);
+      const { sessionId, refreshToken } = sessionData || {};
+
+      if (!sessionId || !refreshToken) {
+        // No persistent refresh credentials available
+        return null;
+      }
+
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, refreshToken })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const latestRaw = localStorage.getItem('loop_current_user');
+        const latestUser = latestRaw ? JSON.parse(latestRaw) : sessionData;
+        latestUser.token = data.token;
+        if (data.refreshToken) {
+          latestUser.refreshToken = data.refreshToken;
+        }
+        if (data.sessionId) {
+          latestUser.sessionId = data.sessionId;
+        }
+        localStorage.setItem('loop_current_user', JSON.stringify(latestUser));
+        window.dispatchEvent(new CustomEvent('loop_session_refreshed', { detail: latestUser }));
+        return data.token;
+      } else {
+        const errPayload = await res.json().catch(() => null);
+        const code = errPayload?.code;
+        // Only unambiguous invalidation (explicit revocation, deleted user) terminates session
+        if (res.status === 401 || res.status === 403 || code === 'SESSION_REVOKED' || code === 'SESSION_EXPIRED' || code === 'INVALID_REFRESH_TOKEN') {
+          notifyAuthExpired();
+        }
+        return null;
+      }
+    } catch (networkErr) {
+      // Transient network errors or Render cold boot timeouts MUST NEVER log the user out!
+      console.warn('[AUTH_REFRESH_WARN] Transient error during token refresh. Retaining local session:', networkErr.message);
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
+const authFetch = async (url, options = {}, isRetry = false) => {
   const userSession = localStorage.getItem('loop_current_user');
   const headers = {
     ...options.headers,
@@ -85,7 +148,14 @@ const authFetch = async (url, options = {}) => {
       console.error("Error parsing session token:", e);
     }
   }
-  const res = await fetch(url, { ...options, headers });
+
+  let res;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch (fetchErr) {
+    // Network errors (DNS, offline, Render cold start timeout) - DO NOT log out!
+    throw fetchErr;
+  }
 
   // Handle sliding session token rotation safely without race conditions
   try {
@@ -104,24 +174,37 @@ const authFetch = async (url, options = {}) => {
     }
   } catch (tokenErr) {}
 
-  if (res.status === 401) {
-    if (!window.location.pathname.includes('/login')) {
-      try {
-        const clone = res.clone();
-        const errPayload = await clone.json().catch(() => null);
-        const code = errPayload?.code;
-        // Only invalidate if the backend explicitly confirmed token expiration or session revocation
-        if (!code || code === 'TOKEN_EXPIRED' || code === 'SESSION_REVOKED' || code === 'TOKEN_MISSING' || code === 'INVALID_TOKEN' || code === 'USER_NOT_FOUND') {
-          notifyAuthExpired();
-          throw new Error('Session expired. Please login again.');
-        }
-      } catch (checkErr) {
-        if (checkErr.message?.includes('Session expired')) throw checkErr;
-        notifyAuthExpired();
-        throw new Error('Session expired. Please login again.');
+  // Intercept 401 Unauthorized for proactive refresh and single retry
+  const isAuthEndpoint = typeof url === 'string' && (url.includes('/auth/refresh') || url.includes('/login') || url.includes('/demo-login'));
+  if (res.status === 401 && !isAuthEndpoint && !window.location.pathname.includes('/login')) {
+    let errPayload = null;
+    try {
+      const clone = res.clone();
+      errPayload = await clone.json().catch(() => null);
+    } catch (e) {}
+
+    const code = errPayload?.code;
+
+    // If access token expired and we have not already retried, attempt refresh flow
+    if (!isRetry && (code === 'TOKEN_EXPIRED' || !code)) {
+      const newToken = await refreshAuthSession();
+      if (newToken) {
+        // Retry the request ONCE with the freshly issued access token
+        const retryHeaders = {
+          ...options.headers,
+          'Authorization': `Bearer ${newToken}`
+        };
+        return authFetch(url, { ...options, headers: retryHeaders }, true);
       }
     }
+
+    // Explicit confirmation of revoked session or missing user
+    if (code === 'SESSION_REVOKED' || code === 'USER_NOT_FOUND' || (isRetry && code === 'TOKEN_EXPIRED')) {
+      notifyAuthExpired();
+      throw new Error('Session expired or revoked. Please login again.');
+    }
   }
+
   return res;
 };
 
@@ -179,12 +262,19 @@ const authFetchXHR = (url, options = {}, onProgress) => {
         }
       } catch (tokenErr) {}
 
-      // Handle ONLY 401 Unauthorized for session expiration (NEVER 403 Forbidden!)
-      if (xhr.status === 401 && !window.location.pathname.includes('/login')) {
-        let parsedJson = null;
-        try { parsedJson = JSON.parse(responseBody); } catch (e) { parsedJson = { error: 'Session expired. Please login again.' }; }
-        resolve({ ok: false, status: xhr.status, json: async () => parsedJson, text: async () => responseBody });
-        notifyAuthExpired();
+      // Handle 401 Unauthorized for session expiration with single retry
+      const isAuthUrl = typeof url === 'string' && (url.includes('/auth/refresh') || url.includes('/login'));
+      if (xhr.status === 401 && !isAuthUrl && !window.location.pathname.includes('/login') && !options._isRetry) {
+        refreshAuthSession().then((newToken) => {
+          if (newToken) {
+            const retryOptions = { ...options, _isRetry: true };
+            authFetchXHR(url, retryOptions, onProgress).then(resolve).catch(reject);
+          } else {
+            resolve({ ok: false, status: xhr.status, json: async () => ({ error: 'Upload failed: session expired or refresh failed' }), text: async () => responseBody });
+          }
+        }).catch(() => {
+          resolve({ ok: false, status: xhr.status, json: async () => ({ error: 'Upload failed: network error during session refresh' }), text: async () => responseBody });
+        });
         return;
       }
 
