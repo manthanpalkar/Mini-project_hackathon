@@ -360,6 +360,46 @@ const dataURItoBlob = (dataURI) => {
   }
 };
 
+function SectionEmptyState({ icon: Icon, title, message }) {
+  return (
+    <div
+      className="story-content-card"
+      style={{
+        padding: '2.25rem 1.5rem',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.65rem',
+        borderStyle: 'dashed',
+        backgroundColor: 'rgba(255, 255, 255, 0.015)'
+      }}
+    >
+      <div
+        style={{
+          width: '42px',
+          height: '42px',
+          borderRadius: '50%',
+          backgroundColor: 'var(--bg-tertiary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-muted)'
+        }}
+      >
+        <Icon size={20} />
+      </div>
+      <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+        {title}
+      </p>
+      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: '420px', lineHeight: 1.5 }}>
+        {message}
+      </p>
+    </div>
+  );
+}
+
 export default function StoryDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -367,7 +407,7 @@ export default function StoryDetail() {
   const [loading, setLoading] = useState(true);
   const [activeTimelineYear, setActiveTimelineYear] = useState(1);
   const [readingProgress, setReadingProgress] = useState(0);
-  const [activeSection, setActiveSection] = useState('section-journey');
+  const [activeSection, setActiveSection] = useState('section-compensation');
   const yearCardRefs = useRef({});
 
   // Reading progress tracker and scroll spy
@@ -380,14 +420,14 @@ export default function StoryDetail() {
         setReadingProgress(progress);
       }
 
-      // 2. Quick navigation section spy
+      // 2. Quick navigation section spy (in exact 9-section order)
       const sections = [
+        'section-compensation',
         'section-journey',
+        'section-rounds',
         'section-prep',
         'section-projects',
-        'section-secured',
         'section-advice',
-        'section-hackathons',
         'section-resources',
         'section-resume',
         'section-materials'
@@ -926,11 +966,26 @@ export default function StoryDetail() {
     }
   ].filter(Boolean);
 
-  const hasResume = Boolean(
-    (story?.resumeFile && (story.resumeFile.url || story.resumeFile.fileName)) ||
+  const rf = story?.resumeFile;
+  const resumeRawUrl = getResourceFileUrl({
+    resumeFile: rf,
+    resume: story?.resume,
+    url: rf?.url
+  });
+  const hasResumeActual = Boolean(
+    (rf && (rf.url || rf.fileName)) ||
     (typeof story?.resume === 'object' && (story.resume.url || story.resume.fileName)) ||
-    (typeof story?.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim()))
+    (typeof story?.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim())) ||
+    (resumeRawUrl && resumeRawUrl !== '#')
   );
+  const isDriveOrDocs = resumeRawUrl && (resumeRawUrl.includes('drive.google.com') || resumeRawUrl.includes('docs.google.com'));
+  const isExternal = resumeRawUrl && (resumeRawUrl.startsWith('http://') || resumeRawUrl.startsWith('https://')) && !resumeRawUrl.includes(typeof window !== 'undefined' ? window.location.host : '');
+
+  let displayResumeTitle = rf?.fileName || (typeof story?.resume === 'object' ? story.resume.fileName : (typeof story?.resume === 'string' && !story.resume.startsWith('http') ? story.resume : ''));
+  if (!displayResumeTitle || displayResumeTitle.toLowerCase() === 'resume.pdf' || displayResumeTitle.toLowerCase() === 'candidate_verified_resume.pdf') {
+    displayResumeTitle = `${story?.name || 'Candidate'} — ${story?.company || 'Company'} — Resume — 2026.pdf`;
+  }
+
   const hasStudyMaterials = Array.isArray(story?.studyMaterials) && story.studyMaterials.length > 0;
   const hasCompensation = Boolean(story?.package || story?.ctc || story?.stipend || story?.offerType);
   const hasSecured = Boolean(story?.journey?.howSecured && story.journey.howSecured.trim());
@@ -940,7 +995,8 @@ export default function StoryDetail() {
     !story.journey.prep.includes('Focus consistently on Data Structures')
   );
   const adviceSec = story?.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
-  const hasAdvice = Boolean((adviceSec && adviceSec.content && adviceSec.content.trim()) || (story?.advice && story.advice.trim()));
+  const adviceText = (adviceSec?.content || story?.advice || '').trim();
+  const hasAdvice = Boolean(adviceText);
   const hasResources = Boolean(story?.resources && story.resources.length > 0);
   const hasProjects = Boolean(
     story?.journey?.projects &&
@@ -949,16 +1005,17 @@ export default function StoryDetail() {
   );
   const hasJourney = availableMilestones.length > 0;
 
+  // Exact 9-section order for sticky navigation
   const navSections = [
-    ...(hasCompensation ? [{ id: 'section-compensation', label: 'Compensation & Offer', icon: Briefcase }] : []),
-    ...(hasSecured ? [{ id: 'section-rounds', label: 'Placement Journey', icon: Layers }] : []),
-    ...(hasPrep ? [{ id: 'section-prep', label: 'Prep Strategy', icon: Award }] : []),
-    ...(hasAdvice ? [{ id: 'section-advice', label: 'Advice to Juniors', icon: Lightbulb }] : []),
-    ...(hasResources ? [{ id: 'section-resources', label: 'Resources', icon: BookOpen }] : []),
-    ...(hasStudyMaterials ? [{ id: 'section-materials', label: 'Study Materials', icon: FileText }] : []),
-    ...(hasJourney ? [{ id: 'section-journey', label: 'College Journey', icon: Compass }] : []),
-    ...(hasProjects ? [{ id: 'section-projects', label: 'Projects', icon: Code }] : []),
-    ...(hasResume ? [{ id: 'section-resume', label: 'Resume', icon: FileText }] : [])
+    { id: 'section-compensation', label: 'Compensation & Offer', icon: Briefcase },
+    { id: 'section-journey', label: 'College Journey', icon: Compass },
+    { id: 'section-rounds', label: 'Placement Journey', icon: Layers },
+    { id: 'section-prep', label: 'Prep Strategy', icon: Award },
+    { id: 'section-projects', label: 'Projects', icon: Code },
+    { id: 'section-advice', label: 'Advice to Juniors', icon: Lightbulb },
+    { id: 'section-resources', label: 'Resources', icon: BookOpen },
+    { id: 'section-resume', label: 'Resume', icon: FileText },
+    { id: 'section-materials', label: 'Study Materials', icon: FileText }
   ];
 
   return (
@@ -1250,22 +1307,22 @@ export default function StoryDetail() {
       <main style={{ fontFamily: 'var(--font-sans)' }}>
 
         {/* 1. Compensation & Offer */}
-        {hasCompensation && (
-          <section id="section-compensation" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ marginBottom: '1.25rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <Briefcase size={13} />
-                Verified Placement Offer
-              </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Briefcase size={22} style={{ color: 'var(--text-primary)' }} />
-                Compensation & Offer
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Official compensation, stipend, and offer breakdown confirmed from college placement records
-              </p>
+        <section id="section-compensation" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <Briefcase size={13} />
+              Verified Placement Offer
             </div>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Briefcase size={22} style={{ color: 'var(--text-primary)' }} />
+              Compensation & Offer
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              Official compensation, stipend, and offer breakdown confirmed from college placement records
+            </p>
+          </div>
 
+          {hasCompensation ? (
             <div className="story-content-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
                 {(story.package || story.ctc) && (
@@ -1294,457 +1351,35 @@ export default function StoryDetail() {
                 )}
               </div>
             </div>
-          </section>
-        )}
+          ) : (
+            <SectionEmptyState
+              icon={Briefcase}
+              title="No compensation details provided"
+              message="Official CTC, stipend, or offer breakdown details were not included in this submission."
+            />
+          )}
+        </section>
 
-        {/* 2. Placement Journey & Interview Rounds */}
-        {hasSecured && (
-          <section id="section-rounds" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <Layers size={13} />
-                Recruitment Process Flow
+        {/* 2. College Journey */}
+        <section id="section-journey" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.75rem', borderRadius: '20px', backgroundColor: 'rgba(212, 255, 50, 0.25)', border: '1px solid rgba(212, 255, 50, 0.45)', color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
+                <Sparkles size={12} color="var(--accent-lime-dark)" />
+                Academic Milestones
               </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Layers size={22} style={{ color: 'var(--text-primary)' }} />
-                Placement Journey & Interview Rounds
+              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 0.4rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Compass size={22} style={{ color: 'var(--text-primary)' }} />
+                College Journey
               </h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Detailed selection process, stage-by-stage technical rounds, and interview questions directly from the candidate
+                Chronological academic progression and technical development through engineering years
               </p>
             </div>
+          </div>
 
-            {(() => {
-              const { intro, stages, rawText } = parseHowSecuredStages(story.journey.howSecured);
-              return (
-                <div className="story-content-layout">
-                  {intro && (
-                    <div className="story-content-card" style={{ borderLeft: '4px solid #3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.03)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                        <Sparkles size={16} style={{ color: '#3b82f6' }} />
-                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3b82f6' }}>
-                          Placement Overview & Timeline
-                        </h4>
-                      </div>
-                      <FormattedText text={intro} />
-                    </div>
-                  )}
-
-                  {stages.length > 0 ? (
-                    stages.map((stg) => (
-                      <div key={stg.stageNumber} className="story-content-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '8px',
-                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                              color: '#60a5fa',
-                              fontSize: '0.8rem',
-                              fontWeight: 800
-                            }}>
-                              {stg.stageNumber}
-                            </span>
-                            <h3 style={{ fontSize: '1.18rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                              Stage {stg.stageNumber} — {stg.title}
-                            </h3>
-                            {stg.badge && (
-                              <span style={{
-                                fontSize: '0.78rem',
-                                color: '#10b981',
-                                fontWeight: 600,
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                border: '1px solid rgba(16, 185, 129, 0.25)',
-                                padding: '0.15rem 0.55rem',
-                                borderRadius: '12px'
-                              }}>
-                                👥 {stg.badge}
-                              </span>
-                            )}
-                          </div>
-                          {stg.date && (
-                            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500, backgroundColor: 'var(--bg-tertiary)', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
-                              📅 {stg.date}
-                            </span>
-                          )}
-                        </div>
-                        {stg.content && <FormattedText text={stg.content} />}
-                      </div>
-                    ))
-                  ) : rawText ? (
-                    <div className="story-content-card">
-                      <FormattedText text={rawText} />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })()}
-          </section>
-        )}
-
-        {/* 3. Preparation Strategy & Study Routine */}
-        {hasPrep && (
-          <section id="section-prep" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <Award size={13} />
-                Preparation Blueprint
-              </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Award size={22} style={{ color: 'var(--text-primary)' }} />
-                Preparation Strategy & Study Routine
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Candidate's verified preparation regimen, DSA problem-solving techniques, and subject strategies
-              </p>
-            </div>
-
-            {(() => {
-              const { intro, topics, rawText } = parsePrepTopics(story.journey?.prep, story.resources);
-              return (
-                <div className="story-content-layout">
-                  {intro && (
-                    <div className="story-content-card">
-                      <FormattedText text={intro} />
-                    </div>
-                  )}
-
-                  {topics.length > 0 ? (
-                    topics.map((tpc) => (
-                      <div key={tpc.topicNumber} className="story-content-card">
-                        <h3 style={{ fontSize: '1.18rem', fontWeight: 700, margin: '0 0 0.85rem 0', color: 'var(--text-primary)', paddingBottom: '0.6rem', borderBottom: '1px solid var(--border-color)' }}>
-                          {tpc.topicNumber}. {tpc.title}
-                        </h3>
-                        {tpc.content && <FormattedText text={tpc.content} />}
-                        {tpc.resources && tpc.resources.length > 0 && (
-                          <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed var(--border-color)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.6rem' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Resources:</span>
-                            {tpc.resources.map((r, rIdx) => {
-                              const link = getResourceLink(r);
-                              if (!link) return null;
-                              return (
-                                <a
-                                  key={rIdx}
-                                  href={link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="story-inline-link"
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    padding: '0.3rem 0.75rem',
-                                    borderRadius: '8px',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 600,
-                                    textDecoration: 'none'
-                                  }}
-                                >
-                                  <span>{r.name || 'Open Resource'}</span>
-                                  <ExternalLink size={12} />
-                                </a>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : rawText ? (
-                    <div className="story-content-card">
-                      <FormattedText text={rawText} />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })()}
-          </section>
-        )}
-
-        {/* 4. Advice to Juniors */}
-        {hasAdvice && (
-          <section id="section-advice" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <Lightbulb size={13} />
-                Guidance For Juniors
-              </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Lightbulb size={22} style={{ color: 'var(--text-primary)' }} />
-                Advice to Juniors
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Genuine advice, practical habits, and mindset recommendations directly from {story.name}
-              </p>
-            </div>
-
-            {(() => {
-              const adviceSec = story.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
-              const adviceText = (adviceSec?.content || story.advice || '').trim();
-              const { quote, raw } = parseAdviceContent(adviceText);
-              return (
-                <div className="story-content-layout">
-                  {quote && (
-                    <div className="story-content-card" style={{ borderLeft: '4px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.04)' }}>
-                      <p style={{ margin: 0, fontSize: '1.08rem', fontStyle: 'italic', lineHeight: 1.7, color: 'var(--text-primary)' }}>
-                        "{quote}"
-                      </p>
-                      <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        — {story.name}, {story.role} at {story.company}
-                      </span>
-                    </div>
-                  )}
-                  {raw && (
-                    <div className="story-content-card">
-                      <FormattedText text={raw} />
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </section>
-        )}
-
-        {/* 5. Resources Used */}
-        {hasResources && (
-          <section id="section-resources" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#818cf8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <BookOpen size={13} />
-                Curated Preparation Links
-              </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
-                Resources Used
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Direct links to study sheets, practice repositories, and documentation used during placement preparation
-              </p>
-            </div>
-
-            <div className="story-content-layout">
-              {story.resources.map((res, index) => {
-                const targetUrl = getResourceLink(res) || `https://www.google.com/search?q=${encodeURIComponent((res.name || 'study material') + ' preparation')}`;
-                return (
-                  <div
-                    key={index}
-                    className="story-content-card"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '1rem',
-                      padding: '1.1rem 1.4rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <ExternalLink size={16} />
-                      </div>
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {res.name}
-                        </h4>
-                        {res.type && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            Type: {res.type}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <a
-                      href={targetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="btn btn-secondary"
-                      style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '10px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.45rem',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-surface)'
-                      }}
-                    >
-                      <span>Open Resource</span>
-                      <ExternalLink size={14} />
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* 6. Attached Study Materials */}
-        {hasStudyMaterials && (
-          <section id="section-materials" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#f87171', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                  <FileText size={13} />
-                  Candidate Study Materials
-                </div>
-                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
-                  Study Materials
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                  Genuine handwritten notes, PDFs, and technical question sets shared by the candidate
-                </p>
-              </div>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {story.studyMaterials.length} verified {story.studyMaterials.length === 1 ? 'file' : 'files'}
-              </span>
-            </div>
-
-            <div className="story-content-layout">
-              {story.studyMaterials.map((mat, index) => {
-                const matUrl = mat.url || '';
-                const isExternalMat = matUrl && (matUrl.startsWith('http://') || matUrl.startsWith('https://'));
-                const isDriveMat = matUrl.includes('drive.google.com') || matUrl.includes('docs.google.com');
-                const isPdf = mat.type === 'PDF' || (mat.fileName && mat.fileName.toLowerCase().endsWith('.pdf'));
-
-                return (
-                  <div
-                    key={index}
-                    className="story-content-card"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '1rem',
-                      padding: '1.15rem 1.4rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: isPdf ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: isPdf ? '#ef4444' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <FileText size={20} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                            {mat.category || (isPdf ? 'PDF Document' : 'Study Notes')}
-                          </span>
-                          {mat.fileSize && (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              • {mat.fileSize}
-                            </span>
-                          )}
-                        </div>
-                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {mat.title || mat.fileName}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      {isExternalMat || isDriveMat ? (
-                        <a
-                          href={matUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="btn btn-secondary"
-                          style={{
-                            padding: '0.5rem 1rem',
-                            borderRadius: '10px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                            color: 'var(--text-primary)',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-surface)'
-                          }}
-                        >
-                          <span>{isDriveMat ? 'Open in Drive ↗' : (isPdf ? 'View PDF ↗' : 'Open Material ↗')}</span>
-                          <ExternalLink size={14} />
-                        </a>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => {
-                              const allFiles = getStoryFiles();
-                              const matDoc = allFiles[index + 1] || { ...mat, id: `mat-${story.id}-${index}` };
-                              navigate(`/preview/${matDoc.id}?storyId=${story.id}`, {
-                                state: {
-                                  file: matDoc,
-                                  files: allFiles,
-                                  storyTitle: story.name
-                                }
-                              });
-                            }}
-                            className="btn btn-secondary"
-                            style={{
-                              padding: '0.5rem 1rem',
-                              borderRadius: '10px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.45rem',
-                              fontSize: '0.85rem',
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <FileText size={14} />
-                            <span>View File</span>
-                          </button>
-                          {mat.url && mat.url !== '#' && (
-                            <button
-                              onClick={() => handleDownloadFile(mat.fileName || mat.title + (isPdf ? '.pdf' : '.txt'), mat.url)}
-                              className="btn btn-secondary"
-                              style={{ padding: '0.45rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '36px', height: '36px' }}
-                              title="Download File"
-                            >
-                              <Download size={14} />
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* 7. College Academic Milestones */}
-        {hasJourney && (
-          <section id="section-journey" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
-              <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.75rem', borderRadius: '20px', backgroundColor: 'rgba(212, 255, 50, 0.25)', border: '1px solid rgba(212, 255, 50, 0.45)', color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
-                  <Sparkles size={12} color="var(--accent-lime-dark)" />
-                  Academic Milestones
-                </div>
-                <h2 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 0.4rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
-                  College Academic Milestones
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                  Chronological academic progression and technical development through engineering years
-                </p>
-              </div>
-            </div>
-
-            {/* Timeline Track with Vertical Rail */}
+          {hasJourney ? (
+            /* Timeline Track with Vertical Rail */
             <div style={{ position: 'relative', paddingLeft: '2.75rem' }}>
               <div style={{
                 position: 'absolute',
@@ -1884,177 +1519,627 @@ export default function StoryDetail() {
                 })}
               </div>
             </div>
-          </section>
-        )}
+          ) : (
+            <SectionEmptyState
+              icon={Compass}
+              title="No college journey timeline provided"
+              message="Year-by-year academic progression and milestones were not submitted for this story."
+            />
+          )}
+        </section>
 
-        {/* 8. Key Projects Built */}
-        {hasProjects && (
-          <section id="section-projects" className="story-section" style={{ scrollMarginTop: '110px' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', color: '#c084fc', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                <Code size={13} />
-                Technical Portfolio
-              </div>
-              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Code size={22} style={{ color: 'var(--text-primary)' }} />
-                Key Projects Built
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
-                Practical systems, open-source repositories, and portfolio work showcased in interviews
-              </p>
+        {/* 3. Placement Journey */}
+        <section id="section-rounds" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <Layers size={13} />
+              Recruitment Process Flow
             </div>
-            {formatProjects(story.journey?.projects)}
-          </section>
-        )}
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Layers size={22} style={{ color: 'var(--text-primary)' }} />
+              Placement Journey
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              Detailed selection process, stage-by-stage technical rounds, and interview questions directly from the candidate
+            </p>
+          </div>
 
-        {/* 9. Resume Preview & Download */}
-        {(() => {
-          const rf = story.resumeFile;
-          const resumeRawUrl = getResourceFileUrl({
-            resumeFile: rf,
-            resume: story.resume,
-            url: rf?.url
-          });
-          const hasResumeActual = Boolean(
-            (rf && (rf.url || rf.fileName)) ||
-            (typeof story.resume === 'object' && (story.resume.url || story.resume.fileName)) ||
-            (typeof story.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim())) ||
-            (resumeRawUrl && resumeRawUrl !== '#')
-          );
+          {hasSecured ? (() => {
+            const { intro, stages, rawText } = parseHowSecuredStages(story.journey.howSecured);
+            return (
+              <div className="story-content-layout">
+                {intro && (
+                  <div className="story-content-card" style={{ borderLeft: '4px solid #3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.03)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <Sparkles size={16} style={{ color: '#3b82f6' }} />
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3b82f6' }}>
+                        Placement Overview & Timeline
+                      </h4>
+                    </div>
+                    <FormattedText text={intro} />
+                  </div>
+                )}
 
-          if (!hasResumeActual) return null;
-
-          const isDriveOrDocs = resumeRawUrl && (resumeRawUrl.includes('drive.google.com') || resumeRawUrl.includes('docs.google.com'));
-          const isExternal = resumeRawUrl && (resumeRawUrl.startsWith('http://') || resumeRawUrl.startsWith('https://')) && !resumeRawUrl.includes(window.location.host);
-
-          let displayTitle = rf?.fileName || (typeof story.resume === 'object' ? story.resume.fileName : (typeof story.resume === 'string' && !story.resume.startsWith('http') ? story.resume : ''));
-          if (!displayTitle || displayTitle.toLowerCase() === 'resume.pdf' || displayTitle.toLowerCase() === 'candidate_verified_resume.pdf') {
-            displayTitle = `${story.name} — ${story.company} — Resume — 2026.pdf`;
-          }
-
-          return (
-            <section id="section-resume" className="story-section" style={{ scrollMarginTop: '110px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <Award size={22} style={{ color: 'var(--text-primary)' }} />
-                  Resume
-                </h2>
-                <span style={{ backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.28)', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                  {isDriveOrDocs ? 'Google Drive Verified Document' : 'Standard Tech Resume (PDF)'}
-                </span>
+                {stages.length > 0 ? (
+                  stages.map((stg) => (
+                    <div key={stg.stageNumber} className="story-content-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '8px',
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            color: '#60a5fa',
+                            fontSize: '0.8rem',
+                            fontWeight: 800
+                          }}>
+                            {stg.stageNumber}
+                          </span>
+                          <h3 style={{ fontSize: '1.18rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                            Stage {stg.stageNumber} — {stg.title}
+                          </h3>
+                          {stg.badge && (
+                            <span style={{
+                              fontSize: '0.78rem',
+                              color: '#10b981',
+                              fontWeight: 600,
+                              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.25)',
+                              padding: '0.15rem 0.55rem',
+                              borderRadius: '12px'
+                            }}>
+                              👥 {stg.badge}
+                            </span>
+                          )}
+                        </div>
+                        {stg.date && (
+                          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500, backgroundColor: 'var(--bg-tertiary)', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                            📅 {stg.date}
+                          </span>
+                        )}
+                      </div>
+                      {stg.content && <FormattedText text={stg.content} />}
+                    </div>
+                  ))
+                ) : rawText ? (
+                  <div className="story-content-card">
+                    <FormattedText text={rawText} />
+                  </div>
+                ) : null}
               </div>
+            );
+          })() : (
+            <SectionEmptyState
+              icon={Layers}
+              title="No placement journey details provided"
+              message="Detailed selection stages, technical interview rounds, and timeline were not included in this submission."
+            />
+          )}
+        </section>
 
-              <div className="story-content-card" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '1.5rem 1.8rem',
-                flexWrap: 'wrap',
-                gap: '1.25rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '260px' }}>
-                  <div style={{
-                    padding: '0.85rem',
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    borderRadius: '14px',
-                    color: '#ef4444',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <FileText size={28} />
+        {/* 4. Prep Strategy */}
+        <section id="section-prep" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <Award size={13} />
+              Preparation Blueprint
+            </div>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Award size={22} style={{ color: 'var(--text-primary)' }} />
+              Prep Strategy
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              Candidate's verified preparation regimen, DSA problem-solving techniques, and subject strategies
+            </p>
+          </div>
+
+          {hasPrep ? (() => {
+            const { intro, topics, rawText } = parsePrepTopics(story.journey?.prep, story.resources);
+            return (
+              <div className="story-content-layout">
+                {intro && (
+                  <div className="story-content-card">
+                    <FormattedText text={intro} />
                   </div>
-                  <div style={{ textAlign: 'left' }}>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
-                      {displayTitle}
-                    </h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
-                      {isDriveOrDocs ? 'Official candidate placement resume hosted on Google Drive' : 'Approved standard format tech resume (PDF)'}
+                )}
+
+                {topics.length > 0 ? (
+                  topics.map((tpc) => (
+                    <div key={tpc.topicNumber} className="story-content-card">
+                      <h3 style={{ fontSize: '1.18rem', fontWeight: 700, margin: '0 0 0.85rem 0', color: 'var(--text-primary)', paddingBottom: '0.6rem', borderBottom: '1px solid var(--border-color)' }}>
+                        {tpc.topicNumber}. {tpc.title}
+                      </h3>
+                      {tpc.content && <FormattedText text={tpc.content} />}
+                      {tpc.resources && tpc.resources.length > 0 && (
+                        <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed var(--border-color)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Resources:</span>
+                          {tpc.resources.map((r, rIdx) => {
+                            const link = getResourceLink(r);
+                            if (!link) return null;
+                            return (
+                              <a
+                                key={rIdx}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="story-inline-link"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  padding: '0.3rem 0.75rem',
+                                  borderRadius: '8px',
+                                  backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 600,
+                                  textDecoration: 'none'
+                                }}
+                              >
+                                <span>{r.name || 'Open Resource'}</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : rawText ? (
+                  <div className="story-content-card">
+                    <FormattedText text={rawText} />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })() : (
+            <SectionEmptyState
+              icon={Award}
+              title="No preparation strategy provided"
+              message="Specific preparation regimen, DSA problem lists, and study routine were not included in this submission."
+            />
+          )}
+        </section>
+
+        {/* 5. Projects */}
+        <section id="section-projects" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', color: '#c084fc', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <Code size={13} />
+              Technical Portfolio
+            </div>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Code size={22} style={{ color: 'var(--text-primary)' }} />
+              Projects
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              Practical systems, open-source repositories, and portfolio work showcased in interviews
+            </p>
+          </div>
+          {hasProjects ? (
+            formatProjects(story.journey?.projects)
+          ) : (
+            <SectionEmptyState
+              icon={Code}
+              title="No projects listed"
+              message="Technical portfolio systems, GitHub repositories, and capstone projects were not specified in this submission."
+            />
+          )}
+        </section>
+
+        {/* 6. Advice to Juniors */}
+        <section id="section-advice" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <Lightbulb size={13} />
+              Guidance For Juniors
+            </div>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Lightbulb size={22} style={{ color: 'var(--text-primary)' }} />
+              Advice to Juniors
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              Genuine advice, practical habits, and mindset recommendations directly from {story.name}
+            </p>
+          </div>
+
+          {hasAdvice ? (() => {
+            const adviceSec = story.customSections?.find(s => s.title && s.title.toLowerCase().includes('advice'));
+            const adviceText = (adviceSec?.content || story.advice || '').trim();
+            const { quote, raw } = parseAdviceContent(adviceText);
+            return (
+              <div className="story-content-layout">
+                {quote && (
+                  <div className="story-content-card" style={{ borderLeft: '4px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.04)' }}>
+                    <p style={{ margin: 0, fontSize: '1.08rem', fontStyle: 'italic', lineHeight: 1.7, color: 'var(--text-primary)' }}>
+                      "{quote}"
                     </p>
+                    <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      — {story.name}, {story.role} at {story.company}
+                    </span>
                   </div>
-                </div>
+                )}
+                {raw && (
+                  <div className="story-content-card">
+                    <FormattedText text={raw} />
+                  </div>
+                )}
+              </div>
+            );
+          })() : (
+            <SectionEmptyState
+              icon={Lightbulb}
+              title="No advice provided"
+              message="Specific mindset tips, habit suggestions, or guidance for juniors were not included in this submission."
+            />
+          )}
+        </section>
 
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {isDriveOrDocs || isExternal ? (
+        {/* 7. Resources */}
+        <section id="section-resources" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#818cf8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+              <BookOpen size={13} />
+              Curated Preparation Links
+            </div>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <BookOpen size={22} style={{ color: 'var(--text-primary)' }} />
+              Resources
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+              Direct links to study sheets, practice repositories, and documentation used during placement preparation
+            </p>
+          </div>
+
+          {hasResources ? (
+            <div className="story-content-layout">
+              {story.resources.map((res, index) => {
+                const targetUrl = getResourceLink(res) || `https://www.google.com/search?q=${encodeURIComponent((res.name || 'study material') + ' preparation')}`;
+                return (
+                  <div
+                    key={index}
+                    className="story-content-card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '1rem',
+                      padding: '1.1rem 1.4rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ExternalLink size={16} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {res.name}
+                        </h4>
+                        {res.type && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            Type: {res.type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     <a
-                      href={resumeRawUrl}
+                      href={targetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="btn btn-primary"
-                      style={{ padding: '0.65rem 1.35rem', fontSize: '0.88rem', gap: '0.5rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontWeight: 600 }}
-                      title="Open Verified Resume"
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '10px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-surface)'
+                      }}
                     >
-                      <ExternalLink size={16} />
-                      <span>{isDriveOrDocs ? 'Open in Google Drive ↗' : 'View Resume ↗'}</span>
+                      <span>Open Resource</span>
+                      <ExternalLink size={14} />
                     </a>
-                  ) : (
-                    <>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <SectionEmptyState
+              icon={BookOpen}
+              title="No resources linked"
+              message="No preparation sheets, YouTube playlists, or documentation links were attached to this submission."
+            />
+          )}
+        </section>
+
+        {/* 8. Resume */}
+        <section id="section-resume" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <FileText size={22} style={{ color: 'var(--text-primary)' }} />
+              Resume
+            </h2>
+            {hasResumeActual && (
+              <span style={{ backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.28)', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                {isDriveOrDocs ? 'Google Drive Verified Document' : 'Standard Tech Resume (PDF)'}
+              </span>
+            )}
+          </div>
+
+          {hasResumeActual ? (
+            <div className="story-content-card" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '1.5rem 1.8rem',
+              flexWrap: 'wrap',
+              gap: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '260px' }}>
+                <div style={{
+                  padding: '0.85rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: '14px',
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <FileText size={28} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                    {displayResumeTitle}
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    {isDriveOrDocs ? 'Official candidate placement resume hosted on Google Drive' : 'Approved standard format tech resume (PDF)'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {isDriveOrDocs || isExternal ? (
+                  <a
+                    href={resumeRawUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="btn btn-primary"
+                    style={{ padding: '0.65rem 1.35rem', fontSize: '0.88rem', gap: '0.5rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontWeight: 600 }}
+                    title="Open Verified Resume"
+                  >
+                    <ExternalLink size={16} />
+                    <span>{isDriveOrDocs ? 'Open in Google Drive ↗' : 'View Resume ↗'}</span>
+                  </a>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => {
+                        const allFiles = getStoryFiles();
+                        const resumeDoc = allFiles[0] || {
+                          id: `resume-${story.id}`,
+                          title: `${story.name}'s Resume`,
+                          fileName: displayResumeTitle,
+                          type: 'PDF',
+                          url: resumeRawUrl
+                        };
+                        navigate(`/preview/${resumeDoc.id}?storyId=${story.id}`, {
+                          state: {
+                            file: resumeDoc,
+                            files: allFiles,
+                            storyTitle: story.name
+                          }
+                        });
+                      }}
+                      className="btn btn-secondary"
+                      style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 600 }}
+                      title="View Resume"
+                    >
+                      <FileText size={14} />
+                      <span>View Resume ↗</span>
+                    </button>
+                    {resumeRawUrl && (
                       <button 
                         onClick={() => {
-                          const allFiles = getStoryFiles();
-                          const resumeDoc = allFiles[0] || {
-                            id: `resume-${story.id}`,
-                            title: `${story.name}'s Resume`,
-                            fileName: displayTitle,
-                            type: 'PDF',
-                            url: resumeRawUrl
-                          };
-                          navigate(`/preview/${resumeDoc.id}?storyId=${story.id}`, {
-                            state: {
-                              file: resumeDoc,
-                              files: allFiles,
-                              storyTitle: story.name
-                            }
-                          });
-                        }}
-                        className="btn btn-secondary"
-                        style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 600 }}
-                        title="View Resume"
-                      >
-                        <FileText size={14} />
-                        <span>View Resume ↗</span>
-                      </button>
-                      {resumeRawUrl && (
-                        <button 
-                          onClick={() => {
-                            if (resumeRawUrl.startsWith('data:')) {
-                              const blob = dataURItoBlob(resumeRawUrl);
-                              if (blob) {
-                                const blobUrl = URL.createObjectURL(blob);
-                                const link = document.createElement('a');
-                                link.href = blobUrl;
-                                link.download = displayTitle;
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-                              }
-                            } else {
+                          if (resumeRawUrl.startsWith('data:')) {
+                            const blob = dataURItoBlob(resumeRawUrl);
+                            if (blob) {
+                              const blobUrl = URL.createObjectURL(blob);
                               const link = document.createElement('a');
-                              link.href = resumeRawUrl;
-                              link.download = displayTitle;
+                              link.href = blobUrl;
+                              link.download = displayResumeTitle;
                               document.body.appendChild(link);
                               link.click();
                               document.body.removeChild(link);
+                              setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
                             }
-                          }}
-                          className="btn btn-primary"
-                          style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', fontWeight: 600 }}
-                        >
-                          <Download size={14} />
-                          <span>Download Resume</span>
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
+                          } else {
+                            const link = document.createElement('a');
+                            link.href = resumeRawUrl;
+                            link.download = displayResumeTitle;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }
+                        }}
+                        className="btn btn-primary"
+                        style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', fontWeight: 600 }}
+                      >
+                        <Download size={14} />
+                        <span>Download Resume</span>
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
-            </section>
-          );
-        })()}
+            </div>
+          ) : (
+            <SectionEmptyState
+              icon={FileText}
+              title="No resume attached"
+              message="The candidate's verified tech resume was not uploaded for this story."
+            />
+          )}
+        </section>
+
+        {/* 9. Study Materials */}
+        <section id="section-materials" className="story-section" style={{ scrollMarginTop: '110px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.65rem', borderRadius: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#f87171', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                <FileText size={13} />
+                Candidate Study Materials
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 800, margin: '0 0 0.35rem 0', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <FileText size={22} style={{ color: 'var(--text-primary)' }} />
+                Study Materials
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', margin: 0 }}>
+                Genuine handwritten notes, PDFs, and technical question sets shared by the candidate
+              </p>
+            </div>
+            {hasStudyMaterials && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {story.studyMaterials.length} verified {story.studyMaterials.length === 1 ? 'file' : 'files'}
+              </span>
+            )}
+          </div>
+
+          {hasStudyMaterials ? (
+            <div className="story-content-layout">
+              {story.studyMaterials.map((mat, index) => {
+                const matUrl = mat.url || '';
+                const isExternalMat = matUrl && (matUrl.startsWith('http://') || matUrl.startsWith('https://'));
+                const isDriveMat = matUrl.includes('drive.google.com') || matUrl.includes('docs.google.com');
+                const isPdf = mat.type === 'PDF' || (mat.fileName && mat.fileName.toLowerCase().endsWith('.pdf'));
+
+                return (
+                  <div
+                    key={index}
+                    className="story-content-card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '1rem',
+                      padding: '1.15rem 1.4rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: isPdf ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: isPdf ? '#ef4444' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FileText size={20} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                            {mat.category || (isPdf ? 'PDF Document' : 'Study Notes')}
+                          </span>
+                          {mat.fileSize && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              • {mat.fileSize}
+                            </span>
+                          )}
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {mat.title || mat.fileName}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      {isExternalMat || isDriveMat ? (
+                        <a
+                          href={matUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="btn btn-secondary"
+                          style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '10px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-surface)'
+                          }}
+                        >
+                          <span>{isDriveMat ? 'Open in Drive ↗' : (isPdf ? 'View PDF ↗' : 'Open Material ↗')}</span>
+                          <ExternalLink size={14} />
+                        </a>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              const allFiles = getStoryFiles();
+                              const matDoc = allFiles[index + 1] || { ...mat, id: `mat-${story.id}-${index}` };
+                              navigate(`/preview/${matDoc.id}?storyId=${story.id}`, {
+                                state: {
+                                  file: matDoc,
+                                  files: allFiles,
+                                  storyTitle: story.name
+                                }
+                              });
+                            }}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '0.5rem 1rem',
+                              borderRadius: '10px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <FileText size={14} />
+                            <span>View File</span>
+                          </button>
+                          {mat.url && mat.url !== '#' && (
+                            <button
+                              onClick={() => handleDownloadFile(mat.fileName || mat.title + (isPdf ? '.pdf' : '.txt'), mat.url)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.45rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '36px', height: '36px' }}
+                              title="Download File"
+                            >
+                              <Download size={14} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <SectionEmptyState
+              icon={FileText}
+              title="No study materials attached"
+              message="No handwritten notes, technical PDFs, or question sets were attached to this submission."
+            />
+          )}
+        </section>
 
         {/* 10. Additional Custom Sections */}
         {story.customSections && story.customSections.map((sec, index) => {
