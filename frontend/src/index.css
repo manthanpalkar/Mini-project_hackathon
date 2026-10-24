@@ -1069,6 +1069,70 @@ input:-webkit-autofill:active {
   border-color: var(--border-hover);
 }
 
+/* Resource Card Responsive & Overflow Protection */
+.resource-card-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.resource-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.resource-card-details {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.resource-card-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.resource-card-type {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.resource-card-action {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+@media (max-width: 640px) {
+  .resource-card-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+  .resource-card-action {
+    align-self: stretch;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .story-inline-link {
   color: var(--accent-color, #38bdf8);
   text-decoration: underline;

@@ -146,10 +146,10 @@ function ResourceFolder3DCard({
             {isSystem ? 'OFFICIAL' : 'PRIVATE'}
           </span>
         </div>
-        <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.4rem 0', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+        <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.4rem 0', color: 'var(--text-primary)', letterSpacing: '-0.01em', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {folder.name}
         </h3>
-        <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
+        <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {folder.description || (isSystem ? 'Academic course modules and semester question banks.' : 'Personal private resource folder.')}
         </p>
       </div>
@@ -728,7 +728,7 @@ export default function Resources() {
             </span>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0, maxWidth: '640px' }}>
-            Official syllabus materials, semester notes, handwritten formulas, and senior placement interview playbooks.
+            Curated syllabus materials, semester notes, handwritten formulas, and senior placement interview playbooks.
           </p>
         </div>
 
@@ -930,11 +930,13 @@ export default function Resources() {
                           });
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          {getFileIcon(res)}
-                          <div>
-                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{res.title}</div>
-                            {res.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{res.description}</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, maxWidth: '100%' }}>
+                          <div style={{ flexShrink: 0 }}>
+                            {getFileIcon(res)}
+                          </div>
+                          <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{res.title}</div>
+                            {res.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflowWrap: 'anywhere', wordBreak: 'break-word', marginTop: '2px' }}>{res.description}</div>}
                           </div>
                         </div>
                       </td>
@@ -1003,7 +1005,7 @@ export default function Resources() {
                   </h2>
                 </div>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Protected Official Academic Curricula
+                  Protected Academic Curricula
                 </span>
               </div>
 
@@ -1241,16 +1243,16 @@ export default function Resources() {
                               });
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                              <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, maxWidth: '100%' }}>
+                              <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                 {getFileIcon(res)}
                               </div>
-                              <div>
-                                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                              <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+                                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                                   {res.title}
                                 </div>
                                 {res.description && (
-                                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                                     {res.description}
                                   </div>
                                 )}

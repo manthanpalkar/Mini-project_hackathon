@@ -15,7 +15,7 @@ export const BRAND = {
   description: 'LOOP connects college juniors, seniors, and alumni by turning shared placement experiences into guidance and opportunities for the next generation.',
   college: 'Sardar Patel Institute of Technology (SPIT), Mumbai',
   collegeShort: 'SPIT Mumbai',
-  portalUrl: 'https://loop-seven-delta.vercel.app',
+  portalUrl: (typeof process !== 'undefined' && process.env?.VITE_SITE_URL) || (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SITE_URL) || 'https://loop-seven-delta.vercel.app',
   apiBaseUrl: 'https://loop-qnh9.onrender.com'
 };
 

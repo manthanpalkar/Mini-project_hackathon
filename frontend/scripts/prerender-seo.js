@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, '../dist');
-const BASE_URL = 'https://loop-seven-delta.vercel.app';
+const PUBLIC_DIR = path.resolve(__dirname, '../public');
+const BASE_URL = process.env.VITE_SITE_URL || 'https://loop-seven-delta.vercel.app';
 
 if (!fs.existsSync(DIST_DIR)) {
   console.error('[PRERENDER_ERROR] dist directory not found. Please run vite build first.');
@@ -15,23 +16,42 @@ if (!fs.existsSync(DIST_DIR)) {
 const templatePath = path.join(DIST_DIR, 'index.html');
 const templateHtml = fs.readFileSync(templatePath, 'utf8');
 
-const PAGES = [
+// Privacy sanitizer: strictly removes personal email addresses and telephone numbers
+function sanitizePublicText(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[contact redacted]')
+    .replace(/\b(?:\+?91[\-\s]?)?[6-9]\d{9}\b/g, '[phone redacted]')
+    .replace(/[\r\n]+/g, ' ')
+    .trim();
+}
+
+function truncateText(text, maxLen = 350) {
+  const cleaned = sanitizePublicText(text);
+  if (cleaned.length <= maxLen) return cleaned;
+  return cleaned.substring(0, maxLen).replace(/\s+\S*$/, '') + '...';
+}
+
+// 1. Core Platform Pages
+const CORE_PAGES = [
   {
-    route: '/home',
+    route: '/',
     title: 'LOOP — Limitless Opportunities, One Platform | SPIT Mumbai',
-    description: 'Their Journey. Your Opportunity. Explore verified interview debriefs, placement journeys, company package archives, and curated study materials from SPIT seniors.',
+    description: 'Their Journey. Your Opportunity. Connect with seniors and alumni, learn from placement experiences, and discover career opportunities with LOOP.',
     h1: 'LOOP — Limitless Opportunities, One Platform',
     paragraphs: [
-      'Welcome to LOOP (Limitless Opportunities, One Platform), the premier student placement and career preparation network at Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the core principle "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni: today\'s juniors become tomorrow\'s seniors, who then guide the next generation.',
-      'Our platform bridges the generational knowledge gap between graduating seniors and aspiring juniors. Here you will find extensive interview debriefs detailing technical rounds, system design questions, LeetCode problem patterns, core engineering concepts (DBMS, Operating Systems, Computer Networks), and human resource discussions for leading employers including Microsoft, Google, Amazon, Morgan Stanley, Deutsche Bank, and innovative startups.',
-      'In addition to career journeys, LOOP hosts student-contributed study materials, handwritten formulas, subject syllabus notes, and past examination papers curated to accelerate academic excellence and technical readiness.'
+      'Welcome to LOOP (Limitless Opportunities, One Platform), the student-led placement intelligence and career-preparation platform designed for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the core principle "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni: today\'s juniors become tomorrow\'s seniors, who then guide the next generation.',
+      'Our platform bridges the generational guidance gap between graduating cohorts and junior students. Here you will find structured, round-by-round interview debriefs detailing technical online assessments, algorithmic problem-solving patterns, core CS fundamentals (DBMS, Operating Systems, Computer Networks), system design, and human resource discussions across leading employers.',
+      'In addition to placement journeys, LOOP hosts student-contributed semester notes, formula sheets, subject roadmaps, and previous exam questions organized to accelerate academic readiness and placement success.'
     ],
     schema: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'LOOP — Limitless Opportunities, One Platform',
-      url: 'https://loop-seven-delta.vercel.app/'
-    }
+      url: `${BASE_URL}/`
+    },
+    priority: '1.0',
+    changefreq: 'daily'
   },
   {
     route: '/stories',
@@ -39,17 +59,19 @@ const PAGES = [
     description: 'Browse verified campus placement experiences, interview questions, coding rounds, and preparation journeys from SPIT engineering seniors.',
     h1: 'Engineering Placement Stories & Senior Interview Debriefs',
     paragraphs: [
-      'Explore an exhaustive repository of verified placement debriefs authored by seniors from Computer Engineering, Information Technology, Electronics & Telecommunication, and Artificial Intelligence & Data Science branches at Sardar Patel Institute of Technology.',
+      'Explore verified placement debriefs authored by seniors from Computer Engineering, Information Technology, Electronics & Telecommunication, and Artificial Intelligence & Data Science branches at Sardar Patel Institute of Technology.',
       'Each debrief offers a structured breakdown of the hiring pipeline, starting from initial online coding assessments, aptitude screenings, and problem statements to live technical interviews, managerial evaluations, and leadership principle behavioral rounds. Students share specific algorithmic topics, dynamic programming patterns, object-oriented design principles, and resume strategies that secured competitive internship and full-time offers.',
-      'Filter placement debriefs by engineering discipline, graduating passout batch, recruiting company, or compensation package to discover targeted advice and prepare strategically for upcoming on-campus recruitment cycles.'
+      'Filter placement debriefs by engineering discipline, graduating passout batch, recruiting company, or compensation package to discover targeted advice and prepare strategically for upcoming recruitment cycles.'
     ],
     schema: {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
       name: 'Engineering Placement Stories & Interview Experiences',
       description: 'Verified student placement debriefs, technical interview rounds, and preparation strategies at SPIT Mumbai.',
-      url: 'https://loop-seven-delta.vercel.app/stories'
-    }
+      url: `${BASE_URL}/stories`
+    },
+    priority: '0.9',
+    changefreq: 'daily'
   },
   {
     route: '/resources',
@@ -65,8 +87,10 @@ const PAGES = [
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
       name: 'SPIT Academic Resources & Placement Preparation Materials',
-      url: 'https://loop-seven-delta.vercel.app/resources'
-    }
+      url: `${BASE_URL}/resources`
+    },
+    priority: '0.8',
+    changefreq: 'weekly'
   },
   {
     route: '/achievements',
@@ -82,35 +106,41 @@ const PAGES = [
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
       name: 'SPIT Student Achievements & Accolades',
-      url: 'https://loop-seven-delta.vercel.app/achievements'
-    }
+      url: `${BASE_URL}/achievements`
+    },
+    priority: '0.7',
+    changefreq: 'weekly'
   },
   {
     route: '/privacy-policy',
-    title: 'Privacy Policy | LOOP SPIT',
-    description: 'LOOP Privacy Policy. Learn how student records, placement debriefs, GridFS documents, and authentication credentials are secure at SPIT Mumbai.',
+    title: 'Privacy Policy | LOOP — Limitless Opportunities, One Platform',
+    description: 'LOOP Privacy Policy. Learn how student records, placement debriefs, and authentication credentials are safeguarded at SPIT Mumbai.',
     h1: 'LOOP Privacy Policy & Data Security Governance',
     paragraphs: [
       'At LOOP, we place utmost importance on protecting the privacy, identity, and personal records of our students and contributors at Sardar Patel Institute of Technology (SPIT). This Privacy Policy explains our practices regarding data collection, encryption standards, authentication protocols, and document access control.',
       'We collect only the essential information necessary to maintain account security and facilitate educational resource sharing, including institutional email addresses, hashed authentication credentials, and user-submitted placement experiences. Confidential student contact details, personal telephone numbers, and private resumes remain strictly guarded behind role-based access control and are never exposed in public sitemaps, search engine metadata, or unauthorized endpoints.',
       'All uploaded binaries are managed within an enterprise-grade MongoDB Atlas GridFS cluster using encrypted streaming tokens. By using LOOP, you consent to the information practices described in this policy, which complies with prevailing data protection frameworks.'
-    ]
+    ],
+    priority: '0.3',
+    changefreq: 'monthly'
   },
   {
     route: '/terms',
-    title: 'Terms of Use | LOOP SPIT',
+    title: 'Terms of Use | LOOP — Limitless Opportunities, One Platform',
     description: 'Terms of Use for LOOP, the student placement debrief and academic preparation platform at Sardar Patel Institute of Technology (SPIT).',
     h1: 'LOOP Terms of Use & Academic Integrity Guidelines',
     paragraphs: [
       'These Terms of Use govern your access to and interaction with the LOOP knowledge platform. By accessing or submitting content to LOOP, you agree to abide by institutional guidelines of academic honesty, intellectual integrity, and respectful community participation.',
       'Contributors retain ownership of their placement stories and uploaded academic materials while granting LOOP a non-exclusive license to present and index them for campus educational benefit. Users agree not to distribute copyrighted commercial materials without authorization, post defamatory or misleading interview details, or attempt unauthorized circumvention of security access controls.',
       'LOOP administrators reserve the right to review, edit, or reject submitted placement debriefs and study resources to uphold factual accuracy and campus privacy standards.'
-    ]
+    ],
+    priority: '0.3',
+    changefreq: 'monthly'
   },
   {
     route: '/login',
-    title: 'Sign In | LOOP SPIT',
-    description: 'Sign in to LOOP SPIT with your Sardar Patel Institute of Technology student account or official Google credentials to access full features.',
+    title: 'Sign In | LOOP — Limitless Opportunities, One Platform',
+    description: 'Sign in to LOOP SPIT with your Sardar Patel Institute of Technology student account or institutional Google credentials to access full features.',
     h1: 'Sign In to LOOP — SPIT Campus Portal',
     paragraphs: [
       'Access verified senior placement stories, download academic revision notes, participate in peer discussions, and manage your student profile on LOOP SPIT.',
@@ -120,7 +150,7 @@ const PAGES = [
   },
   {
     route: '/forgot-password',
-    title: 'Reset Password | LOOP SPIT',
+    title: 'Reset Password | LOOP — Limitless Opportunities, One Platform',
     description: 'Recover and reset your account password for LOOP SPIT using your registered institutional email address and secure verification code.',
     h1: 'Reset Your LOOP Account Password',
     paragraphs: [
@@ -128,66 +158,107 @@ const PAGES = [
       'Verification codes are generated with time-limited validity to ensure security. Once verified, you will be prompted to choose a new strong password to regain access.'
     ],
     noIndex: true
-  },
-  {
-    route: '/stories/aarav_sharma',
-    title: 'Aarav Sharma — Microsoft SDE Debrief | LOOP SPIT',
-    description: 'Read Aarav Sharma\'s verified Microsoft Software Engineer placement debrief. Covers DSA prep, online coding test, technical rounds, and SPIT journey.',
-    h1: 'Aarav Sharma — Microsoft SDE Placement Debrief',
-    paragraphs: [
-      'Aarav Sharma, a Computer Engineering senior at SPIT Mumbai, shares his complete recruitment journey securing a Software Development Engineer role at Microsoft during the 2025 campus recruitment drive.',
-      'The debrief details his 6-month preparation strategy focusing on LeetCode Medium/Hard algorithmic challenges, dynamic programming, tree traversals, and object-oriented low-level design. Aarav walks through each phase of Microsoft’s assessment pipeline, including the initial Codility online screening, two technical live-coding interviews exploring graph traversal and cache optimization, and the final hiring manager round emphasizing behavioral principles and past engineering projects.',
-      'Key recommendations include practicing timed coding assessments, writing clean self-documenting code with comprehensive edge-case handling, and deeply understanding project trade-offs.'
-    ],
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: 'Aarav Sharma — Microsoft Software Engineer Placement Experience',
-      author: { '@type': 'Person', name: 'Aarav Sharma' },
-      publisher: { '@type': 'Organization', name: 'LOOP — Limitless Opportunities, One Platform' }
-    }
-  },
-  {
-    route: '/stories/priya_verma',
-    title: 'Priya Verma — Amazon SDE-1 Debrief | LOOP SPIT',
-    description: 'Read Priya Verma\'s verified Amazon SDE-1 placement debrief. Covers leadership principles, system design basics, coding rounds, and interview tips.',
-    h1: 'Priya Verma — Amazon SDE-1 Placement Debrief',
-    paragraphs: [
-      'Priya Verma from the Information Technology department shares her comprehensive experience achieving an SDE-1 offer from Amazon during on-campus recruitment.',
-      'Her debrief emphasizes a balanced preparation approach combining robust data structures practice with deep immersion in Amazon\'s 16 Leadership Principles. Priya explains how she formulated behavioral responses using the STAR methodology (Situation, Task, Action, Result) and tackled technical coding challenges involving sliding windows, heap data structures, and concurrency fundamentals.',
-      'Her advice to pre-final year students focuses on starting algorithmic preparation early, completing mock peer interviews, and building scalable full-stack projects.'
-    ],
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: 'Priya Verma — Amazon SDE-1 Placement Experience',
-      author: { '@type': 'Person', name: 'Priya Verma' },
-      publisher: { '@type': 'Organization', name: 'LOOP — Limitless Opportunities, One Platform' }
-    }
-  },
-  {
-    route: '/stories/rohan_patil',
-    title: 'Rohan Patil — Google SDE Debrief | LOOP SPIT',
-    description: 'Read Rohan Patil\'s verified Google Software Engineer placement debrief. Covers graph algorithms, DP optimization, coding rounds, and mock interviews.',
-    h1: 'Rohan Patil — Google Software Engineer Placement Debrief',
-    paragraphs: [
-      'Rohan Patil from the Computer Engineering department recounts his technical interview journey with Google for the Software Engineer position.',
-      'Google’s recruitment process is renowned for its rigorous evaluation of algorithmic depth, problem-solving agility, and time complexity optimization. Rohan discusses the importance of competitive programming on Codeforces and LeetCode, mastering shortest-path algorithms, topological sorting, bit manipulation, and dynamic programming with bitmasks.',
-      'The debrief provides invaluable insights into communicating thought processes out loud with Google interviewers, clarifying ambiguity before writing code, and systematically verifying solution correctness.'
-    ],
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: 'Rohan Patil — Google Software Engineer Placement Experience',
-      author: { '@type': 'Person', name: 'Rohan Patil' },
-      publisher: { '@type': 'Organization', name: 'LOOP — Limitless Opportunities, One Platform' }
-    }
   }
 ];
 
+// 2. Load and Filter Real, Approved, Privacy-Safe Stories
+const REAL_STORY_PAGES = [];
+const backupPath = path.resolve(__dirname, '../../backend/backups/stories_backup_pre_phase2_phase3_2026-10-23T09-13-25-182Z.json');
+
+if (fs.existsSync(backupPath)) {
+  try {
+    const rawStories = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+    const phoneRegex = /\b(?:\+?91[\-\s]?)?[6-9]\d{9}\b/;
+
+    // Filter to privacy-clean, rich approved stories
+    const cleanStories = rawStories.filter(s => {
+      const text = JSON.stringify(s.journey || {});
+      return s.id && s.name && s.company && s.role &&
+        s.journey && s.journey.howSecured && s.journey.howSecured.length > 300 &&
+        !emailRegex.test(text) && !phoneRegex.test(text);
+    });
+
+    // Select up to 15 diverse authentic stories across key hiring companies
+    const selectedStories = [];
+    const seenCompanies = new Set();
+    const preferredCompanies = [
+      'Barclays', 'J.P. Morgan', 'ISS STOXX', 'UBS', 'Mastercard',
+      'Oracle Financial Services (OFSS)', 'Mahindra Finance', 'Interactive Brokers',
+      'ICICI Lombard', 'AuxoAI', 'Nomura', 'PhonePe', 'Colgate-Palmolive',
+      'BlackRock', 'WorkIndia'
+    ];
+
+    for (const comp of preferredCompanies) {
+      const match = cleanStories.find(s => s.company === comp && !seenCompanies.has(s.company));
+      if (match) {
+        seenCompanies.add(match.company);
+        selectedStories.push(match);
+      }
+    }
+
+    for (const s of cleanStories) {
+      if (selectedStories.length >= 15) break;
+      if (!seenCompanies.has(s.company)) {
+        seenCompanies.add(s.company);
+        selectedStories.push(s);
+      }
+    }
+
+    for (const s of selectedStories) {
+      // Normalize malformed whitespace, repeated tabs, and newlines in text fields
+      const cleanCompany = (s.company || '').replace(/\s+/g, ' ').trim();
+      const cleanRole = (s.role || '').replace(/\s+/g, ' ').trim();
+      const cleanBranch = (s.branch || '').replace(/\s+/g, ' ').trim();
+      const cleanPassoutYear = (s.passoutYear || '').replace(/\s+/g, ' ').trim();
+
+      const roleDisplay = cleanRole ? `${cleanCompany} — ${cleanRole}` : cleanCompany;
+      const cohortDisplay = cleanBranch && cleanPassoutYear 
+        ? ` (${cleanBranch}, Class of ${cleanPassoutYear})` 
+        : (cleanBranch ? ` (${cleanBranch})` : '');
+
+      const prepExcerpt = s.journey?.prep ? truncateText(s.journey.prep, 350) : '';
+      const howSecuredExcerpt = s.journey?.howSecured ? truncateText(s.journey.howSecured, 450) : '';
+
+      REAL_STORY_PAGES.push({
+        route: `/stories/${s.id}`,
+        title: `${cleanCompany} ${cleanRole} Placement Experience | LOOP SPIT`,
+        description: `Verified campus placement debrief for ${cleanRole} at ${cleanCompany}${cohortDisplay} at Sardar Patel Institute of Technology (SPIT), Mumbai.`,
+        h1: `${cleanCompany} — ${cleanRole} Placement Experience`,
+        paragraphs: [
+          `A student contributor from the ${cleanBranch || 'engineering'} department${cleanPassoutYear ? ` (Class of ${cleanPassoutYear})` : ''} at Sardar Patel Institute of Technology (SPIT), Mumbai secured an offer for ${cleanRole} at ${cleanCompany}.`,
+          `Selection Process & Interview Rounds: ${howSecuredExcerpt}`,
+          prepExcerpt ? `Preparation Strategy & Study Routines: ${prepExcerpt}` : 'Preparation focused on Data Structures & Algorithms, core CS subjects (DBMS, OS, Networks), and structured mock interview rounds.'
+        ],
+        schema: {
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: `${cleanCompany} — ${cleanRole} Placement Experience`,
+          author: { 
+            '@type': 'Organization', 
+            name: 'LOOP Student Contributor' 
+          },
+          publisher: { 
+            '@type': 'Organization', 
+            name: 'LOOP — Limitless Opportunities, One Platform' 
+          }
+        },
+        priority: '0.6',
+        changefreq: 'monthly'
+      });
+    }
+
+    console.log(`[PRERENDER_SEO] Loaded ${REAL_STORY_PAGES.length} privacy-safe authentic stories across top companies.`);
+  } catch (err) {
+    console.warn('[PRERENDER_SEO] Warning loading backup stories:', err.message);
+  }
+}
+
+const ALL_PAGES = [...CORE_PAGES, ...REAL_STORY_PAGES];
+
 function prerenderPage(page) {
   let html = templateHtml;
-  const canonicalUrl = `${BASE_URL}${page.route}`;
+  const canonicalUrl = page.route === '/' ? `${BASE_URL}/` : `${BASE_URL}${page.route}`;
 
   // 1. Replace Title
   html = html.replace(/<title>.*?<\/title>/i, `<title>${page.title}</title>`);
@@ -230,16 +301,16 @@ function prerenderPage(page) {
     html = html.replace('</head>', `${jsonLd}  </head>`);
   }
 
-  // 6. Pre-render comprehensive semantic content inside #root
+  // 6. Pre-render clean semantic content inside #root
   const renderedParagraphs = (page.paragraphs || [])
     .map(p => `<p style="font-size: 1.05rem; line-height: 1.7; color: #444; margin-bottom: 1.25rem;">${p}</p>`)
     .join('\n');
 
   const semanticShell = `
     <header style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
-      <a href="/home" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — Limitless Opportunities, One Platform</a>
+      <a href="/" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — Limitless Opportunities, One Platform</a>
       <nav style="display: flex; gap: 1.5rem; font-weight: 600; flex-wrap: wrap;">
-        <a href="/home">Home</a>
+        <a href="/">Home</a>
         <a href="/stories">Stories</a>
         <a href="/resources">Resources</a>
         <a href="/achievements">Achievements</a>
@@ -254,32 +325,36 @@ function prerenderPage(page) {
         ${renderedParagraphs}
       </article>
       <div style="border-top: 1px solid #e5e5e5; margin-top: 2.5rem; padding-top: 1.5rem;">
-        <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem;">Explore LOOP Placement Knowledge Base:</h2>
+        <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem;">Explore Placement Knowledge Base:</h2>
         <ul style="line-height: 2;">
           <li><a href="/stories">Browse Engineering Placement Stories &amp; Debriefs</a></li>
           <li><a href="/resources">Access Curated Semester Study Materials</a></li>
           <li><a href="/achievements">View SPIT Student Accolades &amp; Milestones</a></li>
-          <li><a href="/stories/aarav_sharma">Microsoft Placement Interview Experience (Aarav Sharma)</a></li>
-          <li><a href="/stories/priya_verma">Amazon SDE Placement Interview Debrief (Priya Verma)</a></li>
-          <li><a href="/stories/rohan_patil">Google SDE Placement Interview Debrief (Rohan Patil)</a></li>
+          <li><a href="/stories/story_2026_21664150">Barclays Summer Intern Placement Experience (CSE-DS)</a></li>
+          <li><a href="/stories/story_2026_35118136">J.P. Morgan CIB Analytics Placement Experience (CSE-AIML)</a></li>
+          <li><a href="/stories/story_2026_28159237">ISS STOXX SDE Placement Experience (CE)</a></li>
           <li><a href="/login">Student Account Login &amp; Portal Access</a></li>
         </ul>
       </div>
     </main>
   `;
 
-  // Replace content inside #root
-  html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/i, `<div id="root">${semanticShell}</div>\n    <script`);
+  // Robust replacement of #root contents
+  html = html.replace(/<div id="root">[\s\S]*?<\/div>/i, `<div id="root">${semanticShell}</div>`);
 
-  // Target directory
-  const targetDir = path.join(DIST_DIR, page.route);
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
-  }
-  fs.writeFileSync(path.join(targetDir, 'index.html'), html, 'utf8');
+  // Target directory & files
+  if (page.route === '/' || page.route === '') {
+    fs.writeFileSync(path.join(DIST_DIR, 'index.html'), html, 'utf8');
+    // Also provide home.html as backwards compatible alias
+    fs.writeFileSync(path.join(DIST_DIR, 'home.html'), html, 'utf8');
+  } else {
+    const targetDir = path.join(DIST_DIR, page.route);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(targetDir, 'index.html'), html, 'utf8');
 
-  // Also emit cleanUrl HTML file (e.g. dist/stories.html)
-  if (page.route !== '/' && page.route !== '') {
+    // Also emit cleanUrl HTML file (e.g. dist/stories.html)
     const cleanUrlFile = path.join(DIST_DIR, `${page.route}.html`);
     const cleanUrlDir = path.dirname(cleanUrlFile);
     if (!fs.existsSync(cleanUrlDir)) {
@@ -289,9 +364,33 @@ function prerenderPage(page) {
   }
 }
 
-console.log(`[PRERENDER_SEO] Generating static SEO HTML files for ${PAGES.length} routes...`);
-for (const p of PAGES) {
+console.log(`[PRERENDER_SEO] Generating static SEO HTML files for ${ALL_PAGES.length} routes...`);
+for (const p of ALL_PAGES) {
   prerenderPage(p);
-  console.log(`  ✓ Prerendered ${p.route}/index.html (${p.title})`);
+  console.log(`  ✓ Prerendered ${p.route} (${p.title})`);
 }
+
+// 3. Generate Clean, In-Sync Sitemap XML (No fake stories, no duplicates, no private pages)
+const indexablePages = ALL_PAGES.filter(p => !p.noIndex);
+const todayIso = new Date().toISOString().split('T')[0] + 'T00:00:00+00:00';
+
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${indexablePages.map(p => {
+  const url = p.route === '/' ? `${BASE_URL}/` : `${BASE_URL}${p.route}`;
+  return `  <url>
+    <loc>${url}</loc>
+    <lastmod>${todayIso}</lastmod>
+    <changefreq>${p.changefreq || 'weekly'}</changefreq>
+    <priority>${p.priority || '0.6'}</priority>
+  </url>`;
+}).join('\n')}
+</urlset>
+`;
+
+fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), sitemapXml, 'utf8');
+if (fs.existsSync(PUBLIC_DIR)) {
+  fs.writeFileSync(path.join(PUBLIC_DIR, 'sitemap.xml'), sitemapXml, 'utf8');
+}
+console.log(`[PRERENDER_SEO] Generated sitemap.xml with ${indexablePages.length} valid, indexable canonical URLs.`);
 console.log(`[PRERENDER_SEO] Prerendering complete!`);

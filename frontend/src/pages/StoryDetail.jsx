@@ -11,6 +11,7 @@ import {
 import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl, downloadResourceFile, uploadResumeFile, uploadStudyMaterialFile } from '../utils/db';
 import FormattedText, { renderInlineWithLinks } from '../components/FormattedText';
 import { formatDisplayBranch } from '../utils/branchUtils';
+import BRAND from '../constants/branding';
 
 export function formatCurrencyText(val) {
   if (!val) return '';
@@ -934,8 +935,16 @@ export default function StoryDetail() {
   if (!story) {
     return (
       <div className="container" style={{ padding: '6rem 0', textAlign: 'center' }}>
-        <h2>Senior profile not found</h2>
-        <button onClick={() => navigate('/stories')} className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+        <SEOHead 
+          title={`Placement Story Not Found | ${BRAND.fullName}`}
+          description="The requested placement story could not be found or has been removed."
+          noIndex={true}
+        />
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem' }}>Placement Story Not Found</h2>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: '480px', margin: '0 auto 1.5rem auto', lineHeight: 1.6 }}>
+          The placement debrief you are looking for does not exist or may have been relocated.
+        </p>
+        <button onClick={() => navigate('/stories')} className="btn btn-secondary">
           Back to Stories
         </button>
       </div>
@@ -1939,28 +1948,23 @@ export default function StoryDetail() {
                 return (
                   <div
                     key={index}
-                    className="story-content-card"
+                    className="story-content-card resource-card-container"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '1rem',
                       padding: '1.1rem 1.4rem'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div className="resource-card-content">
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
                         <ExternalLink size={16} />
                       </div>
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <div className="resource-card-details">
+                        <h4 className="resource-card-title">
                           {res.name}
                         </h4>
                         {res.type && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <div className="resource-card-type">
                             Type: {res.type}
-                          </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1970,7 +1974,7 @@ export default function StoryDetail() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="btn btn-secondary"
+                      className="btn btn-secondary resource-card-action"
                       style={{
                         padding: '0.5rem 1rem',
                         borderRadius: '10px',
@@ -1982,7 +1986,8 @@ export default function StoryDetail() {
                         textDecoration: 'none',
                         color: 'var(--text-primary)',
                         border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-surface)'
+                        backgroundColor: 'var(--bg-surface)',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       <span>Open Resource</span>
@@ -2146,22 +2151,17 @@ export default function StoryDetail() {
                 return (
                   <div
                     key={index}
-                    className="story-content-card"
+                    className="story-content-card resource-card-container"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '1rem',
                       padding: '1.15rem 1.4rem'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: isPdf ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: isPdf ? '#ef4444' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div className="resource-card-content">
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: isPdf ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: isPdf ? '#ef4444' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
                         <FileText size={20} />
                       </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                      <div className="resource-card-details">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                             {mat.category || (isPdf ? 'PDF Document' : 'Study Notes')}
                           </span>
@@ -2171,13 +2171,13 @@ export default function StoryDetail() {
                             </span>
                           )}
                         </div>
-                        <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <h4 className="resource-card-title">
                           {mat.title || mat.fileName}
                         </h4>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div className="resource-card-action" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                       {isDriveMat ? (
                         <a
                           href={matUrl}

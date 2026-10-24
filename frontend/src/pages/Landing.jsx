@@ -230,7 +230,7 @@ export default function Landing() {
       <SEOHead 
         title={`${BRAND.fullName} | ${BRAND.collegeShort}`}
         description={`${BRAND.tagline} ${BRAND.shortDescription}`}
-        canonicalUrl="/home"
+        canonicalUrl="/"
         ogType="website"
         keywords="LOOP, Limitless Opportunities One Platform, SPIT, Sardar Patel Institute of Technology, Placements, Interview Experiences, CTC Packages, Engineering Placements, SPIT Mumbai, DSA Prep"
         structuredData={[
@@ -501,7 +501,7 @@ export default function Landing() {
                     Placement Track Record
                   </h3>
                   <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>
-                    The Numbers Don't Lie. Get familiar with the SPIT standard. From a solid ₹15.14 LPA campus average to the elite ₹61.55 LPA peak packages, explore the official TPO records and see the exact targets you are aiming for.
+                    The Numbers Don't Lie. Get familiar with the SPIT standard. From a solid ₹15.14 LPA campus average to the elite ₹61.55 LPA peak packages, explore verified campus placement packages and see the exact targets you are aiming for.
                   </p>
                 </div>
                 <div>

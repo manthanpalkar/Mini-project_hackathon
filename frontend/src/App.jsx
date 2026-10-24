@@ -192,7 +192,7 @@ function AppLayout() {
 
             {/* Public Canonical Content Routes (Crawleable & Accessible) */}
             <Route path="/" element={<Landing />} />
-            <Route path="/home" element={<Landing />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="/stories" element={<Stories />} />
             <Route path="/stories/:id" element={<StoryDetail />} />
             <Route path="/resources" element={<Resources />} />
