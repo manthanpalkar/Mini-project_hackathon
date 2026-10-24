@@ -7,7 +7,7 @@ import {
   Users, MessageSquare, GraduationCap, 
   Rocket, Compass, Star, ArrowRight, UserCheck, Briefcase
 } from 'lucide-react';
-import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl, downloadResourceFile } from '../utils/db';
+import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl, downloadResourceFile, uploadResumeFile, uploadStudyMaterialFile } from '../utils/db';
 import FormattedText, { renderInlineWithLinks } from '../components/FormattedText';
 import { formatDisplayBranch } from '../utils/branchUtils';
 
@@ -657,27 +657,54 @@ export default function StoryDetail() {
     };
   }, [isEditing]);
 
-  const processMaterialFile = (file) => {
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+
+  const processMaterialFile = async (file) => {
+    if (!file) return;
     const extension = file.name.split('.').pop().toLowerCase();
+    const allowedExts = ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'png', 'jpg', 'jpeg', 'webp', 'zip'];
+    if (!allowedExts.includes(extension)) {
+      alert(`Unsupported file type (.${extension}). Supported types: PDF, Word (DOC/DOCX), Images, Text, Spreadsheets, Presentations.`);
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      alert(`Study material size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds the 50 MB upload limit. For larger documents or folders, please link a Google Drive folder.`);
+      return;
+    }
+
     let determinedType = 'Notes';
     if (extension === 'pdf') {
       determinedType = 'PDF';
-    } else if (['png', 'jpg', 'jpeg'].includes(extension)) {
+    } else if (['png', 'jpg', 'jpeg', 'webp'].includes(extension)) {
       determinedType = 'Image';
+    } else if (['doc', 'docx'].includes(extension)) {
+      determinedType = 'Document';
     }
     
-    fileToBase64(file).then(base64Url => {
+    setIsUploadingMaterial(true);
+    try {
+      const title = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const res = await uploadStudyMaterialFile(file, title, 'DSA Preparation');
       setEditMaterialInput({
-        title: file.name.substring(0, file.name.lastIndexOf('.')) || file.name,
+        title: res.title || title,
         type: determinedType,
-        fileName: file.name,
-        fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-        previewUrl: base64Url
+        fileName: res.fileName,
+        fileSize: res.fileSize,
+        previewUrl: res.url,
+        url: res.url,
+        storageProvider: 'supabase',
+        storagePath: res.storagePath,
+        mimeType: res.mimeType,
+        sizeBytes: res.sizeBytes
       });
-    }).catch(err => {
-      console.error("Error reading file:", err);
-      alert("Failed to read file.");
-    });
+    } catch (err) {
+      console.error("Error uploading study material to Supabase Storage:", err);
+      alert(err.message || "Failed to upload study material.");
+    } finally {
+      setIsUploadingMaterial(false);
+    }
   };
 
   const handleEditFileChange = (e) => {
@@ -685,20 +712,39 @@ export default function StoryDetail() {
     if (file) processMaterialFile(file);
   };
 
-  const processResumeFile = (file) => {
-    fileToBase64(file).then(base64Url => {
-      setEditForm({
-        ...editForm,
+  const processResumeFile = async (file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`Resume size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds the 10 MB limit. Please compress your PDF.`);
+      return;
+    }
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      alert('Resumes must strictly be in PDF (.pdf) format.');
+      return;
+    }
+
+    setIsUploadingResume(true);
+    try {
+      const res = await uploadResumeFile(file);
+      setEditForm(prev => ({
+        ...prev,
         resume: {
-          fileName: file.name,
-          fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-          url: base64Url
+          fileName: res.fileName,
+          fileSize: res.fileSize,
+          url: res.url,
+          storageProvider: 'supabase',
+          storagePath: res.storagePath,
+          mimeType: res.mimeType,
+          sizeBytes: res.sizeBytes
         }
-      });
-    }).catch(err => {
-      console.error("Error reading file:", err);
-      alert("Failed to read file.");
-    });
+      }));
+    } catch (err) {
+      console.error("Error uploading resume to Supabase Storage:", err);
+      alert(err.message || "Failed to upload resume to storage.");
+    } finally {
+      setIsUploadingResume(false);
+    }
   };
 
   const isValidUrl = (string) => {
@@ -2513,26 +2559,17 @@ export default function StoryDetail() {
                       id="story-detail-resume-upload" 
                       onChange={(e) => {
                         const file = e.target.files[0];
-                        if (!file) return;
-                        
-                        fileToBase64(file).then(base64Url => {
-                          setEditForm({
-                            ...editForm,
-                            resume: {
-                              fileName: file.name,
-                              fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-                              url: base64Url
-                            }
-                          });
-                        }).catch(err => {
-                          console.error("Error reading file:", err);
-                          alert("Failed to read file.");
-                        });
+                        if (file) processResumeFile(file);
                       }} 
                       style={{ display: 'none' }}
                       accept=".pdf"
                     />
-                    {editForm.resume ? (
+                    {isUploadingResume ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--accent-primary, #0071e3)' }}>
+                        <div style={{ width: '18px', height: '18px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Uploading resume PDF to secure storage...</span>
+                      </div>
+                    ) : editForm.resume ? (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
                           <span style={{
@@ -2773,10 +2810,15 @@ export default function StoryDetail() {
                           id="story-detail-material-upload" 
                           onChange={handleEditFileChange} 
                           style={{ display: 'none' }}
-                          accept=".pdf,.png,.jpg,.jpeg"
+                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
                         />
                         
-                        {editMaterialInput.previewUrl ? (
+                        {isUploadingMaterial ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--accent-primary, #0071e3)', padding: '0.8rem' }}>
+                            <div style={{ width: '18px', height: '18px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Uploading study material to secure storage...</span>
+                          </div>
+                        ) : editMaterialInput.previewUrl ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', width: '100%' }}>
                             {editMaterialInput.type === 'Image' ? (
                               <div style={{ position: 'relative', width: '100%', height: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

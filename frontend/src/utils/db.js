@@ -8,8 +8,10 @@ const API_URL = isLocal ? '/api' : (envApiUrl || `${BASE_URL}/api`);
 
 export const fixRelativeUrl = (url) => {
   if (!url) return url;
-  if (typeof url === 'string' && url.startsWith('/uploads/')) {
-    return `${BASE_URL}${url}`;
+  if (typeof url === 'string') {
+    if (url.startsWith('/uploads/') || url.startsWith('/api/storage/files/')) {
+      return `${BASE_URL}${url}`;
+    }
   }
   return url;
 };
@@ -523,6 +525,71 @@ export const rejectPendingStory = async (id) => {
     throw new Error(errData.error || 'Failed to reject pending story');
   }
   return res.json();
+};
+
+// Supabase Storage Upload Helpers for Resumes and Study Materials
+export const uploadResumeFile = async (file, onProgress) => {
+  if (!file) throw new Error('No resume file selected');
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error(`Resume size (${formatBytes(file.size)}) exceeds the 10 MB limit. Please compress your PDF.`);
+  }
+  const isPdf = file.type === 'application/pdf' || (file.name && file.name.toLowerCase().endsWith('.pdf'));
+  if (!isPdf) {
+    throw new Error('Resumes must strictly be in PDF (.pdf) format.');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await authFetchXHR(`${API_URL}/storage/upload/resume`, {
+    method: 'POST',
+    body: formData
+  }, onProgress);
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || 'Failed to upload resume to storage.');
+  }
+  const data = await res.json();
+  return adjustUrls(data);
+};
+
+export const uploadStudyMaterialFile = async (file, title, category, onProgress) => {
+  if (!file) throw new Error('No study material file selected');
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  if (title) formData.append('title', title);
+  if (category) formData.append('category', category);
+
+  const res = await authFetchXHR(`${API_URL}/storage/upload/study-material`, {
+    method: 'POST',
+    body: formData
+  }, onProgress);
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || 'Failed to upload study material to storage.');
+  }
+  const data = await res.json();
+  return adjustUrls(data);
+};
+
+export const getStorageLimits = async () => {
+  try {
+    const res = await authFetch(`${API_URL}/storage/limits`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.warn('[db] Failed to fetch storage limits:', e.message);
+  }
+  return {
+    resumeMaxBytes: 10 * 1024 * 1024,
+    resumeMaxFormatted: '10 MB',
+    studyMaterialMaxBytes: 50 * 1024 * 1024,
+    studyMaterialMaxFormatted: '50 MB'
+  };
 };
 
 // Resources Helpers

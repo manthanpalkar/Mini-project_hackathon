@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@getbrevo/brevo": "^6.2.0",
+    "@supabase/supabase-js": "^2.118.0",
     "bcryptjs": "^3.0.3",
     "busboy": "^1.6.0",
     "compression": "^1.8.2",

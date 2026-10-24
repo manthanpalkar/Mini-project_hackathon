@@ -28,6 +28,15 @@ const cacheService = require('./services/cacheService');
 const { sendPasswordResetEmail } = require('./services/emailService');
 const sessionService = require('./services/sessionService');
 const activityService = require('./services/activityService');
+const {
+  supabaseStorageService,
+  RESUME_MAX_FILE_SIZE_BYTES,
+  STUDY_MATERIAL_MAX_FILE_SIZE_BYTES,
+  BUCKET_RESUMES,
+  BUCKET_STUDY_MATERIALS,
+  formatBytes: formatStorageBytes,
+  sanitizeFilename: sanitizeStorageFilename
+} = require('./services/supabaseStorageService');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -223,7 +232,7 @@ app.use((req, res, next) => {
 });
 
 // Reduce JSON body limit to 5MB to protect the single-threaded event loop against CPU-exhausting JSON.parse() attacks
-// Large binary files are streamed directly via GridFS/busboy chunk endpoints and bypass express.json
+// Large binary files are streamed directly via storage upload endpoints and bypass express.json
 app.use(express.json({ limit: '5mb' }));
 
 // Dedicated error-handling middleware for JSON parsing errors and oversized payloads
@@ -4481,6 +4490,273 @@ app.post('/api/pending-resources/upload', authenticateToken, requireOnboarded, (
   handleStreamingUpload(req, res, { isPending: true });
 });
 
+// --- Supabase Storage Routes for Resumes and Study Materials ---
+const resumeStorageMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: RESUME_MAX_FILE_SIZE_BYTES }
+});
+
+const studyMaterialStorageMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: STUDY_MATERIAL_MAX_FILE_SIZE_BYTES }
+});
+
+function createStorageUploadMiddleware(uploadInstance, customLimitMessage) {
+  return (req, res, next) => {
+    uploadInstance.single('file')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({
+            error: customLimitMessage,
+            code: 'FILE_TOO_LARGE'
+          });
+        }
+        return res.status(400).json({
+          error: err.message || 'File upload failed.',
+          code: 'UPLOAD_ERROR'
+        });
+      }
+      next();
+    });
+  };
+}
+
+// 1. Storage Configuration Limits
+app.get('/api/storage/limits', (req, res) => {
+  res.json(supabaseStorageService.getLimits());
+});
+
+// 2. Resume Upload to Supabase Storage (Max 10 MB, PDF only)
+app.post(
+  '/api/storage/upload/resume',
+  authenticateToken,
+  requireOnboarded,
+  createStorageUploadMiddleware(
+    resumeStorageMulter,
+    'Resume size exceeds the 10 MB limit. Please compress your PDF and try again.'
+  ),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No resume file uploaded.', code: 'FILE_MISSING' });
+      }
+
+      const validation = supabaseStorageService.validateResume({
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        sizeBytes: req.file.size
+      });
+
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error, code: 'INVALID_FILE' });
+      }
+
+      const userEmail = (req.user?.email || 'user').toLowerCase().trim();
+      const sanitizedUser = userEmail.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const cleanFilename = sanitizeStorageFilename(req.file.originalname);
+      const storagePath = `${sanitizedUser}/${Date.now()}-${cleanFilename}`;
+
+      const uploadResult = await supabaseStorageService.uploadFile({
+        bucket: BUCKET_RESUMES,
+        storagePath,
+        fileBuffer: req.file.buffer,
+        mimeType: req.file.mimetype || 'application/pdf',
+        upsert: false
+      });
+
+      const fileUrl = `/api/storage/files/${BUCKET_RESUMES}/${storagePath}`;
+
+      res.status(201).json({
+        success: true,
+        fileName: req.file.originalname,
+        fileSize: formatStorageBytes(req.file.size),
+        sizeBytes: req.file.size,
+        mimeType: req.file.mimetype || 'application/pdf',
+        storageProvider: 'supabase',
+        bucket: BUCKET_RESUMES,
+        storagePath,
+        url: fileUrl,
+        uploadResult
+      });
+    } catch (err) {
+      console.error('[Supabase Storage Resume Upload Error]', err);
+      res.status(500).json({ error: err.message || 'Failed to upload resume to storage.' });
+    }
+  }
+);
+
+// 3. Study Material Upload to Supabase Storage (Configurable limit, supported document types)
+app.post(
+  '/api/storage/upload/study-material',
+  authenticateToken,
+  requireOnboarded,
+  createStorageUploadMiddleware(
+    studyMaterialStorageMulter,
+    `Study material size exceeds the configured limit of ${formatStorageBytes(STUDY_MATERIAL_MAX_FILE_SIZE_BYTES)}. For larger documents, please link a Google Drive folder.`
+  ),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No study material file uploaded.', code: 'FILE_MISSING' });
+      }
+
+      const validation = supabaseStorageService.validateStudyMaterial({
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        sizeBytes: req.file.size
+      });
+
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error, code: 'INVALID_FILE' });
+      }
+
+      const userEmail = (req.user?.email || 'user').toLowerCase().trim();
+      const sanitizedUser = userEmail.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const cleanFilename = sanitizeStorageFilename(req.file.originalname);
+      const storagePath = `${sanitizedUser}/${Date.now()}-${cleanFilename}`;
+
+      const uploadResult = await supabaseStorageService.uploadFile({
+        bucket: BUCKET_STUDY_MATERIALS,
+        storagePath,
+        fileBuffer: req.file.buffer,
+        mimeType: req.file.mimetype || 'application/octet-stream',
+        upsert: false
+      });
+
+      const fileUrl = `/api/storage/files/${BUCKET_STUDY_MATERIALS}/${storagePath}`;
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      let determinedType = 'Notes';
+      if (ext === '.pdf') determinedType = 'PDF';
+      else if (['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) determinedType = 'Image';
+      else if (['.doc', '.docx'].includes(ext)) determinedType = 'Document';
+
+      res.status(201).json({
+        success: true,
+        title: req.body.title || req.file.originalname.substring(0, req.file.originalname.lastIndexOf('.')) || req.file.originalname,
+        type: determinedType,
+        category: req.body.category || 'DSA Preparation',
+        fileName: req.file.originalname,
+        fileSize: formatStorageBytes(req.file.size),
+        sizeBytes: req.file.size,
+        mimeType: req.file.mimetype || 'application/octet-stream',
+        storageProvider: 'supabase',
+        bucket: BUCKET_STUDY_MATERIALS,
+        storagePath,
+        url: fileUrl,
+        uploadResult
+      });
+    } catch (err) {
+      console.error('[Supabase Storage Material Upload Error]', err);
+      res.status(500).json({ error: err.message || 'Failed to upload study material to storage.' });
+    }
+  }
+);
+
+// 4. Generate Short-Lived Signed URL
+app.get('/api/storage/signed-url', authenticateToken, async (req, res) => {
+  try {
+    const { bucket, path: storagePath, expiresIn = 300 } = req.query;
+    if (!bucket || !storagePath) {
+      return res.status(400).json({ error: 'Bucket and path query parameters are required.' });
+    }
+    const signedUrl = await supabaseStorageService.getSignedUrl({
+      bucket,
+      storagePath,
+      expiresInSeconds: parseInt(expiresIn, 10) || 300
+    });
+    res.json({ signedUrl });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. File Access & Streaming Endpoint (Dual token support: Authorization header or ?token=)
+app.get('/api/storage/files/:bucket/*', (req, res) => {
+  authenticateToken(req, res, async () => {
+    try {
+      const bucket = req.params.bucket;
+      const storagePath = req.params[0];
+
+      if (!bucket || !storagePath) {
+        return res.status(400).json({ error: 'Bucket and storage path are required.' });
+      }
+
+      if (bucket !== BUCKET_RESUMES && bucket !== BUCKET_STUDY_MATERIALS) {
+        return res.status(400).json({ error: 'Invalid storage bucket requested.' });
+      }
+
+      if (storagePath.includes('..') || storagePath.startsWith('/')) {
+        return res.status(400).json({ error: 'Path traversal attempt rejected.' });
+      }
+
+      const userEmail = (req.user?.email || '').toLowerCase().trim();
+      const isAdmin = isUserAdmin(req.user);
+
+      // Check if file is part of a PendingStory
+      const fileUrl = `/api/storage/files/${bucket}/${storagePath}`;
+      const pendingStory = await PendingStory.findOne({
+        $or: [
+          { 'resumeFile.url': fileUrl },
+          { 'resumeFile.storagePath': storagePath },
+          { 'studyMaterials.url': fileUrl },
+          { 'studyMaterials.storagePath': storagePath }
+        ]
+      }).lean();
+
+      if (pendingStory && !isAdmin) {
+        const isOwner = pendingStory.uploadedByEmail &&
+          (pendingStory.uploadedByEmail.toLowerCase().trim() === userEmail);
+        if (!isOwner) {
+          return res.status(403).json({ error: 'Access denied to pending story document.' });
+        }
+      }
+
+      const isDownload = req.query.download === 'true';
+      const isStream = req.query.stream === 'true';
+      const cleanFilename = path.basename(storagePath);
+
+      if (supabaseStorageService.isConfigured && !isStream) {
+        const signedUrl = await supabaseStorageService.getSignedUrl({
+          bucket,
+          storagePath,
+          expiresInSeconds: 300
+        });
+        return res.redirect(signedUrl);
+      }
+
+      const fileData = await supabaseStorageService.downloadFile({ bucket, storagePath });
+      res.setHeader('Content-Type', fileData.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `${isDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(cleanFilename)}"`);
+      return res.send(fileData.buffer);
+    } catch (err) {
+      console.error('[Storage File Access Error]', err);
+      return res.status(404).json({ error: 'File not found or storage access failed.' });
+    }
+  });
+});
+
+// 6. Delete File from Storage (Authorized to uploader or admin)
+app.delete('/api/storage/files/:bucket/*', authenticateToken, async (req, res) => {
+  try {
+    const bucket = req.params.bucket;
+    const storagePath = req.params[0];
+    const userEmail = (req.user?.email || '').toLowerCase().trim();
+    const isAdmin = isUserAdmin(req.user);
+
+    if (!isAdmin) {
+      const sanitizedUser = userEmail.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      if (!storagePath.startsWith(sanitizedUser + '/')) {
+        return res.status(403).json({ error: 'You are only authorized to delete files you uploaded.' });
+      }
+    }
+
+    await supabaseStorageService.deleteFile({ bucket, storagePath });
+    res.json({ success: true, message: 'File deleted from storage.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 
 // Edit Resource Metadata (Rename, Move folder, Description, Tags)
@@ -5539,5 +5815,8 @@ module.exports = {
   RESET_SECRET,
   JWT_SECRET,
   handleUploadFinalize,
-  safeDeleteGridFSFileIfOrphaned
+  safeDeleteGridFSFileIfOrphaned,
+  supabaseStorageService,
+  RESUME_MAX_FILE_SIZE_BYTES,
+  STUDY_MATERIAL_MAX_FILE_SIZE_BYTES
 };

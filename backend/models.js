@@ -49,7 +49,12 @@ const StudyMaterialSchema = new mongoose.Schema({
   category: String,
   fileName: String,
   fileSize: String,
-  url: String
+  url: String,
+  storageProvider: { type: String, default: 'supabase' },
+  storagePath: String,
+  mimeType: String,
+  sizeBytes: Number,
+  bucket: String
 }, { _id: false });
 
 // Custom Section Subschema
@@ -62,7 +67,12 @@ const CustomSectionSchema = new mongoose.Schema({
 const ResumeFileSchema = new mongoose.Schema({
   fileName: String,
   fileSize: String,
-  url: String
+  url: String,
+  storageProvider: { type: String, default: 'supabase' },
+  storagePath: String,
+  mimeType: String,
+  sizeBytes: Number,
+  bucket: String
 }, { _id: false });
 
 // Story Schema

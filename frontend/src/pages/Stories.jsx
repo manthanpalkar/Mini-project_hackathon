@@ -5,7 +5,7 @@ import {
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
   Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw, ExternalLink
 } from 'lucide-react';
-import { getStories, getStoryById, addPendingStory, fileToBase64 } from '../utils/db';
+import { getStories, getStoryById, addPendingStory, fileToBase64, uploadResumeFile, uploadStudyMaterialFile } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
 import { useUpload } from '../context/UploadContext';
 
@@ -558,9 +558,24 @@ export default function Stories() {
     }
   };
 
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+
   // File upload change handler
-  const processMaterialFile = (file) => {
+  const processMaterialFile = async (file) => {
+    if (!file) return;
     const extension = file.name.split('.').pop().toLowerCase();
+    const allowedExts = ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'png', 'jpg', 'jpeg', 'webp', 'zip'];
+    if (!allowedExts.includes(extension)) {
+      alert(`Unsupported file type (.${extension}). Supported types: PDF, Word (DOC/DOCX), Images, Text, Spreadsheets, Presentations.`);
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      alert(`Study material size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds the 50 MB upload limit. For larger documents or folders, please link a Google Drive folder.`);
+      return;
+    }
+
     let determinedType = 'Notes';
     if (extension === 'pdf') {
       determinedType = 'PDF';
@@ -570,18 +585,28 @@ export default function Stories() {
       determinedType = 'Roadmap';
     }
     
-    fileToBase64(file).then(base64Url => {
+    setIsUploadingMaterial(true);
+    try {
+      const title = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const res = await uploadStudyMaterialFile(file, title, 'DSA Preparation');
       setMaterialInput({
-        title: file.name.substring(0, file.name.lastIndexOf('.')) || file.name,
+        title: res.title || title,
         type: determinedType,
-        fileName: file.name,
-        fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-        previewUrl: base64Url
+        fileName: res.fileName,
+        fileSize: res.fileSize,
+        previewUrl: res.url,
+        url: res.url,
+        storageProvider: 'supabase',
+        storagePath: res.storagePath,
+        mimeType: res.mimeType,
+        sizeBytes: res.sizeBytes
       });
-    }).catch(err => {
-      console.error("Error reading file:", err);
-      alert("Failed to read file.");
-    });
+    } catch (err) {
+      console.error("Error uploading study material to Supabase Storage:", err);
+      alert(err.message || "Failed to upload study material.");
+    } finally {
+      setIsUploadingMaterial(false);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -589,17 +614,36 @@ export default function Stories() {
     if (file) processMaterialFile(file);
   };
 
-  const processResumeFile = (file) => {
-    fileToBase64(file).then(base64Url => {
+  const processResumeFile = async (file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`Resume size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds the 10 MB limit. Please compress your PDF.`);
+      return;
+    }
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      alert('Resumes must strictly be in PDF (.pdf) format.');
+      return;
+    }
+
+    setIsUploadingResume(true);
+    try {
+      const res = await uploadResumeFile(file);
       setResumeUploadFile({
-        fileName: file.name,
-        fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-        url: base64Url
+        fileName: res.fileName,
+        fileSize: res.fileSize,
+        url: res.url,
+        storageProvider: 'supabase',
+        storagePath: res.storagePath,
+        mimeType: res.mimeType,
+        sizeBytes: res.sizeBytes
       });
-    }).catch(err => {
-      console.error("Error reading file:", err);
-      alert("Failed to read file.");
-    });
+    } catch (err) {
+      console.error("Error uploading resume to Supabase Storage:", err);
+      alert(err.message || "Failed to upload resume to storage.");
+    } finally {
+      setIsUploadingResume(false);
+    }
   };
 
   const handleAddCustomSection = () => {
@@ -2021,7 +2065,12 @@ export default function Stories() {
                           style={{ display: 'none' }}
                           accept=".pdf"
                         />
-                        {resumeUploadFile ? (
+                        {isUploadingResume ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', color: 'var(--accent-primary, #0071e3)' }}>
+                            <div style={{ width: '18px', height: '18px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Uploading resume PDF to secure storage...</span>
+                          </div>
+                        ) : resumeUploadFile ? (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
                               <span style={{
@@ -2185,7 +2234,12 @@ export default function Stories() {
                             style={{ display: 'none' }}
                             accept=".pdf,image/png,image/jpeg,image/jpg"
                           />
-                          {materialInput.fileName ? (
+                          {isUploadingMaterial ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', color: 'var(--accent-primary, #0071e3)' }}>
+                              <div style={{ width: '18px', height: '18px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Uploading study material to secure storage...</span>
+                            </div>
+                          ) : materialInput.fileName ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                                 <FileText size={20} />

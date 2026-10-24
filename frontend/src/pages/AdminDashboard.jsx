@@ -34,6 +34,8 @@ import {
   updateFolder,
   deleteFolder,
   fileToBase64,
+  uploadResumeFile,
+  uploadStudyMaterialFile,
   approveProfileEdit,
   rejectProfileEdit,
   approveRegistration,
@@ -786,17 +788,28 @@ export default function AdminDashboard() {
       determinedType = 'Roadmap';
     }
     
-    fileToBase64(file).then(base64Url => {
+    if (file.size > 50 * 1024 * 1024) {
+      alert(`Study material size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 50 MB limit. Please use a Google Drive link.`);
+      return;
+    }
+
+    const title = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+    uploadStudyMaterialFile(file, title, 'DSA Preparation').then(res => {
       setEditMaterialInput({
-        title: file.name.substring(0, file.name.lastIndexOf('.')) || file.name,
+        title: res.title || title,
         type: determinedType,
-        fileName: file.name,
-        fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-        previewUrl: base64Url
+        fileName: res.fileName,
+        fileSize: res.fileSize,
+        previewUrl: res.url,
+        url: res.url,
+        storageProvider: 'supabase',
+        storagePath: res.storagePath,
+        mimeType: res.mimeType,
+        sizeBytes: res.sizeBytes
       });
     }).catch(err => {
-      console.error("Error reading file:", err);
-      alert("Failed to read file.");
+      console.error("Error uploading material to Supabase Storage:", err);
+      alert(err.message || "Failed to upload study material.");
     });
   };
 
@@ -806,18 +819,33 @@ export default function AdminDashboard() {
   };
 
   const processResumeFile = (file) => {
-    fileToBase64(file).then(base64Url => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`Resume size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds the 10 MB limit. Please compress your PDF.`);
+      return;
+    }
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      alert('Resumes must strictly be in PDF (.pdf) format.');
+      return;
+    }
+
+    uploadResumeFile(file).then(res => {
       setEditStoryForm(prev => ({
         ...prev,
         resume: {
-          fileName: file.name,
-          fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-          url: base64Url
+          fileName: res.fileName,
+          fileSize: res.fileSize,
+          url: res.url,
+          storageProvider: 'supabase',
+          storagePath: res.storagePath,
+          mimeType: res.mimeType,
+          sizeBytes: res.sizeBytes
         }
       }));
     }).catch(err => {
-      console.error("Error reading file:", err);
-      alert("Failed to read file.");
+      console.error("Error uploading resume to Supabase Storage:", err);
+      alert(err.message || "Failed to upload resume to storage.");
     });
   };
 
