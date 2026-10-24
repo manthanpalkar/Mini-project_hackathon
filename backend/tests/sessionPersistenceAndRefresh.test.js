@@ -37,6 +37,20 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
 
     originalUserFindOne = User.findOne;
     User.findOne = async function (query) {
+      if (/admin/i.test(query?.email)) {
+        return {
+          _id: new mongoose.Types.ObjectId(),
+          email: 'admin@spit.ac.in',
+          name: 'System Administrator',
+          role: 'Administrator',
+          status: 'Active',
+          branch: 'COMP',
+          currentYear: 'Faculty',
+          onboarded: true,
+          isAdmin: true,
+          save: async () => {}
+        };
+      }
       return {
         _id: new mongoose.Types.ObjectId(),
         email: 'student@spit.ac.in',
@@ -956,5 +970,102 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
       assert.equal(logoutRes.status, 200, `Cycle ${cycle} logout must succeed`);
       assert.equal(await sessionService.isSessionActive(session.sessionId, mockDoc.email), false);
     }
+  });
+
+  test('26. isSessionActive self-heals and prevents false-positive revocation when session doc is missing from DB', async () => {
+    const missingSessionId = 'SES-MISSING-TEST-' + Date.now();
+    const email = 'selfheal@spit.ac.in';
+
+    // The session does NOT exist in mockSessions or DB, and is NOT in revoked cache
+    const token = jwt.sign(
+      { email, role: 'Student', status: 'Active', sessionId: missingSessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Call API with this token
+    const res = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    // It must NOT fail with 401 SESSION_REVOKED
+    assert.equal(res.status, 200);
+
+    // isSessionActive must report active
+    const isActive = await sessionService.isSessionActive(missingSessionId, email);
+    assert.equal(isActive, true);
+  });
+
+  test('27. Password/Profile update revokes other sessions but strictly preserves the caller current session', async () => {
+    const email = 'preserve.current@spit.ac.in';
+    const currentSession = await sessionService.createSession({ email });
+    const otherSession = await sessionService.createSession({ email });
+
+    // Both active initially
+    assert.equal(await sessionService.isSessionActive(currentSession.sessionId, email), true);
+    assert.equal(await sessionService.isSessionActive(otherSession.sessionId, email), true);
+
+    // Revoke other sessions specifying currentSessionId
+    await sessionService.revokeOtherSessions(email, currentSession.sessionId);
+
+    // Current session remains active, other session is revoked
+    assert.equal(await sessionService.isSessionActive(currentSession.sessionId, email), true);
+    assert.equal(await sessionService.isSessionActive(otherSession.sessionId, email), false);
+  });
+
+  test('28. requireOnboarded allows access if user profile has name and branch, preventing 403 ONBOARDING_REQUIRED', async () => {
+    const session = await sessionService.createSession({ email: 'student.filled@spit.ac.in' });
+    const token = jwt.sign(
+      { email: 'student.filled@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const savedUserFindOne = User.findOne;
+    // Mock user with onboarded: false but name & branch filled
+    User.findOne = async () => ({
+      _id: new mongoose.Types.ObjectId(),
+      email: 'student.filled@spit.ac.in',
+      name: 'Filled Name',
+      branch: 'CSE',
+      role: 'Student',
+      status: 'Active',
+      onboarded: false,
+      save: async () => {}
+    });
+
+    try {
+      const storiesRes = await fetch(`${baseUrl}/api/stories`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      assert.equal(storiesRes.status, 200, 'User with filled profile must access stories without 403');
+
+      const resourcesRes = await fetch(`${baseUrl}/api/resources`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      assert.equal(resourcesRes.status, 200, 'User with filled profile must access resources without 403');
+    } finally {
+      User.findOne = savedUserFindOne;
+    }
+  });
+
+  test('29. Dedicated demo login auto-heals onboarded: true for students and administrators', async () => {
+    const adminDemoRes = await fetch(`${baseUrl}/api/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'admin' })
+    });
+    assert.equal(adminDemoRes.status, 200);
+    const adminData = await adminDemoRes.json();
+    assert.equal(adminData.onboarded, true);
+    assert.equal(adminData.isAdmin, true);
+
+    const studentDemoRes = await fetch(`${baseUrl}/api/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'student' })
+    });
+    assert.equal(studentDemoRes.status, 200);
+    const studentData = await studentDemoRes.json();
+    assert.equal(studentData.onboarded, true);
   });
 });

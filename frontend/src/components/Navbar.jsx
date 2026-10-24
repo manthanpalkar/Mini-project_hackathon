@@ -261,7 +261,12 @@ export default function Navbar() {
         currentYear: passoutYear,
         passoutYear: passoutYear,
         nameColor: nameColor || '',
-        hasPendingEdit: false
+        hasPendingEdit: false,
+        token: user.token,
+        refreshToken: user.refreshToken,
+        sessionId: user.sessionId,
+        isAdmin: user.isAdmin,
+        onboarded: true
       };
       localStorage.setItem('loop_current_user', JSON.stringify(newSession));
       setUser(newSession);

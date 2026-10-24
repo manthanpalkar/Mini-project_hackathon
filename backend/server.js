@@ -746,6 +746,7 @@ async function authenticateToken(req, res, next) {
     }
 
     req.user = user;
+    req.user.sessionId = decoded.sessionId || null;
     req.sessionId = decoded.sessionId || null;
     next();
   } catch (err) {
@@ -776,8 +777,9 @@ function requireOnboarded(req, res, next) {
   if (isUserAdmin(req.user)) {
     return next();
   }
-  // Check onboarded flag
-  if (!req.user || !req.user.onboarded) {
+  // Check onboarded flag or completed profile
+  const isOnboarded = Boolean(req.user && (req.user.onboarded || (req.user.name && req.user.branch)));
+  if (!isOnboarded) {
     return res.status(403).json({
       error: 'Onboarding required. Please complete your profile before accessing platform resources.',
       code: 'ONBOARDING_REQUIRED'
@@ -1484,6 +1486,11 @@ app.post('/api/users/login', async (req, res) => {
     });
     
     const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+    const isProfileFilled = Boolean(user.onboarded || (user.name && user.branch) || isUserAdmin);
+    if (!user.onboarded && isProfileFilled) {
+      user.onboarded = true;
+      user.save().catch(() => {});
+    }
     res.json({
       email: user.email,
       role: isUserAdmin ? 'Administrator' : user.role,
@@ -1492,7 +1499,7 @@ app.post('/api/users/login', async (req, res) => {
       username: user.username || '',
       branch: user.branch,
       currentYear: user.currentYear,
-      onboarded: isUserAdmin ? true : user.onboarded,
+      onboarded: isProfileFilled,
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || '',
       token,
@@ -1668,6 +1675,11 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
       });
 
       const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+      const isProfileFilled = Boolean(user.onboarded || (user.name && user.branch) || isUserAdmin);
+      if (!user.onboarded && isProfileFilled) {
+        user.onboarded = true;
+        user.save().catch(() => {});
+      }
       return res.json({
         action: 'LOGIN_SUCCESS',
         email: user.email,
@@ -1677,7 +1689,7 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
         username: user.username || '',
         branch: user.branch,
         currentYear: user.currentYear,
-        onboarded: isUserAdmin ? true : user.onboarded,
+        onboarded: isProfileFilled,
         isAdmin: isUserAdmin,
         nameColor: user.nameColor || '',
         token,
@@ -1802,6 +1814,11 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
       });
 
       const isUserAdmin = existingByEmail.email.toLowerCase() === 'admin@spit.ac.in' || existingByEmail.role === 'Administrator' || existingByEmail.role === 'Admin';
+      const isProfileFilled = Boolean(existingByEmail.onboarded || (existingByEmail.name && existingByEmail.branch) || isUserAdmin);
+      if (!existingByEmail.onboarded && isProfileFilled) {
+        existingByEmail.onboarded = true;
+        existingByEmail.save().catch(() => {});
+      }
       return res.json({
         action: 'LOGIN_SUCCESS',
         email: existingByEmail.email,
@@ -1811,7 +1828,7 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
         username: existingByEmail.username || '',
         branch: existingByEmail.branch,
         currentYear: existingByEmail.currentYear,
-        onboarded: isUserAdmin ? true : existingByEmail.onboarded,
+        onboarded: isProfileFilled,
         isAdmin: isUserAdmin,
         nameColor: existingByEmail.nameColor || '',
         token,
@@ -2035,6 +2052,11 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
     });
 
     const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+    const isProfileFilled = Boolean(user.onboarded || (user.name && user.branch) || isUserAdmin);
+    if (!user.onboarded && isProfileFilled) {
+      user.onboarded = true;
+      user.save().catch(() => {});
+    }
     return res.json({
       action: 'LOGIN_SUCCESS',
       email: user.email,
@@ -2044,7 +2066,7 @@ app.post(['/api/auth/google/link', '/api/users/google/link', '/api/users/auth/go
       username: user.username || '',
       branch: user.branch,
       currentYear: user.currentYear,
-      onboarded: isUserAdmin ? true : user.onboarded,
+      onboarded: isProfileFilled,
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || '',
       token,
@@ -2531,7 +2553,7 @@ app.put('/api/users/:email', authenticateToken, async (req, res) => {
     userAuthCache.invalidate(email);
 
     if (passwordChanged) {
-      await sessionService.revokeOtherSessions(user.email, req.user?.sessionId || null);
+      await sessionService.revokeOtherSessions(user.email, req.sessionId || req.user?.sessionId || null);
     }
     if (status !== undefined && isUserAdmin && status !== 'Active') {
       await sessionService.revokeOtherSessions(user.email, null);
@@ -4918,6 +4940,12 @@ app.post(['/api/auth/refresh', '/api/users/refresh'], async (req, res) => {
       metadata: { sessionId: refreshResult.sessionId }
     });
 
+    const isProfileFilled = Boolean(user.onboarded || (user.name && user.branch) || isUserAdmin);
+    if (!user.onboarded && isProfileFilled) {
+      user.onboarded = true;
+      user.save().catch(() => {});
+    }
+
     return res.json({
       token: newAccessToken,
       refreshToken: refreshResult.refreshToken,
@@ -4929,7 +4957,7 @@ app.post(['/api/auth/refresh', '/api/users/refresh'], async (req, res) => {
       username: user.username || '',
       branch: user.branch,
       currentYear: user.currentYear,
-      onboarded: isUserAdmin ? true : user.onboarded,
+      onboarded: isProfileFilled,
       isAdmin: isUserAdmin,
       nameColor: user.nameColor || ''
     });

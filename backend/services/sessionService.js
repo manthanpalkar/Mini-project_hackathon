@@ -110,11 +110,13 @@ async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddre
     let session = null;
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
-        session = await UserSession.findOne({ sessionId, revoked: false });
+        session = await UserSession.findOne({ sessionId });
       } catch (err) {
         console.warn('[SESSION_SERVICE_WARN] Error looking up session for refresh:', err.message);
         return { success: false, code: 'DB_ERROR', error: 'Database temporarily unavailable.' };
       }
+    } else {
+      return { success: false, code: 'DB_ERROR', error: 'Database temporarily unavailable.' };
     }
 
     if (!session) {
@@ -123,6 +125,13 @@ async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddre
       trimCache(revokedSessionsCache);
       activeSessionsCache.delete(sessionId);
       return { success: false, code: 'SESSION_REVOKED', error: 'Session has expired or was terminated.' };
+    }
+
+    if (session.revoked) {
+      revokedSessionsCache.add(sessionId);
+      trimCache(revokedSessionsCache);
+      activeSessionsCache.delete(sessionId);
+      return { success: false, code: 'SESSION_REVOKED', error: 'Session has been revoked or signed out.' };
     }
 
     // Check 30-day session expiration
@@ -242,7 +251,7 @@ async function isSessionActive(sessionId, email) {
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     let session = null;
     try {
-      session = await UserSession.findOne({ sessionId, revoked: false }).lean();
+      session = await UserSession.findOne({ sessionId }).lean();
     } catch (dbErr) {
       console.warn('[SESSION_SERVICE_WARN] UserSession query error:', dbErr.message);
       // Transient database error or connection reconnect: DO NOT revoke the session!
@@ -250,19 +259,50 @@ async function isSessionActive(sessionId, email) {
       return true;
     }
 
-    if (!session) {
-      // Document genuinely does not exist in DB or was explicitly revoked
-      revokedSessionsCache.add(sessionId);
-      trimCache(revokedSessionsCache);
-      return false;
+    if (session) {
+      if (session.revoked) {
+        revokedSessionsCache.add(sessionId);
+        trimCache(revokedSessionsCache);
+        return false;
+      }
+
+      if (session.expiresAt && Date.now() > new Date(session.expiresAt).getTime()) {
+        return false;
+      }
+
+      activeSessionsCache.set(sessionId, { 
+        email: session.email, 
+        refreshTokenHash: session.refreshTokenHash,
+        expiresAt: new Date(session.expiresAt) 
+      });
+      trimCache(activeSessionsCache);
+      return true;
     }
 
-    if (session.expiresAt && Date.now() > new Date(session.expiresAt).getTime()) {
-      return false;
+    // Document was not found in DB.
+    // If the token is cryptographically verified by JWT_SECRET and not in revokedSessionsCache,
+    // self-heal: lazily persist a session document so future queries find it.
+    if (email) {
+      const expiresAt = new Date(Date.now() + DEFAULT_SESSION_DURATION_HOURS * 3600 * 1000);
+      const newSession = new UserSession({
+        sessionId,
+        email: email.toLowerCase().trim(),
+        deviceSummary: 'Web Browser',
+        ipAddress: '127.0.0.1',
+        userAgent: '',
+        lastActive: new Date(),
+        expiresAt,
+        revoked: false
+      });
+      newSession.save().catch(err => {
+        console.warn('[SESSION_SERVICE_WARN] Self-heal session save skipped:', err.message);
+      });
+      activeSessionsCache.set(sessionId, { email: email.toLowerCase().trim(), expiresAt });
+      trimCache(activeSessionsCache);
+      return true;
     }
 
-    activeSessionsCache.set(sessionId, { email: session.email, expiresAt: new Date(session.expiresAt) });
-    trimCache(activeSessionsCache);
+    return false;
   }
 
   return true;
@@ -279,9 +319,13 @@ function touchSession(sessionId) {
   if (now - lastTouch > 5 * 60 * 1000) {
     lastTouchMap.set(sessionId, now);
     trimCache(lastTouchMap);
+    const newExpiresAt = new Date(now + DEFAULT_SESSION_DURATION_HOURS * 3600 * 1000);
+    const cached = activeSessionsCache.get(sessionId);
+    if (cached) {
+      cached.expiresAt = newExpiresAt;
+    }
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       // Extend expiration by 30 days on active interaction
-      const newExpiresAt = new Date(now + DEFAULT_SESSION_DURATION_HOURS * 3600 * 1000);
       UserSession.updateOne(
         { sessionId },
         { $set: { lastActive: new Date(), expiresAt: newExpiresAt } }

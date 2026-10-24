@@ -99,7 +99,8 @@ function ProtectedRoute({ children }) {
   }
   
   // If not onboarded, not an admin, and not currently on the onboarding page, redirect to onboarding
-  if (!user.onboarded && !user.isAdmin && location.pathname !== '/onboarding') {
+  const isOnboarded = Boolean(user.onboarded || (user.name && user.branch) || user.isAdmin);
+  if (!isOnboarded && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" state={{ from: location }} replace />;
   }
 

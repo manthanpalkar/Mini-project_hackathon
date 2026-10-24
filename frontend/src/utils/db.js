@@ -112,6 +112,9 @@ export const refreshAuthSession = async () => {
         if (data.onboarded !== undefined) {
           latestUser.onboarded = data.onboarded;
         }
+        if (data.isAdmin !== undefined) {
+          latestUser.isAdmin = data.isAdmin;
+        }
         localStorage.setItem('loop_current_user', JSON.stringify(latestUser));
         window.dispatchEvent(new CustomEvent('loop_session_refreshed', { detail: latestUser }));
         return data.token;

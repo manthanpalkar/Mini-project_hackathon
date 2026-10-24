@@ -244,7 +244,8 @@ export default function Login() {
     if (userSession) {
       const parsed = JSON.parse(userSession);
       const targetUrl = getRedirectUrl();
-      if (parsed.onboarded || parsed.isAdmin) {
+      const isOnboarded = Boolean(parsed.onboarded || (parsed.name && parsed.branch) || parsed.isAdmin);
+      if (isOnboarded) {
         navigate(targetUrl, { replace: true });
       } else {
         navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
@@ -306,7 +307,8 @@ export default function Login() {
     }
     setTimeout(() => {
       const targetUrl = getRedirectUrl();
-      if (userData.onboarded || userData.isAdmin) {
+      const isOnboarded = Boolean(userData.onboarded || (userData.name && userData.branch) || userData.isAdmin);
+      if (isOnboarded) {
         navigate(targetUrl, { replace: true });
       } else {
         navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
