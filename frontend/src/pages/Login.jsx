@@ -192,8 +192,8 @@ export default function Login() {
       // Ignore sessionStorage removal errors
     }
 
-    if (!target || target === '/login' || target === '/') {
-      return '/home';
+    if (!target || target === '/login' || target === '/home') {
+      return '/';
     }
 
     return target;

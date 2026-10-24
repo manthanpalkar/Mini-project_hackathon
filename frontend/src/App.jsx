@@ -138,7 +138,7 @@ function AppLayout() {
             const newUser = JSON.parse(e.newValue);
             if (oldUser?.email && newUser?.email && oldUser.email.toLowerCase() !== newUser.email.toLowerCase()) {
               window.dispatchEvent(new CustomEvent('loop_login_success', { detail: newUser }));
-              navigate('/home', { replace: true });
+              navigate('/', { replace: true });
             }
           } catch (parseErr) {}
         }
@@ -207,7 +207,7 @@ function AppLayout() {
             } />
 
             {/* Catch-all Redirect */}
-            <Route path="*" element={<Navigate to="/home" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </main>

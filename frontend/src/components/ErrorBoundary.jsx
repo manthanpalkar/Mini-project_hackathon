@@ -20,7 +20,7 @@ export default class ErrorBoundary extends React.Component {
   };
 
   handleGoHome = () => {
-    window.location.href = '/home';
+    window.location.href = '/';
   };
 
   render() {

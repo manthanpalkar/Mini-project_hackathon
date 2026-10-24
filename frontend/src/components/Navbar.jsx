@@ -86,12 +86,12 @@ export default function Navbar() {
     if (user && showProfileModal) {
       const activeBranch = user.hasPendingEdit ? user.pendingBranch : user.branch;
       const isCse = ['CSE', 'CSE AI', 'CSE DS'].includes(activeBranch);
-      
+
       setName(user.hasPendingEdit ? user.pendingName : (user.name || ''));
       setUsername(user.username || '');
       setBranch(isCse ? 'CSE' : (activeBranch || 'CSE'));
       setCseSpecialization(isCse ? activeBranch : 'CSE');
-      
+
       // Default to user's passoutYear or calculate from currentYear if present
       const rawYear = user.hasPendingEdit ? user.pendingCurrentYear : (user.passoutYear || user.currentYear || '2026');
       let defaultPassoutYear = '2026';
@@ -102,7 +102,7 @@ export default function Navbar() {
       else if (rawYear === 'Third Year') defaultPassoutYear = '2026';
       else if (rawYear === 'Fourth Year') defaultPassoutYear = '2025';
       else if (rawYear === 'Alumnus / Graduate') defaultPassoutYear = '2024';
-      
+
       setPassoutYear(defaultPassoutYear);
       setNameColor(user.nameColor || '');
       setNewPassword('');
@@ -355,8 +355,8 @@ export default function Navbar() {
               transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
               zIndex: 2
             }}>
-              <Link 
-                to="/stories" 
+              <Link
+                to="/stories"
                 onMouseEnter={() => {
                   import('../pages/Stories');
                   prefetchData('stories', getStories);
@@ -370,9 +370,9 @@ export default function Navbar() {
                 Stories
                 {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
-              
-              <Link 
-                to="/resources" 
+
+              <Link
+                to="/resources"
                 onMouseEnter={() => {
                   import('../pages/Resources');
                   prefetchData('resources', getResources);
@@ -388,8 +388,8 @@ export default function Navbar() {
                 {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
 
-              <Link 
-                to="/achievements" 
+              <Link
+                to="/achievements"
                 onMouseEnter={() => {
                   import('../pages/Achievements');
                   prefetchData('achievements', getAchievements);
@@ -420,8 +420,8 @@ export default function Navbar() {
             zIndex: 3,
             pointerEvents: 'auto'
           }}>
-            <Link 
-              to="/home" 
+            <Link
+              to="/"
               onMouseEnter={() => {
                 import('../pages/Landing');
               }}
@@ -438,16 +438,16 @@ export default function Navbar() {
                 transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             >
-              <img 
-                src="/loop-logo.png" 
-                alt="LOOP Logo" 
-                style={{ 
-                  height: isScrolled ? '24px' : '26px', 
-                  width: 'auto', 
+              <img
+                src="/loop-logo.png"
+                alt="LOOP Logo"
+                style={{
+                  height: isScrolled ? '24px' : '26px',
+                  width: 'auto',
                   filter: 'var(--logo-filter)',
                   marginRight: '0.2rem',
                   transition: 'height 0.35s ease'
-                }} 
+                }}
               />
               Loop
               <span style={{
@@ -475,8 +475,8 @@ export default function Navbar() {
             zIndex: 2
           }}>
             {user?.isAdmin && (
-              <Link 
-                to="/admin" 
+              <Link
+                to="/admin"
                 onMouseEnter={() => {
                   import('../pages/AdminDashboard');
                 }}
@@ -559,9 +559,9 @@ export default function Navbar() {
                 </button>
 
                 {/* Exit / Logout button */}
-                <button 
-                  onClick={handleLogout} 
-                  className="btn btn-secondary" 
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-secondary"
                   style={{ padding: isScrolled ? '0.32rem 0.7rem' : '0.42rem 0.8rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: isScrolled ? '0.75rem' : '0.8rem', transition: 'all 0.35s ease' }}
                   title="Log out"
                 >
@@ -578,9 +578,9 @@ export default function Navbar() {
 
           {/* MOBILE MENU TOGGLE (Mobile only) */}
           <div className="mobile-nav-toggle" style={{ display: 'none' }}>
-            <button 
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="btn btn-secondary" 
+              className="btn btn-secondary"
               style={{ padding: '0.5rem', borderRadius: '50%', border: 'none' }}
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -635,10 +635,10 @@ export default function Navbar() {
                   {(() => {
                     const effectiveColor = user?.nameColor || getRandomUserColor(user?.email || user?.id || user?.name || '');
                     return (
-                      <button 
+                      <button
                         type="button"
-                        onClick={() => { setShowProfileModal(true); setMobileMenuOpen(false); }} 
-                        className="btn" 
+                        onClick={() => { setShowProfileModal(true); setMobileMenuOpen(false); }}
+                        className="btn"
                         style={{
                           padding: '0.45rem 0.95rem',
                           fontSize: '0.85rem',
@@ -653,19 +653,19 @@ export default function Navbar() {
                           cursor: 'pointer'
                         }}
                       >
-                        <UserIcon size={14} style={{ color: effectiveColor }} strokeWidth={2.4} /> 
+                        <UserIcon size={14} style={{ color: effectiveColor }} strokeWidth={2.4} />
                         <span style={{ color: effectiveColor }}>
                           {user?.name?.trim() ? user.name.trim().split(/\s+/)[0] : 'Profile'}
                         </span>
                       </button>
                     );
                   })()}
-                  <span 
-                    className="badge" 
-                    style={{ 
-                      textTransform: 'none', 
-                      fontSize: '0.8rem', 
-                      padding: '0.3rem 0.75rem', 
+                  <span
+                    className="badge"
+                    style={{
+                      textTransform: 'none',
+                      fontSize: '0.8rem',
+                      padding: '0.3rem 0.75rem',
                       backgroundColor: 'var(--bg-tertiary)',
                       color: 'var(--text-secondary)',
                       border: '1px solid var(--border-color)',
@@ -710,7 +710,7 @@ export default function Navbar() {
 
     {/* Profile Modal - Clean Portal Overlay (outside header to avoid any pointer-events interference) */}
     {showProfileModal && typeof document !== 'undefined' && createPortal(
-      <div 
+      <div
         onClick={() => { setShowProfileModal(false); setError(''); setSuccess(''); }}
         style={{
           position: 'fixed',
@@ -728,7 +728,7 @@ export default function Navbar() {
           pointerEvents: 'auto'
         }}
       >
-        <div 
+        <div
           onClick={(e) => e.stopPropagation()}
           className="animate-fade-in custom-scrollbar"
           style={{
@@ -748,7 +748,7 @@ export default function Navbar() {
           }}
         >
           {/* Close Button - Apple Style Circle Button (Cross) */}
-          <button 
+          <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
@@ -816,7 +816,7 @@ export default function Navbar() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span>{user?.email}</span>
               <span style={{ opacity: 0.4 }}>•</span>
-              <span style={{ 
+              <span style={{
                 display: 'inline-block',
                 padding: '0.15rem 0.55rem',
                 borderRadius: '12px',
@@ -997,10 +997,10 @@ export default function Navbar() {
               </div>
 
               {/* Branch, Specialization, Passout Year Grid */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: branch === 'CSE' ? 'repeat(auto-fit, minmax(160px, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: '1rem' 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: branch === 'CSE' ? 'repeat(auto-fit, minmax(160px, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1rem'
               }}>
                 {/* Branch select */}
                 <div className="input-group" style={{ marginBottom: 0 }}>
@@ -1018,7 +1018,7 @@ export default function Navbar() {
                       className="input-field"
                       value={branch}
                       onChange={(e) => setBranch(e.target.value)}
-                      style={{ 
+                      style={{
                         paddingLeft: '2.75rem',
                         paddingRight: '2.5rem',
                         appearance: 'none',
@@ -1053,7 +1053,7 @@ export default function Navbar() {
                         className="input-field"
                         value={cseSpecialization}
                         onChange={(e) => setCseSpecialization(e.target.value)}
-                        style={{ 
+                        style={{
                           paddingRight: '2.5rem',
                           appearance: 'none',
                           WebkitAppearance: 'none',
@@ -1091,7 +1091,7 @@ export default function Navbar() {
                       color: 'var(--text-secondary)',
                       pointerEvents: 'none'
                     }} />
-                    <input 
+                    <input
                       type="number"
                       className="input-field"
                       placeholder="2026"
@@ -1314,10 +1314,10 @@ export default function Navbar() {
                 Leave blank if you do not want to change your current password.
               </p>
 
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
-                gap: '1rem' 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem'
               }}>
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label">New Password</label>
@@ -1330,7 +1330,7 @@ export default function Navbar() {
                       color: 'var(--text-secondary)',
                       pointerEvents: 'none'
                     }} />
-                    <input 
+                    <input
                       type="password"
                       className="input-field"
                       placeholder="New password (min 6 chars)"
@@ -1353,7 +1353,7 @@ export default function Navbar() {
                       color: 'var(--text-secondary)',
                       pointerEvents: 'none'
                     }} />
-                    <input 
+                    <input
                       type="password"
                       className="input-field"
                       placeholder="Re-enter new password"

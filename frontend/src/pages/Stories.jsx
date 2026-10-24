@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
-import { 
+import {
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
   Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw, ExternalLink
 } from 'lucide-react';
@@ -314,10 +314,10 @@ function Story3DCard({ story, index, navigate }) {
         }}>
           Placement Preparation Journey
         </span>
-        <button 
+        <Link
+          to={`/stories/${story.id}`}
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/stories/${story.id}`);
           }}
           className="btn btn-primary"
           style={{
@@ -329,12 +329,13 @@ function Story3DCard({ story, index, navigate }) {
             border: '1px solid var(--border-color)',
             fontSize: '0.86rem',
             fontWeight: 700,
-            boxShadow: '0 3px 12px rgba(0, 0, 0, 0.18)'
+            boxShadow: '0 3px 12px rgba(0, 0, 0, 0.18)',
+            textDecoration: 'none'
           }}
         >
           <span>Read Journey</span>
           <ArrowRight size={15} />
-        </button>
+        </Link>
       </div>
     </div>
   );
@@ -377,7 +378,7 @@ export default function Stories() {
 
   const [minYear, setMinYear] = useState('ALL');
   const [maxYear, setMaxYear] = useState('ALL');
-  
+
   // Only show passout years for which real placement story data actually exists
   const availableYears = useMemo(() => {
     const yearsSet = new Set();
@@ -407,7 +408,7 @@ export default function Stories() {
     window.addEventListener('loop_story_submitted', handleStorySubmitted);
     return () => window.removeEventListener('loop_story_submitted', handleStorySubmitted);
   }, [mutate]);
-  
+
   // Modal states synced with URL & location.state
   const [isModalOpen, setIsModalOpenState] = useState(
     searchParams.get('upload') === 'true' || !!location.state?.openUploadModal
@@ -470,7 +471,7 @@ export default function Stories() {
   }, [isModalOpen]);
 
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -500,7 +501,7 @@ export default function Stories() {
   // Study material input state
   const [materialInput, setMaterialInput] = useState({ title: '', type: 'PDF', category: 'DSA Preparation', fileName: '', fileSize: '', previewUrl: '' });
   const [resumeUploadFile, setResumeUploadFile] = useState(null);
-  
+
   // Dual input states for Resume and Study Materials
   const [resumeMode, setResumeMode] = useState('upload'); // 'upload' | 'link'
   const [resumeLinkUrl, setResumeLinkUrl] = useState('');
@@ -585,7 +586,7 @@ export default function Stories() {
     } else if (file.name.toLowerCase().includes('roadmap')) {
       determinedType = 'Roadmap';
     }
-    
+
     setIsUploadingMaterial(true);
     try {
       const title = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
@@ -696,14 +697,14 @@ export default function Stories() {
     // Branch Match
     const branchMatch = matchesBranchFilter(story, selectedBranches);
     if (!branchMatch) return false;
-    
+
     // Year Match
     const year = parseInt(story.passoutYear);
     const minMatch = minYear === 'ALL' || isNaN(year) || year >= parseInt(minYear);
     const maxMatch = maxYear === 'ALL' || isNaN(year) || year <= parseInt(maxYear);
     const yearMatch = minMatch && maxMatch;
     if (!yearMatch) return false;
-    
+
     return true;
   });
 
@@ -820,7 +821,7 @@ export default function Stories() {
       resumeFile: finalResumeFile,
       uploadedByEmail: currentUser ? currentUser.email : ''
     };
-    
+
     try {
       await startStoryUpload(submission);
       setIsModalOpen(false);
@@ -883,7 +884,7 @@ export default function Stories() {
 
   return (
     <div className="container" style={{ paddingTop: '6.5rem', paddingBottom: '5rem' }}>
-      <SEOHead 
+      <SEOHead
         title="Engineering Placement Stories & Interview Debriefs | LOOP SPIT"
         description="Browse verified campus placement experiences, interview questions, coding rounds, and preparation journeys from SPIT engineering seniors."
         canonicalUrl="/stories"
@@ -915,10 +916,10 @@ export default function Stories() {
           <p style={{ color: 'var(--text-secondary)' }}>Explore authentic placement and internship journeys from SPIT alumni.</p>
         </div>
 
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="btn btn-primary"
-          style={{ 
+          style={{
             padding: '0.75rem 1.6rem',
             borderRadius: '999px',
             border: '1px solid var(--border-color)',
@@ -1018,8 +1019,8 @@ export default function Stories() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={isChecked}
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -1067,7 +1068,7 @@ export default function Stories() {
               backgroundColor: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)'
             }}>
-              <select 
+              <select
                 value={minYear}
                 onChange={(e) => setMinYear(e.target.value)}
                 style={{
@@ -1089,7 +1090,7 @@ export default function Stories() {
                 ))}
               </select>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>—</span>
-              <select 
+              <select
                 value={maxYear}
                 onChange={(e) => setMaxYear(e.target.value)}
                 style={{
@@ -1114,7 +1115,7 @@ export default function Stories() {
           </div>
 
           {/* Reset Filters */}
-          <button 
+          <button
             type="button"
             onClick={() => {
               setSelectedBranches(BRANCH_FILTER_CATEGORIES);
@@ -1123,14 +1124,14 @@ export default function Stories() {
               setInputValue('');
               setSearchQuery('');
             }}
-            style={{ 
-              width: '100%', 
+            style={{
+              width: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.45rem',
-              padding: '0.55rem 0.85rem', 
-              fontSize: '0.8rem', 
+              padding: '0.55rem 0.85rem',
+              fontSize: '0.8rem',
               borderRadius: '12px',
               border: '1px solid var(--border-color)',
               fontWeight: 600,
@@ -1172,21 +1173,21 @@ export default function Stories() {
                   setInputValue('');
                   setSearchQuery('');
                 }}
-                style={{ 
-                  position: 'absolute', 
-                  right: '0.75rem', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  background: 'rgba(255, 255, 255, 0.08)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '50%', 
-                  width: '22px', 
-                  height: '22px', 
-                  cursor: 'pointer', 
-                  color: 'var(--text-secondary)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '50%',
+                  width: '22px',
+                  height: '22px',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
                 title="Clear Search"
               >
@@ -1205,8 +1206,8 @@ export default function Stories() {
               gap: '1.5rem',
             }}>
               {[1, 2, 3].map((n) => (
-                <div 
-                  key={n} 
+                <div
+                  key={n}
                   className="loop-card skeleton-pulse"
                   style={{
                     padding: '1.75rem 2rem',
@@ -1265,7 +1266,7 @@ export default function Stories() {
                 setSelectedBranches(BRANCH_FILTER_CATEGORIES);
                 setMinYear('ALL');
                 setMaxYear('ALL');
-              }} 
+              }}
                 className="btn btn-secondary"
                 style={{
                   borderRadius: '999px',
@@ -1283,7 +1284,7 @@ export default function Stories() {
 
       {/* Upload Story Modal - Apple OS Liquid Glass Redesign */}
       {isModalOpen && createPortal(
-        <div 
+        <div
           onClick={() => setIsModalOpen(false)}
           style={{
             position: 'fixed',
@@ -1300,9 +1301,9 @@ export default function Stories() {
             overscrollBehavior: 'contain'
           }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
-            className="animate-fade-in custom-scrollbar" 
+            className="animate-fade-in custom-scrollbar"
             style={{
               margin: 'auto',
               width: '100%',
@@ -1319,7 +1320,7 @@ export default function Stories() {
             }}
           >
             {/* Close Button - Apple Style Circle Button */}
-            <button 
+            <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
@@ -1442,9 +1443,9 @@ export default function Stories() {
 
                   <div className="input-group" style={{ marginBottom: '1rem' }}>
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Full Name *</label>
-                    <input 
-                      type="text" 
-                      className="input-field" 
+                    <input
+                      type="text"
+                      className="input-field"
                       placeholder="e.g. John Doe"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -1460,15 +1461,15 @@ export default function Stories() {
                   }}>
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Branch *</label>
-                      <select 
+                      <select
                         className="input-field"
                         value={formData.branch}
                         onChange={(e) => {
                           const nextBranch = e.target.value;
-                          setFormData({ 
-                            ...formData, 
-                            branch: nextBranch, 
-                            subBranch: '' 
+                          setFormData({
+                            ...formData,
+                            branch: nextBranch,
+                            subBranch: ''
                           });
                         }}
                       >
@@ -1480,9 +1481,9 @@ export default function Stories() {
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Passout Year *</label>
-                      <input 
-                        type="number" 
-                        className="input-field" 
+                      <input
+                        type="number"
+                        className="input-field"
                         placeholder="2026"
                         value={formData.passoutYear}
                         onChange={(e) => setFormData({ ...formData, passoutYear: e.target.value })}
@@ -1499,9 +1500,9 @@ export default function Stories() {
                   }}>
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Company *</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
+                      <input
+                        type="text"
+                        className="input-field"
                         placeholder="e.g. Microsoft"
                         value={formData.company}
                         onChange={(e) => setFormData({ ...formData, company: e.target.value })}
@@ -1511,9 +1512,9 @@ export default function Stories() {
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Role *</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
+                      <input
+                        type="text"
+                        className="input-field"
                         placeholder="e.g. Software Engineer"
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -1523,7 +1524,7 @@ export default function Stories() {
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Semester Placed *</label>
-                      <select 
+                      <select
                         className="input-field"
                         value={formData.semester}
                         onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
@@ -1536,9 +1537,9 @@ export default function Stories() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>CGPA</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
+                      <input
+                        type="text"
+                        className="input-field"
                         placeholder="e.g. 9.4"
                         value={formData.cgpa}
                         onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
@@ -1546,9 +1547,9 @@ export default function Stories() {
                     </div>
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Placement Package (LPA)</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
+                      <input
+                        type="text"
+                        className="input-field"
                         placeholder="e.g. 14.5 or 11.6 LPA"
                         value={formData.package}
                         onChange={(e) => setFormData({ ...formData, package: e.target.value })}
@@ -1588,9 +1589,9 @@ export default function Stories() {
                   {/* First Year Journey */}
                   <div className="input-group" style={{ marginBottom: '1.25rem' }}>
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>First Year Journey</label>
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="Exploration, core subjects, clubs joined, mindset..."
                       value={formData.journey.firstYear}
                       onChange={(e) => setFormData({
@@ -1604,9 +1605,9 @@ export default function Stories() {
                   {/* Second Year Journey */}
                   <div className="input-group" style={{ marginBottom: '1.25rem' }}>
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Second Year Journey</label>
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="Diving into DSA, core CS topics, initial projects, hackathons..."
                       value={formData.journey.secondYear}
                       onChange={(e) => setFormData({
@@ -1620,9 +1621,9 @@ export default function Stories() {
                   {/* Third Year Journey */}
                   <div className="input-group" style={{ marginBottom: '1.25rem' }}>
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Third Year Journey</label>
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="Internship prep, online tests, cracking placement drives, interviews..."
                       value={formData.journey.thirdYear}
                       onChange={(e) => setFormData({
@@ -1636,9 +1637,9 @@ export default function Stories() {
                   {/* Fourth Year Journey */}
                   <div className="input-group" style={{ marginBottom: '1.25rem' }}>
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Fourth Year Journey</label>
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="PPO conversion, capstone project, final plans, tips for juniors..."
                       value={formData.journey.fourthYear}
                       onChange={(e) => setFormData({
@@ -1652,9 +1653,9 @@ export default function Stories() {
                   {/* Preparation & Strategy */}
                   <div className="input-group" style={{ marginBottom: '1.25rem' }}>
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Preparation &amp; Strategy</label>
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="DSA sheets, systems subjects revised, resume tips, interview prep..."
                       value={formData.journey.prep}
                       onChange={(e) => setFormData({
@@ -1691,9 +1692,9 @@ export default function Stories() {
                         <span>+ Insert Project Template</span>
                       </button>
                     </div>
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="Describe your technical projects, tech stack, and systems, or tap '+ Insert Project Template' above..."
                       value={formData.journey.projects}
                       onChange={(e) => setFormData({
@@ -1730,9 +1731,9 @@ export default function Stories() {
                         <span>+ Insert Rounds Template</span>
                       </button>
                     </div>
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="Rounds details, interview questions asked, advice..."
                       value={formData.journey.howSecured}
                       onChange={(e) => setFormData({
@@ -1769,17 +1770,17 @@ export default function Stories() {
                         <span>+ Insert Advice Template</span>
                       </button>
                     </div>
-                    <input 
-                      type="text" 
-                      className="input-field" 
+                    <input
+                      type="text"
+                      className="input-field"
                       placeholder="Golden Rule (e.g. Consistency beats intensity every single day. Trust your personal timeline.)"
                       value={adviceQuote}
                       onChange={(e) => setAdviceQuote(e.target.value)}
                       style={{ marginBottom: '0.65rem' }}
                     />
-                    <textarea 
-                      className="input-field" 
-                      rows={3} 
+                    <textarea
+                      className="input-field"
+                      rows={3}
                       placeholder="Actionable advice and principles for juniors..."
                       value={adviceTips}
                       onChange={(e) => setAdviceTips(e.target.value)}
@@ -1916,9 +1917,9 @@ export default function Stories() {
                   <div className="input-group" style={{ marginBottom: '1.5rem' }}>
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Add Resource Used</label>
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
-                      <input 
-                        type="text" 
-                        className="input-field" 
+                      <input
+                        type="text"
+                        className="input-field"
                         placeholder="Resource Name (e.g. LeetCode, Striver Sheet, NeetCode)"
                         value={resourceInput.name}
                         onChange={(e) => setResourceInput({ ...resourceInput, name: e.target.value })}
@@ -1930,7 +1931,7 @@ export default function Stories() {
                         }}
                         style={{ flexGrow: 1 }}
                       />
-                      <select 
+                      <select
                         className="input-field"
                         value={resourceInput.type}
                         onChange={(e) => setResourceInput({ ...resourceInput, type: e.target.value })}
@@ -1944,9 +1945,9 @@ export default function Stories() {
                         <option value="Books">Books</option>
                         <option value="Mock Tests">Mock Tests</option>
                       </select>
-                      <button 
-                        type="button" 
-                        onClick={handleAddResource} 
+                      <button
+                        type="button"
+                        onClick={handleAddResource}
                         style={{
                           width: '42px',
                           height: '42px',
@@ -2062,7 +2063,7 @@ export default function Stories() {
                     </div>
 
                     {resumeMode === 'upload' ? (
-                      <div 
+                      <div
                         style={{
                           border: resumeUploadFile ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
                           borderRadius: '16px',
@@ -2074,13 +2075,13 @@ export default function Stories() {
                         }}
                         onClick={() => document.getElementById('resumeFileInput')?.click()}
                       >
-                        <input 
+                        <input
                           id="resumeFileInput"
-                          type="file" 
+                          type="file"
                           onChange={(e) => {
                             const file = e.target.files[0];
                             if (file) processResumeFile(file);
-                          }} 
+                          }}
                           style={{ display: 'none' }}
                           accept=".pdf"
                         />
@@ -2155,7 +2156,7 @@ export default function Stories() {
                         gap: '0.65rem'
                       }}>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <input 
+                          <input
                             type="url"
                             className="input-field"
                             placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
@@ -2167,7 +2168,7 @@ export default function Stories() {
                             style={{ flexGrow: 1, fontSize: '0.85rem' }}
                           />
                           {resumeLinkUrl && isValidUrl(resumeLinkUrl) && (
-                            <a 
+                            <a
                               href={resumeLinkUrl}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -2233,7 +2234,7 @@ export default function Stories() {
 
                     {materialMode === 'upload' ? (
                       <>
-                        <div 
+                        <div
                           style={{
                             border: materialInput.fileName ? '2px solid var(--border-dropzone, #000000)' : '2px dashed var(--border-dropzone, #000000)',
                             borderRadius: '16px',
@@ -2246,10 +2247,10 @@ export default function Stories() {
                           }}
                           onClick={() => document.getElementById('studyMaterialFileInput')?.click()}
                         >
-                          <input 
+                          <input
                             id="studyMaterialFileInput"
-                            type="file" 
-                            onChange={handleFileChange} 
+                            type="file"
+                            onChange={handleFileChange}
                             style={{ display: 'none' }}
                             accept=".pdf,image/png,image/jpeg,image/jpg"
                           />
@@ -2280,14 +2281,14 @@ export default function Stories() {
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 140px auto', gap: '0.6rem', alignItems: 'center' }}>
-                          <input 
-                            type="text" 
-                            className="input-field" 
+                          <input
+                            type="text"
+                            className="input-field"
                             placeholder="Material Title (e.g. Cheat Sheet, Handwritten Notes)"
                             value={materialInput.title}
                             onChange={(e) => setMaterialInput({ ...materialInput, title: e.target.value })}
                           />
-                          <select 
+                          <select
                             className="input-field"
                             value={materialInput.type}
                             onChange={(e) => setMaterialInput({ ...materialInput, type: e.target.value })}
@@ -2297,7 +2298,7 @@ export default function Stories() {
                             <option value="Roadmap">Roadmap</option>
                             <option value="Notes">Notes</option>
                           </select>
-                          <select 
+                          <select
                             className="input-field"
                             value={materialInput.category || 'DSA Preparation'}
                             onChange={(e) => setMaterialInput({ ...materialInput, category: e.target.value })}
@@ -2310,9 +2311,9 @@ export default function Stories() {
                             <option value="Subject Notes">Subject Notes</option>
                             <option value="Interview Preparation PDFs">Interview PDFs</option>
                           </select>
-                          <button 
-                            type="button" 
-                            onClick={handleAddMaterial} 
+                          <button
+                            type="button"
+                            onClick={handleAddMaterial}
                             style={{
                               width: '42px',
                               height: '42px',
@@ -2343,14 +2344,14 @@ export default function Stories() {
                         gap: '0.65rem'
                       }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: '0.6rem' }}>
-                          <input 
-                            type="text" 
-                            className="input-field" 
+                          <input
+                            type="text"
+                            className="input-field"
                             placeholder="Material Title (e.g. System Design Primer, SQL 50)"
                             value={materialLinkTitle}
                             onChange={(e) => setMaterialLinkTitle(e.target.value)}
                           />
-                          <select 
+                          <select
                             className="input-field"
                             value={materialLinkCategory}
                             onChange={(e) => setMaterialLinkCategory(e.target.value)}
@@ -2366,7 +2367,7 @@ export default function Stories() {
                         </div>
 
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <input 
+                          <input
                             type="url"
                             className="input-field"
                             placeholder="Google Drive link or resource URL (https://...)"
@@ -2378,7 +2379,7 @@ export default function Stories() {
                             style={{ flexGrow: 1 }}
                           />
                           {materialLinkUrl && isValidUrl(materialLinkUrl) && (
-                            <a 
+                            <a
                               href={materialLinkUrl}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -2389,8 +2390,8 @@ export default function Stories() {
                               <span>Test Link ↗</span>
                             </a>
                           )}
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => {
                               if (!materialLinkTitle.trim()) {
                                 setMaterialLinkError('Please enter a title for the material');
@@ -2444,15 +2445,15 @@ export default function Stories() {
                     )}
 
                     {formData.studyMaterials.length > 0 && (
-                      <div style={{ 
-                        marginTop: '0.75rem', 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
-                        gap: '0.65rem' 
+                      <div style={{
+                        marginTop: '0.75rem',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                        gap: '0.65rem'
                       }}>
                         {formData.studyMaterials.map((mat, index) => (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             style={{
                               border: '1px solid var(--border-color)',
                               borderRadius: '12px',
@@ -2515,9 +2516,9 @@ export default function Stories() {
                   paddingTop: '1.25rem',
                   borderTop: '1px solid var(--border-color)'
                 }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsModalOpen(false)} 
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
                     className="btn btn-secondary"
                     style={{
                       padding: '0.75rem 1.85rem',
@@ -2529,10 +2530,10 @@ export default function Stories() {
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={submitting}
-                    style={{ 
+                    style={{
                       padding: '0.75rem 2.25rem',
                       borderRadius: '999px',
                       fontSize: '0.94rem',

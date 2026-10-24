@@ -1120,36 +1120,40 @@ export default function StoryDetail() {
       </div>
 
       <SEOHead 
-        title={`${story.name} — ${story.company} ${story.role || 'Placement'} Interview Experience | LOOP SPIT`}
-        description={`Read ${story.name}'s verified interview debrief for ${story.company} (${story.role || 'Engineering'}). Covers interview rounds, DSA prep, college journey at SPIT, and placement advice.`}
+        title={`${story.company} ${story.role ? story.role + ' ' : ''}Placement Experience | LOOP SPIT`}
+        description={`Read authentic placement interview debrief for ${story.company} (${story.role || 'Engineering'}). Covers interview rounds, technical preparation, and placement guidance at SPIT.`}
         canonicalUrl={`/stories/${id}`}
         ogType="article"
-        keywords={`${story.company} interview experience, ${story.role || 'Software Engineer'} placement, SPIT placement story, ${story.name}, coding rounds, technical interview preparation`}
+        keywords={`${story.company} interview experience, ${story.role || 'Software Engineer'} placement, SPIT placement story, technical interview preparation, coding rounds`}
         breadcrumbs={[
           { name: 'Home', url: '/' },
           { name: 'Placement Stories', url: '/stories' },
-          { name: `${story.company} — ${story.name}`, url: `/stories/${id}` }
+          { name: `${story.company} (${story.role || 'Debrief'})`, url: `/stories/${id}` }
         ]}
         structuredData={{
           '@context': 'https://schema.org',
           '@type': 'Article',
-          headline: `${story.name} — ${story.company} ${story.role || 'Placement'} Interview Experience`,
+          headline: `${story.company} — ${story.role || 'Placement'} Placement Experience`,
           description: `Detailed placement interview debrief, technical preparation strategy, and college journey at Sardar Patel Institute of Technology (SPIT).`,
+          image: 'https://loop-seven-delta.vercel.app/og-image.png',
           author: {
-            '@type': 'Person',
-            name: story.name,
-            affiliation: {
-              '@type': 'EducationalOrganization',
-              name: 'Sardar Patel Institute of Technology'
-            }
+            '@type': 'Organization',
+            name: 'LOOP Student Contributor'
           },
           publisher: {
             '@type': 'Organization',
-            name: 'LOOP — SPIT Mumbai',
+            name: 'LOOP — Limitless Opportunities, One Platform',
+            url: 'https://loop-seven-delta.vercel.app/',
             logo: {
               '@type': 'ImageObject',
               url: 'https://loop-seven-delta.vercel.app/loop-logo.png'
             }
+          },
+          about: {
+            '@type': 'EducationalOrganization',
+            name: 'Sardar Patel Institute of Technology',
+            alternateName: 'SPIT Mumbai',
+            url: 'https://www.spit.ac.in/'
           },
           datePublished: story.createdAt || '2025-01-01',
           dateModified: story.updatedAt || story.createdAt || '2025-01-01',
@@ -1167,7 +1171,7 @@ export default function StoryDetail() {
           <span>/</span>
           <Link to="/stories" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Stories</Link>
           <span>/</span>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{story.company} — {story.name}</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{story.company} — {story.role || 'Debrief'}</span>
         </nav>
 
         {/* Public Visitor Informational Banner */}
@@ -1298,22 +1302,22 @@ export default function StoryDetail() {
             </div>
             
             <h1 style={{
-              fontSize: '3rem',
+              fontSize: '2.5rem',
               fontWeight: 800,
               letterSpacing: '-0.02em',
               marginBottom: '0.75rem',
               fontFamily: 'var(--font-display)',
-              lineHeight: 1.1
+              lineHeight: 1.15
             }}>
-              {story.name}
+              {story.company} — {story.role || 'Placement Experience'}
             </h1>
 
             <p style={{
-              fontSize: '1.25rem',
+              fontSize: '1.15rem',
               color: 'var(--text-secondary)',
               fontWeight: 500
             }}>
-              {story.role} at <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{story.company}</span>
+              Shared by <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{currentUser ? story.name : 'SPIT Student Contributor'}</span> ({formatDisplayBranch(story)}, Class of {story.passoutYear})
             </p>
           </div>
         </div>

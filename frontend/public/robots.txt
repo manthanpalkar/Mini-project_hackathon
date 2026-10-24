@@ -1,10 +1,10 @@
-# robots.txt for LOOP - Limitless Opportunities, One Platform
+# robots.txt for LOOP — Limitless Opportunities, One Platform
 # Their Journey. Your Opportunity.
-# Production Domain: https://loop-seven-delta.vercel.app
+# Official Domain: https://loop-seven-delta.vercel.app
 
+# Search Engine Crawlers (Googlebot, Bingbot, DuckDuckBot, etc.)
 User-agent: *
 Allow: /
-Allow: /home
 Allow: /stories
 Allow: /stories/*
 Allow: /resources
@@ -12,8 +12,10 @@ Allow: /achievements
 Allow: /achievements/*
 Allow: /privacy-policy
 Allow: /terms
+Allow: /llms.txt
+Allow: /llms-full.txt
 
-# Disallow authenticated, administrative, preview, and private staging routes
+# Disallow authenticated, administrative, preview, and private routes
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /onboarding
@@ -23,5 +25,20 @@ Disallow: /api/
 Disallow: /uploads/resume-
 Disallow: /uploads/material-
 
-# Reference to the XML Sitemap
+# AI Search Engine Crawlers (ChatGPT Search, Perplexity, Claude Search)
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Reference to XML Sitemap
 Sitemap: https://loop-seven-delta.vercel.app/sitemap.xml

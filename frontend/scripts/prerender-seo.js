@@ -16,12 +16,13 @@ if (!fs.existsSync(DIST_DIR)) {
 const templatePath = path.join(DIST_DIR, 'index.html');
 const templateHtml = fs.readFileSync(templatePath, 'utf8');
 
-// Privacy sanitizer: strictly removes personal email addresses and telephone numbers
+// Privacy sanitizer: strictly removes personal email addresses, phone numbers, and profile URLs
 function sanitizePublicText(text) {
   if (!text) return '';
   return String(text)
     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[contact redacted]')
     .replace(/\b(?:\+?91[\-\s]?)?[6-9]\d{9}\b/g, '[phone redacted]')
+    .replace(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?/gi, '[profile redacted]')
     .replace(/[\r\n]+/g, ' ')
     .trim();
 }
@@ -48,7 +49,33 @@ const CORE_PAGES = [
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'LOOP — Limitless Opportunities, One Platform',
-      url: `${BASE_URL}/`
+      alternateName: 'LOOP SPIT',
+      url: `${BASE_URL}/`,
+      description: 'Student-led placement intelligence and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai.',
+      publisher: {
+        '@type': 'Organization',
+        name: 'LOOP — Limitless Opportunities, One Platform',
+        url: `${BASE_URL}/`,
+        logo: {
+          '@type': 'ImageObject',
+          url: `${BASE_URL}/loop-logo.png`
+        }
+      },
+      about: {
+        '@type': 'EducationalOrganization',
+        name: 'Sardar Patel Institute of Technology',
+        alternateName: 'SPIT Mumbai',
+        url: 'https://www.spit.ac.in/',
+        sameAs: [
+          'https://www.spit.ac.in/',
+          'https://en.wikipedia.org/wiki/Sardar_Patel_Institute_of_Technology'
+        ]
+      },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${BASE_URL}/stories?q={search_term_string}`,
+        'query-input': 'required name=search_term_string'
+      }
     },
     priority: '1.0',
     changefreq: 'daily'
@@ -63,13 +90,23 @@ const CORE_PAGES = [
       'Each debrief offers a structured breakdown of the hiring pipeline, starting from initial online coding assessments, aptitude screenings, and problem statements to live technical interviews, managerial evaluations, and leadership principle behavioral rounds. Students share specific algorithmic topics, dynamic programming patterns, object-oriented design principles, and resume strategies that secured competitive internship and full-time offers.',
       'Filter placement debriefs by engineering discipline, graduating passout batch, recruiting company, or compensation package to discover targeted advice and prepare strategically for upcoming recruitment cycles.'
     ],
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
-      name: 'Engineering Placement Stories & Interview Experiences',
-      description: 'Verified student placement debriefs, technical interview rounds, and preparation strategies at SPIT Mumbai.',
-      url: `${BASE_URL}/stories`
-    },
+    schema: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'Engineering Placement Stories & Interview Experiences',
+        description: 'Verified student placement debriefs, technical interview rounds, and preparation strategies at SPIT Mumbai.',
+        url: `${BASE_URL}/stories`
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 2, name: 'Placement Stories', item: `${BASE_URL}/stories` }
+        ]
+      }
+    ],
     priority: '0.9',
     changefreq: 'daily'
   },
@@ -83,12 +120,22 @@ const CORE_PAGES = [
       'Organized in logical department and subject hierarchies, resources cover critical foundation topics such as Data Structures and Algorithms, Database Management Systems, Computer Networks, Operating Systems, Theory of Computation, and Machine Learning. All files are securely archived in high-speed MongoDB Atlas GridFS storage, providing rapid parallel streaming and seamless in-browser previewing.',
       'Whether you are preparing for semester midterms, end-semester university examinations, or corporate coding assessments, explore senior-vetted study notes and contribute your own academic materials to empower the campus community.'
     ],
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
-      name: 'SPIT Academic Resources & Placement Preparation Materials',
-      url: `${BASE_URL}/resources`
-    },
+    schema: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'SPIT Academic Resources & Placement Preparation Materials',
+        url: `${BASE_URL}/resources`
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 2, name: 'Resources', item: `${BASE_URL}/resources` }
+        ]
+      }
+    ],
     priority: '0.8',
     changefreq: 'weekly'
   },
@@ -102,12 +149,22 @@ const CORE_PAGES = [
       'From securing top podium finishes at Smart India Hackathon and global open-source fellowships to publishing peer-reviewed papers in IEEE conferences, our students continually raise the bar of technological innovation and academic excellence. LOOP showcases these milestones to celebrate peer success and inspire junior batches to pursue ambitious engineering goals.',
       'Stay informed on high-package placement breakthroughs, prestigious off-campus offers, and outstanding extracurricular milestones that define the vibrant intellectual spirit of our campus community.'
     ],
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
-      name: 'SPIT Student Achievements & Accolades',
-      url: `${BASE_URL}/achievements`
-    },
+    schema: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'SPIT Student Achievements & Accolades',
+        url: `${BASE_URL}/achievements`
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 2, name: 'Achievements', item: `${BASE_URL}/achievements` }
+        ]
+      }
+    ],
     priority: '0.7',
     changefreq: 'weekly'
   },
@@ -223,8 +280,8 @@ for (const s of selectedStories) {
   const cleanPassoutYear = (s.passoutYear || '').replace(/\s+/g, ' ').trim();
 
   const roleDisplay = cleanRole ? `${cleanCompany} — ${cleanRole}` : cleanCompany;
-  const cohortDisplay = cleanBranch && cleanPassoutYear 
-    ? ` (${cleanBranch}, Class of ${cleanPassoutYear})` 
+  const cohortDisplay = cleanBranch && cleanPassoutYear
+    ? ` (${cleanBranch}, Class of ${cleanPassoutYear})`
     : (cleanBranch ? ` (${cleanBranch})` : '');
 
   const prepRaw = s.prep || s.journey?.prep || '';
@@ -242,19 +299,49 @@ for (const s of selectedStories) {
       `Selection Process & Interview Rounds: ${howSecuredExcerpt}`,
       prepExcerpt ? `Preparation Strategy & Study Routines: ${prepExcerpt}` : 'Preparation focused on Data Structures & Algorithms, core CS subjects (DBMS, OS, Networks), and structured mock interview rounds.'
     ],
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: `${cleanCompany} — ${cleanRole} Placement Experience`,
-      author: { 
-        '@type': 'Organization', 
-        name: 'LOOP Student Contributor' 
+    schema: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: `${cleanCompany} — ${cleanRole} Placement Experience`,
+        description: `Verified campus placement debrief for ${cleanRole} at ${cleanCompany}${cohortDisplay} at Sardar Patel Institute of Technology (SPIT), Mumbai.`,
+        image: `${BASE_URL}/og-image.png`,
+        author: {
+          '@type': 'Organization',
+          name: 'LOOP Student Contributor'
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'LOOP — Limitless Opportunities, One Platform',
+          url: `${BASE_URL}/`,
+          logo: {
+            '@type': 'ImageObject',
+            url: `${BASE_URL}/loop-logo.png`
+          }
+        },
+        about: {
+          '@type': 'EducationalOrganization',
+          name: 'Sardar Patel Institute of Technology',
+          alternateName: 'SPIT Mumbai',
+          url: 'https://www.spit.ac.in/'
+        },
+        datePublished: s.createdAt || '2025-01-01',
+        dateModified: s.updatedAt || s.createdAt || '2025-01-01',
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${BASE_URL}/stories/${s.id}`
+        }
       },
-      publisher: { 
-        '@type': 'Organization', 
-        name: 'LOOP — Limitless Opportunities, One Platform' 
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 2, name: 'Placement Stories', item: `${BASE_URL}/stories` },
+          { '@type': 'ListItem', position: 3, name: `${cleanCompany} Placement Experience`, item: `${BASE_URL}/stories/${s.id}` }
+        ]
       }
-    },
+    ],
     priority: '0.6',
     changefreq: 'monthly'
   });
@@ -305,8 +392,9 @@ function prerenderPage(page) {
 
   // 5. Inject Structured Data JSON-LD
   if (page.schema) {
-    const jsonLd = `    <script type="application/ld+json">\n${JSON.stringify(page.schema, null, 2)}\n    </script>\n`;
-    html = html.replace('</head>', `${jsonLd}  </head>`);
+    const schemaArray = Array.isArray(page.schema) ? page.schema : [page.schema];
+    const jsonLd = schemaArray.map(s => `    <script type="application/ld+json">\n${JSON.stringify(s, null, 2)}\n    </script>`).join('\n');
+    html = html.replace('</head>', `${jsonLd}\n  </head>`);
   }
 
   // 6. Pre-render clean semantic content inside #root

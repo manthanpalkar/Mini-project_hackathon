@@ -29,8 +29,8 @@ export default function Onboarding() {
     try {
       sessionStorage.removeItem('loop_redirect_after_login');
     } catch (e) {}
-    if (!target || target === '/login' || target === '/onboarding' || target === '/') {
-      return '/home';
+    if (!target || target === '/login' || target === '/onboarding' || target === '/home') {
+      return '/';
     }
     return target;
   };

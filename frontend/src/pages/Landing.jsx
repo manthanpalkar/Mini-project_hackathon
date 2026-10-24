@@ -24,7 +24,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
 
   return (
     <>
-      <div 
+      <div
         onClick={() => setIsOpen(true)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -45,20 +45,20 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
           boxShadow: isHovered ? '0 12px 24px rgba(0, 0, 0, 0.15)' : 'none',
         }}
       >
-        <img 
-          src={src} 
-          alt={alt} 
+        <img
+          src={src}
+          alt={alt}
           loading="lazy"
           decoding="async"
-          style={{ 
-            width: '100%', 
-            height: '100%', 
+          style={{
+            width: '100%',
+            height: '100%',
             objectFit: objectFit,
             transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
             transform: isHovered ? 'scale(1.05)' : 'scale(1)',
           }}
         />
-        
+
         <div style={{
           position: 'absolute',
           bottom: '16px',
@@ -86,7 +86,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
       </div>
 
       {isOpen && (
-        <div 
+        <div
           onClick={() => setIsOpen(false)}
           style={{
             position: 'fixed',
@@ -105,7 +105,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
             cursor: 'zoom-out'
           }}
         >
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
             style={{
               position: 'absolute',
@@ -139,7 +139,7 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
             ✕
           </button>
 
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'relative',
@@ -151,9 +151,9 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
               animation: 'zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
             }}
           >
-            <img 
-              src={src} 
-              alt={alt} 
+            <img
+              src={src}
+              alt={alt}
               style={{
                 maxWidth: '100%',
                 maxHeight: '80vh',
@@ -227,39 +227,46 @@ export default function Landing() {
 
   return (
     <div className="animate-fade-in" style={{ backgroundColor: 'var(--bg-primary)', overflowX: 'hidden' }}>
-      <SEOHead 
+      <SEOHead
         title={`${BRAND.fullName} | ${BRAND.collegeShort}`}
         description={`${BRAND.tagline} ${BRAND.shortDescription}`}
         canonicalUrl="/"
         ogType="website"
         keywords="LOOP, Limitless Opportunities One Platform, SPIT, Sardar Patel Institute of Technology, Placements, Interview Experiences, CTC Packages, Engineering Placements, SPIT Mumbai, DSA Prep"
-        structuredData={[
-          {
-            '@context': 'https://schema.org',
-            '@type': 'WebSite',
-            name: `${BRAND.fullName} — ${BRAND.college}`,
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: BRAND.fullName,
+          alternateName: `${BRAND.name} ${BRAND.collegeShort}`,
+          url: 'https://loop-seven-delta.vercel.app/',
+          description: BRAND.shortDescription,
+          publisher: {
+            '@type': 'Organization',
+            name: BRAND.fullName,
             url: 'https://loop-seven-delta.vercel.app/',
-            potentialAction: {
-              '@type': 'SearchAction',
-              target: 'https://loop-seven-delta.vercel.app/stories?q={search_term_string}',
-              'query-input': 'required name=search_term_string'
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://loop-seven-delta.vercel.app/loop-logo.png'
             }
           },
-          {
-            '@context': 'https://schema.org',
+          about: {
             '@type': 'EducationalOrganization',
             name: 'Sardar Patel Institute of Technology',
             alternateName: 'SPIT Mumbai',
             url: 'https://www.spit.ac.in/',
-            logo: 'https://loop-seven-delta.vercel.app/loop-logo.png',
             sameAs: [
               'https://www.spit.ac.in/',
               'https://en.wikipedia.org/wiki/Sardar_Patel_Institute_of_Technology'
             ]
+          },
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: 'https://loop-seven-delta.vercel.app/stories?q={search_term_string}',
+            'query-input': 'required name=search_term_string'
           }
-        ]}
+        }}
       />
-      
+
       {/* SECTION 1: HERO BANNER (Full-bleed high-contrast banner) */}
       <section style={{
         minHeight: '85vh',
@@ -326,25 +333,46 @@ export default function Landing() {
             {BRAND.description}
           </p>
 
-          <button 
-            onClick={() => navigate('/stories')}
-            className="btn btn-primary"
-            style={{ 
-              padding: '1rem 2.2rem', 
-              fontSize: '1rem',
-              backgroundColor: '#ffffff',
-              color: '#000000',
-              border: 'none',
-              borderRadius: '30px',
-              fontWeight: 600
-            }}
-          >
-            Browse Stories
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/stories')}
+              className="btn btn-primary"
+              style={{
+                padding: '1rem 2.2rem',
+                fontSize: '1rem',
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                border: 'none',
+                borderRadius: '30px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Browse Stories
+            </button>
+            <button
+              onClick={() => navigate('/resources')}
+              className="btn"
+              style={{
+                padding: '1rem 2.2rem',
+                fontSize: '1rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.35)',
+                borderRadius: '30px',
+                fontWeight: 600,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                cursor: 'pointer'
+              }}
+            >
+              Explore Resources
+            </button>
+          </div>
         </div>
 
         {/* Scroll Indicator */}
-        <button 
+        <button
           onClick={scrollToPhilosophy}
           style={{
             position: 'absolute',
@@ -391,9 +419,9 @@ export default function Landing() {
           alignItems: 'center'
         }}>
           {/* Loop Labs Image (Left) */}
-          <LightboxImage 
-            src={labImage} 
-            alt="Students collaborating at SPIT" 
+          <LightboxImage
+            src={labImage}
+            alt="Students collaborating at SPIT"
             title="We study what works"
             height="520px"
             borderRadius="24px"
@@ -432,7 +460,7 @@ export default function Landing() {
             }}>
               Bypass the disorganized WhatsApp groups. Get instant access to the complete stack—from raw lecture notes, class PPTs, and standard textbooks to clear your semester exams, to the exact placement materials you need to secure a Dream Offer.
             </p>
-            
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -451,7 +479,7 @@ export default function Landing() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => navigate('/resources')}
               className="btn btn-secondary"
               style={{ padding: '0.75rem 1.6rem', borderRadius: '30px' }}
@@ -514,9 +542,9 @@ export default function Landing() {
                 </div>
               </div>
             </div>
-            <LightboxImage 
-              src="/images/tpo-team-placement.jpg" 
-              alt="SPIT TPO Team & Coordinators" 
+            <LightboxImage
+              src="/images/tpo-team-placement.jpg"
+              alt="SPIT TPO Team & Coordinators"
               title="SPIT Training & Placement Team"
               height="340px"
               borderRadius="20px"
@@ -569,9 +597,9 @@ export default function Landing() {
             backgroundColor: '#ffffff'
           }}>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-              <img 
-                src="/images/chart-placement-percentage.png" 
-                alt="Placement Statistics — Placement Percentage" 
+              <img
+                src="/images/chart-placement-percentage.png"
+                alt="Placement Statistics — Placement Percentage"
                 loading="lazy"
                 decoding="async"
                 style={{
@@ -585,9 +613,9 @@ export default function Landing() {
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-              <img 
-                src="/images/chart-average-ctc.png" 
-                alt="Placement Statistics — Average & Median CTCs" 
+              <img
+                src="/images/chart-average-ctc.png"
+                alt="Placement Statistics — Average & Median CTCs"
                 loading="lazy"
                 decoding="async"
                 style={{
@@ -626,9 +654,9 @@ export default function Landing() {
               width: '100%',
               backgroundColor: '#ffffff'
             }}>
-              <img 
-                src="/images/recruiters-partners.png" 
-                alt="Our Recruiters and Partners" 
+              <img
+                src="/images/recruiters-partners.png"
+                alt="Our Recruiters and Partners"
                 style={{
                   maxWidth: '100%',
                   height: 'auto',
@@ -638,17 +666,152 @@ export default function Landing() {
               />
             </div>
           </div>
+
+          {/* Featured Placement Experiences Grid (SEO & High-Intent CRO) */}
+          <div style={{
+            marginTop: '4.5rem',
+            borderTop: '1px solid var(--border-color)',
+            paddingTop: '3.5rem',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+              <div>
+                <span style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: '#8A2BE2',
+                  display: 'block',
+                  marginBottom: '0.5rem'
+                }}>
+                  Authentic Senior Journeys
+                </span>
+                <h3 style={{
+                  fontSize: '1.75rem',
+                  fontFamily: 'var(--font-serif)',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  margin: 0
+                }}>
+                  Featured Placement Debriefs
+                </h3>
+              </div>
+              <button
+                onClick={() => navigate('/stories')}
+                className="btn btn-secondary"
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '20px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600
+                }}
+              >
+                View All Debriefs →
+              </button>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '1.5rem',
+              width: '100%'
+            }}>
+              {[
+                { id: 'story_2026_21664150', company: 'Barclays', role: 'Summer Intern 2025', branch: 'CSE-DS', year: '2026' },
+                { id: 'story_2026_35118136', company: 'J.P. Morgan', role: 'CIB Research & Analytics', branch: 'CSE-AIML', year: '2026' },
+                { id: 'story_2026_28159237', company: 'ISS STOXX', role: 'SDE 1', branch: 'CE', year: '2026' },
+                { id: 'story_2026_68003868', company: 'UBS', role: 'GOTO Intern', branch: 'CE', year: '2026' },
+                { id: 'story_2026_5760309', company: 'Mastercard', role: 'Software Engineer I', branch: 'CSE-DS', year: '2026' },
+                { id: 'story_2026_78234768', company: 'PhonePe', role: 'SDE', branch: 'CE', year: '2026' }
+              ].map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => navigate(`/stories/${item.id}`)}
+                  style={{
+                    padding: '1.4rem',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-surface)',
+                    cursor: 'pointer',
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: 'var(--card-shadow)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.borderColor = '#8A2BE2';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{
+                      backgroundColor: 'rgba(138, 43, 226, 0.12)',
+                      color: '#8A2BE2',
+                      padding: '0.2rem 0.65rem',
+                      borderRadius: '10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase'
+                    }}>
+                      {item.company}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Class of {item.year}
+                    </span>
+                  </div>
+                  <h4 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.4rem',
+                    fontFamily: 'var(--font-sans)'
+                  }}>
+                    {item.role}
+                  </h4>
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: 'var(--text-secondary)',
+                    margin: '0 0 1rem 0'
+                  }}>
+                    Department of {item.branch} • SPIT Mumbai
+                  </p>
+                  <a
+                    href={`/stories/${item.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(`/stories/${item.id}`);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    Read Interview Debrief →
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* SECTION 2: ACHIEVEMENTS (Full-bleed bg image + right text + right-to-left gradient overlay) */}
-      <section 
+      <section
         id="achievements-section"
         className="achievements-section-bg"
       >
         <div className="achievements-bg-image" />
         <div className="achievements-overlay" />
-        
+
         {/* Top Fade Overlay to blend white background of the section above */}
         <div style={{
           position: 'absolute',
@@ -660,7 +823,7 @@ export default function Landing() {
           zIndex: 2,
           pointerEvents: 'none'
         }} />
-        
+
         {/* Bottom Fade Overlay to blend white background of the section below */}
         <div style={{
           position: 'absolute',
@@ -716,14 +879,14 @@ export default function Landing() {
             }}>
               We don't just participate; we dominate. Explore the ultimate track record of student achievements at SPIT. View the exact milestones set by the top 1% of the campus—and learn what it takes to leave your own mark.
             </p>
-            
+
             <div>
-              <button 
+              <button
                 onClick={() => navigate('/achievements')}
                 className="btn"
-                style={{ 
-                  padding: '0.85rem 2rem', 
-                  borderRadius: '30px', 
+                style={{
+                  padding: '0.85rem 2rem',
+                  borderRadius: '30px',
                   fontWeight: 600,
                   backgroundColor: '#ffffff',
                   color: '#000000',
@@ -778,12 +941,12 @@ export default function Landing() {
             }}>
               Contribute to a continuous cycle of knowledge sharing. LOOP connects college juniors, seniors, and alumni: today's juniors become tomorrow's seniors, who then guide the next generation. We welcome seniors and alumni to document their placement journeys, interview rounds, and study resources.
             </p>
-            
-            <button 
+
+            <button
               onClick={handleShareJourney}
               className="btn btn-secondary"
-              style={{ 
-                padding: '0.9rem 2rem', 
+              style={{
+                padding: '0.9rem 2rem',
                 borderRadius: '30px',
                 fontWeight: 600,
                 backgroundColor: 'var(--text-primary)',
@@ -805,9 +968,9 @@ export default function Landing() {
             alignItems: 'center'
           }} className="photo-stack-container">
             {/* Card 1: Leftmost */}
-            <div 
+            <div
               onClick={() => setActivePhoto({ src: '/images/file-1.jpg', alt: 'Students studying', title: "Let's build together" })}
-              className="stack-photo" 
+              className="stack-photo"
               style={{
                 position: 'absolute',
                 left: '5%',
@@ -822,9 +985,9 @@ export default function Landing() {
                 cursor: 'zoom-in'
               }}
             >
-              <img 
-                src="/images/file-1.jpg" 
-                alt="Students studying" 
+              <img
+                src="/images/file-1.jpg"
+                alt="Students studying"
                 loading="lazy"
                 decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -832,9 +995,9 @@ export default function Landing() {
             </div>
 
             {/* Card 2: Center */}
-            <div 
+            <div
               onClick={() => setActivePhoto({ src: '/images/file-2.jpg', alt: 'Working at a table', title: "Let's build together" })}
-              className="stack-photo" 
+              className="stack-photo"
               style={{
                 position: 'absolute',
                 width: '200px',
@@ -848,9 +1011,9 @@ export default function Landing() {
                 cursor: 'zoom-in'
               }}
             >
-              <img 
-                src="/images/file-2.jpg" 
-                alt="Working at a table" 
+              <img
+                src="/images/file-2.jpg"
+                alt="Working at a table"
                 loading="lazy"
                 decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -858,9 +1021,9 @@ export default function Landing() {
             </div>
 
             {/* Card 3: Rightmost */}
-            <div 
+            <div
               onClick={() => setActivePhoto({ src: '/images/file-3.jpg', alt: 'Student presenting code', title: "Let's build together" })}
-              className="stack-photo" 
+              className="stack-photo"
               style={{
                 position: 'absolute',
                 right: '5%',
@@ -875,9 +1038,9 @@ export default function Landing() {
                 cursor: 'zoom-in'
               }}
             >
-              <img 
-                src="/images/file-3.jpg" 
-                alt="Student presenting code" 
+              <img
+                src="/images/file-3.jpg"
+                alt="Student presenting code"
                 loading="lazy"
                 decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -1006,7 +1169,7 @@ export default function Landing() {
 
       {/* Lightbox for stack photos */}
       {activePhoto && (
-        <div 
+        <div
           onClick={() => setActivePhoto(null)}
           style={{
             position: 'fixed',
@@ -1025,7 +1188,7 @@ export default function Landing() {
             cursor: 'zoom-out'
           }}
         >
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); setActivePhoto(null); }}
             style={{
               position: 'absolute',
@@ -1059,7 +1222,7 @@ export default function Landing() {
             ✕
           </button>
 
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'relative',
@@ -1071,9 +1234,9 @@ export default function Landing() {
               animation: 'zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
             }}
           >
-            <img 
-              src={activePhoto.src} 
-              alt={activePhoto.alt} 
+            <img
+              src={activePhoto.src}
+              alt={activePhoto.alt}
               style={{
                 maxWidth: '100%',
                 maxHeight: '80vh',
