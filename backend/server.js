@@ -1283,6 +1283,7 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
     const initialPassword = (password && typeof password === 'string' && password.trim()) ? password.trim() : 'spit123';
     const hashedPassword = await bcrypt.hash(initialPassword, 10);
 
+    const isProfileFilled = Boolean(name && branch && currentYear);
     const userData = {
       email: cleanEmail,
       role: sanitizeString(role.trim()),
@@ -1291,6 +1292,7 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
       branch: branch ? sanitizeString(branch.trim()) : '',
       currentYear: currentYear ? sanitizeString(String(currentYear).trim()) : '',
       status: status || 'Active',
+      onboarded: isProfileFilled || cleanEmail === 'admin@spit.ac.in'
     };
 
     const user = await User.create(userData);

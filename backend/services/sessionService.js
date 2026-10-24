@@ -71,6 +71,7 @@ async function createSession({ email, userAgent = '', ipAddress = '127.0.0.1', d
   activeSessionsCache.set(sessionId, { 
     email: email.toLowerCase().trim(), 
     refreshTokenHash,
+    activeRefreshToken: refreshToken,
     expiresAt 
   });
   trimCache(activeSessionsCache);
@@ -133,25 +134,40 @@ async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddre
     const incomingHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     const incomingBuf = Buffer.from(incomingHash);
 
-    let isMatch = false;
+    let isCurrentMatch = false;
+    let isGraceMatch = false;
+
     if (session.refreshTokenHash) {
       const currentBuf = Buffer.from(session.refreshTokenHash);
       if (incomingBuf.length === currentBuf.length && crypto.timingSafeEqual(incomingBuf, currentBuf)) {
-        isMatch = true;
+        isCurrentMatch = true;
       }
     }
 
     // Check 60-second grace window for concurrent requests that used previous token during rotation
-    if (!isMatch && session.previousRefreshTokenHash && session.previousTokenExpiresAt) {
+    if (!isCurrentMatch && session.previousRefreshTokenHash && session.previousTokenExpiresAt) {
       const prevBuf = Buffer.from(session.previousRefreshTokenHash);
       const isGraceWindow = Date.now() < new Date(session.previousTokenExpiresAt).getTime();
       if (isGraceWindow && incomingBuf.length === prevBuf.length && crypto.timingSafeEqual(incomingBuf, prevBuf)) {
-        isMatch = true;
+        isGraceMatch = true;
       }
     }
 
-    if (!isMatch) {
+    if (!isCurrentMatch && !isGraceMatch) {
       return { success: false, code: 'INVALID_REFRESH_TOKEN', error: 'Invalid refresh token.' };
+    }
+
+    // Idempotent grace window: If a concurrent request arrives with previous token within 60s
+    // and we have the active rotated token cached in memory, return it directly without re-rotating
+    const cached = activeSessionsCache.get(sessionId);
+    if (isGraceMatch && cached && cached.activeRefreshToken) {
+      return {
+        success: true,
+        email: session.email,
+        sessionId: session.sessionId,
+        refreshToken: cached.activeRefreshToken,
+        expiresAt: session.expiresAt
+      };
     }
 
     // Generate new rotated refresh token and extend session for 30 more days
@@ -159,8 +175,12 @@ async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddre
     const newHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
     const newExpiresAt = new Date(Date.now() + DEFAULT_SESSION_DURATION_HOURS * 3600 * 1000);
 
-    session.previousRefreshTokenHash = session.refreshTokenHash;
-    session.previousTokenExpiresAt = new Date(Date.now() + 60 * 1000); // 60s grace window
+    if (isCurrentMatch) {
+      session.previousRefreshTokenHash = session.refreshTokenHash;
+      session.previousTokenExpiresAt = new Date(Date.now() + 60 * 1000); // 60s grace window
+    }
+    // If matching on grace, keep existing previousRefreshTokenHash so subsequent sibling requests continue to match!
+
     session.refreshTokenHash = newHash;
     session.expiresAt = newExpiresAt;
     session.lastActive = new Date();
@@ -176,6 +196,7 @@ async function refreshSession({ sessionId, refreshToken, userAgent = '', ipAddre
     activeSessionsCache.set(sessionId, {
       email: session.email,
       refreshTokenHash: newHash,
+      activeRefreshToken: newRefreshToken,
       expiresAt: newExpiresAt
     });
     trimCache(activeSessionsCache);

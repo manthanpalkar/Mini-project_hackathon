@@ -300,10 +300,10 @@ export default function Login() {
   const handleLoginSuccess = (userData) => {
     // Zero cross-account leakage: strictly wipe prior session & memory caches on account switch
     clearAllCaches();
+    localStorage.setItem('loop_current_user', JSON.stringify(userData));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('loop_login_success', { detail: userData }));
     }
-    localStorage.setItem('loop_current_user', JSON.stringify(userData));
     setTimeout(() => {
       const targetUrl = getRedirectUrl();
       if (userData.onboarded || userData.isAdmin) {

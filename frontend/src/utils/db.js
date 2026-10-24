@@ -109,14 +109,17 @@ export const refreshAuthSession = async () => {
         if (data.sessionId) {
           latestUser.sessionId = data.sessionId;
         }
+        if (data.onboarded !== undefined) {
+          latestUser.onboarded = data.onboarded;
+        }
         localStorage.setItem('loop_current_user', JSON.stringify(latestUser));
         window.dispatchEvent(new CustomEvent('loop_session_refreshed', { detail: latestUser }));
         return data.token;
       } else {
         const errPayload = await res.json().catch(() => null);
         const code = errPayload?.code;
-        // Only unambiguous invalidation (explicit revocation, deleted user, inactive account) terminates session
-        if (code === 'SESSION_REVOKED' || code === 'SESSION_EXPIRED' || code === 'INVALID_REFRESH_TOKEN' || code === 'USER_NOT_FOUND' || (res.status === 403 && code === 'ACCOUNT_INACTIVE')) {
+        // Only unambiguous invalidation (explicit revocation, session expiry, deleted user, inactive account) terminates session
+        if (code === 'SESSION_REVOKED' || code === 'SESSION_EXPIRED' || code === 'USER_NOT_FOUND' || (res.status === 403 && code === 'ACCOUNT_INACTIVE')) {
           notifyAuthExpired();
         }
         return null;
@@ -172,6 +175,23 @@ const authFetch = async (url, options = {}, isRetry = false) => {
   // Intercept 401 Unauthorized for proactive refresh and single retry
   const isAuthEndpoint = typeof url === 'string' && (url.includes('/auth/refresh') || url.includes('/login') || url.includes('/demo-login'));
   if (res.status === 401 && !isAuthEndpoint && !window.location.pathname.includes('/login')) {
+    // Check if another concurrent request already refreshed the token in localStorage
+    const latestRaw = localStorage.getItem('loop_current_user');
+    if (latestRaw && !isRetry) {
+      try {
+        const latestUser = JSON.parse(latestRaw);
+        const usedToken = headers['Authorization'] ? headers['Authorization'].replace('Bearer ', '') : null;
+        if (latestUser.token && latestUser.token !== usedToken) {
+          // Token was already refreshed concurrently! Retry immediately with the new token
+          const retryHeaders = {
+            ...options.headers,
+            'Authorization': `Bearer ${latestUser.token}`
+          };
+          return authFetch(url, { ...options, headers: retryHeaders }, true);
+        }
+      } catch (e) {}
+    }
+
     let errPayload = null;
     try {
       const clone = res.clone();
@@ -194,7 +214,7 @@ const authFetch = async (url, options = {}, isRetry = false) => {
     }
 
     // Explicit confirmation of revoked session or missing user
-    if (code === 'SESSION_REVOKED' || code === 'USER_NOT_FOUND' || (isRetry && code === 'TOKEN_EXPIRED')) {
+    if (code === 'SESSION_REVOKED' || code === 'SESSION_EXPIRED' || code === 'USER_NOT_FOUND') {
       notifyAuthExpired();
       throw new Error('Session expired or revoked. Please login again.');
     }

@@ -615,4 +615,346 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
     await sessionService.revokeOtherSessions(email, null);
     assert.equal(await sessionService.isSessionActive(s3.sessionId, email), false);
   });
+
+  test('16. Phase 4 Test A - Login & Stories navigation without session loss', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const mockDoc = {
+      sessionId: session.sessionId,
+      email: 'student@spit.ac.in',
+      refreshTokenHash: require('crypto').createHash('sha256').update(session.refreshToken).digest('hex'),
+      expiresAt: session.expiresAt,
+      revoked: false,
+      save: async function () {}
+    };
+    mockSessions.set(session.sessionId, mockDoc);
+
+    const token = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const storiesRes = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    assert.equal(storiesRes.status, 200, 'Stories navigation must succeed with 200');
+    assert.equal(await sessionService.isSessionActive(session.sessionId, 'student@spit.ac.in'), true);
+  });
+
+  test('17. Phase 4 Test B - Repeated navigation across Stories, Resources, and Folders', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const token = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const endpoints = ['/api/stories', '/api/resources', '/api/folders', '/api/achievements'];
+    for (let round = 0; round < 3; round++) {
+      for (const ep of endpoints) {
+        const res = await fetch(`${baseUrl}${ep}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        assert.equal(res.status, 200, `${ep} in round ${round} must return 200`);
+      }
+    }
+  });
+
+  test('18. Phase 4 Test C - Fresh browser cold start simulation', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const mockDoc = {
+      sessionId: session.sessionId,
+      email: 'student@spit.ac.in',
+      refreshTokenHash: require('crypto').createHash('sha256').update(session.refreshToken).digest('hex'),
+      expiresAt: session.expiresAt,
+      revoked: false,
+      save: async function () {}
+    };
+    mockSessions.set(session.sessionId, mockDoc);
+
+    // Simulate stored credentials in localStorage across browser restart
+    const storedCredentials = {
+      token: jwt.sign(
+        { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      ),
+      sessionId: session.sessionId,
+      refreshToken: session.refreshToken
+    };
+
+    // Cold request to /api/stories
+    const coldRes = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${storedCredentials.token}` }
+    });
+    assert.equal(coldRes.status, 200, 'Cold start request with stored credentials must succeed');
+  });
+
+  test('19. Phase 4 Test D - Profile update credential preservation', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const token = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const savedFindOne = User.findOne;
+    User.findOne = async () => ({
+      _id: new mongoose.Types.ObjectId(),
+      email: 'student@spit.ac.in',
+      role: 'Student',
+      status: 'Active',
+      name: 'Existing Name',
+      branch: 'CSE',
+      currentYear: 'TE',
+      onboarded: true,
+      save: async function () {}
+    });
+
+    try {
+      const res = await fetch(`${baseUrl}/api/users/student@spit.ac.in`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: 'Updated Student Name',
+          branch: 'CSE',
+          currentYear: 'BE'
+        })
+      });
+      assert.equal(res.status, 200);
+      assert.equal(await sessionService.isSessionActive(session.sessionId, 'student@spit.ac.in'), true);
+    } finally {
+      User.findOne = savedFindOne;
+    }
+  });
+
+  test('20. Phase 4 Test E - Expired access token renewal during Stories fetch', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const mockDoc = {
+      sessionId: session.sessionId,
+      email: 'student@spit.ac.in',
+      refreshTokenHash: require('crypto').createHash('sha256').update(session.refreshToken).digest('hex'),
+      previousRefreshTokenHash: null,
+      previousTokenExpiresAt: null,
+      expiresAt: session.expiresAt,
+      revoked: false,
+      save: async function () {
+        mockSessions.set(this.sessionId, this);
+      }
+    };
+    mockSessions.set(session.sessionId, mockDoc);
+
+    const expiredToken = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '-60s' }
+    );
+
+    // Initial fetch rejected with 401 TOKEN_EXPIRED
+    const initialRes = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${expiredToken}` }
+    });
+    assert.equal(initialRes.status, 401);
+    const initialErr = await initialRes.json();
+    assert.equal(initialErr.code, 'TOKEN_EXPIRED');
+
+    // Client invokes /api/auth/refresh
+    const refreshRes = await fetch(`${baseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: session.sessionId,
+        refreshToken: session.refreshToken
+      })
+    });
+    assert.equal(refreshRes.status, 200);
+    const refreshData = await refreshRes.json();
+    assert.ok(refreshData.token, 'Must return new valid access token');
+
+    // Retried request to /api/stories succeeds with 200
+    const retryRes = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${refreshData.token}` }
+    });
+    assert.equal(retryRes.status, 200, 'Retried request with renewed token must succeed');
+  });
+
+  test('21. Phase 4 Test F - Concurrent API requests and refresh idempotency without token invalidation', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const mockDoc = {
+      sessionId: session.sessionId,
+      email: 'student@spit.ac.in',
+      refreshTokenHash: require('crypto').createHash('sha256').update(session.refreshToken).digest('hex'),
+      previousRefreshTokenHash: null,
+      previousTokenExpiresAt: null,
+      expiresAt: session.expiresAt,
+      revoked: false,
+      save: async function () {
+        mockSessions.set(this.sessionId, this);
+      }
+    };
+    mockSessions.set(session.sessionId, mockDoc);
+
+    // Fire 5 concurrent refresh requests using the initial refresh token
+    const refreshPromises = Array.from({ length: 5 }, () =>
+      fetch(`${baseUrl}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: session.sessionId,
+          refreshToken: session.refreshToken
+        })
+      })
+    );
+
+    const responses = await Promise.all(refreshPromises);
+    for (const res of responses) {
+      assert.equal(res.status, 200, 'All concurrent refresh requests must succeed with 200');
+    }
+
+    const jsonResults = await Promise.all(responses.map(r => r.json()));
+    const firstRefreshToken = jsonResults[0].refreshToken;
+
+    // Due to the idempotent 60-second grace window, all concurrent requests receive the same active refresh token
+    for (let i = 1; i < jsonResults.length; i++) {
+      assert.equal(jsonResults[i].refreshToken, firstRefreshToken, 'All concurrent refresh callers must converge on the active refresh token');
+    }
+  });
+
+  test('22. Phase 4 Test G - Network failure / 500 error resilience (no session erasure)', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const mockDoc = {
+      sessionId: session.sessionId,
+      email: 'student@spit.ac.in',
+      refreshTokenHash: require('crypto').createHash('sha256').update(session.refreshToken).digest('hex'),
+      expiresAt: session.expiresAt,
+      revoked: false,
+      save: async function () {}
+    };
+    mockSessions.set(session.sessionId, mockDoc);
+    assert.equal(await sessionService.isSessionActive(session.sessionId, 'student@spit.ac.in'), true);
+
+    // Simulate transient database network error during refresh
+    const savedFindOne = UserSession.findOne;
+    UserSession.findOne = async () => {
+      throw new Error('Database connection timeout (simulated network failure)');
+    };
+
+    try {
+      const dbErrResult = await sessionService.refreshSession({
+        sessionId: session.sessionId,
+        refreshToken: session.refreshToken
+      });
+      assert.equal(dbErrResult.success, false);
+      assert.equal(dbErrResult.code, 'DB_ERROR');
+
+      // Crucial: A network error or 500 MUST NOT invalidate the active session
+      assert.equal(await sessionService.isSessionActive(session.sessionId, 'student@spit.ac.in'), true);
+    } finally {
+      UserSession.findOne = savedFindOne;
+    }
+  });
+
+  test('23. Phase 4 Test H - Real invalid session rejection (revoked session must cleanly reject)', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    await sessionService.revokeSession(session.sessionId, 'student@spit.ac.in');
+
+    const res = await fetch(`${baseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: session.sessionId,
+        refreshToken: session.refreshToken
+      })
+    });
+    assert.equal(res.status, 401);
+    const data = await res.json();
+    assert.equal(data.code, 'SESSION_REVOKED');
+  });
+
+  test('24. Phase 4 Test I - Explicit logout session termination', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const token = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const mockDoc = {
+      sessionId: session.sessionId,
+      email: 'student@spit.ac.in',
+      refreshTokenHash: 'someHash',
+      expiresAt: session.expiresAt,
+      revoked: false,
+      save: async function () {}
+    };
+    mockSessions.set(session.sessionId, mockDoc);
+
+    const logoutRes = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    assert.equal(logoutRes.status, 200);
+    assert.equal(await sessionService.isSessionActive(session.sessionId, 'student@spit.ac.in'), false);
+  });
+
+  test('25. Phase 4 Test J - Multi-cycle repeatability (3 consecutive login-access-refresh-logout cycles)', async () => {
+    for (let cycle = 1; cycle <= 3; cycle++) {
+      const session = await sessionService.createSession({ email: `student_cycle_${cycle}@spit.ac.in` });
+      const mockDoc = {
+        sessionId: session.sessionId,
+        email: `student_cycle_${cycle}@spit.ac.in`,
+        refreshTokenHash: require('crypto').createHash('sha256').update(session.refreshToken).digest('hex'),
+        previousRefreshTokenHash: null,
+        previousTokenExpiresAt: null,
+        expiresAt: session.expiresAt,
+        revoked: false,
+        save: async function () {
+          mockSessions.set(this.sessionId, this);
+        }
+      };
+      mockSessions.set(session.sessionId, mockDoc);
+
+      let accessToken = jwt.sign(
+        { email: mockDoc.email, role: 'Student', status: 'Active', sessionId: session.sessionId },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // Access protected resource
+      const storiesRes = await fetch(`${baseUrl}/api/stories`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      assert.equal(storiesRes.status, 200, `Cycle ${cycle} initial stories access must succeed`);
+
+      // Refresh session
+      const refreshRes = await fetch(`${baseUrl}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: session.sessionId,
+          refreshToken: session.refreshToken
+        })
+      });
+      assert.equal(refreshRes.status, 200, `Cycle ${cycle} refresh must succeed`);
+      const refreshData = await refreshRes.json();
+      accessToken = refreshData.token;
+
+      // Access protected resource again with renewed token
+      const reaccessRes = await fetch(`${baseUrl}/api/resources`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      assert.equal(reaccessRes.status, 200, `Cycle ${cycle} renewed resources access must succeed`);
+
+      // Explicit logout
+      const logoutRes = await fetch(`${baseUrl}/api/auth/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      assert.equal(logoutRes.status, 200, `Cycle ${cycle} logout must succeed`);
+      assert.equal(await sessionService.isSessionActive(session.sessionId, mockDoc.email), false);
+    }
+  });
 });
