@@ -7,7 +7,7 @@ import {
   Users, MessageSquare, GraduationCap, 
   Rocket, Compass, Star, ArrowRight, UserCheck, Briefcase
 } from 'lucide-react';
-import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl } from '../utils/db';
+import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl, downloadResourceFile } from '../utils/db';
 import FormattedText, { renderInlineWithLinks } from '../components/FormattedText';
 import { formatDisplayBranch } from '../utils/branchUtils';
 
@@ -507,7 +507,7 @@ export default function StoryDetail() {
     return list;
   };
 
-  const handleDownloadFile = (fileName, url) => {
+  const handleDownloadFile = async (fileName, url) => {
     if (!url || url === '#') {
       alert('No file available for download.');
       return;
@@ -519,25 +519,41 @@ export default function StoryDetail() {
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = blobUrl;
-          link.download = fileName || 'file';
+          link.download = fileName || 'download';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-        } else {
-          alert('Failed to process file for download.');
+          return;
         }
-      } else {
+      }
+
+      await downloadResourceFile({
+        url,
+        fileName,
+        title: fileName
+      });
+    } catch (e) {
+      console.warn("Direct download fallback:", e);
+      try {
+        let authUrl = url;
+        const userSession = localStorage.getItem('loop_current_user');
+        if (userSession) {
+          const { token } = JSON.parse(userSession);
+          if (token && !authUrl.includes('token=') && !authUrl.includes('drive.google.com')) {
+            const sep = authUrl.includes('?') ? '&' : '?';
+            authUrl = `${authUrl}${sep}token=${encodeURIComponent(token)}`;
+          }
+        }
         const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName || 'file';
+        link.href = authUrl;
+        link.download = fileName || 'download';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      } catch (err) {
+        alert("Failed to download file.");
       }
-    } catch (e) {
-      console.error("Download failed:", e);
-      alert("Failed to download file.");
     }
   };
 
@@ -978,8 +994,7 @@ export default function StoryDetail() {
     (typeof story?.resume === 'string' && story.resume.trim() && !['#', 'null', 'undefined', ''].includes(story.resume.trim())) ||
     (resumeRawUrl && resumeRawUrl !== '#')
   );
-  const isDriveOrDocs = resumeRawUrl && (resumeRawUrl.includes('drive.google.com') || resumeRawUrl.includes('docs.google.com'));
-  const isExternal = resumeRawUrl && (resumeRawUrl.startsWith('http://') || resumeRawUrl.startsWith('https://')) && !resumeRawUrl.includes(typeof window !== 'undefined' ? window.location.host : '');
+  const isDriveOrDocs = Boolean(resumeRawUrl && (resumeRawUrl.includes('drive.google.com') || resumeRawUrl.includes('docs.google.com')));
 
   let displayResumeTitle = rf?.fileName || (typeof story?.resume === 'object' ? story.resume.fileName : (typeof story?.resume === 'string' && !story.resume.startsWith('http') ? story.resume : ''));
   if (!displayResumeTitle || displayResumeTitle.toLowerCase() === 'resume.pdf' || displayResumeTitle.toLowerCase() === 'candidate_verified_resume.pdf') {
@@ -1912,7 +1927,7 @@ export default function StoryDetail() {
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                {isDriveOrDocs || isExternal ? (
+                {isDriveOrDocs ? (
                   <a
                     href={resumeRawUrl}
                     target="_blank"
@@ -1920,10 +1935,10 @@ export default function StoryDetail() {
                     onClick={(e) => e.stopPropagation()}
                     className="btn btn-primary"
                     style={{ padding: '0.65rem 1.35rem', fontSize: '0.88rem', gap: '0.5rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontWeight: 600 }}
-                    title="Open Verified Resume"
+                    title="Open Verified Resume in Google Drive"
                   >
                     <ExternalLink size={16} />
-                    <span>{isDriveOrDocs ? 'Open in Google Drive ↗' : 'View Resume ↗'}</span>
+                    <span>Open in Google Drive ↗</span>
                   </a>
                 ) : (
                   <>
@@ -1945,41 +1960,21 @@ export default function StoryDetail() {
                           }
                         });
                       }}
-                      className="btn btn-secondary"
-                      style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 600 }}
+                      className="btn btn-primary"
+                      style={{ padding: '0.65rem 1.35rem', fontSize: '0.88rem', gap: '0.5rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', fontWeight: 600 }}
                       title="View Resume"
                     >
-                      <FileText size={14} />
+                      <FileText size={16} />
                       <span>View Resume ↗</span>
                     </button>
                     {resumeRawUrl && (
                       <button 
-                        onClick={() => {
-                          if (resumeRawUrl.startsWith('data:')) {
-                            const blob = dataURItoBlob(resumeRawUrl);
-                            if (blob) {
-                              const blobUrl = URL.createObjectURL(blob);
-                              const link = document.createElement('a');
-                              link.href = blobUrl;
-                              link.download = displayResumeTitle;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-                            }
-                          } else {
-                            const link = document.createElement('a');
-                            link.href = resumeRawUrl;
-                            link.download = displayResumeTitle;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }
-                        }}
-                        className="btn btn-primary"
-                        style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', gap: '0.4rem', fontWeight: 600 }}
+                        onClick={() => handleDownloadFile(displayResumeTitle, resumeRawUrl)}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.65rem 1.35rem', fontSize: '0.88rem', gap: '0.5rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                        title="Download Resume"
                       >
-                        <Download size={14} />
+                        <Download size={16} />
                         <span>Download Resume</span>
                       </button>
                     )}
@@ -2022,10 +2017,9 @@ export default function StoryDetail() {
           {hasStudyMaterials ? (
             <div className="story-content-layout">
               {story.studyMaterials.map((mat, index) => {
-                const matUrl = mat.url || '';
-                const isExternalMat = matUrl && (matUrl.startsWith('http://') || matUrl.startsWith('https://'));
-                const isDriveMat = matUrl.includes('drive.google.com') || matUrl.includes('docs.google.com');
-                const isPdf = mat.type === 'PDF' || (mat.fileName && mat.fileName.toLowerCase().endsWith('.pdf'));
+                const matUrl = getResourceFileUrl(mat) || mat.url || '';
+                const isDriveMat = Boolean(matUrl && (matUrl.includes('drive.google.com') || matUrl.includes('docs.google.com')));
+                const isPdf = mat.type === 'PDF' || (mat.fileName && mat.fileName.toLowerCase().endsWith('.pdf')) || (mat.title && mat.title.toLowerCase().endsWith('.pdf'));
 
                 return (
                   <div
@@ -2062,7 +2056,7 @@ export default function StoryDetail() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      {isExternalMat || isDriveMat ? (
+                      {isDriveMat ? (
                         <a
                           href={matUrl}
                           target="_blank"
@@ -2083,7 +2077,7 @@ export default function StoryDetail() {
                             backgroundColor: 'var(--bg-surface)'
                           }}
                         >
-                          <span>{isDriveMat ? 'Open in Drive ↗' : (isPdf ? 'View PDF ↗' : 'Open Material ↗')}</span>
+                          <span>Open in Drive ↗</span>
                           <ExternalLink size={14} />
                         </a>
                       ) : (
@@ -2113,11 +2107,11 @@ export default function StoryDetail() {
                             }}
                           >
                             <FileText size={14} />
-                            <span>View File</span>
+                            <span>{isPdf ? 'View PDF ↗' : 'View File ↗'}</span>
                           </button>
-                          {mat.url && mat.url !== '#' && (
+                          {matUrl && matUrl !== '#' && (
                             <button
-                              onClick={() => handleDownloadFile(mat.fileName || mat.title + (isPdf ? '.pdf' : '.txt'), mat.url)}
+                              onClick={() => handleDownloadFile(mat.fileName || mat.title + (isPdf ? '.pdf' : '.txt'), matUrl)}
                               className="btn btn-secondary"
                               style={{ padding: '0.45rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '36px', height: '36px' }}
                               title="Download File"

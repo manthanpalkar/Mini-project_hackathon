@@ -369,6 +369,8 @@ app.use('/uploads', async (req, res, next) => {
       }
 
       const fileUrl = `/uploads/${filename}`;
+      const escapedFilename = filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const filenameRegex = new RegExp(escapedFilename, 'i');
       const userEmail = (req.user?.email || '').toLowerCase().trim();
 
       // Check if file belongs to an approved Story (publicly accessible by authenticated users)
@@ -376,7 +378,10 @@ app.use('/uploads', async (req, res, next) => {
         $or: [
           { 'resumeFile.url': fileUrl },
           { resume: fileUrl },
-          { 'studyMaterials.url': fileUrl }
+          { 'studyMaterials.url': fileUrl },
+          { 'resumeFile.url': filenameRegex },
+          { resume: filenameRegex },
+          { 'studyMaterials.url': filenameRegex }
         ]
       }).lean();
 
@@ -389,7 +394,10 @@ app.use('/uploads', async (req, res, next) => {
         $or: [
           { 'resumeFile.url': fileUrl },
           { resume: fileUrl },
-          { 'studyMaterials.url': fileUrl }
+          { 'studyMaterials.url': fileUrl },
+          { 'resumeFile.url': filenameRegex },
+          { resume: filenameRegex },
+          { 'studyMaterials.url': filenameRegex }
         ]
       }).lean();
 
@@ -404,7 +412,12 @@ app.use('/uploads', async (req, res, next) => {
 
       // Check if file belongs to Resource
       const resource = await Resource.findOne({
-        $or: [{ link: fileUrl }, { url: fileUrl }]
+        $or: [
+          { link: fileUrl },
+          { url: fileUrl },
+          { link: filenameRegex },
+          { url: filenameRegex }
+        ]
       }).lean();
 
       if (resource) {
@@ -420,7 +433,12 @@ app.use('/uploads', async (req, res, next) => {
 
       // Check if file belongs to PendingResource
       const pendingResource = await PendingResource.findOne({
-        $or: [{ link: fileUrl }, { url: fileUrl }]
+        $or: [
+          { link: fileUrl },
+          { url: fileUrl },
+          { link: filenameRegex },
+          { url: filenameRegex }
+        ]
       }).lean();
 
       if (pendingResource) {

@@ -317,8 +317,11 @@ export default function FilePreviewPage() {
       return;
     }
 
-    // For PDF, Image, and Code/Text: fetch stream with abort controller
-    fetch(fileUrl, { headers, signal: abortController.signal })
+    // For PDF, Image, and Code/Text: fetch stream with abort controller and dual token auth
+    const fetchUrl = authToken && !fileUrl.includes('token=') && !fileUrl.includes('drive.google.com') && !fileUrl.includes('docs.google.com')
+      ? `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(authToken)}`
+      : fileUrl;
+    fetch(fetchUrl, { headers, signal: abortController.signal })
       .then(async (res) => {
         if (!active) return;
         if (!res.ok) {
