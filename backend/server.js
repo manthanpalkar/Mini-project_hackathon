@@ -809,6 +809,7 @@ async function connectWithFallback() {
         serverSelectionTimeoutMS: 4000, // fail fast
         maxPoolSize: MONGODB_MAX_POOL_SIZE,
         minPoolSize: MONGODB_MIN_POOL_SIZE,
+        autoIndex: process.env.NODE_ENV !== 'production',
         serverApi: {
           version: '1',
           strict: true,
@@ -837,7 +838,8 @@ async function connectWithFallback() {
     await mongoose.connect(fallbackUri, {
       serverSelectionTimeoutMS: 4000,
       maxPoolSize: MONGODB_MAX_POOL_SIZE,
-      minPoolSize: MONGODB_MIN_POOL_SIZE
+      minPoolSize: MONGODB_MIN_POOL_SIZE,
+      autoIndex: process.env.NODE_ENV !== 'production'
     });
     console.log('Connected to local fallback MongoDB successfully.');
     ensureSystemFolders().catch(e => console.error('System folders sync error:', e.message));
@@ -5331,9 +5333,10 @@ app.get('/api/admin/users/:userId/activity/summary', authenticateToken, requireA
 });
 
 let server = null;
+const HOST = process.env.HOST || '0.0.0.0';
 if (require.main === module) {
-  server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}.`);
+  server = app.listen(PORT, HOST, () => {
+    console.log(`Server is running on ${HOST}:${PORT}.`);
     console.log('[UPLOAD ROUTES] chunked upload routes loaded');
     console.log('[UPLOAD ROUTES] GridFS parallel streaming active (200MB limit)');
 
@@ -5350,6 +5353,8 @@ if (require.main === module) {
 module.exports = {
   app,
   server,
+  PORT,
+  HOST,
   RATE_LIMIT_CONFIG,
   userAuthCache,
   UserAuthCache,
