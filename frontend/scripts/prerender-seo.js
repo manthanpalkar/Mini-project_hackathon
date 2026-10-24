@@ -161,11 +161,19 @@ const CORE_PAGES = [
   }
 ];
 
-// 2. Load and Filter Real, Approved, Privacy-Safe Stories
+// 2. Load Real, Approved, Privacy-Safe Stories
 const REAL_STORY_PAGES = [];
+const featuredPath = path.resolve(__dirname, 'featuredStories.json');
 const backupPath = path.resolve(__dirname, '../../backend/backups/stories_backup_pre_phase2_phase3_2026-10-23T09-13-25-182Z.json');
 
-if (fs.existsSync(backupPath)) {
+let selectedStories = [];
+if (fs.existsSync(featuredPath)) {
+  try {
+    selectedStories = JSON.parse(fs.readFileSync(featuredPath, 'utf8'));
+  } catch (err) {
+    console.warn('[PRERENDER_SEO] Warning loading featuredStories.json:', err.message);
+  }
+} else if (fs.existsSync(backupPath)) {
   try {
     const rawStories = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -179,8 +187,6 @@ if (fs.existsSync(backupPath)) {
         !emailRegex.test(text) && !phoneRegex.test(text);
     });
 
-    // Select up to 15 diverse authentic stories across key hiring companies
-    const selectedStories = [];
     const seenCompanies = new Set();
     const preferredCompanies = [
       'Barclays', 'J.P. Morgan', 'ISS STOXX', 'UBS', 'Mastercard',
@@ -204,55 +210,57 @@ if (fs.existsSync(backupPath)) {
         selectedStories.push(s);
       }
     }
-
-    for (const s of selectedStories) {
-      // Normalize malformed whitespace, repeated tabs, and newlines in text fields
-      const cleanCompany = (s.company || '').replace(/\s+/g, ' ').trim();
-      const cleanRole = (s.role || '').replace(/\s+/g, ' ').trim();
-      const cleanBranch = (s.branch || '').replace(/\s+/g, ' ').trim();
-      const cleanPassoutYear = (s.passoutYear || '').replace(/\s+/g, ' ').trim();
-
-      const roleDisplay = cleanRole ? `${cleanCompany} — ${cleanRole}` : cleanCompany;
-      const cohortDisplay = cleanBranch && cleanPassoutYear 
-        ? ` (${cleanBranch}, Class of ${cleanPassoutYear})` 
-        : (cleanBranch ? ` (${cleanBranch})` : '');
-
-      const prepExcerpt = s.journey?.prep ? truncateText(s.journey.prep, 350) : '';
-      const howSecuredExcerpt = s.journey?.howSecured ? truncateText(s.journey.howSecured, 450) : '';
-
-      REAL_STORY_PAGES.push({
-        route: `/stories/${s.id}`,
-        title: `${cleanCompany} ${cleanRole} Placement Experience | LOOP SPIT`,
-        description: `Verified campus placement debrief for ${cleanRole} at ${cleanCompany}${cohortDisplay} at Sardar Patel Institute of Technology (SPIT), Mumbai.`,
-        h1: `${cleanCompany} — ${cleanRole} Placement Experience`,
-        paragraphs: [
-          `A student contributor from the ${cleanBranch || 'engineering'} department${cleanPassoutYear ? ` (Class of ${cleanPassoutYear})` : ''} at Sardar Patel Institute of Technology (SPIT), Mumbai secured an offer for ${cleanRole} at ${cleanCompany}.`,
-          `Selection Process & Interview Rounds: ${howSecuredExcerpt}`,
-          prepExcerpt ? `Preparation Strategy & Study Routines: ${prepExcerpt}` : 'Preparation focused on Data Structures & Algorithms, core CS subjects (DBMS, OS, Networks), and structured mock interview rounds.'
-        ],
-        schema: {
-          '@context': 'https://schema.org',
-          '@type': 'Article',
-          headline: `${cleanCompany} — ${cleanRole} Placement Experience`,
-          author: { 
-            '@type': 'Organization', 
-            name: 'LOOP Student Contributor' 
-          },
-          publisher: { 
-            '@type': 'Organization', 
-            name: 'LOOP — Limitless Opportunities, One Platform' 
-          }
-        },
-        priority: '0.6',
-        changefreq: 'monthly'
-      });
-    }
-
-    console.log(`[PRERENDER_SEO] Loaded ${REAL_STORY_PAGES.length} privacy-safe authentic stories across top companies.`);
   } catch (err) {
     console.warn('[PRERENDER_SEO] Warning loading backup stories:', err.message);
   }
 }
+
+for (const s of selectedStories) {
+  // Normalize malformed whitespace, repeated tabs, and newlines in text fields
+  const cleanCompany = (s.company || '').replace(/\s+/g, ' ').trim();
+  const cleanRole = (s.role || '').replace(/\s+/g, ' ').trim();
+  const cleanBranch = (s.branch || '').replace(/\s+/g, ' ').trim();
+  const cleanPassoutYear = (s.passoutYear || '').replace(/\s+/g, ' ').trim();
+
+  const roleDisplay = cleanRole ? `${cleanCompany} — ${cleanRole}` : cleanCompany;
+  const cohortDisplay = cleanBranch && cleanPassoutYear 
+    ? ` (${cleanBranch}, Class of ${cleanPassoutYear})` 
+    : (cleanBranch ? ` (${cleanBranch})` : '');
+
+  const prepRaw = s.prep || s.journey?.prep || '';
+  const howSecuredRaw = s.howSecured || s.journey?.howSecured || '';
+  const prepExcerpt = prepRaw ? truncateText(prepRaw, 350) : '';
+  const howSecuredExcerpt = howSecuredRaw ? truncateText(howSecuredRaw, 450) : '';
+
+  REAL_STORY_PAGES.push({
+    route: `/stories/${s.id}`,
+    title: `${cleanCompany} ${cleanRole} Placement Experience | LOOP SPIT`,
+    description: `Verified campus placement debrief for ${cleanRole} at ${cleanCompany}${cohortDisplay} at Sardar Patel Institute of Technology (SPIT), Mumbai.`,
+    h1: `${cleanCompany} — ${cleanRole} Placement Experience`,
+    paragraphs: [
+      `A student contributor from the ${cleanBranch || 'engineering'} department${cleanPassoutYear ? ` (Class of ${cleanPassoutYear})` : ''} at Sardar Patel Institute of Technology (SPIT), Mumbai secured an offer for ${cleanRole} at ${cleanCompany}.`,
+      `Selection Process & Interview Rounds: ${howSecuredExcerpt}`,
+      prepExcerpt ? `Preparation Strategy & Study Routines: ${prepExcerpt}` : 'Preparation focused on Data Structures & Algorithms, core CS subjects (DBMS, OS, Networks), and structured mock interview rounds.'
+    ],
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: `${cleanCompany} — ${cleanRole} Placement Experience`,
+      author: { 
+        '@type': 'Organization', 
+        name: 'LOOP Student Contributor' 
+      },
+      publisher: { 
+        '@type': 'Organization', 
+        name: 'LOOP — Limitless Opportunities, One Platform' 
+      }
+    },
+    priority: '0.6',
+    changefreq: 'monthly'
+  });
+}
+
+console.log(`[PRERENDER_SEO] Loaded ${REAL_STORY_PAGES.length} privacy-safe authentic stories across top companies.`);
 
 const ALL_PAGES = [...CORE_PAGES, ...REAL_STORY_PAGES];
 
