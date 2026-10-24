@@ -153,6 +153,9 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173'
 ];
 
 function parseConfiguredOrigins(env = process.env) {
@@ -1676,6 +1679,7 @@ app.post(['/api/auth/google', '/api/users/google', '/api/users/auth/google'], as
         isAdmin: isUserAdmin,
         nameColor: user.nameColor || '',
         token,
+        refreshToken: session.refreshToken,
         sessionId: session.sessionId
       });
     }
@@ -2614,15 +2618,20 @@ app.put('/api/users/:email/onboard', authenticateToken, async (req, res) => {
     });
     
     const isUserAdmin = user.email.toLowerCase() === 'admin@spit.ac.in' || user.role === 'Administrator' || user.role === 'Admin';
+    const activeToken = req.headers['authorization']?.split(' ')[1];
     res.json({
       email: user.email,
       role: isUserAdmin ? 'Administrator' : user.role,
       status: user.status,
       name: user.name,
+      username: user.username || '',
       branch: user.branch,
       currentYear: user.currentYear,
       onboarded: user.onboarded,
-      isAdmin: isUserAdmin
+      isAdmin: isUserAdmin,
+      nameColor: user.nameColor || '',
+      token: activeToken || undefined,
+      sessionId: req.sessionId || undefined
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

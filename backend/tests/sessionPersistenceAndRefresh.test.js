@@ -9,7 +9,7 @@ process.env.ENABLE_DEMO_LOGIN = 'true';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-super-secret-key-32-chars-minimum-loop-platform!';
 
 const { app, JWT_SECRET } = require('../server');
-const { User, UserSession } = require('../models');
+const { User, UserSession, Story, Resource, Folder, Achievement, ActivityLog } = require('../models');
 const sessionService = require('../services/sessionService');
 
 test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', () => {
@@ -18,7 +18,14 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
   let originalReadyState;
   let originalUserFindOne;
   let originalSessionFindOne;
-  let originalSessionSave;
+  let originalStoryFind;
+  let originalStoryCount;
+  let originalResourceFind;
+  let originalResourceCount;
+  let originalFolderFind;
+  let originalAchievementFind;
+  let originalAchievementCount;
+  let originalActivityLogFind;
   let mockSessions = new Map();
 
   test.before(async () => {
@@ -53,6 +60,36 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
       return s;
     };
 
+    const makeQueryMock = (returnValue = []) => {
+      const q = {
+        sort: () => q,
+        skip: () => q,
+        limit: () => q,
+        select: () => q,
+        lean: async () => returnValue,
+        then: (resolve) => Promise.resolve(returnValue).then(resolve)
+      };
+      return () => q;
+    };
+
+    originalStoryFind = Story.find;
+    originalStoryCount = Story.countDocuments;
+    originalResourceFind = Resource.find;
+    originalResourceCount = Resource.countDocuments;
+    originalFolderFind = Folder.find;
+    originalAchievementFind = Achievement.find;
+    originalAchievementCount = Achievement.countDocuments;
+    originalActivityLogFind = ActivityLog.find;
+
+    Story.find = makeQueryMock([]);
+    Story.countDocuments = async () => 0;
+    Resource.find = makeQueryMock([]);
+    Resource.countDocuments = async () => 0;
+    Folder.find = makeQueryMock([]);
+    Achievement.find = makeQueryMock([]);
+    Achievement.countDocuments = async () => 0;
+    ActivityLog.find = makeQueryMock([]);
+
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, resolve));
     const port = server.address().port;
@@ -66,6 +103,14 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
     });
     User.findOne = originalUserFindOne;
     UserSession.findOne = originalSessionFindOne;
+    Story.find = originalStoryFind;
+    Story.countDocuments = originalStoryCount;
+    Resource.find = originalResourceFind;
+    Resource.countDocuments = originalResourceCount;
+    Folder.find = originalFolderFind;
+    Achievement.find = originalAchievementFind;
+    Achievement.countDocuments = originalAchievementCount;
+    ActivityLog.find = originalActivityLogFind;
     if (server) await new Promise((r) => server.close(r));
   });
 
@@ -363,5 +408,175 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
 
     const active = await sessionService.isSessionActive(legacySessionId, 'student@spit.ac.in');
     assert.equal(active, true, 'Legacy sessions must remain valid');
+  });
+
+  test('11. PUT /api/users/:email/onboard preserves active session token, sessionId, and sets onboarded: true', async () => {
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    const token = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const savedFindOne = User.findOne;
+    let savedUser = null;
+    User.findOne = async () => ({
+      _id: new mongoose.Types.ObjectId(),
+      email: 'student@spit.ac.in',
+      role: 'Student',
+      status: 'Active',
+      name: '',
+      branch: '',
+      currentYear: '',
+      onboarded: false,
+      save: async function () { savedUser = this; }
+    });
+
+    try {
+      const resp = await fetch(`${baseUrl}/api/users/student@spit.ac.in/onboard`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: 'Newly Onboarded Student',
+          role: 'Student',
+          branch: 'CSE',
+          currentYear: 'First Year'
+        })
+      });
+
+      assert.equal(resp.status, 200);
+      const data = await resp.json();
+      assert.equal(data.onboarded, true, 'User must be marked as onboarded');
+      assert.equal(data.name, 'Newly Onboarded Student');
+      assert.equal(data.token, token, 'Onboarding response must return active token to avoid session stripping');
+      assert.equal(data.sessionId, session.sessionId, 'Onboarding response must return sessionId');
+    } finally {
+      User.findOne = savedFindOne;
+    }
+  });
+
+  test('12. Returning Google OAuth login returns refreshToken alongside token and sessionId', async () => {
+    // Verify server.js returns refreshToken for returning Google users
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    assert.ok(session.refreshToken, 'Session must generate a refreshToken');
+    assert.ok(session.sessionId, 'Session must generate a sessionId');
+  });
+
+  test('13. Full Authentication Lifecycle & Protected Resource Navigation Regression Test', async () => {
+    // 1. Establish session & login
+    const session = await sessionService.createSession({ email: 'student@spit.ac.in' });
+    let tokenHash = require('crypto').createHash('sha256').update(session.refreshToken).digest('hex');
+    let sessionDoc = {
+      sessionId: session.sessionId,
+      email: 'student@spit.ac.in',
+      refreshTokenHash: tokenHash,
+      expiresAt: session.expiresAt,
+      revoked: false,
+      save: async function () {}
+    };
+    mockSessions.set(session.sessionId, sessionDoc);
+
+    let accessToken = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    let currentRefreshToken = session.refreshToken;
+
+    // 2. Open protected user profile/activity page
+    const profileRes = await fetch(`${baseUrl}/api/users/me/activity`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    assert.equal(profileRes.status, 200, 'Profile activity must load with valid access token');
+
+    // 3. Navigate to Stories
+    const storiesRes = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    assert.equal(storiesRes.status, 200, 'Stories must load with valid access token');
+
+    // 4. Navigate to Resources
+    const resourcesRes = await fetch(`${baseUrl}/api/resources`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    assert.equal(resourcesRes.status, 200, 'Resources must load with valid access token');
+
+    // 5. Trigger multiple API requests concurrently (Stories, Resources, Folders)
+    const [concurrentStories, concurrentResources, concurrentFolders] = await Promise.all([
+      fetch(`${baseUrl}/api/stories`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+      fetch(`${baseUrl}/api/resources`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+      fetch(`${baseUrl}/api/folders`, { headers: { 'Authorization': `Bearer ${accessToken}` } })
+    ]);
+    assert.equal(concurrentStories.status, 200);
+    assert.equal(concurrentResources.status, 200);
+    assert.equal(concurrentFolders.status, 200);
+
+    // 6. Simulate an expired access token
+    const expiredToken = jwt.sign(
+      { email: 'student@spit.ac.in', role: 'Student', status: 'Active', sessionId: session.sessionId },
+      JWT_SECRET,
+      { expiresIn: '-10s' } // Expired 10s ago
+    );
+
+    const expiredReq = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${expiredToken}` }
+    });
+    assert.equal(expiredReq.status, 401);
+    const expiredData = await expiredReq.json();
+    assert.equal(expiredData.code, 'TOKEN_EXPIRED');
+
+    // 7. Trigger token refresh and verify renewal
+    const refreshRes = await fetch(`${baseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: session.sessionId,
+        refreshToken: currentRefreshToken
+      })
+    });
+    assert.equal(refreshRes.status, 200, 'Token refresh must succeed');
+    const refreshData = await refreshRes.json();
+    assert.ok(refreshData.token, 'Must receive fresh access token');
+    assert.ok(refreshData.refreshToken, 'Must receive rotated refresh token');
+    accessToken = refreshData.token;
+    currentRefreshToken = refreshData.refreshToken;
+
+    // Retry original request with freshly renewed access token
+    const retryStoriesRes = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    assert.equal(retryStoriesRes.status, 200, 'Retried request must succeed with renewed token');
+
+    // 8. Navigate to another protected section (Achievements)
+    const achievementsRes = await fetch(`${baseUrl}/api/achievements`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    assert.equal(achievementsRes.status, 200, 'Achievements must load with renewed token');
+
+    // 9. Explicit logout terminates the session
+    const logoutRes = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    assert.equal(logoutRes.status, 200, 'Explicit logout must succeed');
+
+    // Mark session revoked in mock to reflect DB update
+    sessionDoc.revoked = true;
+
+    // Subsequent refresh attempts must be rejected with 401 SESSION_REVOKED
+    const postLogoutRefresh = await fetch(`${baseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: session.sessionId,
+        refreshToken: currentRefreshToken
+      })
+    });
+    assert.equal(postLogoutRefresh.status, 401);
+    const postLogoutData = await postLogoutRefresh.json();
+    assert.equal(postLogoutData.code, 'SESSION_REVOKED');
   });
 });

@@ -51,11 +51,16 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
+        target: 'http://127.0.0.1:5001',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err, req, res) => {
+            console.error('[VITE_PROXY_ERROR]', err);
+          });
+        }
       },
       '/uploads': {
-        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
+        target: 'http://127.0.0.1:5001',
         changeOrigin: true,
       }
     }
@@ -64,11 +69,11 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
+        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:5001',
         changeOrigin: true,
       },
       '/uploads': {
-        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
+        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:5001',
         changeOrigin: true,
       }
     }

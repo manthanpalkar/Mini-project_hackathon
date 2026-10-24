@@ -93,7 +93,7 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!user || !user.token) {
+  if (!user || (!user.token && !user.refreshToken)) {
     localStorage.removeItem('loop_current_user');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

@@ -115,8 +115,8 @@ export const refreshAuthSession = async () => {
       } else {
         const errPayload = await res.json().catch(() => null);
         const code = errPayload?.code;
-        // Only unambiguous invalidation (explicit revocation, deleted user) terminates session
-        if (res.status === 401 || res.status === 403 || code === 'SESSION_REVOKED' || code === 'SESSION_EXPIRED' || code === 'INVALID_REFRESH_TOKEN') {
+        // Only unambiguous invalidation (explicit revocation, deleted user, inactive account) terminates session
+        if (code === 'SESSION_REVOKED' || code === 'SESSION_EXPIRED' || code === 'INVALID_REFRESH_TOKEN' || code === 'USER_NOT_FOUND' || (res.status === 403 && code === 'ACCOUNT_INACTIVE')) {
           notifyAuthExpired();
         }
         return null;
@@ -186,7 +186,7 @@ const authFetch = async (url, options = {}, isRetry = false) => {
     const code = errPayload?.code;
 
     // If access token expired and we have not already retried, attempt refresh flow
-    if (!isRetry && (code === 'TOKEN_EXPIRED' || !code)) {
+    if (!isRetry && (code === 'TOKEN_EXPIRED' || code === 'TOKEN_MISSING' || !code)) {
       const newToken = await refreshAuthSession();
       if (newToken) {
         // Retry the request ONCE with the freshly issued access token

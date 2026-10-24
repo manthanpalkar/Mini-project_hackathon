@@ -78,9 +78,24 @@ export default function Onboarding() {
         currentYear
       });
 
-      // Save updated user session
-      localStorage.setItem('loop_current_user', JSON.stringify(onboardedData));
+      // Save updated user session while strictly preserving active session token and refresh credentials
+      const updatedSession = {
+        ...currentUser,
+        ...onboardedData,
+        name: name.trim(),
+        role: onboardedData.role || role,
+        branch: branch === 'CSE' ? cseSpecialization : branch,
+        currentYear: currentYear,
+        onboarded: true,
+        token: onboardedData.token || currentUser.token,
+        refreshToken: onboardedData.refreshToken || currentUser.refreshToken,
+        sessionId: onboardedData.sessionId || currentUser.sessionId
+      };
+      localStorage.setItem('loop_current_user', JSON.stringify(updatedSession));
       
+      // Dispatch update to synchronize navbar and application state
+      window.dispatchEvent(new CustomEvent('loop_login_success', { detail: updatedSession }));
+
       // Navigate to intended destination
       navigate(getRedirectTarget(), { replace: true });
     } catch (err) {
