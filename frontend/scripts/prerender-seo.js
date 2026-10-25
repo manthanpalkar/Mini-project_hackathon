@@ -423,38 +423,6 @@ function getRenderedShell(page) {
               <img src="/images/recruiters-partners.png" alt="Our Recruiters and Partners" style="max-width: 100%; height: auto; max-height: 520px; object-fit: contain;" />
             </div>
           </div>
-
-          <div style="margin-top: 4.5rem; border-top: 1px solid var(--border-color); padding-top: 3.5rem; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-              <div>
-                <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #8A2BE2; display: block; margin-bottom: 0.5rem;">Authentic Senior Journeys</span>
-                <h3 style="font-size: 1.75rem; font-family: var(--font-serif); font-weight: 600; color: var(--text-primary); margin: 0;">Featured Placement Debriefs</h3>
-                <p style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.5rem; margin-bottom: 0; max-width: 680px; line-height: 1.6;">Explore authentic, round-by-round interview experiences from Sardar Patel Institute of Technology students. Each debrief details online assessments, live technical rounds, algorithmic problem-solving patterns, and actionable preparation advice across top recruiters.</p>
-              </div>
-              <a href="/login" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">View All Debriefs →</a>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; width: 100%;">
-              ${[
-                { id: 'story_2026_21664150', company: 'Barclays', role: 'Summer Intern 2025', branch: 'CSE-DS', year: '2026' },
-                { id: 'story_2026_35118136', company: 'J.P. Morgan', role: 'CIB Research & Analytics', branch: 'CSE-AIML', year: '2026' },
-                { id: 'story_2026_28159237', company: 'ISS STOXX', role: 'SDE 1', branch: 'CE', year: '2026' },
-                { id: 'story_2026_68003868', company: 'UBS', role: 'GOTO Intern', branch: 'CE', year: '2026' },
-                { id: 'story_2026_5760309', company: 'Mastercard', role: 'Software Engineer I', branch: 'CSE-DS', year: '2026' },
-                { id: 'story_2026_78234768', company: 'PhonePe', role: 'SDE', branch: 'CE', year: '2026' }
-              ].map(item => `
-                <div style="padding: 1.4rem; border-radius: 16px; border: 1px solid var(--border-color); background-color: var(--bg-surface); box-shadow: var(--card-shadow);">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <span style="background-color: rgba(138, 43, 226, 0.12); color: #8A2BE2; padding: 0.2rem 0.65rem; border-radius: 10px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;">${item.company}</span>
-                    <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">Class of ${item.year}</span>
-                  </div>
-                  <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem; font-family: var(--font-sans);">${item.role}</h4>
-                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1rem 0;">Department of ${item.branch} • SPIT Mumbai</p>
-                  <a href="/login" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--text-primary); text-decoration: none;">Read Interview Debrief →</a>
-                </div>
-              `).join('')}
-            </div>
-          </div>
         </div>
       </section>
 
