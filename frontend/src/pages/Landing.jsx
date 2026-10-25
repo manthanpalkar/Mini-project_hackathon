@@ -354,7 +354,7 @@ export default function Landing() {
             color: '#ffffff',
             textShadow: '0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)'
           }}>
-            LOOP SPIT — SPIT Mumbai Placement Stories &amp; Career Resources
+            Placement Stories &amp; Career Resources
           </h1>
           <p style={{
             fontSize: '1.15rem',

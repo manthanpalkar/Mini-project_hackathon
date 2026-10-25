@@ -39,7 +39,7 @@ const CORE_PAGES = [
     route: '/',
     title: 'LOOP SPIT | SPIT Mumbai Placement Stories & Resources',
     description: 'LOOP is a student-led platform for SPIT Mumbai students featuring placement experiences, company-wise interview stories, interview preparation resources, and career guidance.',
-    h1: 'LOOP SPIT — SPIT Mumbai Placement Stories & Career Resources',
+    h1: 'Placement Stories & Career Resources',
     paragraphs: [
       'Welcome to LOOP SPIT, the independent student-led placement portal and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the guiding ethos "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni to document verified recruitment experiences and foster peer mentorship across engineering disciplines.',
       'LOOP hosts structured, round-by-round placement interview debriefs covering every stage of campus recruitment—from initial resume shortlisting and online assessments (OA) to live technical evaluations, algorithmic coding challenges, system design rounds, and behavioral HR interviews across top technology and financial services employers.',
@@ -367,7 +367,7 @@ function prerenderPage(page) {
 
   const semanticShell = `
     <header style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
-      <a href="/" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP SPIT — SPIT Mumbai</a>
+      <a href="/" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — SPIT Mumbai</a>
       <nav style="display: flex; gap: 1.5rem; font-weight: 600; flex-wrap: wrap;">
         <a href="/login" style="padding: 0.45rem 1.1rem; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">Login</a>
       </nav>
