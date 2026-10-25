@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowDown, CornerRightDown } from 'lucide-react';
 import SEOHead from '../components/SEOHead';
+import { useVisibility } from '../context/VisibilityContext';
 import BRAND from '../constants/branding';
 
 const heroImage = '/images/spit-college.jpg';
@@ -199,6 +200,13 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { visibility } = useVisibility();
+  const userSession = typeof window !== 'undefined' ? localStorage.getItem('loop_current_user') : null;
+  let isAdmin = false;
+  try {
+    const user = userSession ? JSON.parse(userSession) : null;
+    isAdmin = Boolean(user?.isAdmin || user?.role === 'Administrator' || user?.role === 'Admin');
+  } catch (e) {}
   const [activePhoto, setActivePhoto] = useState(null);
 
   useEffect(() => {
@@ -340,40 +348,62 @@ export default function Landing() {
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => navigate('/stories')}
-              className="btn btn-primary"
-              style={{
-                padding: '1rem 2.2rem',
-                fontSize: '1rem',
-                backgroundColor: '#ffffff',
-                color: '#000000',
-                border: 'none',
-                borderRadius: '30px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              Browse Stories
-            </button>
-            <button
-              onClick={() => navigate('/resources')}
-              className="btn"
-              style={{
-                padding: '1rem 2.2rem',
-                fontSize: '1rem',
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.35)',
-                borderRadius: '30px',
-                fontWeight: 600,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                cursor: 'pointer'
-              }}
-            >
-              Explore Resources
-            </button>
+            {(visibility.stories || isAdmin) && (
+              <button
+                onClick={() => navigate('/stories')}
+                className="btn btn-primary"
+                style={{
+                  padding: '1rem 2.2rem',
+                  fontSize: '1rem',
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  border: 'none',
+                  borderRadius: '30px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Browse Stories
+              </button>
+            )}
+            {(visibility.resources || isAdmin) && (
+              <button
+                onClick={() => navigate('/resources')}
+                className="btn"
+                style={{
+                  padding: '1rem 2.2rem',
+                  fontSize: '1rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.35)',
+                  borderRadius: '30px',
+                  fontWeight: 600,
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  cursor: 'pointer'
+                }}
+              >
+                Explore Resources
+              </button>
+            )}
+            {!(visibility.stories || isAdmin) && !(visibility.resources || isAdmin) && (
+              <button
+                onClick={scrollToPhilosophy}
+                className="btn btn-primary"
+                style={{
+                  padding: '1rem 2.2rem',
+                  fontSize: '1rem',
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  border: 'none',
+                  borderRadius: '30px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Explore Platform ↓
+              </button>
+            )}
           </div>
         </div>
 
@@ -410,91 +440,93 @@ export default function Landing() {
 
 
       {/* SECTION 3: INSIGHTS / LOOP LABS (Full-bleed bg image + gradient overlay) */}
-      <section
-        id="branches-section"
-        style={{
-          position: 'relative',
-          minHeight: '600px',
-          borderBottom: '1px solid var(--border-color)',
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <div className="container grid-2col" style={{
-          alignItems: 'center'
-        }}>
-          {/* Loop Labs Image (Left) */}
-          <LightboxImage
-            src={labImage}
-            alt="Students collaborating at SPIT"
-            title="We study what works"
-            height="520px"
-            borderRadius="24px"
-            objectFit="cover"
-            backgroundColor="transparent"
-          />
+      {(visibility.resources || isAdmin) && (
+        <section
+          id="branches-section"
+          style={{
+            position: 'relative',
+            minHeight: '600px',
+            borderBottom: '1px solid var(--border-color)',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <div className="container grid-2col" style={{
+            alignItems: 'center'
+          }}>
+            {/* Loop Labs Image (Left) */}
+            <LightboxImage
+              src={labImage}
+              alt="Students collaborating at SPIT"
+              title="We study what works"
+              height="520px"
+              borderRadius="24px"
+              objectFit="cover"
+              backgroundColor="transparent"
+            />
 
-          {/* Loop Labs Description (Right) */}
-          <div>
-            <span style={{
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.15em',
-              color: '#8A2BE2',
-              marginBottom: '1rem',
-              display: 'block'
-            }}>
-              Loop Labs
-            </span>
-            <h2 style={{
-              fontSize: 'calc(1.8rem + 1vw)',
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 500,
-              lineHeight: '1.25',
-              marginBottom: '1.5rem',
-              color: 'var(--text-primary)'
-            }}>
-              The Catalyst
-            </h2>
-            <p style={{
-              fontSize: '1.05rem',
-              lineHeight: '1.7',
-              color: 'var(--text-secondary)',
-              marginBottom: '2rem'
-            }}>
-              Bypass the disorganized WhatsApp groups. Get instant access to the complete stack—from raw lecture notes, class PPTs, and standard textbooks to clear your semester exams, to the exact placement materials you need to secure a Dream Offer.
-            </p>
+            {/* Loop Labs Description (Right) */}
+            <div>
+              <span style={{
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: '#8A2BE2',
+                marginBottom: '1rem',
+                display: 'block'
+              }}>
+                Loop Labs
+              </span>
+              <h2 style={{
+                fontSize: 'calc(1.8rem + 1vw)',
+                fontFamily: 'var(--font-serif)',
+                fontWeight: 500,
+                lineHeight: '1.25',
+                marginBottom: '1.5rem',
+                color: 'var(--text-primary)'
+              }}>
+                The Catalyst
+              </h2>
+              <p style={{
+                fontSize: '1.05rem',
+                lineHeight: '1.7',
+                color: 'var(--text-secondary)',
+                marginBottom: '2rem'
+              }}>
+                Bypass the disorganized WhatsApp groups. Get instant access to the complete stack—from raw lecture notes, class PPTs, and standard textbooks to clear your semester exams, to the exact placement materials you need to secure a Dream Offer.
+              </p>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '1.5rem',
-              marginBottom: '2.5rem',
-              borderTop: '1px solid var(--border-color)',
-              paddingTop: '1.5rem'
-            }}>
-              <div>
-                <h4 style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>95%</h4>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Senior feedback participation rate</p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1.5rem',
+                marginBottom: '2.5rem',
+                borderTop: '1px solid var(--border-color)',
+                paddingTop: '1.5rem'
+              }}>
+                <div>
+                  <h4 style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>95%</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Senior feedback participation rate</p>
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>200+</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Verified SPIT roadmaps & sheets</p>
+                </div>
               </div>
-              <div>
-                <h4 style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>200+</h4>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Verified SPIT roadmaps & sheets</p>
-              </div>
+
+              <button
+                onClick={() => navigate('/resources')}
+                className="btn btn-secondary"
+                style={{ padding: '0.75rem 1.6rem', borderRadius: '30px' }}
+              >
+                Explore Resources
+              </button>
             </div>
-
-            <button
-              onClick={() => navigate('/resources')}
-              className="btn btn-secondary"
-              style={{ padding: '0.75rem 1.6rem', borderRadius: '30px' }}
-            >
-              Explore Resources
-            </button>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* SECTION 3B: PLACEMENT RECORDS & PARTNER COMPANIES */}
       <section style={{
@@ -674,12 +706,13 @@ export default function Landing() {
           </div>
 
           {/* Featured Placement Experiences Grid (SEO & High-Intent CRO) */}
-          <div style={{
-            marginTop: '4.5rem',
-            borderTop: '1px solid var(--border-color)',
-            paddingTop: '3.5rem',
-            textAlign: 'left'
-          }}>
+          {(visibility.stories || isAdmin) && (
+            <div style={{
+              marginTop: '4.5rem',
+              borderTop: '1px solid var(--border-color)',
+              paddingTop: '3.5rem',
+              textAlign: 'left'
+            }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
               <div>
                 <span style={{
@@ -817,14 +850,16 @@ export default function Landing() {
               ))}
             </div>
           </div>
+          )}
         </div>
       </section>
 
       {/* SECTION 2: ACHIEVEMENTS (Full-bleed bg image + right text + right-to-left gradient overlay) */}
-      <section
-        id="achievements-section"
-        className="achievements-section-bg"
-      >
+      {(visibility.achievements || isAdmin) && (
+        <section
+          id="achievements-section"
+          className="achievements-section-bg"
+        >
         <div className="achievements-bg-image" />
         <div className="achievements-overlay" />
 
@@ -920,6 +955,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      )}
 
       {/* SECTION 5: CTA & TEAM PHOTO STACK (Left details, right vertical stack) */}
       <section style={{ padding: '8rem 0 10rem 0' }}>
@@ -958,20 +994,22 @@ export default function Landing() {
               Contribute to a continuous cycle of knowledge sharing. LOOP connects college juniors, seniors, and alumni: today's juniors become tomorrow's seniors, who then guide the next generation. We welcome seniors and alumni to document their placement journeys, interview rounds, and study resources.
             </p>
 
-            <button
-              onClick={handleShareJourney}
-              className="btn btn-secondary"
-              style={{
-                padding: '0.9rem 2rem',
-                borderRadius: '30px',
-                fontWeight: 600,
-                backgroundColor: 'var(--text-primary)',
-                color: 'var(--accent-inverse)',
-                borderColor: 'var(--text-primary)'
-              }}
-            >
-              Share Your Journey
-            </button>
+            {(visibility.stories || isAdmin) && (
+              <button
+                onClick={handleShareJourney}
+                className="btn btn-secondary"
+                style={{
+                  padding: '0.9rem 2rem',
+                  borderRadius: '30px',
+                  fontWeight: 600,
+                  backgroundColor: 'var(--text-primary)',
+                  color: 'var(--accent-inverse)',
+                  borderColor: 'var(--text-primary)'
+                }}
+              >
+                Share Your Journey
+              </button>
+            )}
           </div>
 
           {/* Hinge style overlapping team photo stack (Right) */}

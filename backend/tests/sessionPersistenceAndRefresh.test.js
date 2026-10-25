@@ -9,7 +9,7 @@ process.env.ENABLE_DEMO_LOGIN = 'true';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-super-secret-key-32-chars-minimum-loop-platform!';
 
 const { app, JWT_SECRET } = require('../server');
-const { User, UserSession, Story, Resource, Folder, Achievement, ActivityLog } = require('../models');
+const { User, UserSession, Story, Resource, Folder, Achievement, ActivityLog, SystemSetting } = require('../models');
 const sessionService = require('../services/sessionService');
 
 test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', () => {
@@ -26,6 +26,7 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
   let originalAchievementFind;
   let originalAchievementCount;
   let originalActivityLogFind;
+  let originalSystemSettingFindOne;
   let mockSessions = new Map();
 
   test.before(async () => {
@@ -34,6 +35,16 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
       value: 1,
       configurable: true
     });
+
+    originalSystemSettingFindOne = SystemSetting.findOne;
+    SystemSetting.findOne = function() {
+      return {
+        lean: async () => ({
+          key: 'section_visibility',
+          value: { stories: true, resources: true, achievements: true }
+        })
+      };
+    };
 
     originalUserFindOne = User.findOne;
     User.findOne = async function (query) {
@@ -125,6 +136,7 @@ test.describe('30-Day Session Persistence & Token Refresh Architecture Tests', (
     Achievement.find = originalAchievementFind;
     Achievement.countDocuments = originalAchievementCount;
     ActivityLog.find = originalActivityLogFind;
+    SystemSetting.findOne = originalSystemSettingFindOne;
     if (server) await new Promise((r) => server.close(r));
   });
 

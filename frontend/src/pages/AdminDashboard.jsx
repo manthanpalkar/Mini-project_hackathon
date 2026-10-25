@@ -49,6 +49,7 @@ import { playApproveSound, playRejectSound } from '../utils/sound';
 import SystemHealthDashboard from '../components/SystemHealthDashboard';
 import AdminFeedbackTab from '../components/AdminFeedbackTab';
 import AdminAuditLogsTab from '../components/AdminAuditLogsTab';
+import AdminSectionVisibilityTab from '../components/AdminSectionVisibilityTab';
 import AdminUserAuditModal from '../components/AdminUserAuditModal';
 
 const parsePosition = (posStr) => {
@@ -507,7 +508,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const tabName = activeTab === 'health' ? 'System Health' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+    const tabName = activeTab === 'health' ? 'System Health' : activeTab === 'visibility' ? 'Section Visibility' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
     document.title = `LOOP | Admin - ${tabName}`;
   }, [activeTab]);
 
@@ -1497,6 +1498,24 @@ export default function AdminDashboard() {
           }}
         >
           Activity & Audit Trail
+        </button>
+        <button
+          onClick={() => setActiveTab('visibility')}
+          className="btn"
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem',
+            borderRadius: '10px',
+            backgroundColor: activeTab === 'visibility' ? 'var(--text-primary)' : 'transparent',
+            color: activeTab === 'visibility' ? 'var(--accent-inverse)' : 'var(--text-secondary)',
+            border: activeTab === 'visibility' ? '1px solid var(--text-primary)' : '1px solid transparent',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}
+        >
+          <Eye size={15} />
+          <span>Section Visibility</span>
         </button>
       </div>
 
@@ -3459,6 +3478,11 @@ export default function AdminDashboard() {
       {/* Tab: Security Audit & Activity Logs */}
       {activeTab === 'audit' && (
         <AdminAuditLogsTab />
+      )}
+
+      {/* Tab: Public Section Visibility */}
+      {activeTab === 'visibility' && (
+        <AdminSectionVisibilityTab />
       )}
       </>
       )}

@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link, us
 import { ExternalLink } from 'lucide-react';
 import Navbar from './components/Navbar';
 import { UploadProvider } from './context/UploadContext';
+import { VisibilityProvider, useVisibility } from './context/VisibilityContext';
 import UploadDock from './components/UploadDock';
 import ErrorBoundary from './components/ErrorBoundary';
+import SectionUnavailable from './components/SectionUnavailable';
 import BRAND from './constants/branding';
 
 // Resilient code-splitting with automatic reload on stale chunk deployment
@@ -108,6 +110,31 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Section Visibility Guard Component (Blocks public users when section is OFF, allows administrators)
+function SectionRouteGuard({ section, children }) {
+  const { visibility, loading } = useVisibility();
+  const userSession = typeof window !== 'undefined' ? localStorage.getItem('loop_current_user') : null;
+  let isAdmin = false;
+  try {
+    const user = userSession ? JSON.parse(userSession) : null;
+    isAdmin = Boolean(user?.isAdmin || user?.role === 'Administrator' || user?.role === 'Admin');
+  } catch (e) {}
+
+  if (isAdmin) {
+    return children;
+  }
+
+  if (loading) {
+    return <RouteLoadingFallback />;
+  }
+
+  if (!visibility || !visibility[section]) {
+    return <SectionUnavailable sectionName={section} />;
+  }
+
+  return children;
+}
+
 // Layout wrapper to easily render footer and manage pages
 function AppLayout() {
   const location = useLocation();
@@ -190,14 +217,34 @@ function AppLayout() {
               </ProtectedRoute>
             } />
 
-            {/* Public Canonical Content Routes (Crawleable & Accessible) */}
+            {/* Public Canonical Content Routes (Crawleable & Accessible when Section Visibility is ON) */}
             <Route path="/" element={<Landing />} />
             <Route path="/home" element={<Navigate to="/" replace />} />
-            <Route path="/stories" element={<Stories />} />
-            <Route path="/stories/:id" element={<StoryDetail />} />
-            <Route path="/resources" element={<Resources />} />
-            <Route path="/achievements" element={<Achievements />} />
-            <Route path="/achievements/:id" element={<AchievementDetail />} />
+            <Route path="/stories" element={
+              <SectionRouteGuard section="stories">
+                <Stories />
+              </SectionRouteGuard>
+            } />
+            <Route path="/stories/:id" element={
+              <SectionRouteGuard section="stories">
+                <StoryDetail />
+              </SectionRouteGuard>
+            } />
+            <Route path="/resources" element={
+              <SectionRouteGuard section="resources">
+                <Resources />
+              </SectionRouteGuard>
+            } />
+            <Route path="/achievements" element={
+              <SectionRouteGuard section="achievements">
+                <Achievements />
+              </SectionRouteGuard>
+            } />
+            <Route path="/achievements/:id" element={
+              <SectionRouteGuard section="achievements">
+                <AchievementDetail />
+              </SectionRouteGuard>
+            } />
 
             {/* Authenticated Administrative & Management Routes */}
             <Route path="/admin" element={
@@ -374,10 +421,12 @@ export default function App() {
   return (
     <Router>
       <ErrorBoundary>
-        <UploadProvider>
-          <SplashIntro />
-          <AppLayout />
-        </UploadProvider>
+        <VisibilityProvider>
+          <UploadProvider>
+            <SplashIntro />
+            <AppLayout />
+          </UploadProvider>
+        </VisibilityProvider>
       </ErrorBoundary>
     </Router>
   );

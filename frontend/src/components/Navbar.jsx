@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail, MessageSquare } from 'lucide-react';
 import { requestProfileEdit, updateUser, logoutUser, getStories, getResources, getFolders, getAchievements } from '../utils/db';
 import { prefetchData } from '../hooks/useCachedData';
+import { useVisibility } from '../context/VisibilityContext';
 import FeedbackModal from './FeedbackModal';
 
 // Preset palette colors for the user name badge
@@ -43,10 +44,12 @@ const getRandomUserColor = (seed = '') => {
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { visibility } = useVisibility();
   const [user, setUser] = useState(() => {
     const currentUser = localStorage.getItem('loop_current_user');
     return currentUser ? JSON.parse(currentUser) : null;
   });
+  const isAdmin = Boolean(user?.isAdmin || user?.role === 'Administrator' || user?.role === 'Admin');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -355,54 +358,60 @@ export default function Navbar() {
               transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
               zIndex: 2
             }}>
-              <Link
-                to="/stories"
-                onMouseEnter={() => {
-                  import('../pages/Stories');
-                  prefetchData('stories', getStories);
-                }}
-                style={{
-                  color: isActive('/stories') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  position: 'relative',
-                  transition: 'color 0.2s ease'
-                }}
-              >
-                Stories
-                {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
-              </Link>
+              {(visibility.stories || isAdmin) && (
+                <Link
+                  to="/stories"
+                  onMouseEnter={() => {
+                    import('../pages/Stories');
+                    prefetchData('stories', getStories);
+                  }}
+                  style={{
+                    color: isActive('/stories') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    position: 'relative',
+                    transition: 'color 0.2s ease'
+                  }}
+                >
+                  Stories
+                  {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                </Link>
+              )}
 
-              <Link
-                to="/resources"
-                onMouseEnter={() => {
-                  import('../pages/Resources');
-                  prefetchData('resources', getResources);
-                  prefetchData('folders', getFolders);
-                }}
-                style={{
-                  color: isActive('/resources') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  position: 'relative',
-                  transition: 'color 0.2s ease'
-                }}
-              >
-                Resources
-                {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
-              </Link>
+              {(visibility.resources || isAdmin) && (
+                <Link
+                  to="/resources"
+                  onMouseEnter={() => {
+                    import('../pages/Resources');
+                    prefetchData('resources', getResources);
+                    prefetchData('folders', getFolders);
+                  }}
+                  style={{
+                    color: isActive('/resources') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    position: 'relative',
+                    transition: 'color 0.2s ease'
+                  }}
+                >
+                  Resources
+                  {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                </Link>
+              )}
 
-              <Link
-                to="/achievements"
-                onMouseEnter={() => {
-                  import('../pages/Achievements');
-                  prefetchData('achievements', getAchievements);
-                }}
-                style={{
-                  color: isActive('/achievements') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  position: 'relative',
-                  transition: 'color 0.2s ease'
-                }}
-              >
-                Achievements
-                {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
-              </Link>
+              {(visibility.achievements || isAdmin) && (
+                <Link
+                  to="/achievements"
+                  onMouseEnter={() => {
+                    import('../pages/Achievements');
+                    prefetchData('achievements', getAchievements);
+                  }}
+                  style={{
+                    color: isActive('/achievements') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    position: 'relative',
+                    transition: 'color 0.2s ease'
+                  }}
+                >
+                  Achievements
+                  {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                </Link>
+              )}
             </div>
           ) : (
             <div className="nav-col-left" style={{ display: 'flex', alignItems: 'center', zIndex: 2 }} />
@@ -610,15 +619,21 @@ export default function Navbar() {
           }}>
           {!isForgotPasswordPage && (
             <>
-              <Link to="/stories" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                Stories
-              </Link>
-              <Link to="/resources" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                Resources
-              </Link>
-              <Link to="/achievements" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                Achievements
-              </Link>
+              {(visibility.stories || isAdmin) && (
+                <Link to="/stories" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                  Stories
+                </Link>
+              )}
+              {(visibility.resources || isAdmin) && (
+                <Link to="/resources" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                  Resources
+                </Link>
+              )}
+              {(visibility.achievements || isAdmin) && (
+                <Link to="/achievements" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                  Achievements
+                </Link>
+              )}
             </>
           )}
 

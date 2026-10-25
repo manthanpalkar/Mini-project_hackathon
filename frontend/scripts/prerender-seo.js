@@ -356,7 +356,58 @@ for (const s of selectedStories) {
 
 console.log(`[PRERENDER_SEO] Loaded ${REAL_STORY_PAGES.length} privacy-safe authentic stories across top companies.`);
 
-const ALL_PAGES = [...CORE_PAGES, ...REAL_STORY_PAGES];
+// Determine section visibility (Environment variable, API endpoint, or default OFF)
+let sectionVisibility = {
+  stories: false,
+  resources: false,
+  achievements: false
+};
+
+if (process.env.SECTION_VISIBILITY) {
+  try {
+    sectionVisibility = { ...sectionVisibility, ...JSON.parse(process.env.SECTION_VISIBILITY) };
+  } catch (e) {
+    console.warn('[PRERENDER_SEO] Could not parse process.env.SECTION_VISIBILITY:', e.message);
+  }
+} else if (process.env.VITE_SECTION_STORIES || process.env.VITE_SECTION_RESOURCES || process.env.VITE_SECTION_ACHIEVEMENTS) {
+  sectionVisibility = {
+    stories: process.env.VITE_SECTION_STORIES === 'true',
+    resources: process.env.VITE_SECTION_RESOURCES === 'true',
+    achievements: process.env.VITE_SECTION_ACHIEVEMENTS === 'true'
+  };
+} else {
+  const apiUrl = process.env.VITE_API_URL || 'https://loop-qnh9.onrender.com/api';
+  try {
+    if (typeof fetch === 'function') {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${apiUrl}/settings/visibility`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const data = await res.json();
+        sectionVisibility = {
+          stories: Boolean(data.stories),
+          resources: Boolean(data.resources),
+          achievements: Boolean(data.achievements)
+        };
+        console.log('[PRERENDER_SEO] Fetched live section visibility:', sectionVisibility);
+      }
+    }
+  } catch (err) {
+    console.log('[PRERENDER_SEO] Using default section visibility (OFF):', sectionVisibility);
+  }
+}
+
+const filteredCorePages = CORE_PAGES.filter(p => {
+  if (p.route === '/stories' && !sectionVisibility.stories) return false;
+  if (p.route === '/resources' && !sectionVisibility.resources) return false;
+  if (p.route === '/achievements' && !sectionVisibility.achievements) return false;
+  return true;
+});
+
+const activeStoryPages = sectionVisibility.stories ? REAL_STORY_PAGES : [];
+
+const ALL_PAGES = [...filteredCorePages, ...activeStoryPages];
 
 function prerenderPage(page) {
   let html = templateHtml;
@@ -414,9 +465,9 @@ function prerenderPage(page) {
       <a href="/" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — Limitless Opportunities, One Platform</a>
       <nav style="display: flex; gap: 1.5rem; font-weight: 600; flex-wrap: wrap;">
         <a href="/">Home</a>
-        <a href="/stories">Stories</a>
-        <a href="/resources">Resources</a>
-        <a href="/achievements">Achievements</a>
+        ${sectionVisibility.stories ? '<a href="/stories">Stories</a>' : ''}
+        ${sectionVisibility.resources ? '<a href="/resources">Resources</a>' : ''}
+        ${sectionVisibility.achievements ? '<a href="/achievements">Achievements</a>' : ''}
         <a href="/privacy-policy">Privacy Policy</a>
         <a href="/terms">Terms</a>
         <a href="/login">Sign In</a>
@@ -430,12 +481,12 @@ function prerenderPage(page) {
       <div style="border-top: 1px solid #e5e5e5; margin-top: 2.5rem; padding-top: 1.5rem;">
         <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem;">Explore Placement Knowledge Base:</h2>
         <ul style="line-height: 2;">
-          <li><a href="/stories">Browse Engineering Placement Stories &amp; Debriefs</a></li>
-          <li><a href="/resources">Access Curated Semester Study Materials</a></li>
-          <li><a href="/achievements">View SPIT Student Accolades &amp; Milestones</a></li>
-          <li><a href="/stories/story_2026_21664150">Barclays Summer Intern Placement Experience (CSE-DS)</a></li>
-          <li><a href="/stories/story_2026_35118136">J.P. Morgan CIB Analytics Placement Experience (CSE-AIML)</a></li>
-          <li><a href="/stories/story_2026_28159237">ISS STOXX SDE Placement Experience (CE)</a></li>
+          ${sectionVisibility.stories ? '<li><a href="/stories">Browse Engineering Placement Stories &amp; Debriefs</a></li>' : ''}
+          ${sectionVisibility.resources ? '<li><a href="/resources">Access Curated Semester Study Materials</a></li>' : ''}
+          ${sectionVisibility.achievements ? '<li><a href="/achievements">View SPIT Student Accolades &amp; Milestones</a></li>' : ''}
+          ${sectionVisibility.stories ? '<li><a href="/stories/story_2026_21664150">Barclays Summer Intern Placement Experience (CSE-DS)</a></li>' : ''}
+          ${sectionVisibility.stories ? '<li><a href="/stories/story_2026_35118136">J.P. Morgan CIB Analytics Placement Experience (CSE-AIML)</a></li>' : ''}
+          ${sectionVisibility.stories ? '<li><a href="/stories/story_2026_28159237">ISS STOXX SDE Placement Experience (CE)</a></li>' : ''}
           <li><a href="/login">Student Account Login &amp; Portal Access</a></li>
         </ul>
       </div>

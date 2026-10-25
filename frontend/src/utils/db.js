@@ -1756,4 +1756,28 @@ export const getAdminUserActivitySummary = async (userId) => {
   return await res.json();
 };
 
+export const getSectionVisibility = async () => {
+  try {
+    const res = await fetch(`${API_URL}/settings/visibility`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('[DB] Failed to fetch section visibility, defaulting to false:', err.message);
+    return { stories: false, resources: false, achievements: false };
+  }
+};
 
+export const updateSectionVisibility = async (visibility) => {
+  const res = await authFetch(`${API_URL}/admin/settings/visibility`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(visibility)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to update section visibility settings.');
+  }
+  return await res.json();
+};

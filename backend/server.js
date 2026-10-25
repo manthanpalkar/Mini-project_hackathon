@@ -19,7 +19,7 @@ const crypto = require('crypto');
 const compression = require('compression');
 const { Readable } = require('stream');
 const multer = require('multer');
-const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession, PasswordResetChallenge, UserSession, Feedback, ActivityLog } = require('./models');
+const { User, Story, Resource, Achievement, Folder, PendingStory, PendingResource, UploadSession, PasswordResetChallenge, UserSession, Feedback, ActivityLog, SystemSetting } = require('./models');
 const StorageService = require('./services/storageService');
 const { ensureSystemFolders } = require('./scripts/initSystemFolders');
 const { verifyGoogleToken, isSpitDomain, RESTRICTED_MESSAGE } = require('./services/googleAuth');
@@ -828,6 +828,39 @@ function requireOnboarded(req, res, next) {
   next();
 }
 
+// =========================================================================
+// GLOBAL PUBLIC SECTION VISIBILITY CONTROLS
+// Stories, Resources, and Achievements toggles default to OFF (false)
+// =========================================================================
+const DEFAULT_SECTION_VISIBILITY = Object.freeze({
+  stories: false,
+  resources: false,
+  achievements: false
+});
+
+async function getSectionVisibility() {
+  try {
+    const cacheKey = cacheService.makeKey('settings', 'section_visibility');
+    return await cacheService.getOrSet(cacheKey, async () => {
+      if (mongoose.connection.readyState !== 1) {
+        return { ...DEFAULT_SECTION_VISIBILITY };
+      }
+      const setting = await SystemSetting.findOne({ key: 'section_visibility' }).lean();
+      if (!setting || !setting.value || typeof setting.value !== 'object') {
+        return { ...DEFAULT_SECTION_VISIBILITY };
+      }
+      return {
+        stories: Boolean(setting.value.stories),
+        resources: Boolean(setting.value.resources),
+        achievements: Boolean(setting.value.achievements)
+      };
+    }, 60);
+  } catch (err) {
+    console.warn('[SETTINGS_WARN] Could not retrieve section visibility:', err.message);
+    return { ...DEFAULT_SECTION_VISIBILITY };
+  }
+}
+
 
 // Database connection
 const primaryUri = process.env.MONGODB_URI;
@@ -999,30 +1032,35 @@ app.get(['/sitemap.xml', '/api/sitemap.xml'], async (req, res) => {
     const cacheKey = cacheService.makeKey('seo', 'sitemap_xml');
     const xml = await cacheService.getOrSet(cacheKey, async () => {
       const baseUrl = 'https://loop-seven-delta.vercel.app';
+      const visibility = await getSectionVisibility();
       const staticPages = [
         { path: '/', priority: '1.0', changefreq: 'daily' },
         { path: '/home', priority: '0.9', changefreq: 'daily' },
-        { path: '/stories', priority: '0.9', changefreq: 'daily' },
-        { path: '/resources', priority: '0.8', changefreq: 'weekly' },
-        { path: '/achievements', priority: '0.7', changefreq: 'weekly' },
+        ...(visibility.stories ? [{ path: '/stories', priority: '0.9', changefreq: 'daily' }] : []),
+        ...(visibility.resources ? [{ path: '/resources', priority: '0.8', changefreq: 'weekly' }] : []),
+        ...(visibility.achievements ? [{ path: '/achievements', priority: '0.7', changefreq: 'weekly' }] : []),
         { path: '/privacy-policy', priority: '0.3', changefreq: 'monthly' },
         { path: '/terms', priority: '0.3', changefreq: 'monthly' }
       ];
 
-      // Query approved stories from MongoDB Atlas
+      // Query approved stories from MongoDB Atlas only if stories section is enabled
       let stories = [];
-      try {
-        stories = await Story.find({}).select('id updatedAt createdAt').lean();
-      } catch (e) {
-        console.warn('[SITEMAP_WARN] Could not fetch stories for sitemap:', e.message);
+      if (visibility.stories) {
+        try {
+          stories = await Story.find({}).select('id updatedAt createdAt').lean();
+        } catch (e) {
+          console.warn('[SITEMAP_WARN] Could not fetch stories for sitemap:', e.message);
+        }
       }
 
-      // Query approved achievements
+      // Query approved achievements only if achievements section is enabled
       let achievements = [];
-      try {
-        achievements = await Achievement.find({}).select('id updatedAt createdAt').lean();
-      } catch (e) {
-        console.warn('[SITEMAP_WARN] Could not fetch achievements for sitemap:', e.message);
+      if (visibility.achievements) {
+        try {
+          achievements = await Achievement.find({}).select('id updatedAt createdAt').lean();
+        } catch (e) {
+          console.warn('[SITEMAP_WARN] Could not fetch achievements for sitemap:', e.message);
+        }
       }
 
       let entries = '';
@@ -2997,6 +3035,13 @@ function validateStoryFiles(payload) {
 // 3. Stories
 app.get('/api/stories', optionalAuthenticateToken, async (req, res) => {
   try {
+    if (!isUserAdmin(req.user)) {
+      const visibility = await getSectionVisibility();
+      if (!visibility.stories) {
+        return res.status(404).json({ error: 'Stories section is currently unavailable', code: 'SECTION_DISABLED' });
+      }
+    }
+
     const { isPaginated, page, limit, skip } = getPaginationParams(req.query, 20, 100);
 
     if (isPaginated) {
@@ -3066,6 +3111,13 @@ app.get(['/api/stories/:id', '/api/pending-stories/:id'], optionalAuthenticateTo
 
     if (!story) {
       return res.status(404).json({ error: 'Story not found.' });
+    }
+
+    if (!isPendingRoute && story.status !== 'pending' && !isUserAdmin(req.user)) {
+      const visibility = await getSectionVisibility();
+      if (!visibility.stories) {
+        return res.status(404).json({ error: 'Stories section is currently unavailable', code: 'SECTION_DISABLED' });
+      }
     }
 
     if (story.status === 'pending' || isPendingRoute) {
@@ -3383,6 +3435,64 @@ app.get('/api/admin/resources-stats', authenticateToken, requireAdmin, async (re
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// =========================================================================
+// SECTION VISIBILITY CONTROLS API
+// Public fetch & Admin update with audit logging and cache invalidation
+// =========================================================================
+
+// Public endpoint to retrieve current global section visibility
+app.get('/api/settings/visibility', optionalAuthenticateToken, async (req, res) => {
+  try {
+    const visibility = await getSectionVisibility();
+    res.json(visibility);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve visibility settings: ' + err.message });
+  }
+});
+
+// Admin-only endpoint to update section visibility toggles
+app.put('/api/admin/settings/visibility', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { stories, resources, achievements } = req.body || {};
+    if (typeof stories !== 'boolean' || typeof resources !== 'boolean' || typeof achievements !== 'boolean') {
+      return res.status(400).json({
+        error: 'Invalid input. stories, resources, and achievements must all be boolean values.'
+      });
+    }
+
+    const updated = await SystemSetting.findOneAndUpdate(
+      { key: 'section_visibility' },
+      { key: 'section_visibility', value: { stories, resources, achievements } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // Invalidate cached visibility & sitemap
+    await cacheService.del(cacheService.makeKey('settings', 'section_visibility')).catch(() => {});
+    await cacheService.del(cacheService.makeKey('seo', 'sitemap_xml')).catch(() => {});
+
+    activityService.logActivity({
+      eventType: 'ADMIN_SETTING_UPDATE',
+      category: 'ADMIN',
+      actorEmail: req.user.email,
+      actorRole: req.user.role || 'Administrator',
+      summary: `Updated section visibility: Stories=${stories ? 'ON' : 'OFF'}, Resources=${resources ? 'ON' : 'OFF'}, Achievements=${achievements ? 'ON' : 'OFF'}`,
+      metadata: { stories, resources, achievements }
+    });
+
+    res.json({
+      message: 'Public section visibility updated successfully',
+      visibility: {
+        stories: Boolean(updated.value.stories),
+        resources: Boolean(updated.value.resources),
+        achievements: Boolean(updated.value.achievements)
+      }
+    });
+  } catch (err) {
+    console.error('[SETTINGS_UPDATE_ERROR]', err);
+    res.status(500).json({ error: 'Failed to update visibility settings: ' + err.message });
   }
 });
 
@@ -4075,6 +4185,16 @@ app.delete('/api/pending-resources/upload/:uploadId', authenticateToken, require
 // List Resources with folder privacy & permission checks
 app.get('/api/resources', optionalAuthenticateToken, async (req, res) => {
   try {
+    if (!isUserAdmin(req.user)) {
+      const sectionVisibility = await getSectionVisibility();
+      if (!sectionVisibility.resources) {
+        return res.status(404).json({
+          error: 'Resources section is currently unavailable',
+          code: 'SECTION_DISABLED'
+        });
+      }
+    }
+
     const { folderId, search, type, visibility } = req.query;
     const isAdmin = isUserAdmin(req.user);
     const userEmail = req.user ? req.user.email : null;
@@ -4207,6 +4327,13 @@ app.get(['/api/resources/:id', '/api/pending-resources/:id'], optionalAuthentica
       return res.status(req.user ? 403 : 401).json({ error: 'Access denied to pending resource.' });
     }
 
+    if (!isPendingDoc && !isAdmin) {
+      const sectionVisibility = await getSectionVisibility();
+      if (!sectionVisibility.resources) {
+        return res.status(404).json({ error: 'Resources section is currently unavailable', code: 'SECTION_DISABLED' });
+      }
+    }
+
     if (folder && folder.visibility === 'private') {
       const isFolderOwner = req.user && (folder.ownerEmail === req.user.email || (folder.ownerId && String(folder.ownerId) === String(req.user.id)));
       if (!req.user || (!isFolderOwner && !isUploader && !isAdmin)) {
@@ -4275,6 +4402,13 @@ app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenti
         return res.status(403).json({ error: 'Access denied to pending story file.' });
       }
 
+      if (!isStoryPending && !isAdmin) {
+        const visibility = await getSectionVisibility();
+        if (!visibility.stories) {
+          return res.status(404).json({ error: 'Stories section is currently unavailable', code: 'SECTION_DISABLED' });
+        }
+      }
+
       // Stream story resume or study material from GridFS
       if (parentStory.resumeFile && (parentStory.resumeFile.gridFsFileId || parentStory.resumeFile.storageKey)) {
         const gfsKey = parentStory.resumeFile.gridFsFileId ? `gridfs:${parentStory.resumeFile.gridFsFileId}` : parentStory.resumeFile.storageKey;
@@ -4311,6 +4445,13 @@ app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenti
     const isPendingDoc = resource.status === 'pending';
     if (isPendingDoc && !isAdmin && !isUploader) {
       return res.status(403).json({ error: 'Access denied to pending resource file.' });
+    }
+
+    if (!isPendingDoc && !isAdmin) {
+      const visibility = await getSectionVisibility();
+      if (!visibility.resources) {
+        return res.status(404).json({ error: 'Resources section is currently unavailable', code: 'SECTION_DISABLED' });
+      }
     }
 
     if (folder && folder.visibility === 'private') {
@@ -4379,6 +4520,12 @@ app.get(['/api/resources/:id/file', '/api/pending-resources/:id/file'], authenti
 
 // Backward-compatible redirect for download-url
 app.get('/api/resources/:id/download-url', authenticateToken, requireOnboarded, async (req, res) => {
+  if (!isUserAdmin(req.user)) {
+    const visibility = await getSectionVisibility();
+    if (!visibility.resources) {
+      return res.status(404).json({ error: 'Resources section is currently unavailable', code: 'SECTION_DISABLED' });
+    }
+  }
   res.json({ url: `/api/resources/${req.params.id}/file`, provider: 'gridfs' });
 });
 
@@ -5333,6 +5480,16 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
 // 7. Achievements
 app.get('/api/achievements', optionalAuthenticateToken, async (req, res) => {
   try {
+    if (!isUserAdmin(req.user)) {
+      const visibility = await getSectionVisibility();
+      if (!visibility.achievements) {
+        return res.status(404).json({
+          error: 'Achievements section is currently unavailable',
+          code: 'SECTION_DISABLED'
+        });
+      }
+    }
+
     const cacheKey = cacheService.makeKey('achievements:list');
     const achievements = await cacheService.getOrSet(cacheKey, async () => {
       return await Achievement.find({}).sort({ createdAt: -1, _id: -1 }).lean();
@@ -6141,5 +6298,7 @@ module.exports = {
   JWT_SECRET,
   handleUploadFinalize,
   safeDeleteGridFSFileIfOrphaned,
-  RESUME_MAX_FILE_SIZE_BYTES
+  RESUME_MAX_FILE_SIZE_BYTES,
+  getSectionVisibility,
+  DEFAULT_SECTION_VISIBILITY
 };

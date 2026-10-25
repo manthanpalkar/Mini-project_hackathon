@@ -435,6 +435,7 @@ const ActivityLogSchema = new mongoose.Schema({
       'USER_DELETE',
       'ADMIN_ACTION',
       'ADMIN_APPROVE_RESOURCE',
+      'ADMIN_SETTING_UPDATE',
       'SECURITY_WARN'
     ],
     index: true
@@ -464,6 +465,12 @@ ActivityLogSchema.index({ eventType: 1, createdAt: -1 });
 ActivityLogSchema.index({ createdAt: -1 });
 ActivityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600 }); // 90-day retention
 
+// Persistent Global System Settings Schema (Visibility, Global Toggles, Feature Flags)
+const SystemSettingSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true, index: true, trim: true },
+  value: { type: mongoose.Schema.Types.Mixed, required: true }
+}, { timestamps: true });
+
 module.exports = {
   User: mongoose.model('User', UserSchema),
   Story: mongoose.model('Story', StorySchema),
@@ -476,5 +483,6 @@ module.exports = {
   PasswordResetChallenge: mongoose.model('PasswordResetChallenge', PasswordResetChallengeSchema),
   UserSession: mongoose.model('UserSession', UserSessionSchema),
   Feedback: mongoose.model('Feedback', FeedbackSchema),
-  ActivityLog: mongoose.model('ActivityLog', ActivityLogSchema)
+  ActivityLog: mongoose.model('ActivityLog', ActivityLogSchema),
+  SystemSetting: mongoose.model('SystemSetting', SystemSettingSchema)
 };
