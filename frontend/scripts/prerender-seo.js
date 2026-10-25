@@ -38,7 +38,7 @@ const CORE_PAGES = [
   {
     route: '/',
     title: 'LOOP SPIT | SPIT Mumbai Placement Stories & Resources',
-    description: 'LOOP is a student-led platform for SPIT Mumbai students featuring placement experiences, company-wise interview stories, interview preparation resources, and career guidance.',
+    description: 'Explore LOOP SPIT, a student-led platform for SPIT Mumbai students featuring placement experiences, interview preparation guidance, and career resources.',
     h1: 'Placement Stories & Career Resources',
     paragraphs: [
       'Welcome to LOOP SPIT, the independent student-led placement portal and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the guiding ethos "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni to document verified recruitment experiences and foster peer mentorship across engineering disciplines.',
@@ -58,7 +58,7 @@ const CORE_PAGES = [
         'SPIT Placement Portal'
       ],
       url: `${BASE_URL}/`,
-      description: 'LOOP is a student-led platform for SPIT Mumbai students featuring placement experiences, company-wise interview stories, interview preparation resources, and career guidance.',
+      description: 'Explore LOOP SPIT, a student-led platform for SPIT Mumbai students featuring placement experiences, interview preparation guidance, and career resources.',
       publisher: {
         '@type': 'Organization',
         name: 'LOOP — Limitless Opportunities, One Platform',
@@ -314,6 +314,235 @@ if (process.env.SECTION_VISIBILITY) {
 // and must NOT be leaked into public static pre-rendered HTML or public sitemaps.
 const ALL_PAGES = [...CORE_PAGES];
 
+function getRenderedShell(page) {
+  if (page.route === '/' || page.route === '') {
+    return `
+    <header class="navbar" style="background: transparent; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(10, 14, 23, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+      <div style="flex: 1; display: flex; align-items: center;"></div>
+      <a href="/" style="position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: #ffffff; font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em;">
+        <img src="/loop-logo.png" alt="LOOP Logo" style="height: 26px; width: auto; filter: invert(1); margin-right: 0.2rem;" />
+        <span>Loop</span>
+        <span style="font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.3); letter-spacing: 0.05em; color: #ffffff;">SPIT</span>
+      </a>
+      <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
+        <a href="/login" class="btn btn-primary" style="padding: 0.45rem 1.15rem; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 20px; font-size: 0.82rem; font-weight: 700;">Login</a>
+      </div>
+    </header>
+
+    <main>
+      <!-- Hero Section -->
+      <section style="min-height: 85vh; width: 100%; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)), url('/images/spit-college.jpg'); background-size: cover; background-position: center; color: #ffffff; text-align: center; padding: 6rem 1.5rem 3rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+        <div style="max-width: 840px; z-index: 2; margin: 0 auto;">
+          <div style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.45rem 1.15rem; border-radius: 9999px; background-color: rgba(255, 255, 255, 0.12); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.28); font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; color: #ffffff; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+            <span style="letter-spacing: 0.12em;">LOOP</span>
+            <span style="opacity: 0.6;">•</span>
+            <span style="font-weight: 500; text-transform: none; letter-spacing: 0.02em;">Limitless Opportunities, One Platform</span>
+          </div>
+          <h1 style="font-size: calc(2.1rem + 1.6vw); font-family: var(--font-serif); font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 1.25rem; color: #ffffff; text-shadow: 0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9);">
+            Placement Stories &amp; Career Resources
+          </h1>
+          <p style="font-size: 1.15rem; color: rgba(255, 255, 255, 0.92); text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7); margin-bottom: 3rem; max-width: 680px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+            Their Journey. Your Opportunity. LOOP SPIT is an independent student-led placement platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Connecting juniors, seniors, and alumni to share authentic round-by-round interview debriefs, coding test patterns, and career preparation resources.
+          </p>
+          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/login" class="btn btn-primary" style="padding: 1rem 2.2rem; font-size: 1rem; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 30px; font-weight: 600; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);">Browse Stories</a>
+            <a href="/login" class="btn" style="padding: 1rem 2.2rem; font-size: 1rem; background-color: rgba(255, 255, 255, 0.15); color: #ffffff; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 30px; font-weight: 600; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">Explore Resources</a>
+          </div>
+        </div>
+        <a href="#philosophy-section" style="position: absolute; bottom: 2rem; background: transparent; border: none; color: rgba(255, 255, 255, 0.6); text-decoration: none; font-size: 1.5rem; z-index: 2;">↓</a>
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 120px; background: linear-gradient(transparent, var(--bg-primary)); pointer-events: none;"></div>
+      </section>
+
+      <!-- Section 3: Loop Labs (Philosophy & study resources) -->
+      <section id="philosophy-section" style="position: relative; min-height: 600px; border-bottom: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; padding: 5rem 1.5rem; background-color: var(--bg-primary);">
+        <div class="container grid-2col" style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;">
+          <div>
+            <img src="/images/loop-labs.png" alt="Students collaborating at SPIT" style="width: 100%; height: 520px; object-fit: cover; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);" />
+          </div>
+          <div>
+            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">Loop Labs</span>
+            <h2 style="font-size: calc(1.8rem + 1vw); font-family: var(--font-serif); font-weight: 500; line-height: 1.25; margin-bottom: 1.5rem; color: var(--text-primary);">The Catalyst</h2>
+            <p style="font-size: 1.05rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 2rem;">Bypass the disorganized WhatsApp groups. Get instant access to the complete stack—from raw lecture notes, class PPTs, and standard textbooks to clear your semester exams, to the exact placement materials you need to secure a Dream Offer.</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+              <div>
+                <h4 style="font-size: 2rem; font-weight: 800; font-family: var(--font-display); margin-bottom: 0.25rem; color: var(--text-primary);">95%</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">Senior feedback participation rate</p>
+              </div>
+              <div>
+                <h4 style="font-size: 2rem; font-weight: 800; font-family: var(--font-display); margin-bottom: 0.25rem; color: var(--text-primary);">200+</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">Verified SPIT roadmaps &amp; sheets</p>
+              </div>
+            </div>
+            <a href="/login" class="btn btn-secondary" style="display: inline-block; padding: 0.75rem 1.6rem; border-radius: 30px; font-weight: 600; text-decoration: none;">Explore Resources</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3B: Placements & Partnerships -->
+      <section style="padding: 6rem 1.5rem 0 1.5rem; background-color: #ffffff;">
+        <div class="container" style="max-width: 1100px; margin: 0 auto;">
+          <div class="placement-header-grid">
+            <div style="text-align: left;">
+              <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">Placements &amp; Partnerships</span>
+              <h2 style="font-size: calc(1.8rem + 1vw); font-family: var(--font-serif); font-weight: 500; color: #111; margin-bottom: 2rem; line-height: 1.25;">Placements &amp; Partnerships</h2>
+              <div class="sub-blocks-grid">
+                <div>
+                  <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; color: #111;">Placement Track Record</h3>
+                  <p style="font-size: 0.95rem; color: #666; line-height: 1.6; margin: 0;">The Numbers Don't Lie. Get familiar with the SPIT standard. From a solid ₹15.14 LPA campus average to the elite ₹61.55 LPA peak packages, explore verified campus placement packages and see the exact targets you are aiming for.</p>
+                </div>
+                <div>
+                  <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; color: #111;">Top Recruiters</h3>
+                  <p style="font-size: 0.95rem; color: #666; line-height: 1.6; margin: 0;">The Tier-1 Roster. Microsoft, Morgan Stanley, Barclays, and more. See the exact tech giants and financial heavyweights that actively partner with SPIT to hunt for top-tier engineering talent.</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <img src="/images/tpo-team-placement.jpg" alt="SPIT Training &amp; Placement Team" style="width: 100%; height: 340px; object-fit: cover; border-radius: 20px;" />
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: center; margin-bottom: 2.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+            <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); padding: 0.6rem 1.2rem; position: relative;">
+              Placement Performance
+              <div style="position: absolute; bottom: -17px; left: 0; right: 0; height: 3px; background-color: #8A2BE2; border-radius: 2px;"></div>
+            </span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; width: 100%; max-width: 1100px; margin: 0 auto; padding: 1.5rem 0; align-items: stretch; background-color: #ffffff;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+              <img src="/images/chart-placement-percentage.png" alt="Placement Statistics — Placement Percentage" style="width: 100%; max-width: 520px; height: auto; display: block;" />
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+              <img src="/images/chart-average-ctc.png" alt="Placement Statistics — Average &amp; Median CTCs" style="width: 100%; max-width: 520px; height: auto; display: block;" />
+            </div>
+          </div>
+
+          <div style="margin-top: 5rem; border-top: 1px solid var(--border-color); padding-top: 4rem; text-align: center;">
+            <h3 style="font-size: 1.40rem; font-family: var(--font-serif); font-weight: 500; color: var(--text-primary); margin-bottom: 2.5rem; letter-spacing: 0.02em;">Our Prominent Recruiters &amp; Corporate Partners</h3>
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%; background-color: #ffffff;">
+              <img src="/images/recruiters-partners.png" alt="Our Recruiters and Partners" style="max-width: 100%; height: auto; max-height: 520px; object-fit: contain;" />
+            </div>
+          </div>
+
+          <div style="margin-top: 4.5rem; border-top: 1px solid var(--border-color); padding-top: 3.5rem; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+              <div>
+                <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #8A2BE2; display: block; margin-bottom: 0.5rem;">Authentic Senior Journeys</span>
+                <h3 style="font-size: 1.75rem; font-family: var(--font-serif); font-weight: 600; color: var(--text-primary); margin: 0;">Featured Placement Debriefs</h3>
+                <p style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.5rem; margin-bottom: 0; max-width: 680px; line-height: 1.6;">Explore authentic, round-by-round interview experiences from Sardar Patel Institute of Technology students. Each debrief details online assessments, live technical rounds, algorithmic problem-solving patterns, and actionable preparation advice across top recruiters.</p>
+              </div>
+              <a href="/login" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">View All Debriefs →</a>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; width: 100%;">
+              ${[
+                { id: 'story_2026_21664150', company: 'Barclays', role: 'Summer Intern 2025', branch: 'CSE-DS', year: '2026' },
+                { id: 'story_2026_35118136', company: 'J.P. Morgan', role: 'CIB Research & Analytics', branch: 'CSE-AIML', year: '2026' },
+                { id: 'story_2026_28159237', company: 'ISS STOXX', role: 'SDE 1', branch: 'CE', year: '2026' },
+                { id: 'story_2026_68003868', company: 'UBS', role: 'GOTO Intern', branch: 'CE', year: '2026' },
+                { id: 'story_2026_5760309', company: 'Mastercard', role: 'Software Engineer I', branch: 'CSE-DS', year: '2026' },
+                { id: 'story_2026_78234768', company: 'PhonePe', role: 'SDE', branch: 'CE', year: '2026' }
+              ].map(item => `
+                <div style="padding: 1.4rem; border-radius: 16px; border: 1px solid var(--border-color); background-color: var(--bg-surface); box-shadow: var(--card-shadow);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="background-color: rgba(138, 43, 226, 0.12); color: #8A2BE2; padding: 0.2rem 0.65rem; border-radius: 10px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;">${item.company}</span>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">Class of ${item.year}</span>
+                  </div>
+                  <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem; font-family: var(--font-sans);">${item.role}</h4>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1rem 0;">Department of ${item.branch} • SPIT Mumbai</p>
+                  <a href="/login" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--text-primary); text-decoration: none;">Read Interview Debrief →</a>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Achievements (The Hall of Fame) -->
+      <section id="achievements-section" class="achievements-section-bg">
+        <div class="achievements-bg-image"></div>
+        <div class="achievements-overlay"></div>
+        <div class="container" style="position: relative; z-index: 2; display: flex; justify-content: flex-end; width: 100%; max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem;">
+          <div style="width: 100%; max-width: 520px; color: #ffffff; text-align: left;">
+            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #c084fc; margin-bottom: 1rem; display: block;">Achievements &amp; Milestones</span>
+            <h2 style="font-size: calc(2.2rem + 1vw); font-family: var(--font-serif); font-weight: 500; line-height: 1.25; color: #ffffff; letter-spacing: -0.01em; margin-bottom: 1.5rem;">The Hall of Fame</h2>
+            <p style="font-size: 1.15rem; line-height: 1.75; color: rgba(255, 255, 255, 0.85); margin-bottom: 2rem;">We don't just participate; we dominate. Explore the ultimate track record of student achievements at SPIT. View the exact milestones set by the top 1% of the campus—and learn what it takes to leave your own mark.</p>
+            <a href="/login" class="btn" style="padding: 0.85rem 2rem; border-radius: 30px; font-weight: 600; background-color: #ffffff; color: #000000; text-decoration: none; display: inline-block;">Explore Achievements</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: Contribute / Photo Stack -->
+      <section style="padding: 8rem 1.5rem 10rem 1.5rem; background-color: var(--bg-primary);">
+        <div class="container grid-2col" style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;">
+          <div>
+            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">CONTRIBUTE TO LOOP</span>
+            <h2 style="font-size: calc(2rem + 1vw); font-family: var(--font-serif); font-weight: 500; line-height: 1.2; margin-bottom: 1.5rem; color: var(--text-primary);">Let's build together.</h2>
+            <p style="font-size: 1.1rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 2.5rem;">Contribute to a continuous cycle of knowledge sharing. LOOP connects college juniors, seniors, and alumni: today's juniors become tomorrow's seniors, who then guide the next generation. We welcome seniors and alumni to document their placement journeys, interview rounds, and study resources.</p>
+            <a href="/login" class="btn btn-secondary" style="padding: 0.9rem 2rem; border-radius: 30px; font-weight: 600; text-decoration: none; display: inline-block;">Share Your Journey</a>
+          </div>
+          <div style="position: relative; height: 350px; width: 100%; display: flex; justify-content: center; align-items: center;" class="photo-stack-container">
+            <div class="stack-photo" style="position: absolute; left: 10%; width: 160px; height: 240px; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.4); transform: rotate(-4deg);"><img src="/images/file-1.jpg" alt="Students studying" style="width: 100%; height: 100%; object-fit: cover;" /></div>
+            <div class="stack-photo" style="position: absolute; width: 180px; height: 260px; border-radius: 20px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.5); transform: rotate(2deg); z-index: 2;"><img src="/images/file-2.jpg" alt="Working at a table" style="width: 100%; height: 100%; object-fit: cover;" /></div>
+            <div class="stack-photo" style="position: absolute; right: 10%; width: 160px; height: 240px; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.4); transform: rotate(-2deg);"><img src="/images/file-3.jpg" alt="Student presenting code" style="width: 100%; height: 100%; object-fit: cover;" /></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer style="border-top: 1px solid var(--border-color); padding: 3rem 1.5rem; background-color: var(--bg-secondary); text-align: center;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">LOOP — Limitless Opportunities, One Platform</div>
+          <div style="display: flex; gap: 1.5rem; font-size: 0.85rem;">
+            <a href="/privacy-policy" style="color: var(--text-secondary); text-decoration: none;">Privacy Policy</a>
+            <a href="/terms" style="color: var(--text-secondary); text-decoration: none;">Terms of Use</a>
+            <a href="/login" style="color: var(--text-secondary); text-decoration: none;">Sign In</a>
+          </div>
+        </div>
+      </footer>
+    </main>
+    `;
+  }
+
+  // Legal & documentation pages shell
+  const renderedParagraphs = (page.paragraphs || [])
+    .map(p => `<p style="font-size: 1.05rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 1.25rem;">${p}</p>`)
+    .join('\n');
+
+  return `
+    <header class="navbar" style="background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+      <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--text-primary); font-weight: 800; font-size: 1.35rem;">
+        <img src="/loop-logo.png" alt="LOOP Logo" style="height: 26px; width: auto; filter: var(--logo-filter); margin-right: 0.2rem;" />
+        <span>Loop</span>
+        <span style="font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; border: 1px solid var(--border-color); letter-spacing: 0.05em;">SPIT</span>
+      </a>
+      <nav style="display: flex; gap: 1.5rem; font-weight: 600; align-items: center;">
+        <a href="/" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;">Home</a>
+        <a href="/login" class="btn btn-primary" style="padding: 0.45rem 1.15rem; background-color: var(--text-primary); color: var(--accent-inverse); text-decoration: none; border-radius: 20px; font-size: 0.82rem; font-weight: 700;">Login</a>
+      </nav>
+    </header>
+    <main style="max-width: 900px; margin: 3rem auto; padding: 0 1.5rem; font-family: var(--font-sans);">
+      <h1 style="font-size: 2.3rem; font-weight: 800; line-height: 1.25; margin-bottom: 1.5rem; color: var(--text-primary);">${page.h1}</h1>
+      <article>
+        ${renderedParagraphs}
+      </article>
+      <div style="border-top: 1px solid var(--border-color); margin-top: 2.5rem; padding-top: 1.5rem;">
+        <a href="/login" class="btn btn-primary" style="display: inline-block; padding: 0.9rem 2.2rem; background-color: var(--text-primary); color: var(--accent-inverse); text-decoration: none; border-radius: 30px; font-weight: 600; font-size: 1rem;">Login to Continue →</a>
+      </div>
+    </main>
+    <footer style="border-top: 1px solid var(--border-color); padding: 3rem 1.5rem; background-color: var(--bg-secondary); text-align: center; margin-top: 4rem;">
+      <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">LOOP — Limitless Opportunities, One Platform</div>
+        <div style="display: flex; gap: 1.5rem; font-size: 0.85rem;">
+          <a href="/privacy-policy" style="color: var(--text-secondary); text-decoration: none;">Privacy Policy</a>
+          <a href="/terms" style="color: var(--text-secondary); text-decoration: none;">Terms of Use</a>
+          <a href="/login" style="color: var(--text-secondary); text-decoration: none;">Sign In</a>
+        </div>
+      </div>
+    </footer>
+  `;
+}
+
 function prerenderPage(page) {
   let html = templateHtml;
   const canonicalUrl = page.route === '/' ? `${BASE_URL}/` : `${BASE_URL}${page.route}`;
@@ -361,27 +590,7 @@ function prerenderPage(page) {
   }
 
   // 6. Pre-render clean semantic content inside #root
-  const renderedParagraphs = (page.paragraphs || [])
-    .map(p => `<p style="font-size: 1.05rem; line-height: 1.7; color: #444; margin-bottom: 1.25rem;">${p}</p>`)
-    .join('\n');
-
-  const semanticShell = `
-    <header style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
-      <a href="/" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — SPIT Mumbai</a>
-      <nav style="display: flex; gap: 1.5rem; font-weight: 600; flex-wrap: wrap;">
-        <a href="/login" style="padding: 0.45rem 1.1rem; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">Login</a>
-      </nav>
-    </header>
-    <main style="max-width: 900px; margin: 3rem auto; padding: 0 1.5rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-      <h1 style="font-size: 2.3rem; font-weight: 800; line-height: 1.25; margin-bottom: 1.5rem; color: #111;">${page.h1}</h1>
-      <article>
-        ${renderedParagraphs}
-      </article>
-      <div style="border-top: 1px solid #e5e5e5; margin-top: 2.5rem; padding-top: 1.5rem;">
-        <a href="/login" style="display: inline-block; padding: 0.9rem 2.2rem; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 30px; font-weight: 600; font-size: 1rem;">Login to Continue →</a>
-      </div>
-    </main>
-  `;
+  const semanticShell = getRenderedShell(page);
 
   // Robust replacement of #root contents
   html = html.replace(/<div id="root">[\s\S]*?<\/div>(?=\s*(?:<script|<\/body>))/i, `<div id="root">${semanticShell}</div>`);

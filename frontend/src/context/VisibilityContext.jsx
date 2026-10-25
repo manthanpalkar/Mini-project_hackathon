@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { getSectionVisibility, updateSectionVisibility as apiUpdateSectionVisibility } from '../utils/db';
 
 const DEFAULT_VISIBILITY = Object.freeze({
-  stories: false,
-  resources: false,
-  achievements: false
+  stories: true,
+  resources: true,
+  achievements: true
 });
 
 const VisibilityContext = createContext({
