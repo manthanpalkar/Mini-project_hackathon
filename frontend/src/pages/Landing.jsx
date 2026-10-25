@@ -228,21 +228,27 @@ export default function Landing() {
   return (
     <div className="animate-fade-in" style={{ backgroundColor: 'var(--bg-primary)', overflowX: 'hidden' }}>
       <SEOHead
-        title={`${BRAND.fullName} | ${BRAND.collegeShort}`}
-        description={`${BRAND.tagline} ${BRAND.shortDescription}`}
+        title="LOOP — SPIT Placement Experiences &amp; Interview Preparation Portal"
+        description="Explore authentic SPIT Mumbai placement experiences, round-by-round interview debriefs, and career preparation resources shared by students and alumni on LOOP."
         canonicalUrl="/"
         ogType="website"
-        keywords="LOOP, Limitless Opportunities One Platform, SPIT, Sardar Patel Institute of Technology, Placements, Interview Experiences, CTC Packages, Engineering Placements, SPIT Mumbai, DSA Prep"
+        keywords="LOOP, LOOP SPIT, LOOP placement, LOOP SPIT placement, SPIT placement interview experiences, SPIT placement experiences, SPIT placement portal, SPIT placement preparation, Sardar Patel Institute of Technology"
         structuredData={{
           '@context': 'https://schema.org',
           '@type': 'WebSite',
-          name: BRAND.fullName,
-          alternateName: `${BRAND.name} ${BRAND.collegeShort}`,
+          name: 'LOOP — Limitless Opportunities, One Platform',
+          alternateName: [
+            'LOOP',
+            'LOOP SPIT',
+            'LOOP SPIT Mumbai',
+            'LOOP Placement Portal',
+            'SPIT Placement Portal'
+          ],
           url: 'https://loop-seven-delta.vercel.app/',
-          description: BRAND.shortDescription,
+          description: 'Independent student-led placement intelligence and career-preparation portal for Sardar Patel Institute of Technology (SPIT), Mumbai.',
           publisher: {
             '@type': 'Organization',
-            name: BRAND.fullName,
+            name: 'LOOP — Limitless Opportunities, One Platform',
             url: 'https://loop-seven-delta.vercel.app/',
             logo: {
               '@type': 'ImageObject',
@@ -310,27 +316,27 @@ export default function Landing() {
           </div>
 
           <h1 style={{
-            fontSize: 'calc(2.2rem + 2vw)',
+            fontSize: 'calc(2.1rem + 1.6vw)',
             fontFamily: 'var(--font-serif)',
             fontWeight: 600,
-            lineHeight: '1.15',
+            lineHeight: '1.2',
             letterSpacing: '-0.02em',
-            marginBottom: '1.5rem',
+            marginBottom: '1.25rem',
             color: '#ffffff',
             textShadow: '0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)'
           }}>
-            {BRAND.tagline}
+            SPIT Placement Experiences &amp; Interview Preparation
           </h1>
           <p style={{
             fontSize: '1.15rem',
             color: 'rgba(255, 255, 255, 0.92)',
             textShadow: '0 2px 16px rgba(0, 0, 0, 0.7)',
             marginBottom: '3rem',
-            maxWidth: '640px',
+            maxWidth: '680px',
             margin: '0 auto 3rem auto',
             lineHeight: '1.6'
           }}>
-            {BRAND.description}
+            Their Journey. Your Opportunity. LOOP is an independent placement portal connecting Sardar Patel Institute of Technology students and alumni to share authentic round-by-round recruitment debriefs, coding test patterns, and academic resources.
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -696,6 +702,16 @@ export default function Landing() {
                 }}>
                   Featured Placement Debriefs
                 </h3>
+                <p style={{
+                  fontSize: '0.95rem',
+                  color: 'var(--text-secondary)',
+                  marginTop: '0.5rem',
+                  marginBottom: 0,
+                  maxWidth: '680px',
+                  lineHeight: '1.6'
+                }}>
+                  Explore authentic, round-by-round interview experiences from Sardar Patel Institute of Technology students. Each debrief details online assessments, live technical rounds, algorithmic problem-solving patterns, and actionable preparation advice across top recruiters.
+                </p>
               </div>
               <button
                 onClick={() => navigate('/stories')}

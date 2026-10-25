@@ -37,21 +37,28 @@ function truncateText(text, maxLen = 350) {
 const CORE_PAGES = [
   {
     route: '/',
-    title: 'LOOP — Limitless Opportunities, One Platform | SPIT Mumbai',
-    description: 'Their Journey. Your Opportunity. Connect with seniors and alumni, learn from placement experiences, and discover career opportunities with LOOP.',
-    h1: 'LOOP — Limitless Opportunities, One Platform',
+    title: 'LOOP — SPIT Placement Experiences & Interview Preparation Portal',
+    description: 'Explore authentic SPIT Mumbai placement experiences, round-by-round interview debriefs, and career preparation resources shared by students and alumni on LOOP.',
+    h1: 'SPIT Placement Experiences & Interview Preparation Portal',
     paragraphs: [
-      'Welcome to LOOP (Limitless Opportunities, One Platform), the student-led placement intelligence and career-preparation platform designed for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the core principle "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni: today\'s juniors become tomorrow\'s seniors, who then guide the next generation.',
-      'Our platform bridges the generational guidance gap between graduating cohorts and junior students. Here you will find structured, round-by-round interview debriefs detailing technical online assessments, algorithmic problem-solving patterns, core CS fundamentals (DBMS, Operating Systems, Computer Networks), system design, and human resource discussions across leading employers.',
-      'In addition to placement journeys, LOOP hosts student-contributed semester notes, formula sheets, subject roadmaps, and previous exam questions organized to accelerate academic readiness and placement success.'
+      'Welcome to LOOP (Limitless Opportunities, One Platform), the independent student-led placement portal and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the guiding ethos "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni to document verified recruitment experiences and foster peer mentorship across engineering disciplines.',
+      'LOOP hosts structured, round-by-round placement interview debriefs covering every stage of campus recruitment—from initial resume shortlisting and online assessments (OA) to live technical evaluations, algorithmic coding challenges, system design rounds, and behavioral HR interviews across top technology and financial services employers.',
+      'Each debrief captures authentic placement preparation strategies, recommended algorithmic problem sets, core computer science revision topics (DBMS, Operating Systems, Computer Networks, OOP), and candid advice from seniors on navigating recruitment hurdles.',
+      'Students can explore interview experiences filtered by company, engineering branch (CSE, CSE-DS, CSE-AIML, CE, EXTC), and graduation year, or access curated semester study materials, formula sheets, and past question papers in the academic resources repository.'
     ],
     schema: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'LOOP — Limitless Opportunities, One Platform',
-      alternateName: 'LOOP SPIT',
+      alternateName: [
+        'LOOP',
+        'LOOP SPIT',
+        'LOOP SPIT Mumbai',
+        'LOOP Placement Portal',
+        'SPIT Placement Portal'
+      ],
       url: `${BASE_URL}/`,
-      description: 'Student-led placement intelligence and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai.',
+      description: 'Independent student-led placement intelligence and career-preparation portal for Sardar Patel Institute of Technology (SPIT), Mumbai.',
       publisher: {
         '@type': 'Organization',
         name: 'LOOP — Limitless Opportunities, One Platform',
