@@ -7,30 +7,16 @@ LOOP (Limitless Opportunities, One Platform) is an independent, student-led plac
 Built around the guiding ethos "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni: today's juniors become tomorrow's seniors, who then guide the next generation.
 The platform hosts structured, round-by-round interview debriefs detailing technical online assessments, algorithmic problem-solving patterns, core CS fundamentals (DBMS, Operating Systems, Computer Networks), system design, and behavioral interviews across leading engineering and technology employers.
 
-## Core Sections
-- [Placement Stories & Interview Debriefs](https://loop-seven-delta.vercel.app/stories): Real, round-by-round hiring experiences across top technology and financial firms.
-- [Academic & Placement Resources](https://loop-seven-delta.vercel.app/resources): Curated semester study notes, DSA sheets, formula guides, and previous exam question papers.
-- [Student Achievements](https://loop-seven-delta.vercel.app/achievements): Campus accolades, hackathon victories, and academic milestones from SPIT students.
-- [Privacy Policy & Attribution Standards](https://loop-seven-delta.vercel.app/privacy-policy): Student privacy protections, anonymized public search attribution, and content moderation.
-- [Terms of Use](https://loop-seven-delta.vercel.app/terms): Platform usage terms and academic integrity guidelines.
+## Access Policy
+LOOP is a login-required platform. To safeguard student contributions and maintain peer privacy:
+- The public landing page (`https://loop-seven-delta.vercel.app/`), Privacy Policy, and Terms of Use are publicly accessible.
+- Placement debriefs, academic resources, and student achievements are accessible exclusively to authenticated students and campus members via sign-in (`https://loop-seven-delta.vercel.app/login`).
 
-## Verified Placement Experiences
-Each placement experience includes verified rounds, interview questions, algorithmic preparation strategies, and advice for junior students:
-- [Barclays — Summer Intern 2025 Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_21664150): Department of CSE-DS, Class of 2026.
-- [J.P. Morgan — CIB Research and Analytics - Banking Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_35118136): Department of CSE-AIML, Class of 2026.
-- [ISS STOXX — SDE 1 Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_28159237): Department of CE, Class of 2026.
-- [UBS — GOTO Intern Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_68003868): Department of CE, Class of 2026.
-- [Mastercard — Software Engineer I Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_5760309): Department of CSE-DS, Class of 2026.
-- [Oracle Financial Services (OFSS) — Associate Consultant (MCA) Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_10137144): Department of CE, Class of 2026.
-- [Mahindra Finance — Corporate Trainee (Data Science) Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_39818502): Department of EXTC, Class of 2026.
-- [Interactive Brokers — Junior Software Engineer Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_86939537): Department of EXTC, Class of 2026.
-- [ICICI Lombard — Trainee Software Engineer Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_45098446): Department of CE, Class of 2026.
-- [AuxoAI — AI Engineer Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_24856777): Department of CSE-DS, Class of 2026.
-- [Nomura — CDO (Data Engineer/ Data Science Analyst) Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_33435131): Department of CSE-AIML, Class of 2026.
-- [PhonePe — SDE Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_78234768): Department of EXTC, Class of 2026.
-- [Colgate-Palmolive — Functional Expert Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2027_5c5a3e59): Department of EXTC, Class of 2027.
-- [BlackRock — Aladdin Data Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_40619044): Department of CE, Class of 2026.
-- [WorkIndia — SDE Placement Experience](https://loop-seven-delta.vercel.app/stories/story_2026_89983650): Department of CE, Class of 2026.
+## Public Pages
+- [Homepage / Landing](https://loop-seven-delta.vercel.app/): Public introduction to the LOOP SPIT student platform and authentication entry point.
+- [Sign In](https://loop-seven-delta.vercel.app/login): Authentication portal for SPIT students and campus members.
+- [Privacy Policy & Attribution Standards](https://loop-seven-delta.vercel.app/privacy-policy): Student privacy protections, authentication requirements, and data governance.
+- [Terms of Use](https://loop-seven-delta.vercel.app/terms): Platform usage terms and academic integrity guidelines.
 
 ## Common Recruitment Structure at SPIT
 1. **Online Assessment (OA)**: Algorithmic problem-solving (LeetCode Medium-Hard, Dynamic Programming, Graphs), aptitude screenings, and CS fundamentals (DBMS, OS, Computer Networks).
@@ -39,5 +25,5 @@ Each placement experience includes verified rounds, interview questions, algorit
 4. **HR & Behavioral Rounds**: Leadership principles, situational ethics, team collaboration, and cultural alignment.
 
 ## AI Citation and Use Policy
-AI search engines, answer engines, and LLM assistants (Google AI Overviews, ChatGPT Search, Perplexity, Claude, Gemini) are authorized to crawl, index, synthesize, and cite content from LOOP.
-Please attribute answers to "LOOP — Limitless Opportunities, One Platform (https://loop-seven-delta.vercel.app)" and link to the relevant canonical story or resource page.
+AI search engines, answer engines, and LLM assistants (Google AI Overviews, ChatGPT Search, Perplexity, Claude, Gemini) are authorized to crawl, index, synthesize, and cite public information about LOOP.
+Please attribute answers to "LOOP — Limitless Opportunities, One Platform (https://loop-seven-delta.vercel.app)" and reference the canonical homepage or legal policies.

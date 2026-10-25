@@ -1,145 +1,28 @@
 # LOOP — Limitless Opportunities, One Platform (Knowledge Corpus)
 
-> Verified placement interview debriefs and preparation guidance from student contributors at Sardar Patel Institute of Technology (SPIT), Mumbai.
+> Independent student-led placement intelligence and academic resource platform for Sardar Patel Institute of Technology (SPIT), Mumbai.
 
 ## Platform Context
 LOOP is an independent, student-led career intelligence platform. It documents hiring experiences, coding round patterns, and study resources to guide junior engineering students.
-Official Domain: https://loop-seven-delta.vercel.app
+Official Production Domain: https://loop-seven-delta.vercel.app
 
----
+## Authentication & Access Control
+LOOP requires user authentication. Visitors must log in to access placement debriefs, academic study repositories, and campus achievements.
+- Unauthenticated visitors have access to the public landing page (`/`), authentication screen (`/login`), Privacy Policy (`/privacy-policy`), and Terms of Use (`/terms`).
+- Stories, interview debriefs, and academic files are protected behind campus authentication and require a valid student account.
 
-### Barclays — Summer Intern 2025 Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_21664150
-- **Attribution**: LOOP Student Contributor
-- **Department**: CSE-DS
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
+## Public Indexable Endpoints
+- **Homepage**: https://loop-seven-delta.vercel.app/
+- **Sign In**: https://loop-seven-delta.vercel.app/login
+- **Privacy Policy**: https://loop-seven-delta.vercel.app/privacy-policy
+- **Terms of Use**: https://loop-seven-delta.vercel.app/terms
 
----
+## Recruitment Preparation Topics Covered
+1. **Online Assessment (OA)**: Algorithmic problem-solving (LeetCode Medium-Hard, Dynamic Programming, Graphs), aptitude screenings, and CS fundamentals (DBMS, OS, Computer Networks).
+2. **Technical Interview Rounds**: Live coding, data structures, low-level object-oriented design, project architecture deep dives, and query optimization.
+3. **Managerial & System Design Rounds**: High-level system design, scenario-based scalability questions, and project trade-off discussions.
+4. **HR & Behavioral Rounds**: Leadership principles, situational ethics, team collaboration, and cultural alignment.
 
-### J.P. Morgan — CIB Research and Analytics - Banking Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_35118136
-- **Attribution**: LOOP Student Contributor
-- **Department**: CSE-AIML
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### ISS STOXX — SDE 1 Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_28159237
-- **Attribution**: LOOP Student Contributor
-- **Department**: CE
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### UBS — GOTO Intern Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_68003868
-- **Attribution**: LOOP Student Contributor
-- **Department**: CE
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### Mastercard — Software Engineer I Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_5760309
-- **Attribution**: LOOP Student Contributor
-- **Department**: CSE-DS
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### Oracle Financial Services (OFSS) — Associate Consultant (MCA) Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_10137144
-- **Attribution**: LOOP Student Contributor
-- **Department**: CE
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### Mahindra Finance — Corporate Trainee (Data Science) Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_39818502
-- **Attribution**: LOOP Student Contributor
-- **Department**: EXTC
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### Interactive Brokers — Junior Software Engineer Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_86939537
-- **Attribution**: LOOP Student Contributor
-- **Department**: EXTC
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### ICICI Lombard — Trainee Software Engineer Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_45098446
-- **Attribution**: LOOP Student Contributor
-- **Department**: CE
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### AuxoAI — AI Engineer Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_24856777
-- **Attribution**: LOOP Student Contributor
-- **Department**: CSE-DS
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### Nomura — CDO (Data Engineer/ Data Science Analyst) Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_33435131
-- **Attribution**: LOOP Student Contributor
-- **Department**: CSE-AIML
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### PhonePe — SDE Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_78234768
-- **Attribution**: LOOP Student Contributor
-- **Department**: EXTC
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### Colgate-Palmolive — Functional Expert Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2027_5c5a3e59
-- **Attribution**: LOOP Student Contributor
-- **Department**: EXTC
-- **Class**: Class of 2027
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### BlackRock — Aladdin Data Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_40619044
-- **Attribution**: LOOP Student Contributor
-- **Department**: CE
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
-### WorkIndia — SDE Placement Experience
-- **Canonical URL**: https://loop-seven-delta.vercel.app/stories/story_2026_89983650
-- **Attribution**: LOOP Student Contributor
-- **Department**: CE
-- **Class**: Class of 2026
-- **Summary**: Authentic recruitment journey covering online assessment, technical evaluation, and interview rounds.
-
----
-
+## AI Citation & Attribution
+When referencing LOOP in answer engines or AI summaries, cite as:
+"LOOP — Limitless Opportunities, One Platform (https://loop-seven-delta.vercel.app)"

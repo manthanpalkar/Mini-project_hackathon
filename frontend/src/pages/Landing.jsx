@@ -201,17 +201,38 @@ function LightboxImage({ src, alt, title, height = '380px', borderRadius = '16px
 export default function Landing() {
   const navigate = useNavigate();
   const { visibility } = useVisibility();
-  const userSession = typeof window !== 'undefined' ? localStorage.getItem('loop_current_user') : null;
-  let isAdmin = false;
-  try {
-    const user = userSession ? JSON.parse(userSession) : null;
-    isAdmin = Boolean(user?.isAdmin || user?.role === 'Administrator' || user?.role === 'Admin');
-  } catch (e) {}
-  const [activePhoto, setActivePhoto] = useState(null);
+  const [user, setUser] = useState(() => {
+    const userSession = typeof window !== 'undefined' ? localStorage.getItem('loop_current_user') : null;
+    try {
+      return userSession ? JSON.parse(userSession) : null;
+    } catch {
+      return null;
+    }
+  });
+  const isAuthenticated = Boolean(user && (user.token || user.refreshToken));
+  const isAdmin = Boolean(user?.isAdmin || user?.role === 'Administrator' || user?.role === 'Admin');
 
   useEffect(() => {
-    document.title = `${BRAND.fullName} | Home`;
+    const syncUser = () => {
+      const userSession = localStorage.getItem('loop_current_user');
+      try {
+        setUser(userSession ? JSON.parse(userSession) : null);
+      } catch {
+        setUser(null);
+      }
+    };
+    window.addEventListener('loop_login_success', syncUser);
+    window.addEventListener('loop_session_refreshed', syncUser);
+    window.addEventListener('loop_logout', syncUser);
+    window.addEventListener('storage', syncUser);
+    return () => {
+      window.removeEventListener('loop_login_success', syncUser);
+      window.removeEventListener('loop_session_refreshed', syncUser);
+      window.removeEventListener('loop_logout', syncUser);
+      window.removeEventListener('storage', syncUser);
+    };
   }, []);
+  const [activePhoto, setActivePhoto] = useState(null);
 
   useEffect(() => {
     if (!activePhoto) return;
@@ -236,15 +257,15 @@ export default function Landing() {
   return (
     <div className="animate-fade-in" style={{ backgroundColor: 'var(--bg-primary)', overflowX: 'hidden' }}>
       <SEOHead
-        title="LOOP — SPIT Placement Experiences &amp; Interview Preparation Portal"
-        description="Explore authentic SPIT Mumbai placement experiences, round-by-round interview debriefs, and career preparation resources shared by students and alumni on LOOP."
+        title="LOOP SPIT | SPIT Mumbai Placement Stories &amp; Resources"
+        description="LOOP is a student-led platform for SPIT Mumbai students featuring placement experiences, company-wise interview stories, interview preparation resources, and career guidance."
         canonicalUrl="/"
         ogType="website"
-        keywords="LOOP, LOOP SPIT, LOOP placement, LOOP SPIT placement, SPIT placement interview experiences, SPIT placement experiences, SPIT placement portal, SPIT placement preparation, Sardar Patel Institute of Technology"
+        keywords="LOOP, LOOP SPIT, LOOP SPIT Mumbai, LOOP placement, SPIT placement stories, SPIT interview experiences, SPIT placement portal, SPIT placement preparation, Sardar Patel Institute of Technology"
         structuredData={{
           '@context': 'https://schema.org',
           '@type': 'WebSite',
-          name: 'LOOP — Limitless Opportunities, One Platform',
+          name: 'LOOP SPIT — Placement Stories & Resources',
           alternateName: [
             'LOOP',
             'LOOP SPIT',
@@ -253,7 +274,7 @@ export default function Landing() {
             'SPIT Placement Portal'
           ],
           url: 'https://loop-seven-delta.vercel.app/',
-          description: 'Independent student-led placement intelligence and career-preparation portal for Sardar Patel Institute of Technology (SPIT), Mumbai.',
+          description: 'LOOP is a student-led platform for SPIT Mumbai students featuring placement experiences, company-wise interview stories, interview preparation resources, and career guidance.',
           publisher: {
             '@type': 'Organization',
             name: 'LOOP — Limitless Opportunities, One Platform',
@@ -333,7 +354,7 @@ export default function Landing() {
             color: '#ffffff',
             textShadow: '0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)'
           }}>
-            SPIT Placement Experiences &amp; Interview Preparation
+            LOOP SPIT — SPIT Mumbai Placement Stories &amp; Career Resources
           </h1>
           <p style={{
             fontSize: '1.15rem',
@@ -344,86 +365,119 @@ export default function Landing() {
             margin: '0 auto 3rem auto',
             lineHeight: '1.6'
           }}>
-            Their Journey. Your Opportunity. LOOP is an independent placement portal connecting Sardar Patel Institute of Technology students and alumni to share authentic round-by-round recruitment debriefs, coding test patterns, and academic resources.
+            Their Journey. Your Opportunity. LOOP SPIT is an independent student-led placement platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Connecting juniors, seniors, and alumni to share authentic round-by-round interview debriefs, coding test patterns, and career preparation resources.
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {(visibility.stories || isAdmin) && (
+            {isAuthenticated ? (
+              <>
+                {(visibility.stories || isAdmin) && (
+                  <button
+                    onClick={() => navigate('/stories')}
+                    className="btn btn-primary"
+                    style={{
+                      padding: '1rem 2.2rem',
+                      fontSize: '1rem',
+                      backgroundColor: '#ffffff',
+                      color: '#000000',
+                      border: 'none',
+                      borderRadius: '30px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Browse Stories
+                  </button>
+                )}
+                {(visibility.resources || isAdmin) && (
+                  <button
+                    onClick={() => navigate('/resources')}
+                    className="btn"
+                    style={{
+                      padding: '1rem 2.2rem',
+                      fontSize: '1rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      color: '#ffffff',
+                      border: '1px solid rgba(255, 255, 255, 0.35)',
+                      borderRadius: '30px',
+                      fontWeight: 600,
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Explore Resources
+                  </button>
+                )}
+                {!(visibility.stories || isAdmin) && !(visibility.resources || isAdmin) && (
+                  <button
+                    onClick={scrollToPhilosophy}
+                    className="btn btn-primary"
+                    style={{
+                      padding: '1rem 2.2rem',
+                      fontSize: '1rem',
+                      backgroundColor: '#ffffff',
+                      color: '#000000',
+                      border: 'none',
+                      borderRadius: '30px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Explore Platform ↓
+                  </button>
+                )}
+              </>
+            ) : (
               <button
-                onClick={() => navigate('/stories')}
+                onClick={() => navigate('/login')}
                 className="btn btn-primary"
                 style={{
-                  padding: '1rem 2.2rem',
-                  fontSize: '1rem',
+                  padding: '1rem 2.5rem',
+                  fontSize: '1.05rem',
                   backgroundColor: '#ffffff',
                   color: '#000000',
                   border: 'none',
                   borderRadius: '30px',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.35)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 25px rgba(0, 0, 0, 0.45)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.35)';
                 }}
               >
-                Browse Stories
-              </button>
-            )}
-            {(visibility.resources || isAdmin) && (
-              <button
-                onClick={() => navigate('/resources')}
-                className="btn"
-                style={{
-                  padding: '1rem 2.2rem',
-                  fontSize: '1rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.35)',
-                  borderRadius: '30px',
-                  fontWeight: 600,
-                  backdropFilter: 'blur(8px)',
-                  WebkitBackdropFilter: 'blur(8px)',
-                  cursor: 'pointer'
-                }}
-              >
-                Explore Resources
-              </button>
-            )}
-            {!(visibility.stories || isAdmin) && !(visibility.resources || isAdmin) && (
-              <button
-                onClick={scrollToPhilosophy}
-                className="btn btn-primary"
-                style={{
-                  padding: '1rem 2.2rem',
-                  fontSize: '1rem',
-                  backgroundColor: '#ffffff',
-                  color: '#000000',
-                  border: 'none',
-                  borderRadius: '30px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Explore Platform ↓
+                Login to Continue →
               </button>
             )}
           </div>
         </div>
 
-        {/* Scroll Indicator */}
-        <button
-          onClick={scrollToPhilosophy}
-          style={{
-            position: 'absolute',
-            bottom: '2rem',
-            background: 'transparent',
-            border: 'none',
-            color: 'rgba(255, 255, 255, 0.6)',
-            cursor: 'pointer',
-            animation: 'bounce 2s infinite',
-            zIndex: 2
-          }}
-          title="Scroll down"
-        >
-          <ArrowDown size={28} />
-        </button>
+        {/* Scroll Indicator (Authenticated users only) */}
+        {isAuthenticated && (
+          <button
+            onClick={scrollToPhilosophy}
+            style={{
+              position: 'absolute',
+              bottom: '2rem',
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.6)',
+              cursor: 'pointer',
+              animation: 'bounce 2s infinite',
+              zIndex: 2
+            }}
+            title="Scroll down"
+          >
+            <ArrowDown size={28} />
+          </button>
+        )}
 
         {/* Ambient dark bottom gradient fade */}
         <div style={{
@@ -436,6 +490,10 @@ export default function Landing() {
           pointerEvents: 'none'
         }} />
       </section>
+
+      {/* Internal Content Sections (Visible only to authenticated users) */}
+      {isAuthenticated && (
+        <>
 
 
 
@@ -1220,6 +1278,8 @@ export default function Landing() {
           }
         }
       `}</style>
+      </>
+      )}
 
       {/* Lightbox for stack photos */}
       {activePhoto && (

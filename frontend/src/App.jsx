@@ -217,33 +217,43 @@ function AppLayout() {
               </ProtectedRoute>
             } />
 
-            {/* Public Canonical Content Routes (Crawleable & Accessible when Section Visibility is ON) */}
+            {/* Protected Canonical Content Routes (Require Login, and Section Visibility when applicable) */}
             <Route path="/" element={<Landing />} />
             <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="/stories" element={
-              <SectionRouteGuard section="stories">
-                <Stories />
-              </SectionRouteGuard>
+              <ProtectedRoute>
+                <SectionRouteGuard section="stories">
+                  <Stories />
+                </SectionRouteGuard>
+              </ProtectedRoute>
             } />
             <Route path="/stories/:id" element={
-              <SectionRouteGuard section="stories">
-                <StoryDetail />
-              </SectionRouteGuard>
+              <ProtectedRoute>
+                <SectionRouteGuard section="stories">
+                  <StoryDetail />
+                </SectionRouteGuard>
+              </ProtectedRoute>
             } />
             <Route path="/resources" element={
-              <SectionRouteGuard section="resources">
-                <Resources />
-              </SectionRouteGuard>
+              <ProtectedRoute>
+                <SectionRouteGuard section="resources">
+                  <Resources />
+                </SectionRouteGuard>
+              </ProtectedRoute>
             } />
             <Route path="/achievements" element={
-              <SectionRouteGuard section="achievements">
-                <Achievements />
-              </SectionRouteGuard>
+              <ProtectedRoute>
+                <SectionRouteGuard section="achievements">
+                  <Achievements />
+                </SectionRouteGuard>
+              </ProtectedRoute>
             } />
             <Route path="/achievements/:id" element={
-              <SectionRouteGuard section="achievements">
-                <AchievementDetail />
-              </SectionRouteGuard>
+              <ProtectedRoute>
+                <SectionRouteGuard section="achievements">
+                  <AchievementDetail />
+                </SectionRouteGuard>
+              </ProtectedRoute>
             } />
 
             {/* Authenticated Administrative & Management Routes */}

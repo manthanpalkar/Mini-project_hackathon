@@ -253,13 +253,12 @@ test.describe('Global Public Section Visibility Controls Test Suite', () => {
     });
   });
 
-  test('3. When Stories is OFF: public & student requests to /api/stories return HTTP 404 SECTION_DISABLED', async () => {
+  test('3. When Stories is OFF: public requests return 401 and student requests return HTTP 404 SECTION_DISABLED', async () => {
     // Unauthenticated public request
     const pubRes = await fetch(`${baseUrl}/api/stories`);
-    assert.equal(pubRes.status, 404);
+    assert.equal(pubRes.status, 401);
     const pubData = await pubRes.json();
-    assert.equal(pubData.code, 'SECTION_DISABLED');
-    assert.match(pubData.error, /stories/i);
+    assert.equal(pubData.code, 'TOKEN_MISSING');
 
     // Authenticated student request
     const stuRes = await fetch(`${baseUrl}/api/stories`, {
@@ -269,25 +268,31 @@ test.describe('Global Public Section Visibility Controls Test Suite', () => {
     const stuData = await stuRes.json();
     assert.equal(stuData.code, 'SECTION_DISABLED');
 
-    // Single story access
+    // Single story access unauthenticated
     const singleRes = await fetch(`${baseUrl}/api/stories/story-1`);
-    assert.equal(singleRes.status, 404);
-    const singleData = await singleRes.json();
-    assert.equal(singleData.code, 'SECTION_DISABLED');
+    assert.equal(singleRes.status, 401);
+
+    // Single story access with studentToken
+    const singleStuRes = await fetch(`${baseUrl}/api/stories/story-1`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
+    assert.equal(singleStuRes.status, 404);
   });
 
-  test('4. When Resources is OFF: public & student requests to /api/resources return HTTP 404 SECTION_DISABLED', async () => {
+  test('4. When Resources is OFF: public requests return 401 and student requests return HTTP 404 SECTION_DISABLED', async () => {
     // Public listing
     const resList = await fetch(`${baseUrl}/api/resources`);
-    assert.equal(resList.status, 404);
-    const listData = await resList.json();
-    assert.equal(listData.code, 'SECTION_DISABLED');
+    assert.equal(resList.status, 401);
+
+    // Student listing
+    const stuList = await fetch(`${baseUrl}/api/resources`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
+    assert.equal(stuList.status, 404);
 
     // Single resource metadata
     const resDetail = await fetch(`${baseUrl}/api/resources/res-1`);
-    assert.equal(resDetail.status, 404);
-    const detailData = await resDetail.json();
-    assert.equal(detailData.code, 'SECTION_DISABLED');
+    assert.equal(resDetail.status, 401);
 
     // Download URL endpoint
     const resDownload = await fetch(`${baseUrl}/api/resources/res-1/download-url`, {
@@ -298,10 +303,15 @@ test.describe('Global Public Section Visibility Controls Test Suite', () => {
     assert.equal(downloadData.code, 'SECTION_DISABLED');
   });
 
-  test('5. When Achievements is OFF: public & student requests to /api/achievements return HTTP 404 SECTION_DISABLED', async () => {
+  test('5. When Achievements is OFF: public requests return 401 and student requests return HTTP 404 SECTION_DISABLED', async () => {
     const resAch = await fetch(`${baseUrl}/api/achievements`);
-    assert.equal(resAch.status, 404);
-    const achData = await resAch.json();
+    assert.equal(resAch.status, 401);
+
+    const stuAch = await fetch(`${baseUrl}/api/achievements`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
+    assert.equal(stuAch.status, 404);
+    const achData = await stuAch.json();
     assert.equal(achData.code, 'SECTION_DISABLED');
   });
 
@@ -399,20 +409,32 @@ test.describe('Global Public Section Visibility Controls Test Suite', () => {
       body: JSON.stringify({ stories: true, resources: false, achievements: false })
     });
 
-    // Public stories succeeds
-    const storiesRes = await fetch(`${baseUrl}/api/stories`);
+    // Unauthenticated stories request is rejected with 401
+    const pubStoriesRes = await fetch(`${baseUrl}/api/stories`);
+    assert.equal(pubStoriesRes.status, 401);
+
+    // Authenticated student stories succeeds
+    const storiesRes = await fetch(`${baseUrl}/api/stories`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
     assert.equal(storiesRes.status, 200);
 
-    // Public story detail succeeds
-    const storyDetailRes = await fetch(`${baseUrl}/api/stories/story-1`);
+    // Authenticated student story detail succeeds
+    const storyDetailRes = await fetch(`${baseUrl}/api/stories/story-1`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
     assert.equal(storyDetailRes.status, 200);
 
     // Resources still returns 404
-    const resourcesRes = await fetch(`${baseUrl}/api/resources`);
+    const resourcesRes = await fetch(`${baseUrl}/api/resources`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
     assert.equal(resourcesRes.status, 404);
 
     // Achievements still returns 404
-    const achievementsRes = await fetch(`${baseUrl}/api/achievements`);
+    const achievementsRes = await fetch(`${baseUrl}/api/achievements`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
     assert.equal(achievementsRes.status, 404);
   });
 

@@ -1125,7 +1125,7 @@ app.use((req, res, next) => {
 // Routes
 
 // 1. Folders
-app.get('/api/folders', optionalAuthenticateToken, async (req, res) => {
+app.get('/api/folders', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { category, parentId } = req.query;
     const isAdmin = isUserAdmin(req.user);
@@ -3033,7 +3033,7 @@ function validateStoryFiles(payload) {
 }
 
 // 3. Stories
-app.get('/api/stories', optionalAuthenticateToken, async (req, res) => {
+app.get('/api/stories', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     if (!isUserAdmin(req.user)) {
       const visibility = await getSectionVisibility();
@@ -3090,7 +3090,7 @@ app.get('/api/stories', optionalAuthenticateToken, async (req, res) => {
   }
 });
 
-app.get(['/api/stories/:id', '/api/pending-stories/:id'], optionalAuthenticateToken, async (req, res) => {
+app.get(['/api/stories/:id', '/api/pending-stories/:id'], authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const sanitizedId = sanitizeString(id);
@@ -4183,7 +4183,7 @@ app.delete('/api/resources/upload/:uploadId', authenticateToken, requireOnboarde
 app.delete('/api/pending-resources/upload/:uploadId', authenticateToken, requireOnboarded, handleUploadCancel);
 
 // List Resources with folder privacy & permission checks
-app.get('/api/resources', optionalAuthenticateToken, async (req, res) => {
+app.get('/api/resources', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     if (!isUserAdmin(req.user)) {
       const sectionVisibility = await getSectionVisibility();
@@ -4302,7 +4302,7 @@ app.get('/api/resources', optionalAuthenticateToken, async (req, res) => {
 });
 
 // Single Resource Metadata
-app.get(['/api/resources/:id', '/api/pending-resources/:id'], optionalAuthenticateToken, async (req, res) => {
+app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken, requireOnboarded, async (req, res) => {
   try {
     const { id } = req.params;
     const sanitizedId = sanitizeString(id);
@@ -5478,7 +5478,7 @@ app.post('/api/pending-resources/:id/approve', authenticateToken, requireAdmin, 
 });
 
 // 7. Achievements
-app.get('/api/achievements', optionalAuthenticateToken, async (req, res) => {
+app.get('/api/achievements', authenticateToken, requireOnboarded, async (req, res) => {
   try {
     if (!isUserAdmin(req.user)) {
       const visibility = await getSectionVisibility();

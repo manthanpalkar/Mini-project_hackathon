@@ -5,17 +5,17 @@
 # Search Engine Crawlers (Googlebot, Bingbot, DuckDuckBot, etc.)
 User-agent: *
 Allow: /
-Allow: /stories
-Allow: /stories/*
-Allow: /resources
-Allow: /achievements
-Allow: /achievements/*
 Allow: /privacy-policy
 Allow: /terms
 Allow: /llms.txt
 Allow: /llms-full.txt
 
-# Disallow authenticated, administrative, preview, and private routes
+# Disallow internal protected sections and detail routes (Require Student Login)
+Disallow: /stories
+Disallow: /stories/*
+Disallow: /resources
+Disallow: /achievements
+Disallow: /achievements/*
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /onboarding

@@ -345,8 +345,8 @@ export default function Navbar() {
             transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
-          {/* COLUMN 1: LEFT NAV LINKS (Desktop only) */}
-          {!isForgotPasswordPage ? (
+          {/* COLUMN 1: LEFT NAV LINKS (Desktop only - Authenticated users only) */}
+          {user && !isForgotPasswordPage ? (
             <div className="nav-col-left" style={{
               display: 'flex',
               alignItems: 'center',
@@ -617,7 +617,7 @@ export default function Navbar() {
             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
             pointerEvents: 'auto'
           }}>
-          {!isForgotPasswordPage && (
+          {user && !isForgotPasswordPage && (
             <>
               {(visibility.stories || isAdmin) && (
                 <Link to="/stories" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>

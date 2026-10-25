@@ -37,11 +37,11 @@ function truncateText(text, maxLen = 350) {
 const CORE_PAGES = [
   {
     route: '/',
-    title: 'LOOP — SPIT Placement Experiences & Interview Preparation Portal',
-    description: 'Explore authentic SPIT Mumbai placement experiences, round-by-round interview debriefs, and career preparation resources shared by students and alumni on LOOP.',
-    h1: 'SPIT Placement Experiences & Interview Preparation Portal',
+    title: 'LOOP SPIT | SPIT Mumbai Placement Stories & Resources',
+    description: 'LOOP is a student-led platform for SPIT Mumbai students featuring placement experiences, company-wise interview stories, interview preparation resources, and career guidance.',
+    h1: 'LOOP SPIT — SPIT Mumbai Placement Stories & Career Resources',
     paragraphs: [
-      'Welcome to LOOP (Limitless Opportunities, One Platform), the independent student-led placement portal and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the guiding ethos "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni to document verified recruitment experiences and foster peer mentorship across engineering disciplines.',
+      'Welcome to LOOP SPIT, the independent student-led placement portal and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the guiding ethos "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni to document verified recruitment experiences and foster peer mentorship across engineering disciplines.',
       'LOOP hosts structured, round-by-round placement interview debriefs covering every stage of campus recruitment—from initial resume shortlisting and online assessments (OA) to live technical evaluations, algorithmic coding challenges, system design rounds, and behavioral HR interviews across top technology and financial services employers.',
       'Each debrief captures authentic placement preparation strategies, recommended algorithmic problem sets, core computer science revision topics (DBMS, Operating Systems, Computer Networks, OOP), and candid advice from seniors on navigating recruitment hurdles.',
       'Students can explore interview experiences filtered by company, engineering branch (CSE, CSE-DS, CSE-AIML, CE, EXTC), and graduation year, or access curated semester study materials, formula sheets, and past question papers in the academic resources repository.'
@@ -49,7 +49,7 @@ const CORE_PAGES = [
     schema: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'LOOP — Limitless Opportunities, One Platform',
+      name: 'LOOP SPIT — Placement Stories & Resources',
       alternateName: [
         'LOOP',
         'LOOP SPIT',
@@ -58,7 +58,7 @@ const CORE_PAGES = [
         'SPIT Placement Portal'
       ],
       url: `${BASE_URL}/`,
-      description: 'Independent student-led placement intelligence and career-preparation portal for Sardar Patel Institute of Technology (SPIT), Mumbai.',
+      description: 'LOOP is a student-led platform for SPIT Mumbai students featuring placement experiences, company-wise interview stories, interview preparation resources, and career guidance.',
       publisher: {
         '@type': 'Organization',
         name: 'LOOP — Limitless Opportunities, One Platform',
@@ -86,94 +86,6 @@ const CORE_PAGES = [
     },
     priority: '1.0',
     changefreq: 'daily'
-  },
-  {
-    route: '/stories',
-    title: 'Placement Stories & Interview Debriefs | LOOP SPIT',
-    description: 'Browse verified campus placement experiences, interview questions, coding rounds, and preparation journeys from SPIT engineering seniors.',
-    h1: 'Engineering Placement Stories & Senior Interview Debriefs',
-    paragraphs: [
-      'Explore verified placement debriefs authored by seniors from Computer Engineering, Information Technology, Electronics & Telecommunication, and Artificial Intelligence & Data Science branches at Sardar Patel Institute of Technology.',
-      'Each debrief offers a structured breakdown of the hiring pipeline, starting from initial online coding assessments, aptitude screenings, and problem statements to live technical interviews, managerial evaluations, and leadership principle behavioral rounds. Students share specific algorithmic topics, dynamic programming patterns, object-oriented design principles, and resume strategies that secured competitive internship and full-time offers.',
-      'Filter placement debriefs by engineering discipline, graduating passout batch, recruiting company, or compensation package to discover targeted advice and prepare strategically for upcoming recruitment cycles.'
-    ],
-    schema: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        name: 'Engineering Placement Stories & Interview Experiences',
-        description: 'Verified student placement debriefs, technical interview rounds, and preparation strategies at SPIT Mumbai.',
-        url: `${BASE_URL}/stories`
-      },
-      {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
-          { '@type': 'ListItem', position: 2, name: 'Placement Stories', item: `${BASE_URL}/stories` }
-        ]
-      }
-    ],
-    priority: '0.9',
-    changefreq: 'daily'
-  },
-  {
-    route: '/resources',
-    title: 'Academic Notes & Placement Materials | LOOP SPIT',
-    description: 'Access curated semester notes, syllabus materials, handwritten cheat sheets, and technical interview roadmaps from SPIT seniors.',
-    h1: 'Curated Academic Notes & Technical Preparation Repository',
-    paragraphs: [
-      'The LOOP Resource Repository centralizes semester-wise lecture notes, laboratory guides, previous years question papers, and essential interview revision cheat sheets for engineering undergraduates at SPIT Mumbai.',
-      'Organized in logical department and subject hierarchies, resources cover critical foundation topics such as Data Structures and Algorithms, Database Management Systems, Computer Networks, Operating Systems, Theory of Computation, and Machine Learning. All files are securely archived in high-speed MongoDB Atlas GridFS storage, providing rapid parallel streaming and seamless in-browser previewing.',
-      'Whether you are preparing for semester midterms, end-semester university examinations, or corporate coding assessments, explore senior-vetted study notes and contribute your own academic materials to empower the campus community.'
-    ],
-    schema: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        name: 'SPIT Academic Resources & Placement Preparation Materials',
-        url: `${BASE_URL}/resources`
-      },
-      {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
-          { '@type': 'ListItem', position: 2, name: 'Resources', item: `${BASE_URL}/resources` }
-        ]
-      }
-    ],
-    priority: '0.8',
-    changefreq: 'weekly'
-  },
-  {
-    route: '/achievements',
-    title: 'Student Achievements & Campus Accolades | LOOP SPIT',
-    description: 'Discover hackathon victories, placement milestones, technical publications, and student leadership accomplishments from SPIT Mumbai.',
-    h1: 'SPIT Student Achievements & Campus Accolades',
-    paragraphs: [
-      'Celebrating exceptional student accomplishment, competitive programming victories, international hackathon awards, and research publications across Sardar Patel Institute of Technology.',
-      'From securing top podium finishes at Smart India Hackathon and global open-source fellowships to publishing peer-reviewed papers in IEEE conferences, our students continually raise the bar of technological innovation and academic excellence. LOOP showcases these milestones to celebrate peer success and inspire junior batches to pursue ambitious engineering goals.',
-      'Stay informed on high-package placement breakthroughs, prestigious off-campus offers, and outstanding extracurricular milestones that define the vibrant intellectual spirit of our campus community.'
-    ],
-    schema: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        name: 'SPIT Student Achievements & Accolades',
-        url: `${BASE_URL}/achievements`
-      },
-      {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
-          { '@type': 'ListItem', position: 2, name: 'Achievements', item: `${BASE_URL}/achievements` }
-        ]
-      }
-    ],
-    priority: '0.7',
-    changefreq: 'weekly'
   },
   {
     route: '/privacy-policy',
@@ -398,16 +310,9 @@ if (process.env.SECTION_VISIBILITY) {
   }
 }
 
-const filteredCorePages = CORE_PAGES.filter(p => {
-  if (p.route === '/stories' && !sectionVisibility.stories) return false;
-  if (p.route === '/resources' && !sectionVisibility.resources) return false;
-  if (p.route === '/achievements' && !sectionVisibility.achievements) return false;
-  return true;
-});
-
-const activeStoryPages = sectionVisibility.stories ? REAL_STORY_PAGES : [];
-
-const ALL_PAGES = [...filteredCorePages, ...activeStoryPages];
+// In login-required platform architecture, internal sections and individual stories are protected behind authentication
+// and must NOT be leaked into public static pre-rendered HTML or public sitemaps.
+const ALL_PAGES = [...CORE_PAGES];
 
 function prerenderPage(page) {
   let html = templateHtml;
@@ -462,15 +367,9 @@ function prerenderPage(page) {
 
   const semanticShell = `
     <header style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
-      <a href="/" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP — Limitless Opportunities, One Platform</a>
+      <a href="/" style="font-size: 1.25rem; font-weight: 800; text-decoration: none; color: inherit;">LOOP SPIT — SPIT Mumbai</a>
       <nav style="display: flex; gap: 1.5rem; font-weight: 600; flex-wrap: wrap;">
-        <a href="/">Home</a>
-        ${sectionVisibility.stories ? '<a href="/stories">Stories</a>' : ''}
-        ${sectionVisibility.resources ? '<a href="/resources">Resources</a>' : ''}
-        ${sectionVisibility.achievements ? '<a href="/achievements">Achievements</a>' : ''}
-        <a href="/privacy-policy">Privacy Policy</a>
-        <a href="/terms">Terms</a>
-        <a href="/login">Sign In</a>
+        <a href="/login" style="padding: 0.45rem 1.1rem; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">Login</a>
       </nav>
     </header>
     <main style="max-width: 900px; margin: 3rem auto; padding: 0 1.5rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -479,22 +378,13 @@ function prerenderPage(page) {
         ${renderedParagraphs}
       </article>
       <div style="border-top: 1px solid #e5e5e5; margin-top: 2.5rem; padding-top: 1.5rem;">
-        <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem;">Explore Placement Knowledge Base:</h2>
-        <ul style="line-height: 2;">
-          ${sectionVisibility.stories ? '<li><a href="/stories">Browse Engineering Placement Stories &amp; Debriefs</a></li>' : ''}
-          ${sectionVisibility.resources ? '<li><a href="/resources">Access Curated Semester Study Materials</a></li>' : ''}
-          ${sectionVisibility.achievements ? '<li><a href="/achievements">View SPIT Student Accolades &amp; Milestones</a></li>' : ''}
-          ${sectionVisibility.stories ? '<li><a href="/stories/story_2026_21664150">Barclays Summer Intern Placement Experience (CSE-DS)</a></li>' : ''}
-          ${sectionVisibility.stories ? '<li><a href="/stories/story_2026_35118136">J.P. Morgan CIB Analytics Placement Experience (CSE-AIML)</a></li>' : ''}
-          ${sectionVisibility.stories ? '<li><a href="/stories/story_2026_28159237">ISS STOXX SDE Placement Experience (CE)</a></li>' : ''}
-          <li><a href="/login">Student Account Login &amp; Portal Access</a></li>
-        </ul>
+        <a href="/login" style="display: inline-block; padding: 0.9rem 2.2rem; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 30px; font-weight: 600; font-size: 1rem;">Login to Continue →</a>
       </div>
     </main>
   `;
 
   // Robust replacement of #root contents
-  html = html.replace(/<div id="root">[\s\S]*?<\/div>/i, `<div id="root">${semanticShell}</div>`);
+  html = html.replace(/<div id="root">[\s\S]*?<\/div>(?=\s*(?:<script|<\/body>))/i, `<div id="root">${semanticShell}</div>`);
 
   // Target directory & files
   if (page.route === '/' || page.route === '') {
