@@ -727,7 +727,7 @@ export default function Resources() {
             </span>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0, maxWidth: '640px' }}>
-            Curated syllabus materials, semester notes, handwritten formulas, and senior placement interview playbooks.
+            Notes, study materials, and placement preparation resources in one place.
           </p>
         </div>
 

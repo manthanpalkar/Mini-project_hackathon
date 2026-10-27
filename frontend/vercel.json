@@ -42,7 +42,7 @@
   "rewrites": [
     {
       "source": "/((?!assets/|api/|.*\\.[\\w]+$).*)",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ]
 }

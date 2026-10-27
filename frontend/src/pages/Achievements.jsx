@@ -412,7 +412,7 @@ export default function Achievements() {
           SPIT News & Achievements
         </h1>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Celebrating excellence, academic milestones, and student leadership across various domains.
+          Student achievements, research, hackathons, and placement milestones at SPIT.
         </p>
       </div>
 

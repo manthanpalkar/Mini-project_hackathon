@@ -594,7 +594,25 @@ for (const p of ALL_PAGES) {
   console.log(`  ✓ Prerendered ${p.route} (${p.title})`);
 }
 
-// 3. Generate Clean, In-Sync Sitemap XML (No fake stories, no duplicates, no private pages)
+// 3. Emit SPA Entrypoints for Client-Side Sections (ensures direct URL visits, refreshes, and existing asset folders like /achievements/ work seamlessly)
+const CLIENT_SPA_ROUTES = ['/stories', '/resources', '/achievements', '/admin', '/onboarding'];
+for (const route of CLIENT_SPA_ROUTES) {
+  const targetDir = path.join(DIST_DIR, route);
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+  const targetFile = path.join(targetDir, 'index.html');
+  if (!fs.existsSync(targetFile)) {
+    fs.writeFileSync(targetFile, templateHtml, 'utf8');
+  }
+  const cleanUrlFile = path.join(DIST_DIR, `${route}.html`);
+  if (!fs.existsSync(cleanUrlFile)) {
+    fs.writeFileSync(cleanUrlFile, templateHtml, 'utf8');
+  }
+}
+console.log(`[PRERENDER_SEO] Generated client-side SPA fallback entrypoints for ${CLIENT_SPA_ROUTES.length} routes.`);
+
+// 4. Generate Clean, In-Sync Sitemap XML (No fake stories, no duplicates, no private pages)
 const indexablePages = ALL_PAGES.filter(p => !p.noIndex);
 const todayIso = new Date().toISOString().split('T')[0] + 'T00:00:00+00:00';
 

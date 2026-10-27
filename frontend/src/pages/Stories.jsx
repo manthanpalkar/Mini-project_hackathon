@@ -905,7 +905,7 @@ export default function Stories() {
       }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>Senior Stories</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Explore authentic placement and internship journeys from SPIT alumni.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Real placement and internship experiences from SPIT alumni.</p>
         </div>
 
         <button
