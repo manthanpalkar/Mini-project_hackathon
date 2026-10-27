@@ -377,7 +377,7 @@ export default function Landing() {
             letterSpacing: '-0.01em',
             lineHeight: '1.4'
           }}>
-            Real placement experiences. Practical resources. Better preparation.
+            Real experiences. Better preparation.
           </p>
           <p style={{
             fontSize: '1.05rem',
@@ -387,7 +387,7 @@ export default function Landing() {
             margin: '0 auto 2.5rem auto',
             lineHeight: '1.55'
           }}>
-            Learn from SPIT seniors and alumni through interview experiences, coding tests, and placement tips.
+            Learn from SPIT seniors and alumni through placement stories, interview experiences, and career resources.
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -515,7 +515,7 @@ export default function Landing() {
                 marginBottom: '1rem',
                 display: 'block'
               }}>
-                Loop Labs
+                LOOP LABS
               </span>
               <h2 style={{
                 fontSize: 'calc(1.8rem + 1vw)',
@@ -533,7 +533,7 @@ export default function Landing() {
                 color: 'var(--text-secondary)',
                 marginBottom: '2rem'
               }}>
-                Bypass the disorganized WhatsApp groups. Get instant access to the complete stack—from raw lecture notes, class PPTs, and standard textbooks to clear your semester exams, to the exact placement materials you need to secure a Dream Offer.
+                Your one-stop hub for lecture notes, class presentations, textbooks, and placement preparation materials.
               </p>
 
               <div style={{
@@ -583,7 +583,7 @@ export default function Landing() {
                 marginBottom: '1rem',
                 display: 'block'
               }}>
-                Placements & Partnerships
+                PLACEMENTS &amp; PARTNERSHIPS
               </span>
               <h2 style={{
                 fontSize: 'calc(1.8rem + 1vw)',
@@ -593,7 +593,7 @@ export default function Landing() {
                 marginBottom: '2rem',
                 lineHeight: '1.25'
               }}>
-                Placements & Partnerships
+                Placements &amp; Partnerships
               </h2>
               <div style={{
                 display: 'grid',
@@ -605,7 +605,7 @@ export default function Landing() {
                     Placement Track Record
                   </h3>
                   <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>
-                    The Numbers Don't Lie. Get familiar with the SPIT standard. From a solid ₹15.14 LPA campus average to the elite ₹61.55 LPA peak packages, explore verified campus placement packages and see the exact targets you are aiming for.
+                    Explore SPIT placement statistics, average packages, and top offers to understand campus placement trends.
                   </p>
                 </div>
                 <div>
@@ -613,7 +613,7 @@ export default function Landing() {
                     Top Recruiters
                   </h3>
                   <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>
-                    The Tier-1 Roster. Microsoft, Morgan Stanley, Barclays, and more. See the exact tech giants and financial heavyweights that actively partner with SPIT to hunt for top-tier engineering talent.
+                    Discover companies recruiting at SPIT and explore opportunities across leading technology and finance firms.
                   </p>
                 </div>
               </div>
@@ -800,7 +800,7 @@ export default function Landing() {
               marginBottom: '1rem',
               display: 'block'
             }}>
-              Achievements & Milestones
+              ACHIEVEMENTS &amp; MILESTONES
             </span>
             <h2 style={{
               fontSize: 'calc(2.2rem + 1vw)',
@@ -819,7 +819,7 @@ export default function Landing() {
               color: 'rgba(255, 255, 255, 0.85)',
               marginBottom: '2rem'
             }}>
-              We don't just participate; we dominate. Explore the ultimate track record of student achievements at SPIT. View the exact milestones set by the top 1% of the campus—and learn what it takes to leave your own mark.
+              Discover the achievements, competitions, and milestones that showcase SPIT student talent.
             </p>
 
             <div>
@@ -882,7 +882,7 @@ export default function Landing() {
               color: 'var(--text-secondary)',
               marginBottom: '2.5rem'
             }}>
-              Contribute to a continuous cycle of knowledge sharing. LOOP connects college juniors, seniors, and alumni: today's juniors become tomorrow's seniors, who then guide the next generation. We welcome seniors and alumni to document their placement journeys, interview rounds, and study resources.
+              Share your placement journey, interview experiences, and preparation resources to help the next generation of SPIT students.
             </p>
 
             {(visibility.stories || isAdmin) && (

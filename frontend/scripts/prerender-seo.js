@@ -342,10 +342,10 @@ function getRenderedShell(page) {
             Placement Stories &amp; Resources
           </h1>
           <p style="font-size: calc(1.05rem + 0.25vw); font-weight: 500; color: rgba(255, 255, 255, 0.95); text-shadow: 0 2px 14px rgba(0, 0, 0, 0.75); margin-bottom: 0.65rem; letter-spacing: -0.01em; line-height: 1.4;">
-            Real placement experiences. Practical resources. Better preparation.
+            Real experiences. Better preparation.
           </p>
           <p style="font-size: 1.05rem; color: rgba(255, 255, 255, 0.84); text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7); max-width: 620px; margin: 0 auto 2.5rem auto; line-height: 1.55;">
-            Learn from SPIT seniors and alumni through interview experiences, coding tests, and placement tips.
+            Learn from SPIT seniors and alumni through placement stories, interview experiences, and career resources.
           </p>
           <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
             <a href="/login" class="btn btn-primary" style="padding: 1rem 2.2rem; font-size: 1rem; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 30px; font-weight: 600; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);">Browse Stories</a>
@@ -363,9 +363,9 @@ function getRenderedShell(page) {
             <img src="/images/loop-labs.png" alt="Students collaborating at SPIT" style="width: 100%; height: 520px; object-fit: cover; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);" />
           </div>
           <div>
-            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">Loop Labs</span>
+            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">LOOP LABS</span>
             <h2 style="font-size: calc(1.8rem + 1vw); font-family: var(--font-serif); font-weight: 500; line-height: 1.25; margin-bottom: 1.5rem; color: var(--text-primary);">The Catalyst</h2>
-            <p style="font-size: 1.05rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 2rem;">Bypass the disorganized WhatsApp groups. Get instant access to the complete stack—from raw lecture notes, class PPTs, and standard textbooks to clear your semester exams, to the exact placement materials you need to secure a Dream Offer.</p>
+            <p style="font-size: 1.05rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 2rem;">Your one-stop hub for lecture notes, class presentations, textbooks, and placement preparation materials.</p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
               <div>
                 <h4 style="font-size: 2rem; font-weight: 800; font-family: var(--font-display); margin-bottom: 0.25rem; color: var(--text-primary);">95%</h4>
@@ -386,16 +386,16 @@ function getRenderedShell(page) {
         <div class="container" style="max-width: 1100px; margin: 0 auto;">
           <div class="placement-header-grid">
             <div style="text-align: left;">
-              <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">Placements &amp; Partnerships</span>
+              <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">PLACEMENTS &amp; PARTNERSHIPS</span>
               <h2 style="font-size: calc(1.8rem + 1vw); font-family: var(--font-serif); font-weight: 500; color: #111; margin-bottom: 2rem; line-height: 1.25;">Placements &amp; Partnerships</h2>
               <div class="sub-blocks-grid">
                 <div>
                   <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; color: #111;">Placement Track Record</h3>
-                  <p style="font-size: 0.95rem; color: #666; line-height: 1.6; margin: 0;">The Numbers Don't Lie. Get familiar with the SPIT standard. From a solid ₹15.14 LPA campus average to the elite ₹61.55 LPA peak packages, explore verified campus placement packages and see the exact targets you are aiming for.</p>
+                  <p style="font-size: 0.95rem; color: #666; line-height: 1.6; margin: 0;">Explore SPIT placement statistics, average packages, and top offers to understand campus placement trends.</p>
                 </div>
                 <div>
                   <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; color: #111;">Top Recruiters</h3>
-                  <p style="font-size: 0.95rem; color: #666; line-height: 1.6; margin: 0;">The Tier-1 Roster. Microsoft, Morgan Stanley, Barclays, and more. See the exact tech giants and financial heavyweights that actively partner with SPIT to hunt for top-tier engineering talent.</p>
+                  <p style="font-size: 0.95rem; color: #666; line-height: 1.6; margin: 0;">Discover companies recruiting at SPIT and explore opportunities across leading technology and finance firms.</p>
                 </div>
               </div>
             </div>
@@ -435,9 +435,9 @@ function getRenderedShell(page) {
         <div class="achievements-overlay"></div>
         <div class="container" style="position: relative; z-index: 2; display: flex; justify-content: flex-end; width: 100%; max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem;">
           <div style="width: 100%; max-width: 520px; color: #ffffff; text-align: left;">
-            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #c084fc; margin-bottom: 1rem; display: block;">Achievements &amp; Milestones</span>
+            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #c084fc; margin-bottom: 1rem; display: block;">ACHIEVEMENTS &amp; MILESTONES</span>
             <h2 style="font-size: calc(2.2rem + 1vw); font-family: var(--font-serif); font-weight: 500; line-height: 1.25; color: #ffffff; letter-spacing: -0.01em; margin-bottom: 1.5rem;">The Hall of Fame</h2>
-            <p style="font-size: 1.15rem; line-height: 1.75; color: rgba(255, 255, 255, 0.85); margin-bottom: 2rem;">We don't just participate; we dominate. Explore the ultimate track record of student achievements at SPIT. View the exact milestones set by the top 1% of the campus—and learn what it takes to leave your own mark.</p>
+            <p style="font-size: 1.15rem; line-height: 1.75; color: rgba(255, 255, 255, 0.85); margin-bottom: 2rem;">Discover the achievements, competitions, and milestones that showcase SPIT student talent.</p>
             <a href="/login" class="btn" style="padding: 0.85rem 2rem; border-radius: 30px; font-weight: 600; background-color: #ffffff; color: #000000; text-decoration: none; display: inline-block;">Explore Achievements</a>
           </div>
         </div>
@@ -449,7 +449,7 @@ function getRenderedShell(page) {
           <div>
             <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #8A2BE2; margin-bottom: 1rem; display: block;">CONTRIBUTE TO LOOP</span>
             <h2 style="font-size: calc(2rem + 1vw); font-family: var(--font-serif); font-weight: 500; line-height: 1.2; margin-bottom: 1.5rem; color: var(--text-primary);">Let's build together.</h2>
-            <p style="font-size: 1.1rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 2.5rem;">Contribute to a continuous cycle of knowledge sharing. LOOP connects college juniors, seniors, and alumni: today's juniors become tomorrow's seniors, who then guide the next generation. We welcome seniors and alumni to document their placement journeys, interview rounds, and study resources.</p>
+            <p style="font-size: 1.1rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 2.5rem;">Share your placement journey, interview experiences, and preparation resources to help the next generation of SPIT students.</p>
             <a href="/login" class="btn btn-secondary" style="padding: 0.9rem 2rem; border-radius: 30px; font-weight: 600; text-decoration: none; display: inline-block;">Share Your Journey</a>
           </div>
           <div style="position: relative; height: 350px; width: 100%; display: flex; justify-content: center; align-items: center;" class="photo-stack-container">
