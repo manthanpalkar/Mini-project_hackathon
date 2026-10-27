@@ -362,22 +362,32 @@ export default function Landing() {
             fontWeight: 600,
             lineHeight: '1.2',
             letterSpacing: '-0.02em',
-            marginBottom: '1.25rem',
+            marginBottom: '0.85rem',
             color: '#ffffff',
             textShadow: '0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)'
           }}>
-            Placement Stories &amp; Career Resources
+            Placement Stories &amp; Resources
           </h1>
           <p style={{
-            fontSize: '1.15rem',
-            color: 'rgba(255, 255, 255, 0.92)',
-            textShadow: '0 2px 16px rgba(0, 0, 0, 0.7)',
-            marginBottom: '3rem',
-            maxWidth: '680px',
-            margin: '0 auto 3rem auto',
-            lineHeight: '1.6'
+            fontSize: 'calc(1.05rem + 0.25vw)',
+            fontWeight: 500,
+            color: 'rgba(255, 255, 255, 0.95)',
+            textShadow: '0 2px 14px rgba(0, 0, 0, 0.75)',
+            marginBottom: '0.65rem',
+            letterSpacing: '-0.01em',
+            lineHeight: '1.4'
           }}>
-            Their Journey. Your Opportunity. LOOP SPIT is an independent student-led placement platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Connecting juniors, seniors, and alumni to share authentic round-by-round interview debriefs, coding test patterns, and career preparation resources.
+            Real placement experiences. Practical resources. Better preparation.
+          </p>
+          <p style={{
+            fontSize: '1.05rem',
+            color: 'rgba(255, 255, 255, 0.84)',
+            textShadow: '0 2px 16px rgba(0, 0, 0, 0.7)',
+            maxWidth: '620px',
+            margin: '0 auto 2.5rem auto',
+            lineHeight: '1.55'
+          }}>
+            Learn from SPIT seniors and alumni through interview experiences, coding tests, and placement tips.
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>

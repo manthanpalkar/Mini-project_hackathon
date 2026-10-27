@@ -39,7 +39,7 @@ const CORE_PAGES = [
     route: '/',
     title: 'LOOP SPIT | SPIT Mumbai Placement Stories & Resources',
     description: 'Explore LOOP SPIT, a student-led platform for SPIT Mumbai students featuring placement experiences, interview preparation guidance, and career resources.',
-    h1: 'Placement Stories & Career Resources',
+    h1: 'Placement Stories & Resources',
     paragraphs: [
       'Welcome to LOOP SPIT, the independent student-led placement portal and career-preparation platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Built around the guiding ethos "Their Journey. Your Opportunity.", LOOP connects college juniors, seniors, and alumni to document verified recruitment experiences and foster peer mentorship across engineering disciplines.',
       'LOOP hosts structured, round-by-round placement interview debriefs covering every stage of campus recruitment—from initial resume shortlisting and online assessments (OA) to live technical evaluations, algorithmic coding challenges, system design rounds, and behavioral HR interviews across top technology and financial services employers.',
@@ -338,11 +338,14 @@ function getRenderedShell(page) {
             <span style="opacity: 0.6;">•</span>
             <span style="font-weight: 500; text-transform: none; letter-spacing: 0.02em;">Limitless Opportunities, One Platform</span>
           </div>
-          <h1 style="font-size: calc(2.1rem + 1.6vw); font-family: var(--font-serif); font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 1.25rem; color: #ffffff; text-shadow: 0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9);">
-            Placement Stories &amp; Career Resources
+          <h1 style="font-size: calc(2.1rem + 1.6vw); font-family: var(--font-serif); font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 0.85rem; color: #ffffff; text-shadow: 0 4px 30px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9);">
+            Placement Stories &amp; Resources
           </h1>
-          <p style="font-size: 1.15rem; color: rgba(255, 255, 255, 0.92); text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7); margin-bottom: 3rem; max-width: 680px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-            Their Journey. Your Opportunity. LOOP SPIT is an independent student-led placement platform for Sardar Patel Institute of Technology (SPIT), Mumbai. Connecting juniors, seniors, and alumni to share authentic round-by-round interview debriefs, coding test patterns, and career preparation resources.
+          <p style="font-size: calc(1.05rem + 0.25vw); font-weight: 500; color: rgba(255, 255, 255, 0.95); text-shadow: 0 2px 14px rgba(0, 0, 0, 0.75); margin-bottom: 0.65rem; letter-spacing: -0.01em; line-height: 1.4;">
+            Real placement experiences. Practical resources. Better preparation.
+          </p>
+          <p style="font-size: 1.05rem; color: rgba(255, 255, 255, 0.84); text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7); max-width: 620px; margin: 0 auto 2.5rem auto; line-height: 1.55;">
+            Learn from SPIT seniors and alumni through interview experiences, coding tests, and placement tips.
           </p>
           <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
             <a href="/login" class="btn btn-primary" style="padding: 1rem 2.2rem; font-size: 1rem; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 30px; font-weight: 600; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);">Browse Stories</a>
