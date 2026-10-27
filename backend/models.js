@@ -430,6 +430,7 @@ const ActivityLogSchema = new mongoose.Schema({
       'CONTENT_FOLDER_CREATE',
       'FEEDBACK_SUBMIT',
       'FEEDBACK_STATUS_CHANGE',
+      'FEEDBACK_DELETE',
       'USER_CREATE',
       'USER_UPDATE',
       'USER_DELETE',

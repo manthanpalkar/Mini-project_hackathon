@@ -6152,6 +6152,49 @@ app.patch('/api/admin/feedback/:id', authenticateToken, requireAdmin, async (req
   }
 });
 
+// Admin: Delete feedback record and its associated screenshot attachment
+app.delete('/api/admin/feedback/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const feedback = await Feedback.findById(id);
+    if (!feedback) {
+      return res.status(404).json({ error: 'Feedback record not found.' });
+    }
+
+    if (feedback.screenshotFileId) {
+      await StorageService.deleteFile(`gridfs:${feedback.screenshotFileId}`).catch((delErr) => {
+        console.warn(`[FEEDBACK_DELETE] Could not delete GridFS screenshot ${feedback.screenshotFileId}:`, delErr.message);
+      });
+    }
+
+    await Feedback.findByIdAndDelete(id);
+
+    activityService.logActivity({
+      eventType: 'FEEDBACK_DELETE',
+      category: 'FEEDBACK',
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      targetType: 'Feedback',
+      targetId: feedback._id,
+      summary: `Permanently deleted feedback [${feedback.referenceId}]: ${feedback.title ? feedback.title.slice(0, 60) : ''}`,
+      outcome: 'SUCCESS',
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || '',
+      metadata: {
+        referenceId: feedback.referenceId,
+        title: feedback.title,
+        category: feedback.category,
+        reporterEmail: feedback.reporterEmail
+      }
+    });
+
+    res.json({ message: 'Feedback record permanently deleted.', feedbackId: id });
+  } catch (err) {
+    console.error('[ADMIN_FEEDBACK_DELETE_ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete feedback record.' });
+  }
+});
+
 // ==========================================
 // AUDIT TRAILS & USER ACTIVITY INTELLIGENCE
 // ==========================================

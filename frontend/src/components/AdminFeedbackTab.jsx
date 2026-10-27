@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  Search, X, RefreshCw, ZoomIn, Download
+  Search, X, RefreshCw, ZoomIn, Download, Trash2
 } from 'lucide-react';
-import { getAdminFeedback, updateAdminFeedback, getFeedbackAttachmentUrl } from '../utils/db';
+import { getAdminFeedback, updateAdminFeedback, deleteAdminFeedback, getFeedbackAttachmentUrl } from '../utils/db';
 
 const CATEGORIES = [
   'All',
@@ -38,6 +38,7 @@ export default function AdminFeedbackTab() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [expandedScreenshotUrl, setExpandedScreenshotUrl] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const [newStatus, setNewStatus] = useState('');
   const [statusReason, setStatusReason] = useState('');
@@ -114,6 +115,28 @@ export default function AdminFeedbackTab() {
       alert(err.message || 'Failed to update feedback record.');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleDeleteFeedback = async (item) => {
+    if (!item?._id) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete feedback "${item.title}" (${item.referenceId})?\n\nThis will remove the report and any attached screenshots permanently.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(item._id);
+      await deleteAdminFeedback(item._id);
+      if (selectedItem?._id === item._id) {
+        setSelectedItem(null);
+      }
+      await fetchFeedback(pagination.page);
+    } catch (err) {
+      console.error('Failed to delete feedback:', err);
+      alert(err.message || 'Failed to delete feedback record.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -385,13 +408,38 @@ export default function AdminFeedbackTab() {
                         {new Date(item.createdAt).toLocaleDateString()}
                       </td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                        <button
-                          onClick={() => openItemDetails(item)}
-                          className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: '8px' }}
-                        >
-                          Review
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => openItemDetails(item)}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: '8px' }}
+                          >
+                            Review
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFeedback(item)}
+                            disabled={deletingId === item._id}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.8rem',
+                              borderRadius: '8px',
+                              color: '#ef4444',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              cursor: deletingId === item._id ? 'not-allowed' : 'pointer',
+                              opacity: deletingId === item._id ? 0.6 : 1
+                            }}
+                            title="Delete Feedback"
+                            aria-label={`Delete feedback ${item.referenceId}`}
+                          >
+                            <Trash2 size={13} />
+                            <span>{deletingId === item._id ? 'Deleting...' : 'Delete'}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -747,24 +795,49 @@ export default function AdminFeedbackTab() {
               borderTop: '1px solid var(--border-color, #e5e7eb)',
               backgroundColor: 'var(--bg-secondary, #f9fafb)',
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               gap: '0.75rem'
             }}>
               <button
-                onClick={() => setSelectedItem(null)}
+                type="button"
+                onClick={() => handleDeleteFeedback(selectedItem)}
+                disabled={deletingId === selectedItem._id || updating}
                 className="btn btn-secondary"
-                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', borderRadius: '8px' }}
+                style={{
+                  padding: '0.45rem 1rem',
+                  fontSize: '0.85rem',
+                  borderRadius: '8px',
+                  color: '#ef4444',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  cursor: (deletingId === selectedItem._id || updating) ? 'not-allowed' : 'pointer',
+                  opacity: deletingId === selectedItem._id ? 0.6 : 1
+                }}
               >
-                Cancel
+                <Trash2 size={15} />
+                <span>{deletingId === selectedItem._id ? 'Deleting...' : 'Delete Feedback'}</span>
               </button>
-              <button
-                onClick={handleSaveItemUpdates}
-                disabled={updating}
-                className="btn btn-primary"
-                style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', borderRadius: '8px' }}
-              >
-                {updating ? 'Saving Changes...' : 'Save Updates'}
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedItem(null)}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', borderRadius: '8px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveItemUpdates}
+                  disabled={updating || deletingId === selectedItem._id}
+                  className="btn btn-primary"
+                  style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', borderRadius: '8px' }}
+                >
+                  {updating ? 'Saving Changes...' : 'Save Updates'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

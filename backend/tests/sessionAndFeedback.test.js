@@ -246,5 +246,106 @@ test('Sliding Token Rotation & 401 Expiry Verification', async (t) => {
     assert.equal(resFake.status, 400, 'Executable masquerading as PNG must be rejected with 400');
     assert.equal(fakeJson.code, 'INVALID_IMAGE_SIGNATURE', 'Error code must be INVALID_IMAGE_SIGNATURE');
   });
+
+  await t.test('DELETE /api/admin/feedback/:id authorization and feedback deletion', async () => {
+    const { Feedback } = require('../models');
+    const { userAuthCache } = require('../server');
+
+    const studentToken = jwt.sign(
+      { email: 'student_tester@spit.ac.in', role: 'Student', status: 'Active' },
+      SECRET,
+      { expiresIn: '1h' }
+    );
+    userAuthCache.set('student_tester@spit.ac.in', {
+      email: 'student_tester@spit.ac.in',
+      role: 'Student',
+      status: 'Active',
+      onboarded: true
+    });
+
+    const adminToken = jwt.sign(
+      { email: 'admin_tester@spit.ac.in', role: 'Administrator', status: 'Active' },
+      SECRET,
+      { expiresIn: '1h' }
+    );
+    userAuthCache.set('admin_tester@spit.ac.in', {
+      email: 'admin_tester@spit.ac.in',
+      role: 'Administrator',
+      status: 'Active',
+      onboarded: true
+    });
+
+    const fakeId = new mongoose.Types.ObjectId();
+
+    // 1. Unauthenticated request -> 401
+    const unauthRes = await fetch(`${baseUrl}/api/admin/feedback/${fakeId}`, {
+      method: 'DELETE'
+    });
+    assert.equal(unauthRes.status, 401, 'Unauthenticated request must return 401');
+
+    // 2. Student request -> 403
+    const studentRes = await fetch(`${baseUrl}/api/admin/feedback/${fakeId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${studentToken}` }
+    });
+    assert.equal(studentRes.status, 403, 'Student role must be forbidden with 403');
+
+    // 3. Admin request with non-existent ID -> 404
+    const origFindById = Feedback.findById;
+    const origFindByIdAndDelete = Feedback.findByIdAndDelete;
+
+    Feedback.findById = async (id) => {
+      if (id.toString() === fakeId.toString()) return null;
+      return null;
+    };
+
+    try {
+      const notFoundRes = await fetch(`${baseUrl}/api/admin/feedback/${fakeId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      assert.equal(notFoundRes.status, 404, 'Non-existent feedback ID must return 404');
+    } finally {
+      Feedback.findById = origFindById;
+    }
+
+    // 4. Admin deletes genuine feedback document
+    const mockFeedback = {
+      _id: fakeId,
+      referenceId: 'FB-TEST-99999',
+      reporterEmail: 'student_tester@spit.ac.in',
+      title: 'Test Feedback Deletion',
+      description: 'This feedback will be deleted by test suite',
+      category: 'Bug / Error',
+      severity: 'Minor',
+      priority: 'Low',
+      status: 'New',
+      screenshotFileId: new mongoose.Types.ObjectId()
+    };
+
+    let deletedId = null;
+    Feedback.findById = async (id) => {
+      if (id.toString() === fakeId.toString()) return mockFeedback;
+      return null;
+    };
+    Feedback.findByIdAndDelete = async (id) => {
+      deletedId = id;
+      return mockFeedback;
+    };
+
+    try {
+      const deleteRes = await fetch(`${baseUrl}/api/admin/feedback/${fakeId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      assert.equal(deleteRes.status, 200, 'Admin deleting feedback must return 200');
+      const deleteJson = await deleteRes.json();
+      assert.equal(deleteJson.feedbackId, fakeId.toString(), 'Should return deleted feedbackId');
+      assert.equal(deletedId.toString(), fakeId.toString(), 'Feedback.findByIdAndDelete called with id');
+    } finally {
+      Feedback.findById = origFindById;
+      Feedback.findByIdAndDelete = origFindByIdAndDelete;
+    }
+  });
 });
 
