@@ -7,20 +7,34 @@ import {
   ShieldCheck, 
   Lock, 
   FileText, 
-  Database, 
-  Sparkles, 
   GraduationCap, 
   ChevronDown, 
   ChevronUp, 
-  Eye, 
   HardDrive, 
-  Key, 
-  UserCheck, 
-  AlertCircle, 
-  ExternalLink, 
   Clock, 
   Building2 
 } from 'lucide-react';
+
+// Static sections configuration hoisted outside component to maintain stable identity
+const SECTIONS = [
+  { id: 'intro', num: '01', title: 'Introduction' },
+  { id: 'info-collect', num: '02', title: 'Information We Collect' },
+  { id: 'info-provide', num: '03', title: 'Information You Provide' },
+  { id: 'account-auth', num: '04', title: 'Account and Authentication Information' },
+  { id: 'files-resources', num: '05', title: 'Files and Resources' },
+  { id: 'placement-stories', num: '06', title: 'Placement Stories' },
+  { id: 'use-info', num: '07', title: 'How We Use Information' },
+  { id: 'store-info', num: '08', title: 'How We Store Information' },
+  { id: 'storage-downloads', num: '09', title: 'File Storage and Downloads' },
+  { id: 'cookies-local', num: '10', title: 'Cookies and Local Storage' },
+  { id: 'third-party', num: '11', title: 'Third-Party Services' },
+  { id: 'security', num: '12', title: 'Data Security' },
+  { id: 'retention', num: '13', title: 'Data Retention' },
+  { id: 'user-rights', num: '14', title: 'User Rights' },
+  { id: 'children-privacy', num: '15', title: "Children's Privacy" },
+  { id: 'changes', num: '16', title: 'Changes to This Privacy Policy' },
+  { id: 'contact', num: '17', title: 'Contact Us' }
+];
 
 export default function PrivacyPolicy() {
   const navigate = useNavigate();
@@ -28,37 +42,19 @@ export default function PrivacyPolicy() {
   const [mobileTocOpen, setMobileTocOpen] = useState(false);
 
   // Sections configuration
-  const sections = [
-    { id: 'intro', num: '01', title: 'Introduction' },
-    { id: 'info-collect', num: '02', title: 'Information We Collect' },
-    { id: 'info-provide', num: '03', title: 'Information You Provide' },
-    { id: 'account-auth', num: '04', title: 'Account and Authentication Information' },
-    { id: 'files-resources', num: '05', title: 'Files and Resources' },
-    { id: 'placement-stories', num: '06', title: 'Placement Stories' },
-    { id: 'use-info', num: '07', title: 'How We Use Information' },
-    { id: 'store-info', num: '08', title: 'How We Store Information' },
-    { id: 'storage-downloads', num: '09', title: 'File Storage and Downloads' },
-    { id: 'cookies-local', num: '10', title: 'Cookies and Local Storage' },
-    { id: 'third-party', num: '11', title: 'Third-Party Services' },
-    { id: 'security', num: '12', title: 'Data Security' },
-    { id: 'retention', num: '13', title: 'Data Retention' },
-    { id: 'user-rights', num: '14', title: 'User Rights' },
-    { id: 'children-privacy', num: '15', title: "Children's Privacy" },
-    { id: 'changes', num: '16', title: 'Changes to This Privacy Policy' },
-    { id: 'contact', num: '17', title: 'Contact Us' }
-  ];
+  const sections = SECTIONS;
 
   // Scrollspy to update active TOC section on scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 140;
 
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const el = document.getElementById(sections[i].id);
+      for (let i = SECTIONS.length - 1; i >= 0; i--) {
+        const el = document.getElementById(SECTIONS[i].id);
         if (el) {
           const top = el.offsetTop;
           if (scrollPosition >= top) {
-            setActiveSection(sections[i].id);
+            setActiveSection(SECTIONS[i].id);
             break;
           }
         }

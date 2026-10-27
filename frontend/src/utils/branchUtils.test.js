@@ -6,8 +6,7 @@ import {
   BRANCH_FILTER_CATEGORIES,
   getFilterCategory,
   formatDisplayBranch,
-  matchesBranchFilter,
-  normalizeBranch
+  matchesBranchFilter
 } from './branchUtils.js';
 
 test('Branch Filter Categories: Exact order is [CSE, CE, EXTC]', () => {

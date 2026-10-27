@@ -4,16 +4,15 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
 import { 
   ArrowLeft, Download, FileText, Award, Code, BookOpen, Layers, X, Edit, Trash2, Plus, 
-  ExternalLink, Sparkles, CheckCircle2, Trophy, Medal, Lightbulb, Quote, Target, Cpu, 
-  Users, MessageSquare, GraduationCap, 
-  Rocket, Compass, Star, ArrowRight, UserCheck, Briefcase
+  ExternalLink, Sparkles, Lightbulb,
+  Compass, Star, ArrowRight, Briefcase
 } from 'lucide-react';
-import { getStoryById, updateStory, deleteStory, addPendingStory, fileToBase64, resolveUrl, getResourceFileUrl, downloadResourceFile, uploadResumeFile, uploadStudyMaterialFile } from '../utils/db';
-import FormattedText, { renderInlineWithLinks } from '../components/FormattedText';
+import { getStoryById, updateStory, deleteStory, addPendingStory, getResourceFileUrl, downloadResourceFile, uploadResumeFile, uploadStudyMaterialFile } from '../utils/db';
+import FormattedText from '../components/FormattedText';
 import { formatDisplayBranch } from '../utils/branchUtils';
 import BRAND from '../constants/branding';
 
-export function formatCurrencyText(val) {
+function formatCurrencyText(val) {
   if (!val) return '';
   let s = String(val).trim();
   // Sanitize misrecognized currency symbols (·, <, €, ₴) to official Indian Rupee ₹
@@ -239,77 +238,6 @@ function parseAdviceContent(adviceText) {
   }
 
   return { quote, raw: text };
-}
-
-// Hackathons and Competitions Parser
-function parseHackathonContent(hackathonText) {
-  if (!hackathonText || typeof hackathonText !== 'string') return { intro: '', achievements: [], skills: [], impact: '' };
-
-  let text = hackathonText.trim().replace(/^🏆\s*/u, '');
-  let intro = '';
-  let impact = '';
-
-  const bulletParts = text.split(/•|\n/).map(l => l.trim()).filter(Boolean);
-  const rawBullets = [];
-
-  bulletParts.forEach(part => {
-    const cleaned = part.replace(/^[-*•\d.)\s]+/, '').trim();
-    if (!cleaned) return;
-    const lower = cleaned.toLowerCase();
-    if (lower.includes('participated in multiple') || lower.includes('my engineering journey') || lower.includes('experiences improved my')) {
-      intro += (intro ? ' ' : '') + cleaned;
-    } else if (lower.includes('notable achievements:')) {
-      // header skip
-    } else if (lower.includes('helped me gain') || lower.includes('beyond academics') || lower.includes('strengthened my resume')) {
-      impact += (impact ? ' ' : '') + cleaned;
-    } else {
-      rawBullets.push(cleaned);
-    }
-  });
-
-  const achievementIcons = [Trophy, Medal, Star, Award];
-  const achievements = rawBullets.map((ach, idx) => {
-    let badgeText = 'Milestone';
-    let badgeColor = 'rgba(245, 158, 11, 0.12)';
-    let textColor = '#fbbf24';
-    const lower = ach.toLowerCase();
-
-    if (lower.includes('winner') || lower.includes('1st') || lower.includes('first')) {
-      badgeText = '1st Place / Winner';
-      badgeColor = 'rgba(212, 255, 50, 0.15)';
-      textColor = '#D4FF32';
-    } else if (lower.includes('finalist') || lower.includes('top 10') || lower.includes('runner')) {
-      badgeText = 'Top Finalist';
-      badgeColor = 'rgba(59, 130, 246, 0.15)';
-      textColor = '#60a5fa';
-    } else if (lower.includes('ai') || lower.includes('solution') || lower.includes('built')) {
-      badgeText = 'Technical Build';
-      badgeColor = 'rgba(168, 85, 247, 0.15)';
-      textColor = '#c084fc';
-    } else if (lower.includes('collaborated') || lower.includes('team')) {
-      badgeText = 'Cross-Domain Synergy';
-      badgeColor = 'rgba(16, 185, 129, 0.15)';
-      textColor = '#10b981';
-    }
-
-    return {
-      id: idx,
-      text: ach,
-      badgeText,
-      badgeColor,
-      textColor,
-      icon: achievementIcons[idx % achievementIcons.length]
-    };
-  });
-
-  const skills = [
-    { name: 'Team Collaboration', icon: Users, desc: 'Agile sprint teamwork across engineering disciplines' },
-    { name: 'Rapid Prototyping', icon: Rocket, desc: 'Shipping production MVPs within 24-36 hour hackathon constraints' },
-    { name: 'Problem-Solving Under Pressure', icon: Target, desc: 'Debugging architectures with tight deadline urgency' },
-    { name: 'Technical Presentation', icon: MessageSquare, desc: 'Pitching software architecture clearly to industry judges' }
-  ];
-
-  return { intro, achievements, skills, impact };
 }
 
 const getResourceLink = (res) => {
@@ -553,7 +481,7 @@ export default function StoryDetail() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      } catch (err) {
+      } catch {
         alert("Failed to download file.");
       }
     }
@@ -594,7 +522,7 @@ export default function StoryDetail() {
   const currentUser = (() => {
     try {
       return userSession ? JSON.parse(userSession) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   })();
@@ -753,7 +681,7 @@ export default function StoryDetail() {
     try {
       const parsed = new URL(string);
       return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch (_) {
+    } catch {
       return false;
     }
   };

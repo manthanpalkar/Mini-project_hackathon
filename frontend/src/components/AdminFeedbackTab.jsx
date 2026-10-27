@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  MessageSquare, Bug, CheckCircle, Clock, AlertTriangle, AlertCircle, 
-  Search, Filter, ChevronRight, X, ExternalLink, User, Shield, Send, RefreshCw, ZoomIn, Download
+  Search, X, RefreshCw, ZoomIn, Download
 } from 'lucide-react';
 import { getAdminFeedback, updateAdminFeedback, getFeedbackAttachmentUrl } from '../utils/db';
 
@@ -47,7 +46,12 @@ export default function AdminFeedbackTab() {
   const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState('');
 
-  const fetchFeedback = async (page = 1) => {
+  const searchQueryRef = useRef(searchQuery);
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
+  const fetchFeedback = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       const res = await getAdminFeedback({
@@ -56,7 +60,7 @@ export default function AdminFeedbackTab() {
         status: selectedStatus,
         category: selectedCategory,
         severity: selectedSeverity,
-        search: searchQuery
+        search: searchQueryRef.current
       });
       setItems(res.items || []);
       setMetrics(res.metrics || {});
@@ -66,11 +70,11 @@ export default function AdminFeedbackTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedStatus, selectedCategory, selectedSeverity]);
 
   useEffect(() => {
     fetchFeedback(1);
-  }, [selectedStatus, selectedCategory, selectedSeverity]);
+  }, [fetchFeedback]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

@@ -1,6 +1,5 @@
-import React from 'react';
 import { UploadCloud, CheckCircle, AlertCircle, X, Minimize2, Maximize2, Loader2, RotateCcw } from 'lucide-react';
-import { useUpload } from '../context/UploadContext';
+import { useUpload } from '../hooks/useUpload';
 
 export default function UploadDock() {
   const { uploads, activeCount, isDockMinimized, toggleDock, cancelUpload, dismissUpload, retryUpload } = useUpload();

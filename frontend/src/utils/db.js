@@ -175,7 +175,7 @@ const authFetch = async (url, options = {}, isRetry = false) => {
         }
       }
     }
-  } catch (tokenErr) {}
+  } catch {}
 
   // Intercept 401 Unauthorized for proactive refresh and single retry
   const isAuthEndpoint = typeof url === 'string' && (url.includes('/auth/refresh') || url.includes('/login') || url.includes('/demo-login'));
@@ -194,14 +194,14 @@ const authFetch = async (url, options = {}, isRetry = false) => {
           };
           return authFetch(url, { ...options, headers: retryHeaders }, true);
         }
-      } catch (e) {}
+      } catch {}
     }
 
     let errPayload = null;
     try {
       const clone = res.clone();
       errPayload = await clone.json().catch(() => null);
-    } catch (e) {}
+    } catch {}
 
     const code = errPayload?.code;
 
@@ -280,7 +280,7 @@ const authFetchXHR = (url, options = {}, onProgress) => {
             }
           }
         }
-      } catch (tokenErr) {}
+      } catch {}
 
       // Handle 401 Unauthorized for session expiration with single retry
       const isAuthUrl = typeof url === 'string' && (url.includes('/auth/refresh') || url.includes('/login'));
@@ -305,7 +305,7 @@ const authFetchXHR = (url, options = {}, onProgress) => {
           parseAttempted = true;
           try {
             parsedJson = JSON.parse(responseBody);
-          } catch (e) {
+          } catch {
             parsedJson = {};
           }
         }
@@ -399,7 +399,7 @@ export const getStoryById = async (id) => {
         } catch {}
         return adjusted;
       }
-    } catch (e) {}
+    } catch {}
     if (isLocal) {
       const mock = localMockStories.find(m => String(m.id) === String(id));
       if (mock) return adjustUrls(mock);
@@ -619,7 +619,7 @@ export const getResourceById = async (id) => {
       const data = await res.json();
       return adjustUrls(data);
     }
-  } catch (e) {}
+  } catch {}
   if (isLocal) {
     const mock = localMockResources.find(m => String(m.id) === String(id));
     if (mock) return mock;
@@ -811,7 +811,7 @@ export const addUser = async (user) => {
       body: JSON.stringify(user)
     });
     if (res.ok) return await res.json();
-  } catch (e) {}
+  } catch {}
   return { success: true, user: { ...user, status: 'Active' } };
 };
 
@@ -821,7 +821,7 @@ export const deleteUser = async (email) => {
       method: 'DELETE'
     });
     if (res.ok) return await res.json();
-  } catch (e) {}
+  } catch {}
   return { success: true, message: 'User deleted.' };
 };
 
@@ -1264,7 +1264,7 @@ export const downloadResourceFile = async (resource) => {
     try {
       const { token } = JSON.parse(userSession);
       if (token) headers['Authorization'] = `Bearer ${token}`;
-    } catch (e) {}
+    } catch {}
   }
 
   // Detect preferred filename
@@ -1297,7 +1297,7 @@ export const downloadResourceFile = async (resource) => {
     if (match && match[1]) {
       try {
         filename = decodeURIComponent(match[1]);
-      } catch (e) {
+      } catch {
         filename = match[1];
       }
     }
@@ -1364,7 +1364,7 @@ export const fileToBase64 = (file) => {
             
             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
             resolve(compressedBase64);
-          } catch (err) {
+          } catch {
             resolve(e.target.result);
           }
         };
@@ -1635,7 +1635,7 @@ export const submitFeedback = async (formData) => {
     try {
       const { token } = JSON.parse(userSession);
       if (token) headers['Authorization'] = `Bearer ${token}`;
-    } catch (e) {}
+    } catch {}
   }
 
   // fetch with FormData will automatically set multipart/form-data with proper boundary
@@ -1669,7 +1669,7 @@ export const getFeedbackAttachmentUrl = (fileId) => {
       if (token) {
         url += `?token=${encodeURIComponent(token)}`;
       }
-    } catch (e) {}
+    } catch {}
   }
   return url;
 };

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Home, ShieldAlert } from 'lucide-react';
 import SEOHead from './SEOHead';
@@ -15,7 +14,7 @@ export default function SectionUnavailable({ sectionName = 'Section' }) {
   try {
     const user = userSession ? JSON.parse(userSession) : null;
     isAdmin = Boolean(user?.isAdmin || user?.role === 'Administrator' || user?.role === 'Admin');
-  } catch (e) {}
+  } catch {}
 
   return (
     <div style={{

@@ -1,9 +1,8 @@
-import React from 'react';
 
 /**
  * Render inline text with safe, clickable external links
  */
-export const renderInlineWithLinks = (text) => {
+const renderInlineWithLinks = (text) => {
   if (!text || typeof text !== 'string') return null;
 
   // Match Markdown links: [title](url) OR raw URLs: https?://...
@@ -39,7 +38,7 @@ export const renderInlineWithLinks = (text) => {
       try {
         const parsed = new URL(rawUrl);
         displayLabel = parsed.hostname.replace(/^www\./, '') + (parsed.pathname.length > 25 ? parsed.pathname.substring(0, 22) + '...' : parsed.pathname);
-      } catch (e) {}
+      } catch {}
 
       elements.push(
         <a

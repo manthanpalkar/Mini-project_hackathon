@@ -6,21 +6,36 @@ import {
   ArrowLeft, 
   FileCheck2, 
   Scale, 
-  ShieldAlert, 
-  BookOpen, 
   GraduationCap, 
   ChevronDown, 
   ChevronUp, 
   AlertTriangle, 
-  Download, 
-  ExternalLink, 
   Clock, 
   Building2, 
-  CheckCircle2, 
-  Ban, 
-  HelpCircle,
   Sparkles
 } from 'lucide-react';
+
+// Static sections configuration hoisted outside component to maintain stable identity
+const SECTIONS = [
+  { id: 'acceptance', num: '01', title: 'Acceptance of Terms' },
+  { id: 'about-loop', num: '02', title: 'About LOOP' },
+  { id: 'eligibility', num: '03', title: 'Eligibility' },
+  { id: 'user-accounts', num: '04', title: 'User Accounts' },
+  { id: 'acceptable-use', num: '05', title: 'Acceptable Use' },
+  { id: 'user-content', num: '06', title: 'Student Stories and User Content' },
+  { id: 'uploaded-resources', num: '07', title: 'Uploaded Files and Resources' },
+  { id: 'intellectual-property', num: '08', title: 'Intellectual Property' },
+  { id: 'copyright-attribution', num: '09', title: 'Copyright and Attribution' },
+  { id: 'downloads-personal-use', num: '10', title: 'Downloads and Personal Use' },
+  { id: 'prohibited-activities', num: '11', title: 'Prohibited Activities' },
+  { id: 'platform-availability', num: '12', title: 'Platform Availability' },
+  { id: 'third-party-links', num: '13', title: 'Third-Party Links' },
+  { id: 'content-accuracy', num: '14', title: 'Content Accuracy' },
+  { id: 'account-suspension', num: '15', title: 'Account Suspension or Removal' },
+  { id: 'limitation-liability', num: '16', title: 'Limitation of Liability' },
+  { id: 'changes-to-terms', num: '17', title: 'Changes to These Terms' },
+  { id: 'contact-info', num: '18', title: 'Contact Information' }
+];
 
 export default function TermsOfUse() {
   const navigate = useNavigate();
@@ -28,38 +43,19 @@ export default function TermsOfUse() {
   const [mobileTocOpen, setMobileTocOpen] = useState(false);
 
   // 18 Sections configuration
-  const sections = [
-    { id: 'acceptance', num: '01', title: 'Acceptance of Terms' },
-    { id: 'about-loop', num: '02', title: 'About LOOP' },
-    { id: 'eligibility', num: '03', title: 'Eligibility' },
-    { id: 'user-accounts', num: '04', title: 'User Accounts' },
-    { id: 'acceptable-use', num: '05', title: 'Acceptable Use' },
-    { id: 'user-content', num: '06', title: 'Student Stories and User Content' },
-    { id: 'uploaded-resources', num: '07', title: 'Uploaded Files and Resources' },
-    { id: 'intellectual-property', num: '08', title: 'Intellectual Property' },
-    { id: 'copyright-attribution', num: '09', title: 'Copyright and Attribution' },
-    { id: 'downloads-personal-use', num: '10', title: 'Downloads and Personal Use' },
-    { id: 'prohibited-activities', num: '11', title: 'Prohibited Activities' },
-    { id: 'platform-availability', num: '12', title: 'Platform Availability' },
-    { id: 'third-party-links', num: '13', title: 'Third-Party Links' },
-    { id: 'content-accuracy', num: '14', title: 'Content Accuracy' },
-    { id: 'account-suspension', num: '15', title: 'Account Suspension or Removal' },
-    { id: 'limitation-liability', num: '16', title: 'Limitation of Liability' },
-    { id: 'changes-to-terms', num: '17', title: 'Changes to These Terms' },
-    { id: 'contact-info', num: '18', title: 'Contact Information' }
-  ];
+  const sections = SECTIONS;
 
   // Scrollspy to update active TOC section on scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 140;
 
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const el = document.getElementById(sections[i].id);
+      for (let i = SECTIONS.length - 1; i >= 0; i--) {
+        const el = document.getElementById(SECTIONS[i].id);
         if (el) {
           const top = el.offsetTop;
           if (scrollPosition >= top) {
-            setActiveSection(sections[i].id);
+            setActiveSection(SECTIONS[i].id);
             break;
           }
         }

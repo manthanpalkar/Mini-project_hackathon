@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Activity, Server, Database, HardDrive, ShieldCheck, AlertTriangle,
-  CheckCircle2, XCircle, RefreshCw, Search, FileText, Layers, Cpu,
-  Clock, ArrowUpDown, Terminal, Info, Check, Zap, ArrowUpRight
+  CheckCircle2, XCircle, RefreshCw, Search, FileText, Layers,
+  ArrowUpDown, Terminal, Info, Zap
 } from 'lucide-react';
 import { getSystemHealthDiagnostics, verifyDatabaseWrite, formatBytes } from '../utils/db';
 

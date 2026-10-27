@@ -11,7 +11,7 @@ function formatAchievementDate(dateStr) {
     if (!isNaN(d.getTime())) {
       return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     }
-  } catch (e) {}
+  } catch {}
   return String(dateStr);
 }
 
@@ -28,28 +28,6 @@ const parsePosition = (posStr) => {
   const y = parseInt(parts[1]) || 50;
   const zoom = parseFloat(parts[2]) || 1.0;
   return { x, y, zoom };
-};
-
-const parseCrop = (posStr) => {
-  const defaults = {
-    outer: { x: 10, y: 0, w: 80, h: 33 },
-    inner: { x: 10, y: 0, w: 80, h: 24 }
-  };
-  if (!posStr || !posStr.startsWith('crop:')) return defaults;
-  try {
-    const parts = posStr.replace('crop:', '').split(';');
-    if (parts.length >= 2) {
-      const outerParts = parts[0].split(',').map(Number);
-      const innerParts = parts[1].split(',').map(Number);
-      return {
-        outer: { x: outerParts[0] ?? 10, y: outerParts[1] ?? 0, w: outerParts[2] ?? 80, h: outerParts[3] ?? 33 },
-        inner: { x: innerParts[0] ?? 10, y: innerParts[1] ?? 0, w: innerParts[2] ?? 80, h: innerParts[3] ?? 24 }
-      };
-    }
-  } catch (e) {
-    console.error("Error parsing crop string:", e);
-  }
-  return defaults;
 };
 
 const parseSliders = (posStr) => {

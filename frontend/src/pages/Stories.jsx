@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
 import {
   Filter, Upload, X, ArrowRight, Plus, Briefcase, CheckCircle, FileText, Search, Calendar,
-  Compass, Award, Code, Layers, Sparkles, BookOpen, Trophy, Lightbulb, RotateCcw, ExternalLink
+  Sparkles, RotateCcw, ExternalLink
 } from 'lucide-react';
-import { getStories, getStoryById, addPendingStory, fileToBase64, uploadResumeFile, uploadStudyMaterialFile } from '../utils/db';
+import { getStories, getStoryById, uploadResumeFile, uploadStudyMaterialFile } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
-import { useUpload } from '../context/UploadContext';
+import { useUpload } from '../hooks/useUpload';
 
 function formatStoryDate(dateStr) {
   if (!dateStr) return null;
@@ -17,27 +17,18 @@ function formatStoryDate(dateStr) {
     if (!isNaN(d.getTime())) {
       return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
     }
-  } catch (e) {}
+  } catch {}
   return null;
 }
 
 import {
   BRANCH_FILTER_CATEGORIES,
-  getFilterCategory,
   formatDisplayBranch,
   matchesBranchFilter,
   normalizeBranch
 } from '../utils/branchUtils';
 
-export {
-  BRANCH_FILTER_CATEGORIES,
-  getFilterCategory,
-  formatDisplayBranch,
-  matchesBranchFilter,
-  normalizeBranch
-};
-
-function Story3DCard({ story, index, navigate }) {
+function Story3DCard({ story, navigate }) {
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0, active: false });
@@ -354,13 +345,13 @@ export default function Stories() {
   const currentUser = (() => {
     try {
       return userSession ? JSON.parse(userSession) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   })();
 
   const { data: cachedStories, loading, mutate } = useCachedData('stories', getStories);
-  const stories = cachedStories || [];
+  const stories = useMemo(() => cachedStories || [], [cachedStories]);
   const normInitialBranch = (initialBranch && initialBranch !== 'ALL') ? normalizeBranch(initialBranch) : 'ALL';
   const [selectedBranches, setSelectedBranchesState] = useState(
     normInitialBranch === 'ALL' ? BRANCH_FILTER_CATEGORIES : [normInitialBranch]
@@ -398,8 +389,9 @@ export default function Stories() {
   const [inputValue, setInputValue] = useState(searchParams.get('q') || '');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [submitting, setSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const { startStoryUpload } = useUpload();
+  const { uploads, startStoryUpload } = useUpload();
+  const activeStoryUpload = uploads?.find(u => u.type === 'story' && u.status === 'uploading');
+  const uploadProgress = activeStoryUpload?.percent ?? 0;
 
   useEffect(() => {
     const handleStorySubmitted = () => {
@@ -414,7 +406,7 @@ export default function Stories() {
     searchParams.get('upload') === 'true' || !!location.state?.openUploadModal
   );
 
-  const setIsModalOpen = (open) => {
+  const setIsModalOpen = useCallback((open) => {
     setIsModalOpenState(open);
     if (!open) {
       if (location.state?.openUploadModal) {
@@ -432,7 +424,7 @@ export default function Stories() {
         return n;
       }, { replace: true });
     }
-  };
+  }, [location.state?.openUploadModal, location.pathname, location.search, navigate, setSearchParams]);
 
   useEffect(() => {
     if (searchParams.get('upload') === 'true') {
@@ -468,7 +460,7 @@ export default function Stories() {
         window.removeEventListener('keydown', handleKeyDown, true);
       };
     }
-  }, [isModalOpen]);
+  }, [isModalOpen, setIsModalOpen]);
 
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
@@ -517,7 +509,7 @@ export default function Stories() {
     try {
       const parsed = new URL(string);
       return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch (_) {
+    } catch {
       return false;
     }
   };
@@ -1250,8 +1242,8 @@ export default function Stories() {
               flexDirection: 'column',
               gap: '1.5rem',
             }}>
-              {sortedStories.map((story, index) => (
-                <Story3DCard key={story.id} story={story} index={index} navigate={navigate} />
+              {sortedStories.map((story) => (
+                <Story3DCard key={story.id} story={story} navigate={navigate} />
               ))}
             </div>
           ) : (

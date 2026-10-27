@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowDown, CornerRightDown } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import SEOHead from '../components/SEOHead';
-import { useVisibility } from '../context/VisibilityContext';
+import { useVisibility } from '../hooks/useVisibility';
 import BRAND from '../constants/branding';
 
 const heroImage = '/images/spit-college.jpg';
@@ -251,7 +251,7 @@ export default function Landing() {
     } else {
       try {
         sessionStorage.setItem('loop_redirect_after_login', targetPath);
-      } catch (e) {}
+      } catch {}
       navigate('/login', { state: { from: targetPath } });
     }
   };

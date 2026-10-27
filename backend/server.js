@@ -961,7 +961,7 @@ app.get(['/api/upload-route-health', '/upload-route-health'], (req, res) => {
   });
 });
 
-// Dedicated Public Diagnostic Endpoint for Email Provider Configuration Verification
+// Dedicated Diagnostic Endpoint for Email Provider Configuration Verification
 app.get(['/api/email-provider-health', '/email-provider-health'], (req, res) => {
   const rawKey = process.env.BREVO_API_KEY || '';
   const cleanKey = rawKey.trim().replace(/^["']|["']$/g, '');
@@ -974,10 +974,7 @@ app.get(['/api/email-provider-health', '/email-provider-health'], (req, res) => 
   res.status(200).json({
     status: 'ok',
     brevoKeyConfigured: Boolean(cleanKey && cleanKey.startsWith('xkeysib-')),
-    brevoKeyLength: cleanKey.length,
-    brevoKeyPrefix: cleanKey ? cleanKey.slice(0, 10) + '...' : 'missing',
     emailFromConfigured: Boolean(process.env.EMAIL_FROM),
-    emailFromRaw: process.env.EMAIL_FROM || 'unset',
     emailFromEffective: emailFrom,
     hasResendStaleSender,
     timestamp: new Date().toISOString()
@@ -1000,19 +997,22 @@ app.get(['/robots.txt', '/api/robots.txt'], (req, res) => {
   res.type('text/plain');
   res.send(`# robots.txt for ${BRAND.fullName}
 # ${BRAND.tagline}
-# Production Domain: https://loop-seven-delta.vercel.app
+# Official Domain: https://loop-seven-delta.vercel.app
 
+# Search Engine Crawlers (Googlebot, Bingbot, DuckDuckBot, etc.)
 User-agent: *
 Allow: /
-Allow: /home
-Allow: /stories
-Allow: /stories/*
-Allow: /resources
-Allow: /achievements
-Allow: /achievements/*
 Allow: /privacy-policy
 Allow: /terms
+Allow: /llms.txt
+Allow: /llms-full.txt
 
+# Disallow internal protected sections and detail routes (Require Student Login)
+Disallow: /stories
+Disallow: /stories/*
+Disallow: /resources
+Disallow: /achievements
+Disallow: /achievements/*
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /onboarding
@@ -1022,6 +1022,22 @@ Disallow: /api/
 Disallow: /uploads/resume-
 Disallow: /uploads/material-
 
+# AI Search Engine Crawlers (ChatGPT Search, Perplexity, Claude Search)
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Reference to XML Sitemap
 Sitemap: https://loop-seven-delta.vercel.app/sitemap.xml
 `);
 });
@@ -1699,9 +1715,14 @@ app.post(['/api/auth/demo-login', '/api/users/demo-login'], loginLimiter, async 
     const { role } = req.body || {};
     const targetRole = role === 'admin' ? 'admin' : 'student';
 
-    // Environment-controlled security feature flags (default to enabled unless explicitly set to 'false')
-    const isDemoEnabled = process.env.ENABLE_DEMO_LOGIN !== 'false';
-    const isAdminDemoEnabled = process.env.ENABLE_ADMIN_DEMO !== 'false';
+    // Environment-controlled security feature flags (secure-by-default in production)
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isDemoEnabled = isProduction
+      ? process.env.ENABLE_DEMO_LOGIN === 'true'
+      : process.env.ENABLE_DEMO_LOGIN !== 'false';
+    const isAdminDemoEnabled = isProduction
+      ? process.env.ENABLE_ADMIN_DEMO === 'true'
+      : process.env.ENABLE_ADMIN_DEMO !== 'false';
 
     if (!isDemoEnabled) {
       return res.status(403).json({ error: 'One-click demo login is disabled in this environment.', code: 'DEMO_DISABLED' });

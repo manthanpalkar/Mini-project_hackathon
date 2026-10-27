@@ -198,7 +198,6 @@ for (const s of selectedStories) {
   const cleanBranch = (s.branch || '').replace(/\s+/g, ' ').trim();
   const cleanPassoutYear = (s.passoutYear || '').replace(/\s+/g, ' ').trim();
 
-  const roleDisplay = cleanRole ? `${cleanCompany} — ${cleanRole}` : cleanCompany;
   const cohortDisplay = cleanBranch && cleanPassoutYear
     ? ` (${cleanBranch}, Class of ${cleanPassoutYear})`
     : (cleanBranch ? ` (${cleanBranch})` : '');
@@ -287,6 +286,7 @@ if (process.env.SECTION_VISIBILITY) {
     resources: process.env.VITE_SECTION_RESOURCES === 'true',
     achievements: process.env.VITE_SECTION_ACHIEVEMENTS === 'true'
   };
+  console.log('[PRERENDER_SEO] Configured section visibility from environment flags:', sectionVisibility);
 } else {
   const apiUrl = process.env.VITE_API_URL || 'https://loop-qnh9.onrender.com/api';
   try {
@@ -305,7 +305,7 @@ if (process.env.SECTION_VISIBILITY) {
         console.log('[PRERENDER_SEO] Fetched live section visibility:', sectionVisibility);
       }
     }
-  } catch (err) {
+  } catch {
     console.log('[PRERENDER_SEO] Using default section visibility (OFF):', sectionVisibility);
   }
 }

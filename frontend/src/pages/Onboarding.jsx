@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, GraduationCap, BookOpen, Calendar, ArrowRight, ChevronDown } from 'lucide-react';
 import { onboardUser } from '../utils/db';
@@ -16,7 +16,24 @@ export default function Onboarding() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const getRedirectTarget = () => {
+  const sanitizeRedirectUrl = (url) => {
+    if (!url || typeof url !== 'string') return '/';
+    const trimmed = url.trim();
+    if (
+      !trimmed.startsWith('/') ||
+      trimmed.startsWith('//') ||
+      trimmed.startsWith('/\\') ||
+      trimmed.includes('://')
+    ) {
+      return '/';
+    }
+    if (trimmed === '/login' || trimmed === '/onboarding' || trimmed === '/home') {
+      return '/';
+    }
+    return trimmed;
+  };
+
+  const getRedirectTarget = useCallback(() => {
     let target = location.state?.redirectAfter || location.state?.from;
     if (target && typeof target === 'object' && target.pathname) {
       target = target.pathname + (target.search || '') + (target.hash || '');
@@ -24,16 +41,13 @@ export default function Onboarding() {
     if (!target) {
       try {
         target = sessionStorage.getItem('loop_redirect_after_login');
-      } catch (e) {}
+      } catch {}
     }
     try {
       sessionStorage.removeItem('loop_redirect_after_login');
-    } catch (e) {}
-    if (!target || target === '/login' || target === '/onboarding' || target === '/home') {
-      return '/';
-    }
-    return target;
-  };
+    } catch {}
+    return sanitizeRedirectUrl(target);
+  }, [location.state?.redirectAfter, location.state?.from]);
 
   useEffect(() => {
     const userSession = localStorage.getItem('loop_current_user');
@@ -48,7 +62,7 @@ export default function Onboarding() {
     if (parsed.onboarded || parsed.isAdmin) {
       navigate(getRedirectTarget(), { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, getRedirectTarget]);
 
   useEffect(() => {
     document.title = `${BRAND.name} | Student Onboarding`;

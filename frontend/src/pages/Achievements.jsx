@@ -12,7 +12,7 @@ function formatAchievementDate(dateStr) {
     if (!isNaN(d.getTime())) {
       return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     }
-  } catch (e) {}
+  } catch {}
   return String(dateStr);
 }
 
@@ -89,7 +89,7 @@ const parseSliders = (posStr) => {
   };
 };
 
-function Achievement3DCard({ item, index, navigate }) {
+function Achievement3DCard({ item, navigate }) {
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0, active: false });
@@ -607,11 +607,10 @@ export default function Achievements() {
           flexDirection: 'column',
           gap: '2.5rem'
         }}>
-          {sortedAndFilteredAchievements.map((item, index) => (
+          {sortedAndFilteredAchievements.map((item) => (
             <Achievement3DCard 
               key={item.id} 
               item={item} 
-              index={index} 
               navigate={navigate} 
             />
           ))}

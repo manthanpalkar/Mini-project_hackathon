@@ -1,21 +1,20 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
 import { 
-  Search, Download, Plus, X, Folder, Lock, Globe, Shield, 
+  Search, Download, Plus, X, Folder, Lock, Shield,
   Trash2, Edit, ChevronRight, ArrowLeft, FileText, Image as ImageIcon, 
   FileSpreadsheet, Eye, UploadCloud, CheckCircle, AlertCircle, 
-  CornerDownRight, MoreVertical, RefreshCw, Layers, Sparkles,
-  Info, ShieldCheck
+  Layers
 } from 'lucide-react';
 import { 
   getResources, getFolders, addFolder, updateFolder, deleteFolder, 
-  uploadResourceStream, deleteResource, patchResource, formatBytes,
+  deleteResource, patchResource, formatBytes,
   downloadResourceFile
 } from '../utils/db';
 import { useCachedData } from '../hooks/useCachedData';
-import { useUpload } from '../context/UploadContext';
+import { useUpload } from '../hooks/useUpload';
 
 function ResourceFolder3DCard({
   folder,
@@ -280,8 +279,8 @@ export default function Resources() {
   const { data: cachedFolders, loading: loadingFolders, mutate: mutateFolders } = useCachedData('folders', getFolders);
   const { startUpload } = useUpload();
 
-  const resources = cachedResources || [];
-  const folders = cachedFolders || [];
+  const resources = useMemo(() => cachedResources || [], [cachedResources]);
+  const folders = useMemo(() => cachedFolders || [], [cachedFolders]);
   const loading = loadingResources || loadingFolders;
 
   // URL search params sync
@@ -307,7 +306,7 @@ export default function Resources() {
     });
   };
 
-  const setFilterTab = (tab) => {
+  const setFilterTab = useCallback((tab) => {
     setFilterTabState(tab);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -318,7 +317,7 @@ export default function Resources() {
       }
       return next;
     });
-  };
+  }, [setSearchParams]);
 
   // Keep state in sync if browser back/forward buttons are clicked
   useEffect(() => {
@@ -408,7 +407,7 @@ export default function Resources() {
   const currentUser = useMemo(() => {
     try {
       return userSession ? JSON.parse(userSession) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   }, [userSession]);
@@ -488,7 +487,7 @@ export default function Resources() {
     if (!isAdmin && filterTab === 'private') {
       setFilterTab('all');
     }
-  }, [isAdmin, filterTab]);
+  }, [isAdmin, filterTab, setFilterTab]);
 
   // Subfolders of the currently active folder
   const currentSubfolders = useMemo(() => {

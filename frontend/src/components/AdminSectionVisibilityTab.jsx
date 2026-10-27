@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, Check, AlertCircle, Sparkles, BookOpen, FileText, Trophy, Loader2 } from 'lucide-react';
-import { useVisibility } from '../context/VisibilityContext';
+import { useVisibility } from '../hooks/useVisibility';
 
 export default function AdminSectionVisibilityTab() {
   const { visibility, loading, updateVisibility } = useVisibility();

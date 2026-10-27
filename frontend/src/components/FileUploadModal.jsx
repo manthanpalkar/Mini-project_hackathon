@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { UploadCloud, X, CheckCircle, FileText, AlertCircle } from 'lucide-react';
-import { MAX_FILE_SIZE, formatBytes, validateFile } from '../utils/upload';
-import UploadProgress from './UploadProgress';
+import { UploadCloud, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { formatBytes, validateFile } from '../utils/upload';
 
 export default function FileUploadModal({
   isOpen,

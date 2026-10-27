@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // In-memory cache with timestamp tracking for fast access
 const memoryCache = {};
@@ -24,7 +24,7 @@ const getSessionCache = (key, ttlMs = DEFAULT_CACHE_TTL_MS) => {
       return null;
     }
     return entry.data;
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -37,7 +37,7 @@ const setSessionCache = (key, val) => {
       data: val
     };
     sessionStorage.setItem(`loop_cache_${key}`, JSON.stringify(entry));
-  } catch (e) {
+  } catch {
     // Ignore storage limit exceptions
   }
 };
@@ -151,6 +151,16 @@ export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_C
     return requestPromise;
   }, [key]);
 
+  // Serialize dependency changes cleanly without spreading dynamic arrays into useEffect
+  const depsKey = useMemo(() => {
+    if (!Array.isArray(dependencies) || dependencies.length === 0) return '';
+    try {
+      return JSON.stringify(dependencies);
+    } catch {
+      return String(dependencies);
+    }
+  }, [dependencies]);
+
   // Revalidate (background fetch) on mount or dependency changes
   useEffect(() => {
     const memAge = Date.now() - (memoryTimestamps[key] || 0);
@@ -163,7 +173,7 @@ export const useCachedData = (key, fetcher, dependencies = [], ttlMs = DEFAULT_C
 
     // Background revalidation
     fetchData(hasFreshData).catch(() => {});
-  }, [key, fetchData, ttlMs, ...dependencies]);
+  }, [key, fetchData, ttlMs, depsKey]);
 
   // Mutate function allows optimistic UI updates
   const mutate = useCallback((newData, revalidate = true) => {
@@ -232,7 +242,7 @@ export const clearAllCaches = () => {
         sessionStorage.removeItem(k);
       }
     });
-  } catch (e) {
+  } catch {
     // Ignore storage issues
   }
 };

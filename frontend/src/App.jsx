@@ -2,8 +2,9 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import Navbar from './components/Navbar';
-import { UploadProvider } from './context/UploadContext';
-import { VisibilityProvider, useVisibility } from './context/VisibilityContext';
+import { UploadProvider } from './context/UploadProvider';
+import { VisibilityProvider } from './context/VisibilityProvider';
+import { useVisibility } from './hooks/useVisibility';
 import UploadDock from './components/UploadDock';
 import ErrorBoundary from './components/ErrorBoundary';
 import SectionUnavailable from './components/SectionUnavailable';
@@ -82,16 +83,16 @@ function ProtectedRoute({ children }) {
       if (fullPath && fullPath !== '/' && fullPath !== '/login' && fullPath !== '/home') {
         sessionStorage.setItem('loop_redirect_after_login', fullPath);
       }
-    } catch (e) {}
+    } catch {}
 
     // Redirect to login while saving the attempted location
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  let user = null;
+  let user;
   try {
     user = JSON.parse(userSession);
-  } catch (e) {
+  } catch {
     localStorage.removeItem('loop_current_user');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
@@ -118,7 +119,7 @@ function SectionRouteGuard({ section, children }) {
   try {
     const user = userSession ? JSON.parse(userSession) : null;
     isAdmin = Boolean(user?.isAdmin || user?.role === 'Administrator' || user?.role === 'Admin');
-  } catch (e) {}
+  } catch {}
 
   if (isAdmin) {
     return children;
@@ -167,7 +168,7 @@ function AppLayout() {
               window.dispatchEvent(new CustomEvent('loop_login_success', { detail: newUser }));
               navigate('/', { replace: true });
             }
-          } catch (parseErr) {}
+          } catch {}
         }
       }
     };
@@ -396,7 +397,7 @@ function SplashIntro() {
     if (!visible) return;
     try {
       sessionStorage.setItem('loop_splash_shown', 'true');
-    } catch (e) {}
+    } catch {}
 
     // Hide scrollbar on mount to avoid the right white line (scrollbar gutter) during splash animation
     document.body.style.overflow = 'hidden';

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Loader, AlertCircle } from 'lucide-react';
 
 // Global polyfill for Uint8Array toHex / fromHex and Promise.withResolvers
@@ -77,6 +77,11 @@ export default function DocumentPreview({
   const [useNativeViewer, setUseNativeViewer] = useState(false);
   const renderTaskRef = useRef(null);
 
+  const callbacksRef = useRef({ onDocLoaded, onError });
+  useEffect(() => {
+    callbacksRef.current = { onDocLoaded, onError };
+  }, [onDocLoaded, onError]);
+
   // Track window dimensions for responsive canvas sizing
   const [windowDimensions, setWindowDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1200,
@@ -142,14 +147,14 @@ export default function DocumentPreview({
       .then((doc) => {
         if (!doc) return;
         if (!active) {
-          try { doc.destroy(); } catch (e) {}
+          try { doc.destroy(); } catch {}
           return;
         }
         loadedDoc = doc;
         setPdfDoc(doc);
         setPdfJsFailed(false);
-        if (onDocLoaded) {
-          onDocLoaded(doc.numPages);
+        if (callbacksRef.current.onDocLoaded) {
+          callbacksRef.current.onDocLoaded(doc.numPages);
         }
       })
       .catch((err) => {
@@ -157,8 +162,8 @@ export default function DocumentPreview({
         console.warn('[DocumentPreview] PDF.js rendering encountered an issue, enabling native browser PDF fallback:', err);
         // Fallback gracefully to native browser PDF viewer
         setPdfJsFailed(true);
-        if (!blobUrl && onError) {
-          onError('Could not load PDF document. It may be corrupt or encrypted.');
+        if (!blobUrl && callbacksRef.current.onError) {
+          callbacksRef.current.onError('Could not load PDF document. It may be corrupt or encrypted.');
         }
       })
       .finally(() => {
@@ -168,17 +173,18 @@ export default function DocumentPreview({
     return () => {
       active = false;
       if (loadedDoc) {
-        try { loadedDoc.destroy(); } catch (e) {}
+        try { loadedDoc.destroy(); } catch {}
       }
       if (loadingTask) {
-        try { loadingTask.destroy(); } catch (e) {}
+        try { loadingTask.destroy(); } catch {}
       }
     };
   }, [blobUrl, pdfData, isPdf]);
 
   // 2. Render current page automatically when pdfDoc, pageNum, scale, or window size changes
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current || !isPdf) return;
+    const canvas = canvasRef.current;
+    if (!pdfDoc || !canvas || !isPdf) return;
 
     let cancelRender = false;
 
@@ -186,7 +192,6 @@ export default function DocumentPreview({
       .then((page) => {
         if (cancelRender) return;
 
-        const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
@@ -194,7 +199,7 @@ export default function DocumentPreview({
         if (renderTaskRef.current) {
           try {
             renderTaskRef.current.cancel();
-          } catch (e) {}
+          } catch {}
           renderTaskRef.current = null;
         }
 
@@ -246,13 +251,13 @@ export default function DocumentPreview({
       if (renderTaskRef.current) {
         try {
           renderTaskRef.current.cancel();
-        } catch (e) {}
+        } catch {}
         renderTaskRef.current = null;
       }
       // Reclaim canvas buffer memory
-      if (canvasRef.current) {
-        canvasRef.current.width = 1;
-        canvasRef.current.height = 1;
+      if (canvas) {
+        canvas.width = 1;
+        canvas.height = 1;
       }
     };
   }, [pdfDoc, pageNum, scale, isPdf, windowDimensions]);

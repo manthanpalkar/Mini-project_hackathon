@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail, MessageSquare } from 'lucide-react';
 import { requestProfileEdit, updateUser, logoutUser, getStories, getResources, getFolders, getAchievements } from '../utils/db';
 import { prefetchData } from '../hooks/useCachedData';
-import { useVisibility } from '../context/VisibilityContext';
+import { useVisibility } from '../hooks/useVisibility';
 import FeedbackModal from './FeedbackModal';
 
 // Preset palette colors for the user name badge
@@ -121,7 +121,7 @@ export default function Navbar() {
       try {
         const currentUser = localStorage.getItem('loop_current_user');
         setUser(currentUser ? JSON.parse(currentUser) : null);
-      } catch (e) {
+      } catch {
         setUser(null);
       }
     };

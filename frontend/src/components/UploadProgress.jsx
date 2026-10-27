@@ -1,4 +1,3 @@
-import React from 'react';
 import { Loader2, AlertCircle, CheckCircle, X, RotateCcw } from 'lucide-react';
 
 export default function UploadProgress({

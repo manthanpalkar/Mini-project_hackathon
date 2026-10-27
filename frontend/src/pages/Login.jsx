@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
-import { LogIn, Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
-import { loginUser, loginDemoUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
+import { Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
+import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 import { clearAllCaches } from '../hooks/useCachedData';
 import SEOHead from '../components/SEOHead';
 import BRAND from '../constants/branding';
@@ -162,8 +162,26 @@ export default function Login() {
     }
   };
 
+  // Helper to validate and sanitize redirect destinations against open redirects (OWASP ASVS 5.1.5)
+  const sanitizeRedirectUrl = (url) => {
+    if (!url || typeof url !== 'string') return '/';
+    const trimmed = url.trim();
+    if (
+      !trimmed.startsWith('/') ||
+      trimmed.startsWith('//') ||
+      trimmed.startsWith('/\\') ||
+      trimmed.includes('://')
+    ) {
+      return '/';
+    }
+    if (trimmed === '/login' || trimmed === '/onboarding' || trimmed === '/home') {
+      return '/';
+    }
+    return trimmed;
+  };
+
   // Helper to resolve redirect destination
-  const getRedirectUrl = () => {
+  const getRedirectUrl = useCallback(() => {
     let target = null;
     const fromState = location.state?.from;
     if (fromState) {
@@ -192,31 +210,31 @@ export default function Login() {
       // Ignore sessionStorage removal errors
     }
 
-    if (!target || target === '/login' || target === '/home') {
-      return '/';
-    }
-
-    return target;
-  };
+    return sanitizeRedirectUrl(target);
+  }, [location.state?.from, searchParams]);
 
   useEffect(() => {
     const fromState = location.state?.from;
     if (fromState) {
       const path = typeof fromState === 'string' ? fromState : fromState.pathname + (fromState.search || '') + (fromState.hash || '');
-      if (path && path !== '/login' && path !== '/') {
+      const safePath = sanitizeRedirectUrl(path);
+      if (safePath && safePath !== '/') {
         try {
-          sessionStorage.setItem('loop_redirect_after_login', path);
+          sessionStorage.setItem('loop_redirect_after_login', safePath);
         } catch {
           // Ignore storage errors
         }
       }
     }
     const redirectParam = searchParams.get('redirect') || searchParams.get('returnUrl');
-    if (redirectParam && redirectParam !== '/login' && redirectParam !== '/') {
-      try {
-        sessionStorage.setItem('loop_redirect_after_login', redirectParam);
-      } catch {
-        // Ignore storage errors
+    if (redirectParam) {
+      const safeRedirect = sanitizeRedirectUrl(redirectParam);
+      if (safeRedirect && safeRedirect !== '/') {
+        try {
+          sessionStorage.setItem('loop_redirect_after_login', safeRedirect);
+        } catch {
+          // Ignore storage errors
+        }
       }
     }
   }, [location.state, searchParams]);
@@ -253,7 +271,7 @@ export default function Login() {
         navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
       }
     }
-  }, [navigate]);
+  }, [navigate, getRedirectUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -300,7 +318,7 @@ export default function Login() {
     }
   };
 
-  const handleLoginSuccess = (userData) => {
+  const handleLoginSuccess = useCallback((userData) => {
     // Zero cross-account leakage: strictly wipe prior session & memory caches on account switch
     clearAllCaches();
     localStorage.setItem('loop_current_user', JSON.stringify(userData));
@@ -316,28 +334,8 @@ export default function Login() {
         navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
       }
     }, 500);
-  };
+  }, [getRedirectUrl, navigate]);
 
-  const handleDemoLogin = async (role) => {
-    setError('');
-    setSuccessMsg('');
-    setLoading(true);
-    triggerCharacterState('LOGIN_SUBMITTED');
-
-    try {
-      const userData = await loginDemoUser(role);
-      handleLoginSuccess(userData);
-    } catch (err) {
-      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
-        setError('Network or server connection error. Please try again.');
-      } else {
-        setError(err.message || 'Demo authentication failed.');
-      }
-      triggerCharacterState('IDLE');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '779605241663-vp20b6cbhoccdeibjlcbtp7d9kbcf5bu.apps.googleusercontent.com';
 
@@ -379,7 +377,7 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  }, [triggerCharacterState, getRedirectUrl, navigate]);
+  }, [triggerCharacterState, handleLoginSuccess]);
 
   useEffect(() => {
     let checkTimer = null;
@@ -1458,100 +1456,6 @@ export default function Login() {
                   )}
                 </button>
               </form>
-
-              {/* 1-Click Demo Logins (Student & Admin) */}
-              <div style={{
-                marginTop: '1.25rem',
-                paddingTop: '1rem',
-                borderTop: '1px solid var(--border-color)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.65rem'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.45rem',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--text-tertiary)'
-                }}>
-                  <span>⚡</span>
-                  <span>One-Click Demo Login</span>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  gap: '0.65rem'
-                }}>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleDemoLogin('student')}
-                    style={{
-                      flex: 1,
-                      height: '42px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.84rem',
-                      fontWeight: 600,
-                      cursor: loading ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.4rem',
-                      transition: 'all 0.18s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--accent-color)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <span>🎓</span> {loading ? '...' : 'Student Demo'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleDemoLogin('admin')}
-                    style={{
-                      flex: 1,
-                      height: '42px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.84rem',
-                      fontWeight: 600,
-                      cursor: loading ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.4rem',
-                      transition: 'all 0.18s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--accent-color)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <span>🛡️</span> {loading ? '...' : 'Admin Demo'}
-                  </button>
-                </div>
-              </div>
-
             </>
           )}
 

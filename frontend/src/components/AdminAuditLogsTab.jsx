@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  Shield, Key, UserCheck, AlertTriangle, CheckCircle, XCircle, 
-  Search, RefreshCw, ChevronDown, ChevronRight, FileText, Database, ShieldAlert
+  Shield, AlertTriangle, CheckCircle, XCircle,
+  Search, RefreshCw, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { getAdminAuditLogs } from '../utils/db';
 
@@ -19,7 +19,12 @@ export default function AdminAuditLogsTab() {
   const [search, setSearch] = useState('');
   const [expandedLogId, setExpandedLogId] = useState(null);
 
-  const fetchLogs = async (page = 1) => {
+  const searchRef = useRef(search);
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
+
+  const fetchLogs = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       const res = await getAdminAuditLogs({
@@ -27,7 +32,7 @@ export default function AdminAuditLogsTab() {
         limit: 25,
         category,
         outcome,
-        search
+        search: searchRef.current
       });
       setLogs(res.items || []);
       setPagination(res.pagination || { total: 0, page: 1, limit: 25, totalPages: 1 });
@@ -36,11 +41,11 @@ export default function AdminAuditLogsTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [category, outcome]);
 
   useEffect(() => {
     fetchLogs(1);
-  }, [category, outcome]);
+  }, [fetchLogs]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
 import { 
   Check, X, ShieldAlert, Plus, Trash2, Users, Clock, Edit, FileText, 
   ChevronDown, ChevronUp, ChevronRight, Search, Folder, HardDrive, 
-  ShieldCheck, ExternalLink, GitBranch, FolderPlus, Sparkles, AlertTriangle,
+  ShieldCheck, ExternalLink, GitBranch, FolderPlus,
   Globe, Lock, FolderInput, Eye, Copy, History
 } from 'lucide-react';
 import { useCachedData } from '../hooks/useCachedData';
@@ -479,15 +479,6 @@ const ImageCropper = ({ imageUrl, imagePosition, onChangePosition, activeTab }) 
 };
 
 export default function AdminDashboard() {
-  const resolveUrl = (url) => {
-    if (typeof url === 'string' && url.startsWith('/uploads/')) {
-      const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
-        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
-        : 'https://loop-qnh9.onrender.com';
-      return baseUrl + url;
-    }
-    return url;
-  };
   const navigate = useNavigate();
   const [isAdmin] = useState(() => {
     const userSession = localStorage.getItem('loop_current_user');
@@ -517,10 +508,8 @@ export default function AdminDashboard() {
   
   // Expand/collapse and search states for admin active content management
   const [storiesExpanded, setStoriesExpanded] = useState(true);
-  const [resourcesExpanded, setResourcesExpanded] = useState(true);
   const [achievementsExpanded, setAchievementsExpanded] = useState(true);
   const [storiesSearch, setStoriesSearch] = useState('');
-  const [resourcesSearch, setResourcesSearch] = useState('');
   const [achievementsSearch, setAchievementsSearch] = useState('');
   
   // Db data states (Adopt SWR caching)
@@ -539,7 +528,7 @@ export default function AdminDashboard() {
   const activeResources = cachedActiveResources || [];
   const activeAchievements = cachedActiveAchievements || [];
   const usersList = cachedUsersList || [];
-  const folders = cachedFolders || [];
+  const folders = useMemo(() => cachedFolders || [], [cachedFolders]);
   const resourceStats = cachedResourceStats || null;
 
   const loading = !cachedPendingStories || !cachedPendingResources || !cachedActiveStories || !cachedActiveResources || !cachedActiveAchievements || !cachedUsersList || !cachedFolders;
@@ -774,7 +763,7 @@ export default function AdminDashboard() {
     try {
       const parsed = new URL(string);
       return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch (_) {
+    } catch {
       return false;
     }
   };
@@ -883,7 +872,7 @@ export default function AdminDashboard() {
     link: ''
   });
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     try {
       const [pStories, pResources, aStories, aResources, aAchievements, uList, savedFolders, rStats] = await Promise.all([
         getPendingStories(),
@@ -907,12 +896,21 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error("Error refreshing data:", err);
     }
-  };
+  }, [
+    mutatePendingStories,
+    mutatePendingResources,
+    mutateActiveStories,
+    mutateActiveResources,
+    mutateActiveAchievements,
+    mutateUsersList,
+    mutateFolders,
+    mutateResourceStats
+  ]);
 
   useEffect(() => {
     // Background fetch to sync on mount
     refreshData();
-  }, []);
+  }, [refreshData]);
 
   // Handle Escape key to close any active modal & isolate background scrolling
   useEffect(() => {
@@ -1706,16 +1704,6 @@ export default function AdminDashboard() {
                 (story.company || '').toLowerCase().includes(query) ||
                 (story.role && String(story.role).toLowerCase().includes(query)) ||
                 (story.branch && String(story.branch).toLowerCase().includes(query))
-              );
-            });
-
-            const filteredActiveResources = activeResources.filter((res) => {
-              if (!res) return false;
-              const query = (resourcesSearch || '').toLowerCase();
-              return (
-                (res.title || '').toLowerCase().includes(query) ||
-                (res.category || '').toLowerCase().includes(query) ||
-                (res.uploadedBy && String(res.uploadedBy).toLowerCase().includes(query))
               );
             });
 

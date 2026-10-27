@@ -37,7 +37,6 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [isGoogleOnly, setIsGoogleOnly] = useState(false);
   const [isNotFound, setIsNotFound] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(5);
@@ -63,7 +62,6 @@ export default function ForgotPassword() {
     e.preventDefault();
     setError('');
     setNotice('');
-    setSuccessMsg('');
     setIsGoogleOnly(false);
     setIsNotFound(false);
 
@@ -77,7 +75,6 @@ export default function ForgotPassword() {
     try {
       const data = await requestPasswordReset(trimmedEmail);
       if (data && (data.success || data.emailSent)) {
-        setSuccessMsg(data.message || 'A 6-digit recovery code has been sent to your registered SPIT email address.');
         setResendCooldown(60);
         setOtp(['', '', '', '', '', '']);
         setOtpStage('entry');
@@ -115,12 +112,10 @@ export default function ForgotPassword() {
     if (!isLocked && resendCooldown > 0) return;
     setError('');
     setNotice('');
-    setSuccessMsg('');
 
     setLoading(true);
     try {
-      const data = await requestPasswordReset(email.trim().toLowerCase());
-      setSuccessMsg(data.message || 'A new verification code has been sent to your email.');
+      await requestPasswordReset(email.trim().toLowerCase());
       setResendCooldown(60);
       setOtp(['', '', '', '', '', '']);
       setOtpStage('entry');
@@ -148,7 +143,6 @@ export default function ForgotPassword() {
   const executeVerification = async (codeToVerify) => {
     if (loading || otpStage !== 'entry' || isLocked) return;
     setError('');
-    setSuccessMsg('');
     setLoading(true);
     setOtpStage('verifying'); // State B: Orbital Animation starts
 
@@ -256,7 +250,6 @@ export default function ForgotPassword() {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccessMsg('');
 
     if (!newPassword || newPassword.length < 6) {
       setError('Password must be at least 6 characters in length.');
@@ -269,13 +262,12 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const data = await resetPassword({
+      await resetPassword({
         email: email.trim().toLowerCase(),
         resetToken,
         newPassword,
         confirmPassword
       });
-      setSuccessMsg(data.message || 'Your password has been successfully reset.');
       setStep(4);
     } catch (err) {
       setError(err.message || 'Failed to reset password. Please restart the recovery process.');

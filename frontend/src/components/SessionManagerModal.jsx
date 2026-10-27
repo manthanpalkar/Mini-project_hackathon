@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Shield, Laptop, Smartphone, Monitor, Clock, X, Trash2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Shield, Laptop, Smartphone, Monitor, X, Trash2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { getUserSessions, revokeUserSession, revokeOtherUserSessions } from '../utils/db';
 
 export default function SessionManagerModal({ isOpen, onClose }) {

@@ -1,7 +1,6 @@
-import React from 'react';
 import { 
-  Download, ArrowLeft, X, FileText, Loader,
-  ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw
+  Download, X, Loader,
+  ChevronLeft, ChevronRight, ZoomIn, ZoomOut
 } from 'lucide-react';
 
 export default function PreviewHeader({

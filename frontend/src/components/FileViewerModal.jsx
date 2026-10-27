@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
  * If any legacy component ever invokes FileViewerModal,
  * it immediately forwards to the dedicated /preview/:id route.
  */
-export default function FileViewerModal({ file, files = [], onClose }) {
+export default function FileViewerModal({ file, files = [] }) {
   const navigate = useNavigate();
 
   useEffect(() => {

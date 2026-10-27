@@ -1,5 +1,4 @@
-import React from 'react';
-import { Music, Volume2 } from 'lucide-react';
+import { Music } from 'lucide-react';
 
 export default function AudioPreview({
   src,

@@ -270,7 +270,16 @@ def setup_mock_api(page):
                 )
             return
 
-        # 8. Default Fallback
+        # 8. Section Visibility Endpoint
+        if "/api/settings/visibility" in url:
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps({"stories": True, "resources": True, "achievements": True})
+            )
+            return
+
+        # 9. Default Fallback
         route.fulfill(
             status=200,
             content_type="application/json",
@@ -323,7 +332,7 @@ def run_e2e_tests():
             try:
                 print("\n[TEST 2] Testing Protected Route Guard...")
                 page.evaluate("() => localStorage.clear()")
-                page.goto(f"{BASE_URL}/home", wait_until="networkidle")
+                page.goto(f"{BASE_URL}/stories", wait_until="networkidle")
                 assert "/login" in page.url, f"Expected redirect to /login, got {page.url}"
                 print(f"  ✔ PASS: Protected route guarded. Redirected to: {page.url}")
                 passed_tests.append("Test 2: Protected Route Guard")
@@ -358,8 +367,8 @@ def run_e2e_tests():
                 page.fill("#password-input", "CorrectPassword123!")
                 page.click("button[type='submit']")
 
-                # Wait for navigation to /home
-                page.wait_for_url(lambda u: "/home" in u, timeout=6000)
+                # Wait for navigation away from /login
+                page.wait_for_url(lambda u: "/login" not in u, timeout=6000)
                 user_session = page.evaluate("() => localStorage.getItem('loop_current_user')")
                 assert user_session is not None, "loop_current_user was not stored in localStorage"
                 print(f"  ✔ PASS: Authenticated successfully! Session active at: {page.url}")
@@ -478,7 +487,7 @@ def run_e2e_tests():
             try:
                 print("\n[TEST 11] Testing Session Logout Flow...")
                 page.evaluate("() => { localStorage.clear(); sessionStorage.clear(); }")
-                page.goto(f"{BASE_URL}/home", wait_until="networkidle")
+                page.goto(f"{BASE_URL}/stories", wait_until="networkidle")
                 assert "/login" in page.url, f"Expected redirect to /login after logout, got {page.url}"
                 print("  ✔ PASS: Logout cleared session tokens and redirected back to login.")
                 passed_tests.append("Test 11: Session Logout Flow")

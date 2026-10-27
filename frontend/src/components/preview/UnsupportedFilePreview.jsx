@@ -1,7 +1,6 @@
-import React from 'react';
 import { 
   Download, Presentation, FileSpreadsheet, FileText, 
-  Archive, FileCode, File, Loader 
+  Archive, File, Loader
 } from 'lucide-react';
 
 export default function UnsupportedFilePreview({

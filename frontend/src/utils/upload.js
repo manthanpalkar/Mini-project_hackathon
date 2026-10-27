@@ -106,7 +106,7 @@ const getAuthHeaders = () => {
       token = parsed.token;
       isAdmin = Boolean(parsed.isAdmin || parsed.role === 'Admin' || parsed.role === 'Administrator');
       if (token) headers['Authorization'] = `Bearer ${token}`;
-    } catch (e) {}
+    } catch {}
   }
   return { headers, token, isAdmin };
 };
@@ -283,7 +283,7 @@ export async function uploadResourceStream({
               try {
                 const errJson = JSON.parse(xhr.responseText);
                 reject(new Error(errJson.error || `Chunk upload rejected (${xhr.status})`));
-              } catch (e) {
+              } catch {
                 reject(new Error(`Chunk upload failed (${xhr.status})`));
               }
             } else {
@@ -393,7 +393,7 @@ export async function uploadResourceStream({
     try {
       const errJson = await finalizeRes.json();
       errMessage = errJson.error || errJson.message || errMessage;
-    } catch (e) {}
+    } catch {}
     throw new Error(errMessage);
   }
 

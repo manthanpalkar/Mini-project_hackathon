@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Loader, Download } from 'lucide-react';
 import PreviewHeader from '../components/preview/PreviewHeader';
-import PreviewToolbar from '../components/preview/PreviewToolbar';
 import DocumentPreview from '../components/preview/DocumentPreview';
 import ImagePreview from '../components/preview/ImagePreview';
 import VideoPreview from '../components/preview/VideoPreview';
@@ -65,16 +64,21 @@ export default function FilePreviewPage() {
   const [numPages, setNumPages] = useState(0);
 
   // 1. Resolve file and sibling list (handles initial state, direct link, refresh, and pending items)
+  const stateFile = location.state?.file;
+  const stateFiles = location.state?.files;
+  const stateFolderName = location.state?.folderName;
+  const stateStoryTitle = location.state?.storyTitle;
+
   useEffect(() => {
     let active = true;
 
     async function loadData() {
       // If file was passed in state and matches id, use it immediately
-      if (location.state?.file && String(location.state.file.id) === String(id)) {
-        setFile(location.state.file);
-        if (location.state.files?.length) setFiles(location.state.files);
-        if (location.state.folderName) setFolderName(location.state.folderName);
-        if (location.state.storyTitle) setStoryTitle(location.state.storyTitle);
+      if (stateFile && String(stateFile.id) === String(id)) {
+        setFile(stateFile);
+        if (stateFiles?.length) setFiles(stateFiles);
+        if (stateFolderName) setFolderName(stateFolderName);
+        if (stateStoryTitle) setStoryTitle(stateStoryTitle);
         setLoading(false);
         return;
       }
@@ -88,7 +92,7 @@ export default function FilePreviewPage() {
           let story = null;
           try {
             story = await getStoryById(derivedStoryId);
-          } catch (e) {
+          } catch {
             // Check pending stories if not found or if isPending
             const pendingList = await getPendingStories();
             story = pendingList.find(s => String(s.id) === String(derivedStoryId));
@@ -149,13 +153,13 @@ export default function FilePreviewPage() {
           let currentRes = null;
           try {
             currentRes = await getResourceById(id);
-          } catch (e) {
+          } catch {
             // Check pending resources
             if (isPending) {
               try {
                 const pendingList = await getPendingResources();
                 currentRes = pendingList.find(r => String(r.id) === String(id));
-              } catch (pe) {}
+              } catch {}
             }
             if (!currentRes) {
               const allRes = await getResources();
@@ -176,7 +180,7 @@ export default function FilePreviewPage() {
               if (active) {
                 setFiles(folderFiles && folderFiles.length > 0 ? folderFiles : [currentRes]);
               }
-            } catch (e) {
+            } catch {
               setFiles([currentRes]);
             }
           } else {
@@ -197,7 +201,7 @@ export default function FilePreviewPage() {
     return () => {
       active = false;
     };
-  }, [id, derivedStoryId, folderId, isPending]);
+  }, [id, derivedStoryId, folderId, isPending, stateFile, stateFiles, stateFolderName, stateStoryTitle]);
 
   // File identity and format detection
   const fileName = useMemo(() => {
@@ -296,7 +300,7 @@ export default function FilePreviewPage() {
           headers['Authorization'] = `Bearer ${token}`;
           authToken = token;
         }
-      } catch (e) {}
+      } catch {}
     }
 
     // Construct authenticated stream URL for native video & audio Range request streaming
@@ -365,7 +369,7 @@ export default function FilePreviewPage() {
   }, [file, isVideo, isAudio, isPdf, isImage, isCodeOrText]);
 
   // Navigate between sibling files in the same folder or story
-  const navigateToFile = (targetFile) => {
+  const navigateToFile = useCallback((targetFile) => {
     if (!targetFile) return;
     const query = new URLSearchParams(searchParams);
     if (derivedStoryId && !query.get('storyId')) {
@@ -379,22 +383,22 @@ export default function FilePreviewPage() {
         storyTitle
       }
     });
-  };
+  }, [searchParams, derivedStoryId, navigate, files, folderName, storyTitle]);
 
-  const handlePrevFile = () => {
+  const handlePrevFile = useCallback(() => {
     if (currentIndex > 0) {
       navigateToFile(files[currentIndex - 1]);
     }
-  };
+  }, [currentIndex, files, navigateToFile]);
 
-  const handleNextFile = () => {
+  const handleNextFile = useCallback(() => {
     if (currentIndex >= 0 && currentIndex < totalFiles - 1) {
       navigateToFile(files[currentIndex + 1]);
     }
-  };
+  }, [currentIndex, totalFiles, files, navigateToFile]);
 
   // Close / Back button action
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (window.history.length > 1) {
       navigate(-1);
     } else if (derivedStoryId) {
@@ -402,7 +406,7 @@ export default function FilePreviewPage() {
     } else {
       navigate('/resources');
     }
-  };
+  }, [derivedStoryId, navigate]);
 
   // Safe Binary Download Handler
   const handleDownload = async () => {
@@ -440,7 +444,7 @@ export default function FilePreviewPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, totalFiles, isPdf, pageNum, numPages]);
+  }, [currentIndex, totalFiles, isPdf, pageNum, numPages, handleClose, handleNextFile, handlePrevFile]);
 
   return (
     <div style={{

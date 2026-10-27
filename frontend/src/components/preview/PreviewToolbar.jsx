@@ -1,5 +1,4 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
 export default function PreviewToolbar({
   isPdf = false,
