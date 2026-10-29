@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, ShieldCheck, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Check, ShieldCheck, Sparkles, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
 import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 import { clearAllCaches } from '../hooks/useCachedData';
 import SEOHead from '../components/SEOHead';
@@ -23,6 +23,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [infoNotice, setInfoNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -41,113 +42,22 @@ export default function Login() {
   const googleButtonRef = useRef(null);
   const [isGoogleAvailable, setIsGoogleAvailable] = useState(false);
 
-  // Dual Video Architecture for Butter-Smooth Transitions
-  // IDLE: idle-butterfly.mp4 (4.0s seamless loop of character watching butterfly)
-  // ACTIVE: character-login.mp4 (1.5-4.5s Email | 4.5-7.5s Password | 7.5-10.0s Login)
+  // Character reaction state: 'IDLE' | 'EMAIL_ACTIVE' | 'PASSWORD_ACTIVE' | 'LOGIN_SUBMITTED'
   const [characterState, setCharacterState] = useState('IDLE');
-  const idleVideoRef = useRef(null);
-  const actionVideoRef = useRef(null);
-  const stateRef = useRef('IDLE');
 
-  // Trigger video transitions smoothly
-  const triggerCharacterState = useCallback((newState) => {
-    if (stateRef.current === newState) return;
-    
-    stateRef.current = newState;
-    setCharacterState(newState);
-
-    const idleVideo = idleVideoRef.current;
-    const actionVideo = actionVideoRef.current;
-
-    try {
-      if (newState === 'IDLE') {
-        if (idleVideo) {
-          idleVideo.play().catch(() => {});
-        }
-      } else {
-        if (actionVideo) {
-          if (newState === 'EMAIL_ACTIVE') {
-            actionVideo.currentTime = 1.5;
-          } else if (newState === 'PASSWORD_ACTIVE') {
-            actionVideo.currentTime = 4.5;
-          } else if (newState === 'LOGIN_SUBMITTED') {
-            actionVideo.currentTime = 7.5;
-          }
-          actionVideo.play().catch(() => {});
-        }
-      }
-    } catch (e) {
-      console.warn("Media transition error:", e);
-    }
-  }, []);
-
-  // Frame-accurate 60fps loop controller for both video sources
-  useEffect(() => {
-    let animId = null;
-
-    const checkSegmentLoop = () => {
-      const current = stateRef.current;
-      const idleVideo = idleVideoRef.current;
-      const actionVideo = actionVideoRef.current;
-
-      if (current === 'IDLE') {
-        if (idleVideo && !idleVideo.paused) {
-          if (idleVideo.currentTime >= 3.9) {
-            idleVideo.currentTime = 0.05;
-            idleVideo.play().catch(() => {});
-          }
-        }
-      } else {
-        if (actionVideo && !actionVideo.paused) {
-          const t = actionVideo.currentTime;
-
-          if (current === 'EMAIL_ACTIVE') {
-            // 1.5-4.5s: Email typing video loop
-            if (t >= 4.45) {
-              actionVideo.currentTime = 1.6;
-              actionVideo.play().catch(() => {});
-            }
-          } else if (current === 'PASSWORD_ACTIVE') {
-            // 4.5-7.5s: Password looking-away video loop
-            if (t >= 7.45) {
-              actionVideo.currentTime = 4.8;
-              actionVideo.play().catch(() => {});
-            }
-          } else if (current === 'LOGIN_SUBMITTED') {
-            // 7.5-10.0s: Login reaction nod video loop
-            if (t >= 9.9) {
-              actionVideo.currentTime = 7.8;
-              actionVideo.play().catch(() => {});
-            }
-          }
-        }
-      }
-
-      animId = requestAnimationFrame(checkSegmentLoop);
-    };
-
-    animId = requestAnimationFrame(checkSegmentLoop);
-
-    return () => {
-      if (animId) cancelAnimationFrame(animId);
-    };
-  }, []);
-
-  // Input Focus & Blur Handlers
   const handleEmailFocus = () => {
-    if (stateRef.current !== 'LOGIN_SUBMITTED') {
-      triggerCharacterState('EMAIL_ACTIVE');
+    if (characterState !== 'LOGIN_SUBMITTED') {
+      setCharacterState('EMAIL_ACTIVE');
     }
   };
 
   const handlePasswordFocus = () => {
-    if (stateRef.current !== 'LOGIN_SUBMITTED') {
-      triggerCharacterState('PASSWORD_ACTIVE');
+    if (characterState !== 'LOGIN_SUBMITTED') {
+      setCharacterState('PASSWORD_ACTIVE');
     }
   };
 
   const handleInputBlur = (e) => {
-    // If focus moved to another input inside our form, don't reset to idle
     const nextTarget = e.relatedTarget;
     if (
       nextTarget &&
@@ -155,10 +65,8 @@ export default function Login() {
     ) {
       return;
     }
-
-    // Return to IDLE if blurred outside
-    if (!loading && stateRef.current !== 'LOGIN_SUBMITTED') {
-      triggerCharacterState('IDLE');
+    if (!loading && characterState !== 'LOGIN_SUBMITTED') {
+      setCharacterState('IDLE');
     }
   };
 
@@ -249,7 +157,6 @@ export default function Login() {
 
   useEffect(() => {
     document.title = `Login | ${BRAND.fullName}`;
-    // Ensure email and password start completely blank without browser autofill
     setEmail('');
     setPassword('');
     const timer = setTimeout(() => {
@@ -262,64 +169,22 @@ export default function Login() {
   useEffect(() => {
     const userSession = localStorage.getItem('loop_current_user');
     if (userSession) {
-      const parsed = JSON.parse(userSession);
-      const targetUrl = getRedirectUrl();
-      const isOnboarded = Boolean(parsed.onboarded || (parsed.name && parsed.branch) || parsed.isAdmin);
-      if (isOnboarded) {
-        navigate(targetUrl, { replace: true });
-      } else {
-        navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
+      try {
+        const parsed = JSON.parse(userSession);
+        const targetUrl = getRedirectUrl();
+        const isOnboarded = Boolean(parsed.onboarded || (parsed.name && parsed.branch) || parsed.isAdmin);
+        if (isOnboarded) {
+          navigate(targetUrl, { replace: true });
+        } else {
+          navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
+        }
+      } catch {
+        localStorage.removeItem('loop_current_user');
       }
     }
   }, [navigate, getRedirectUrl]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    const trimmedInput = email.trim();
-    if (!trimmedInput) {
-      setError('Username or email is required');
-      triggerCharacterState('IDLE');
-      return;
-    }
-
-    if (trimmedInput.includes('@')) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(trimmedInput)) {
-        setError('Please enter a valid email address');
-        triggerCharacterState('IDLE');
-        return;
-      }
-    }
-
-    if (!password) {
-      setError('Password is required');
-      triggerCharacterState('IDLE');
-      return;
-    }
-
-    setLoading(true);
-    triggerCharacterState('LOGIN_SUBMITTED');
-
-    try {
-      const userData = await loginUser(trimmedInput, password);
-      handleLoginSuccess(userData);
-    } catch (err) {
-      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
-        setError('Network or server connection error. Please try again.');
-      } else {
-        setError(err.message || 'Invalid username/email or password. Please try again.');
-      }
-      triggerCharacterState('IDLE');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLoginSuccess = useCallback((userData) => {
-    // Zero cross-account leakage: strictly wipe prior session & memory caches on account switch
     clearAllCaches();
     localStorage.setItem('loop_current_user', JSON.stringify(userData));
     if (typeof window !== 'undefined') {
@@ -333,9 +198,54 @@ export default function Login() {
       } else {
         navigate('/onboarding', { replace: true, state: { redirectAfter: targetUrl } });
       }
-    }, 500);
+    }, 400);
   }, [getRedirectUrl, navigate]);
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    setInfoNotice('');
+
+    const trimmedInput = email.trim();
+    if (!trimmedInput) {
+      setError('Please enter your SPIT email or username');
+      setCharacterState('IDLE');
+      return;
+    }
+
+    if (trimmedInput.includes('@')) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedInput)) {
+        setError('Please enter a valid email address');
+        setCharacterState('IDLE');
+        return;
+      }
+    }
+
+    if (!password) {
+      setError('Please enter your password');
+      setCharacterState('IDLE');
+      return;
+    }
+
+    setLoading(true);
+    setCharacterState('LOGIN_SUBMITTED');
+
+    try {
+      const userData = await loginUser(trimmedInput, password);
+      handleLoginSuccess(userData);
+    } catch (err) {
+      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
+        setError('Network or server connection error. Please try again.');
+      } else {
+        setError(err.message || 'Invalid username/email or password. Please try again.');
+      }
+      setCharacterState('IDLE');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '779605241663-vp20b6cbhoccdeibjlcbtp7d9kbcf5bu.apps.googleusercontent.com';
 
@@ -346,7 +256,8 @@ export default function Login() {
     setLoading(true);
     setError('');
     setSuccessMsg('');
-    triggerCharacterState('LOGIN_SUBMITTED');
+    setInfoNotice('');
+    setCharacterState('LOGIN_SUBMITTED');
 
     try {
       const result = await verifyGoogleAuth(idToken);
@@ -363,21 +274,21 @@ export default function Login() {
           confirmPassword: ''
         });
         setGoogleAuthStep('SIGNUP');
-        triggerCharacterState('IDLE');
+        setCharacterState('IDLE');
       } else if (result.action === 'LINK_REQUIRED') {
         setGoogleIdToken(idToken);
         setLinkEmail(result.email);
         setLinkPassword('');
         setGoogleAuthStep('LINK');
-        triggerCharacterState('IDLE');
+        setCharacterState('IDLE');
       }
     } catch (err) {
       setError(err.message || 'Google authentication failed.');
-      triggerCharacterState('IDLE');
+      setCharacterState('IDLE');
     } finally {
       setLoading(false);
     }
-  }, [triggerCharacterState, handleLoginSuccess]);
+  }, [handleLoginSuccess]);
 
   useEffect(() => {
     let checkTimer = null;
@@ -400,14 +311,13 @@ export default function Login() {
               theme: 'outline',
               size: 'large',
               text: 'continue_with',
-              shape: 'pill',
+              shape: 'rectangular',
               logo_alignment: 'left',
-              width: 400
+              width: 380
             });
             setIsGoogleAvailable(true);
           }
 
-          // Trigger One Tap prompt if supported by user's browser session
           window.google.accounts.id.prompt(() => {});
         } catch (e) {
           console.warn('Google Identity Services initialization error:', e);
@@ -435,6 +345,7 @@ export default function Login() {
   const handleGoogleSignInClick = () => {
     setError('');
     setSuccessMsg('');
+    setInfoNotice('');
 
     if (window.google?.accounts?.id && googleClientId && !googleClientId.includes('your-google-client-id')) {
       try {
@@ -448,6 +359,11 @@ export default function Login() {
     } else {
       setError('Google Identity Services is loading. Please try again in a moment.');
     }
+  };
+
+  const handleSignupPrompt = () => {
+    setInfoNotice('To create an account, sign in using "Continue with Google" using your official SPIT email (@spit.ac.in). Your student account will be activated instantly.');
+    setError('');
   };
 
   const handleGoogleSignupSubmit = async (e) => {
@@ -468,10 +384,9 @@ export default function Login() {
     }
 
     setLoading(true);
-    triggerCharacterState('LOGIN_SUBMITTED');
+    setCharacterState('LOGIN_SUBMITTED');
 
     try {
-      // Auto-generate username from the verified SPIT email
       const autoUsername = googleSignupData.email
         ? googleSignupData.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30)
         : `spit_user_${Date.now().toString().slice(-4)}`;
@@ -487,7 +402,7 @@ export default function Login() {
       handleLoginSuccess(result);
     } catch (err) {
       setError(err.message || 'Registration is temporarily unavailable. Please try again later.');
-      triggerCharacterState('IDLE');
+      setCharacterState('IDLE');
     } finally {
       setLoading(false);
     }
@@ -503,7 +418,7 @@ export default function Login() {
     }
 
     setLoading(true);
-    triggerCharacterState('LOGIN_SUBMITTED');
+    setCharacterState('LOGIN_SUBMITTED');
 
     try {
       const result = await linkGoogleAccount({
@@ -514,272 +429,170 @@ export default function Login() {
       handleLoginSuccess(result);
     } catch (err) {
       setError(err.message || 'Failed to link Google account.');
-      triggerCharacterState('IDLE');
+      setCharacterState('IDLE');
     } finally {
       setLoading(false);
     }
   };
 
-  // Status Badge Indicator
-  const getStatusBadge = () => {
-    switch (characterState) {
-      case 'EMAIL_ACTIVE':
-        return {
-          icon: <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0071E3', boxShadow: '0 0 8px #0071E3' }} />,
-          label: 'Watching Email Input',
-          color: '#0071E3'
-        };
-      case 'PASSWORD_ACTIVE':
-        return {
-          icon: <ShieldCheck size={12} strokeWidth={2.4} style={{ color: '#34C759' }} />,
-          label: 'Privacy Mode • Looking Away 🙈',
-          color: '#34C759'
-        };
-      case 'LOGIN_SUBMITTED':
-        return {
-          icon: <Sparkles size={12} strokeWidth={2.4} style={{ color: '#AF52DE' }} />,
-          label: 'Authenticating...',
-          color: '#AF52DE'
-        };
-      case 'IDLE':
-      default:
-        return {
-          icon: <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#8E8E93' }} />,
-          label: 'Senior Guide • Ready',
-          color: 'var(--text-secondary)'
-        };
+  // LOOP Core Features list (matching GitHub screenshot's left checklist)
+  const productFeatures = [
+    {
+      title: "Senior Placement Debriefs",
+      desc: "Read real interview rounds, technical coding questions, and CTC breakdowns from SPIT alumni."
+    },
+    {
+      title: "Curated Academic & Placement Repository",
+      desc: "Branch-wise semester notes, lab manuals, and syllabus roadmaps in one centralized archive."
+    },
+    {
+      title: "Private & Community Resource Folders",
+      desc: "Organize personal preparation materials securely with cloud storage and folder permissions."
+    },
+    {
+      title: "SPIT Hall of Fame & Achievements",
+      desc: "Stay inspired with campus hackathon victories, research breakthroughs, and placement honors."
+    },
+    {
+      title: "Student-Verified Institutional Platform",
+      desc: "Protected campus ecosystem built exclusively for Sardar Patel Institute of Technology students."
     }
-  };
-
-  const statusBadge = getStatusBadge();
+  ];
 
   return (
-    <div className="login-split-page" style={{
-      width: '100vw',
-      minHeight: '100vh',
-      display: 'flex',
-      backgroundColor: 'var(--bg-surface)',
-      position: 'relative',
-      overflowX: 'hidden'
-    }}>
+    <div className="github-split-layout">
       <SEOHead 
         title={`Sign In | ${BRAND.fullName}`}
         description={`${BRAND.tagline} Sign in to ${BRAND.name} with your Sardar Patel Institute of Technology student account or Google authentication.`}
         canonicalUrl="/login"
         noIndex={true}
       />
-      {/* LEFT HALF (50%): FULL-BLEED VIDEO HERO PANEL (NO BOX) */}
-      <div className="login-media-half" style={{
-        width: '50%',
-        flex: '0 0 50%',
-        height: '100vh',
-        position: 'sticky',
-        top: 0,
-        backgroundColor: '#FFFFFF',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between'
-      }}>
-        {/* Full-Bleed Stacked Dual-Video Elements with Seamless Transition */}
-        {/* 1. Idle Butterfly Video (Natural loop while idle) */}
-        <video
-          ref={idleVideoRef}
-          src="/idle-butterfly.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center top',
-            pointerEvents: 'none',
-            userSelect: 'none',
-            opacity: characterState === 'IDLE' ? 1 : 0,
-            transition: 'opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
-            display: 'block',
-            zIndex: characterState === 'IDLE' ? 1 : 0
-          }}
-        />
 
-        {/* 2. Active Interaction Video (Email typing, Password privacy, Login reaction) */}
-        <video
-          ref={actionVideoRef}
-          src="/character-login.mp4"
-          muted
-          playsInline
-          preload="auto"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center top',
-            pointerEvents: 'none',
-            userSelect: 'none',
-            opacity: characterState !== 'IDLE' ? 1 : 0,
-            transition: 'opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
-            display: 'block',
-            zIndex: characterState !== 'IDLE' ? 1 : 0
-          }}
-        />
+      {/* ========================================================================= */}
+      {/* LEFT PANEL: PURE BLACK (#000000) WITH BRANDING, CHECKLIST & ILLUSTRATION */}
+      {/* ========================================================================= */}
+      <aside className="github-left-panel">
+        {/* Ambient Top Glow */}
+        <div className="left-panel-glow" aria-hidden="true" />
 
-        {/* Top Header Overlay on Video */}
-        <div style={{
-          position: 'relative',
-          zIndex: 2,
-          padding: '2.5rem 3rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.4rem 0.85rem',
-            borderRadius: '9999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
-            border: '1px solid rgba(0,0,0,0.06)'
-          }}>
-            <span style={{
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: '#1d1d1f'
-            }}>
-              {BRAND.fullForm}
-            </span>
+        <div className="left-panel-content">
+          {/* Header Brand Mark */}
+          <div className="left-brand-row">
+            <Link to="/" className="left-brand-logo-link" title="LOOP Home">
+              <img 
+                src="/loop-logo.png" 
+                alt="LOOP Logo" 
+                className="left-brand-logo"
+              />
+              <span className="left-brand-title">{BRAND.name}</span>
+            </Link>
+            <span className="left-brand-badge">SPIT</span>
           </div>
 
-          {/* Live Privacy & Focus Indicator */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.4rem 0.85rem',
-            borderRadius: '9999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-            fontSize: '0.76rem',
-            fontWeight: 600,
-            color: statusBadge.color,
-            border: '1px solid rgba(0,0,0,0.06)'
-          }}>
-            {statusBadge.icon}
-            <span>{statusBadge.label}</span>
-          </div>
-        </div>
+          {/* Large Bold White Heading */}
+          <h1 className="left-heading">
+            Empower your placement journey
+          </h1>
 
-        {/* Bottom Quote Overlay on Video, matching the reference image */}
-        <div className="login-quote-overlay" style={{
-          position: 'relative',
-          zIndex: 2,
-          padding: '4rem 3rem 3rem',
-          background: 'linear-gradient(to top, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.82) 60%, rgba(255,255,255,0) 100%)',
-          pointerEvents: 'none'
-        }}>
-          <h2 style={{
-            fontSize: '2.4rem',
-            fontWeight: 800,
-            letterSpacing: '-0.035em',
-            color: '#111111',
-            lineHeight: 1.15,
-            marginBottom: '0.55rem',
-            fontFamily: 'var(--font-sans)'
-          }}>
-            {BRAND.tagline}
-          </h2>
-          <p style={{
-            fontSize: '0.94rem',
-            color: '#555555',
-            lineHeight: 1.55,
-            maxWidth: '430px'
-          }}>
-            {BRAND.fullName}. Connect with seniors and alumni, learn from placement experiences, and discover career opportunities.
+          {/* Supporting Description */}
+          <p className="left-description">
+            Explore LOOP’s verified placement debriefs, interview preparation, and curated academic resources for SPIT students.
           </p>
-        </div>
-      </div>
 
-      {/* RIGHT HALF (50%): FULL LOGIN FORM & AUTHENTICATION LOGIC */}
-      <div className="login-form-half" style={{
-        width: '50%',
-        flex: '0 0 50%',
-        minHeight: '100vh',
-        height: '100vh',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '3rem 4rem',
-        backgroundColor: 'var(--bg-surface)',
-        borderLeft: '1px solid var(--border-color)',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{
-          width: '100%',
-          maxWidth: '430px',
-          display: 'flex',
-          flexDirection: 'column',
-          margin: 'auto 0'
-        }}>
-          {/* Top Logo and Branding */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '0.75rem',
-            marginBottom: '2rem'
-          }}>
-            <img 
-              src="/loop-logo.png" 
-              alt="LOOP Logo" 
-              style={{ 
-                height: '42px', 
-                width: 'auto', 
-                filter: 'var(--logo-filter)',
-                marginRight: '0.3rem'
-              }} 
-            />
-            <span style={{
-              fontSize: '2.1rem',
-              fontWeight: 800,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-display)',
-              lineHeight: 1
-            }}>
-              {BRAND.name}
-            </span>
-            <span style={{
-              fontSize: '0.78rem',
-              letterSpacing: '0.05em',
-              padding: '3px 8px',
-              border: '1.5px solid var(--text-primary)',
-              borderRadius: '6px',
-              fontWeight: '800',
-              lineHeight: 1.2
-            }}>SPIT</span>
+          {/* Collapsible Section Label */}
+          <div className="left-section-label">
+            <span>See what's included</span>
+            <ChevronDown size={14} className="left-chevron-icon" />
           </div>
 
-          {/* Heading */}
-          <div style={{ marginBottom: '1.75rem' }}>
+          {/* 5 Product Features Checklist */}
+          <ul className="left-features-list">
+            {productFeatures.map((feature, idx) => (
+              <li key={idx} className="left-feature-item">
+                <span className="left-check-icon-wrapper" aria-hidden="true">
+                  <Check size={13} strokeWidth={2.8} className="left-check-icon" />
+                </span>
+                <div className="left-feature-text">
+                  <h2 className="left-feature-title">{feature.title}</h2>
+                  <p className="left-feature-desc">{feature.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Bottom Attractive Illustration Area */}
+        <div className="left-illustration-container">
+          <div className="stars-layer" aria-hidden="true" />
+          <div className="cosmic-glow-purple" aria-hidden="true" />
+          <div className="cosmic-glow-blue" aria-hidden="true" />
+
+          {/* Floating Pill Badges */}
+          <div className="floating-badge badge-left">
+            <span className="badge-dot dot-green" />
+            <span>430+ Interview Stories</span>
+          </div>
+          <div className="floating-badge badge-right">
+            <ShieldCheck size={12} className="badge-shield" />
+            <span>100% SPIT Verified</span>
+          </div>
+
+          {/* 3D Student Character Avatar (Interactive) */}
+          <div className="character-avatar-wrapper" title={characterState === 'PASSWORD_ACTIVE' ? 'Privacy Mode Active' : 'SPIT Senior Guide'}>
+            <img 
+              src={characterState === 'PASSWORD_ACTIVE' ? '/character-password-bust-trans.png' : '/character-bust-trans.png'}
+              alt="LOOP Student Ambassador"
+              className="character-avatar-img"
+            />
+          </div>
+
+          {/* Status Reaction Tag */}
+          <div className="character-status-pill">
+            {characterState === 'PASSWORD_ACTIVE' ? (
+              <>
+                <ShieldCheck size={12} className="pill-icon green" />
+                <span>Privacy Mode • Looking Away 🙈</span>
+              </>
+            ) : characterState === 'EMAIL_ACTIVE' ? (
+              <>
+                <span className="pill-dot blue" />
+                <span>Watching Input</span>
+              </>
+            ) : characterState === 'LOGIN_SUBMITTED' ? (
+              <>
+                <Sparkles size={12} className="pill-icon purple" />
+                <span>Authenticating...</span>
+              </>
+            ) : (
+              <>
+                <span className="pill-dot gray" />
+                <span>Senior Guide • Online</span>
+              </>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* RIGHT PANEL: CRISP WHITE (#FFFFFF) WITH CENTERED FORM & GITHUB STYLING   */}
+      {/* ========================================================================= */}
+      <main className="github-right-panel">
+        {/* Top-Right Account Registration Link */}
+        <header className="right-top-nav">
+          <span className="top-nav-text">Don’t have an account?</span>
+          <button 
+            type="button" 
+            onClick={handleSignupPrompt} 
+            className="top-nav-link"
+          >
+            Sign up <span aria-hidden="true">→</span>
+          </button>
+        </header>
+
+        {/* Centered Form Wrapper */}
+        <div className="form-center-container">
+          {/* Form Heading */}
+          <div className="form-heading-block">
             {googleAuthStep === 'SIGNUP' ? (
               <>
                 <button
@@ -789,39 +602,13 @@ export default function Login() {
                     setGoogleIdToken('');
                     setError('');
                   }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    padding: 0,
-                    marginBottom: '0.75rem'
-                  }}
+                  className="back-btn"
                 >
                   <ArrowLeft size={14} /> Back to Sign In
                 </button>
-                <h1 style={{
-                  fontSize: '2rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  marginBottom: '0.4rem',
-                  color: 'var(--text-primary)',
-                  lineHeight: 1.15
-                }}>
-                  Complete Your Profile
-                </h1>
-                <p style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.92rem',
-                  fontWeight: 400,
-                  lineHeight: 1.45
-                }}>
-                  First-time Google Sign-In with verified SPIT account. Please create a password to secure your account.
+                <h2 className="form-title">Complete Your Profile</h2>
+                <p className="form-subtitle">
+                  First-time Google Sign-In with verified SPIT account. Please enter your name and create a password.
                 </p>
               </>
             ) : googleAuthStep === 'LINK' ? (
@@ -833,191 +620,104 @@ export default function Login() {
                     setGoogleIdToken('');
                     setError('');
                   }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    padding: 0,
-                    marginBottom: '0.75rem'
-                  }}
+                  className="back-btn"
                 >
                   <ArrowLeft size={14} /> Back to Sign In
                 </button>
-                <h1 style={{
-                  fontSize: '2rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  marginBottom: '0.4rem',
-                  color: 'var(--text-primary)',
-                  lineHeight: 1.15
-                }}>
-                  Link SPIT Account
-                </h1>
-                <p style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.92rem',
-                  fontWeight: 400,
-                  lineHeight: 1.45
-                }}>
+                <h2 className="form-title">Link SPIT Account</h2>
+                <p className="form-subtitle">
                   An account for <strong>{linkEmail}</strong> already exists. Enter your password to securely link your Google account.
                 </p>
               </>
             ) : (
-              <div style={{ textAlign: 'center' }}>
-                <h1 style={{
-                  fontSize: '2.25rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.035em',
-                  marginBottom: '0.45rem',
-                  color: 'var(--text-primary)',
-                  lineHeight: 1.15
-                }}>
-                  Sign in to LOOP
-                </h1>
-                <p style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.94rem',
-                  fontWeight: 400,
-                  lineHeight: 1.45,
-                  margin: 0
-                }}>
-                  Access placement stories and campus resources with your SPIT account.
+              <>
+                <h2 className="form-title">Welcome back to LOOP</h2>
+                <p className="form-subtitle">
+                  Sign in with your SPIT student account or Google credentials.
                 </p>
-              </div>
+              </>
             )}
           </div>
 
-          {/* Global Error Banner */}
+          {/* Error Banner */}
           {error && (
-            <div style={{
-              backgroundColor: 'rgba(255, 69, 58, 0.1)',
-              border: '1px solid rgba(255, 69, 58, 0.25)',
-              color: '#ff453a',
-              borderRadius: '12px',
-              padding: '0.85rem 1rem',
-              fontSize: '0.86rem',
-              textAlign: 'left',
-              marginBottom: '1.25rem',
-              lineHeight: 1.45
-            }}>
+            <div className="banner error-banner" role="alert">
               {error}
             </div>
           )}
 
-          {/* Global Success Banner */}
+          {/* Success Banner */}
           {successMsg && (
-            <div style={{
-              backgroundColor: 'rgba(48, 209, 88, 0.1)',
-              border: '1px solid rgba(48, 209, 88, 0.2)',
-              color: '#30d158',
-              borderRadius: '12px',
-              padding: '0.8rem 1rem',
-              fontSize: '0.85rem',
-              textAlign: 'left',
-              marginBottom: '1.25rem'
-            }}>
+            <div className="banner success-banner" role="status">
               {successMsg}
             </div>
           )}
 
-          {/* 1. STEP: FIRST-TIME GOOGLE SIGNUP FORM */}
+          {/* Info / Registration Guide Notice */}
+          {infoNotice && (
+            <div className="banner info-banner" role="status">
+              {infoNotice}
+            </div>
+          )}
+
+          {/* ------------------------------------------------------------------- */}
+          {/* STEP 1: FIRST-TIME GOOGLE SIGNUP FORM                               */}
+          {/* ------------------------------------------------------------------- */}
           {googleAuthStep === 'SIGNUP' && (
-            <form onSubmit={handleGoogleSignupSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-              {/* Off-screen dummy inputs to prevent browser autofill from populating the user fields */}
+            <form onSubmit={handleGoogleSignupSubmit} autoComplete="off" className="auth-form">
               <div style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1, overflow: 'hidden' }} aria-hidden="true">
                 <input type="text" name="dummy_username_autofill" tabIndex="-1" autoComplete="off" />
                 <input type="password" name="dummy_password_autofill" tabIndex="-1" autoComplete="new-password" />
               </div>
 
-              {/* Full Name (pre-filled, editable) */}
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label" htmlFor="google-name" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Full Name *
+              <div className="field-group">
+                <label className="field-label" htmlFor="google-name">
+                  Full Name <span className="req">*</span>
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="google-name"
-                    type="text"
-                    className="input-field"
-                    value={googleSignupData.name}
-                    onChange={(e) => setGoogleSignupData(prev => ({ ...prev, name: e.target.value }))}
-                    style={{
-                      height: '48px',
-                      borderRadius: '12px',
-                      fontSize: '0.92rem',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      paddingLeft: '1.1rem'
-                    }}
-                    placeholder="Enter your full name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
+                <input
+                  id="google-name"
+                  type="text"
+                  className="field-input"
+                  value={googleSignupData.name}
+                  onChange={(e) => setGoogleSignupData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter your full name"
+                  required
+                  disabled={loading}
+                />
               </div>
 
-              {/* Email (pre-filled, read-only) */}
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className="input-label" htmlFor="google-email" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+              <div className="field-group">
+                <div className="field-label-split">
+                  <label className="field-label" htmlFor="google-email">
                     SPIT Email Address
                   </label>
-                  <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <ShieldCheck size={12} /> Verified • Read-Only
+                  <span className="verified-badge">
+                    <ShieldCheck size={12} /> Verified
                   </span>
                 </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="google-email"
-                    type="email"
-                    className="input-field"
-                    value={googleSignupData.email}
-                    readOnly
-                    disabled
-                    style={{
-                      height: '48px',
-                      borderRadius: '12px',
-                      fontSize: '0.92rem',
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      paddingLeft: '1.1rem',
-                      color: 'var(--text-secondary)',
-                      cursor: 'not-allowed',
-                      opacity: 0.85
-                    }}
-                  />
-                </div>
+                <input
+                  id="google-email"
+                  type="email"
+                  className="field-input read-only-input"
+                  value={googleSignupData.email}
+                  readOnly
+                  disabled
+                />
               </div>
 
-              {/* Password */}
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label" htmlFor="google-password" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Password *
+              <div className="field-group">
+                <label className="field-label" htmlFor="google-password">
+                  Password <span className="req">*</span>
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div className="input-with-icon">
                   <input
                     id="google-password"
                     name="loop_new_password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    className="input-field"
+                    className="field-input"
                     value={googleSignupData.password}
                     onChange={(e) => setGoogleSignupData(prev => ({ ...prev, password: e.target.value }))}
-                    style={{
-                      height: '48px',
-                      borderRadius: '12px',
-                      fontSize: '0.92rem',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      paddingLeft: '1.1rem',
-                      paddingRight: '2.75rem'
-                    }}
                     placeholder="Create a password (min 6 characters)"
                     required
                     disabled={loading}
@@ -1025,78 +725,39 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '1rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'var(--text-secondary)',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
+                    className="icon-btn"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                <p className="field-hint">Password should be at least 6 characters.</p>
               </div>
 
-              {/* Confirm Password */}
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label" htmlFor="google-confirm-password" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Confirm Password *
+              <div className="field-group">
+                <label className="field-label" htmlFor="google-confirm-password">
+                  Confirm Password <span className="req">*</span>
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="google-confirm-password"
-                    name="loop_new_confirm_password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    className="input-field"
-                    value={googleSignupData.confirmPassword}
-                    onChange={(e) => setGoogleSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    style={{
-                      height: '48px',
-                      borderRadius: '12px',
-                      fontSize: '0.92rem',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      paddingLeft: '1.1rem'
-                    }}
-                    placeholder="Re-enter password to confirm"
-                    required
-                    disabled={loading}
-                  />
-                </div>
+                <input
+                  id="google-confirm-password"
+                  name="loop_new_confirm_password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  className="field-input"
+                  value={googleSignupData.confirmPassword}
+                  onChange={(e) => setGoogleSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Re-enter password to confirm"
+                  required
+                  disabled={loading}
+                />
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
-                className="btn btn-primary"
-                style={{
-                  marginTop: '0.5rem',
-                  height: '48px',
-                  borderRadius: '12px',
-                  width: '100%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  border: 'none',
-                  backgroundColor: 'var(--accent-color)',
-                  color: 'var(--accent-inverse)',
-                  fontWeight: '600',
-                  fontSize: '0.94rem',
-                  cursor: loading ? 'wait' : 'pointer',
-                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
-                }}
+                className="btn-github-green"
                 disabled={loading}
               >
-                {loading ? 'Completing Registration...' : 'Complete Registration & Sign In'}
+                {loading ? 'Completing Registration...' : 'Create account →'}
               </button>
 
               <button
@@ -1106,88 +767,49 @@ export default function Login() {
                   setGoogleIdToken('');
                   setError('');
                 }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  padding: '0.4rem',
-                  textDecoration: 'underline'
-                }}
+                className="btn-link-cancel"
               >
                 Cancel
               </button>
             </form>
           )}
 
-          {/* 2. STEP: ACCOUNT LINKING FORM */}
+          {/* ------------------------------------------------------------------- */}
+          {/* STEP 2: ACCOUNT LINKING FORM                                        */}
+          {/* ------------------------------------------------------------------- */}
           {googleAuthStep === 'LINK' && (
-            <form onSubmit={handleGoogleLinkSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  SPIT Email
-                </label>
+            <form onSubmit={handleGoogleLinkSubmit} className="auth-form">
+              <div className="field-group">
+                <label className="field-label">SPIT Email</label>
                 <input
                   type="email"
-                  className="input-field"
+                  className="field-input read-only-input"
                   value={linkEmail}
                   readOnly
                   disabled
-                  style={{
-                    height: '48px',
-                    borderRadius: '12px',
-                    fontSize: '0.92rem',
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-color)',
-                    paddingLeft: '1.1rem',
-                    color: 'var(--text-secondary)',
-                    cursor: 'not-allowed',
-                    opacity: 0.85
-                  }}
                 />
               </div>
 
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label" htmlFor="link-password" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Enter Account Password *
+              <div className="field-group">
+                <label className="field-label" htmlFor="link-password">
+                  Enter Account Password <span className="req">*</span>
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div className="input-with-icon">
                   <input
                     id="link-password"
                     type={showPassword ? "text" : "password"}
-                    className="input-field"
+                    className="field-input"
                     value={linkPassword}
                     onChange={(e) => setLinkPassword(e.target.value)}
                     placeholder="Enter your existing account password"
-                    style={{
-                      height: '48px',
-                      borderRadius: '12px',
-                      fontSize: '0.92rem',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      paddingLeft: '1.1rem',
-                      paddingRight: '2.75rem'
-                    }}
                     required
                     disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '1rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'var(--text-secondary)',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
+                    className="icon-btn"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -1196,27 +818,10 @@ export default function Login() {
 
               <button
                 type="submit"
-                className="btn btn-primary"
-                style={{
-                  marginTop: '0.5rem',
-                  height: '48px',
-                  borderRadius: '12px',
-                  width: '100%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  border: 'none',
-                  backgroundColor: 'var(--accent-color)',
-                  color: 'var(--accent-inverse)',
-                  fontWeight: '600',
-                  fontSize: '0.94rem',
-                  cursor: loading ? 'wait' : 'pointer',
-                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
-                }}
+                className="btn-github-green"
                 disabled={loading}
               >
-                {loading ? 'Verifying & Linking...' : 'Verify Password & Link Google'}
+                {loading ? 'Verifying & Linking...' : 'Verify Password & Link Google →'}
               </button>
 
               <button
@@ -1226,38 +831,24 @@ export default function Login() {
                   setGoogleIdToken('');
                   setError('');
                 }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  padding: '0.4rem',
-                  textDecoration: 'underline'
-                }}
+                className="btn-link-cancel"
               >
                 Cancel
               </button>
             </form>
           )}
 
-          {/* 3. STEP: STANDARD LOGIN / REGISTER + GOOGLE SIGN-IN BUTTON */}
+          {/* ------------------------------------------------------------------- */}
+          {/* STEP 3: MAIN LOGIN FORM (MATCHING GITHUB SCREENSHOT ORDER)          */}
+          {/* ------------------------------------------------------------------- */}
           {googleAuthStep === 'IDLE' && (
             <>
-              {/* Continue with Google Button Container */}
-              <div style={{ width: '100%', marginBottom: '1.25rem', minHeight: '48px', display: 'flex', justifyContent: 'center' }}>
+              {/* 1. Continue with Google Button */}
+              <div className="social-login-wrapper">
                 <div
                   ref={googleButtonRef}
-                  className="google-btn-wrapper"
-                  style={{
-                    width: '100%',
-                    display: isGoogleAvailable ? 'flex' : 'none',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: '999px',
-                    overflow: 'hidden',
-                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }}
+                  className="google-gsi-container"
+                  style={{ display: isGoogleAvailable ? 'flex' : 'none' }}
                 />
 
                 {!isGoogleAvailable && (
@@ -1265,26 +856,9 @@ export default function Login() {
                     type="button"
                     onClick={handleGoogleSignInClick}
                     disabled={loading}
-                    className="google-fallback-btn"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.75rem',
-                      width: '100%',
-                      height: '48px',
-                      borderRadius: '999px',
-                      backgroundColor: 'var(--bg-surface)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.92rem',
-                      fontWeight: 600,
-                      cursor: loading ? 'wait' : 'pointer',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                      transition: 'all 0.2s ease'
-                    }}
+                    className="btn-social btn-google"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24">
+                    <svg width="18" height="18" viewBox="0 0 24 24" className="social-icon">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
@@ -1295,203 +869,893 @@ export default function Login() {
                 )}
               </div>
 
-              {/* Divider */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                margin: '1.1rem 0 1.35rem 0',
-                gap: '0.85rem'
-              }}>
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  or continue with email
-                </span>
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
+              {/* 2. Horizontal Divider with "or" */}
+              <div className="horizontal-divider">
+                <span className="divider-line" />
+                <span className="divider-label">or</span>
+                <span className="divider-line" />
               </div>
 
-              {/* Existing Form */}
-              <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {/* Off-screen dummy inputs to absorb aggressive browser autofill */}
+              {/* Email & Password Form */}
+              <form onSubmit={handleSubmit} autoComplete="off" className="auth-form">
                 <div style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1, overflow: 'hidden' }} aria-hidden="true">
                   <input type="text" name="dummy_email_autofill" tabIndex="-1" autoComplete="off" />
                   <input type="password" name="dummy_password_autofill" tabIndex="-1" autoComplete="new-password" />
                 </div>
 
-                {/* Username or SPIT Email Field */}
-                <div className="input-group" style={{ marginBottom: 0 }}>
-                  <label className="input-label" htmlFor="email-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                    SPIT email or username
+                {/* 3. Email Input Field */}
+                <div className="field-group">
+                  <label className="field-label" htmlFor="email-input">
+                    Email or username <span className="req">*</span>
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      id="email-input"
-                      name="loop_login_email"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="none"
-                      spellCheck="false"
-                      className="input-field"
-                      placeholder="Enter your SPIT email or username"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onFocus={handleEmailFocus}
-                      onBlur={handleInputBlur}
-                      style={{
-                        height: '48px',
-                        borderRadius: '12px',
-                        fontSize: '0.92rem',
-                        backgroundColor: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
-                        paddingLeft: '1.1rem'
-                      }}
-                      disabled={loading}
-                    />
-                  </div>
+                  <input
+                    id="email-input"
+                    name="loop_login_email"
+                    type="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck="false"
+                    className="field-input"
+                    placeholder="name@spit.ac.in or username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={handleEmailFocus}
+                    onBlur={handleInputBlur}
+                    disabled={loading}
+                    required
+                  />
                 </div>
 
-                {/* Password Field */}
-                <div className="input-group" style={{ marginBottom: 0 }}>
-                  <label className="input-label" htmlFor="password-input" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                    Password
-                  </label>
-                  <div style={{ position: 'relative' }}>
+                {/* 4. Password Input Field with Forgot Password Link */}
+                <div className="field-group">
+                  <div className="field-label-split">
+                    <label className="field-label" htmlFor="password-input">
+                      Password <span className="req">*</span>
+                    </label>
+                    <Link to="/forgot-password" className="forgot-link">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="input-with-icon">
                     <input
                       id="password-input"
                       name="loop_login_password"
                       type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      className="input-field"
+                      autoComplete="current-password"
+                      className="field-input"
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       onFocus={handlePasswordFocus}
                       onBlur={handleInputBlur}
-                      style={{
-                        height: '48px',
-                        borderRadius: '12px',
-                        fontSize: '0.92rem',
-                        backgroundColor: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
-                        paddingLeft: '1.1rem',
-                        paddingRight: '2.75rem'
-                      }}
                       disabled={loading}
+                      required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: 'absolute',
-                        right: '1rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--text-secondary)',
-                        padding: 0,
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
+                      className="icon-btn"
                       tabIndex="-1"
-                      title={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  <p className="field-hint">
+                    Password should be at least 6 characters.
+                  </p>
                 </div>
 
-                {/* Forgot Password Link */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  alignItems: 'center',
-                  fontSize: '0.86rem',
-                  marginTop: '-0.25rem',
-                  marginBottom: '0.1rem'
-                }}>
-                  <Link
-                    to="/forgot-password"
-                    style={{
-                      fontSize: '0.86rem',
-                      fontWeight: 500,
-                      color: 'var(--text-secondary)',
-                      textDecoration: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-
-                {/* Submit Button */}
+                {/* 5. Primary Green "Log in" Button */}
                 <button
                   type="submit"
-                  className="btn btn-primary"
-                  style={{
-                    height: '48px',
-                    borderRadius: '12px',
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    border: 'none',
-                    backgroundColor: 'var(--accent-color)',
-                    color: 'var(--accent-inverse)',
-                    fontWeight: '600',
-                    fontSize: '0.94rem',
-                    cursor: loading ? 'wait' : 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
-                  }}
+                  className="btn-github-green"
                   disabled={loading}
                 >
-                  {loading ? 'Authenticating...' : (
+                  {loading ? (
+                    'Authenticating...'
+                  ) : (
                     <>
-                      <span>Sign in</span>
-                      <ArrowRight size={16} />
+                      <span>Log in</span>
+                      <ArrowRight size={15} />
                     </>
                   )}
                 </button>
               </form>
+
+              {/* 6. Registration Link: "Don't have an account? Sign up" */}
+              <div className="bottom-signup-row">
+                <span>Don’t have an account? </span>
+                <button 
+                  type="button" 
+                  onClick={handleSignupPrompt} 
+                  className="bottom-signup-btn"
+                >
+                  Sign up
+                </button>
+              </div>
+
+              {/* Terms of Service & Privacy Statement */}
+              <footer className="form-legal-footer">
+                By logging in, you agree to the{' '}
+                <Link to="/terms" className="legal-link">Terms of Service</Link>. For more information about LOOP’s privacy practices, see the{' '}
+                <Link to="/privacy-policy" className="legal-link">Privacy Policy</Link>.
+              </footer>
             </>
           )}
-
-
         </div>
-      </div>
+      </main>
 
-      {/* Responsive Styles */}
+      {/* ========================================================================= */}
+      {/* SCOPED CSS STYLES FOR PIXEL-PERFECT GITHUB SPLIT SCREEN COMPOSITION       */}
+      {/* ========================================================================= */}
       <style>{`
+        /* Full-Screen Two-Column Split Layout */
+        .github-split-layout {
+          width: 100vw;
+          height: 100vh;
+          min-height: 100vh;
+          display: flex;
+          overflow: hidden;
+          background-color: #000000;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+          color: #1f2328;
+          box-sizing: border-box;
+        }
+
+        /* ----------------------------------------------------------------------- */
+        /* LEFT PANEL: PURE BLACK (#000000)                                       */
+        /* ----------------------------------------------------------------------- */
+        .github-left-panel {
+          width: 50%;
+          flex: 0 0 50%;
+          height: 100vh;
+          background-color: #000000;
+          color: #ffffff;
+          display: flex;
+          flex-direction: column;
+          justifyContent: space-between;
+          position: relative;
+          overflow-y: auto;
+          overflow-x: hidden;
+          box-sizing: border-box;
+        }
+
+        .github-left-panel::-webkit-scrollbar {
+          width: 6px;
+        }
+        .github-left-panel::-webkit-scrollbar-thumb {
+          background-color: rgba(255, 255, 255, 0.15);
+          border-radius: 999px;
+        }
+
+        .left-panel-glow {
+          position: absolute;
+          top: -120px;
+          left: -120px;
+          width: 380px;
+          height: 380px;
+          background: radial-gradient(circle, rgba(138, 43, 226, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+          pointer-events: none;
+        }
+
+        .left-panel-content {
+          padding: 3.5rem 3.5rem 1.5rem 3.5rem;
+          position: relative;
+          z-index: 2;
+        }
+
+        .left-brand-row {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+          margin-bottom: 2rem;
+        }
+
+        .left-brand-logo-link {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          text-decoration: none;
+          color: #ffffff;
+        }
+
+        .left-brand-logo {
+          height: 24px;
+          width: auto;
+          display: block;
+        }
+
+        .left-brand-title {
+          font-size: 1.15rem;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #ffffff;
+        }
+
+        .left-brand-badge {
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          padding: 2px 6px;
+          border-radius: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          color: #ffffff;
+          line-height: 1.2;
+        }
+
+        .left-heading {
+          font-size: 2.25rem;
+          font-weight: 700;
+          letter-spacing: -0.03em;
+          color: #ffffff;
+          line-height: 1.2;
+          margin: 0 0 0.85rem 0;
+        }
+
+        .left-description {
+          font-size: 0.95rem;
+          line-height: 1.55;
+          color: #8c949e;
+          max-width: 460px;
+          margin: 0 0 1.5rem 0;
+        }
+
+        .left-section-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #c9d1d9;
+          margin-bottom: 1.35rem;
+        }
+
+        .left-chevron-icon {
+          transform: rotate(180deg);
+          color: #8c949e;
+        }
+
+        .left-features-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1.15rem;
+          max-width: 480px;
+        }
+
+        .left-feature-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.85rem;
+        }
+
+        .left-check-icon-wrapper {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 2px;
+          color: #ffffff;
+        }
+
+        .left-check-icon {
+          color: #ffffff;
+        }
+
+        .left-feature-text {
+          flex: 1;
+        }
+
+        .left-feature-title {
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: #ffffff;
+          margin: 0 0 0.2rem 0;
+          line-height: 1.35;
+        }
+
+        .left-feature-desc {
+          font-size: 0.8rem;
+          color: #8c949e;
+          line-height: 1.45;
+          margin: 0;
+        }
+
+        /* Bottom Attractive Illustration */
+        .left-illustration-container {
+          position: relative;
+          height: 250px;
+          width: 100%;
+          margin-top: auto;
+          display: flex;
+          justify-content: center;
+          align-items: flex-end;
+          background: linear-gradient(to top, #100b24 0%, #080514 60%, rgba(0, 0, 0, 0) 100%);
+          overflow: hidden;
+          padding-bottom: 0.5rem;
+        }
+
+        .cosmic-glow-purple {
+          position: absolute;
+          bottom: -40px;
+          left: 15%;
+          width: 260px;
+          height: 200px;
+          background: radial-gradient(circle, rgba(147, 51, 234, 0.35) 0%, rgba(0, 0, 0, 0) 70%);
+          pointer-events: none;
+        }
+
+        .cosmic-glow-blue {
+          position: absolute;
+          bottom: -50px;
+          right: 15%;
+          width: 240px;
+          height: 180px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
+          pointer-events: none;
+        }
+
+        .stars-layer {
+          position: absolute;
+          inset: 0;
+          background-image: 
+            radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.7), transparent),
+            radial-gradient(1.5px 1.5px at 40% 70%, rgba(255, 255, 255, 0.8), transparent),
+            radial-gradient(1px 1px at 65% 25%, rgba(255, 255, 255, 0.6), transparent),
+            radial-gradient(1.5px 1.5px at 85% 60%, rgba(255, 255, 255, 0.75), transparent),
+            radial-gradient(1px 1px at 90% 15%, rgba(255, 255, 255, 0.6), transparent);
+          pointer-events: none;
+        }
+
+        .character-avatar-wrapper {
+          position: relative;
+          z-index: 2;
+          height: 210px;
+          display: flex;
+          align-items: flex-end;
+          filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.6));
+          transition: transform 0.3s ease;
+        }
+
+        .character-avatar-img {
+          height: 100%;
+          width: auto;
+          object-fit: contain;
+          display: block;
+        }
+
+        .floating-badge {
+          position: absolute;
+          z-index: 3;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          padding: 0.45rem 0.85rem;
+          border-radius: 999px;
+          background-color: rgba(18, 19, 26, 0.82);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #ffffff;
+          animation: floatSlow 5s ease-in-out infinite alternate;
+        }
+
+        .badge-left {
+          left: 2rem;
+          bottom: 3.5rem;
+          animation-delay: 0s;
+        }
+
+        .badge-right {
+          right: 2rem;
+          bottom: 4rem;
+          animation-delay: 2.2s;
+        }
+
+        .badge-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+        }
+        .dot-green {
+          background-color: #2da44e;
+          box-shadow: 0 0 8px #2da44e;
+        }
+        .badge-shield {
+          color: #58a6ff;
+        }
+
+        @keyframes floatSlow {
+          0% { transform: translateY(0px); }
+          100% { transform: translateY(-8px); }
+        }
+
+        .character-status-pill {
+          position: absolute;
+          bottom: 0.75rem;
+          right: 1.5rem;
+          z-index: 4;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.25rem 0.65rem;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.65);
+          backdrop-filter: blur(8px);
+          font-size: 0.68rem;
+          color: #c9d1d9;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .pill-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+        .pill-dot.blue {
+          background: #58a6ff;
+          box-shadow: 0 0 6px #58a6ff;
+        }
+        .pill-dot.gray {
+          background: #8c949e;
+        }
+        .pill-icon.green {
+          color: #2da44e;
+        }
+        .pill-icon.purple {
+          color: #bc8cff;
+        }
+
+        /* ----------------------------------------------------------------------- */
+        /* RIGHT PANEL: CRISP WHITE (#FFFFFF)                                    */
+        /* ----------------------------------------------------------------------- */
+        .github-right-panel {
+          width: 50%;
+          flex: 0 0 50%;
+          height: 100vh;
+          background-color: #ffffff;
+          color: #1f2328;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          overflow-y: auto;
+          overflow-x: hidden;
+          box-sizing: border-box;
+          padding: 2rem 2.5rem;
+        }
+
+        .github-right-panel::-webkit-scrollbar {
+          width: 6px;
+        }
+        .github-right-panel::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.12);
+          border-radius: 999px;
+        }
+
+        .right-top-nav {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          gap: 0.35rem;
+          width: 100%;
+          font-size: 13px;
+          color: #656d76;
+          margin-bottom: 1.5rem;
+        }
+
+        .top-nav-text {
+          color: #656d76;
+        }
+
+        .top-nav-link {
+          background: none;
+          border: none;
+          color: #0969da;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          padding: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.2rem;
+        }
+        .top-nav-link:hover {
+          text-decoration: underline;
+        }
+
+        .form-center-container {
+          width: 100%;
+          max-width: 440px;
+          margin: auto;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .form-heading-block {
+          margin-bottom: 1.5rem;
+        }
+
+        .back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          background: none;
+          border: none;
+          color: #0969da;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 500;
+          padding: 0;
+          margin-bottom: 0.75rem;
+        }
+        .back-btn:hover {
+          text-decoration: underline;
+        }
+
+        .form-title {
+          font-size: 24px;
+          font-weight: 600;
+          letter-spacing: -0.025em;
+          color: #1f2328;
+          line-height: 1.25;
+          margin: 0 0 0.35rem 0;
+        }
+
+        .form-subtitle {
+          font-size: 14px;
+          color: #656d76;
+          line-height: 1.5;
+          margin: 0;
+        }
+
+        /* Alerts & Banners */
+        .banner {
+          border-radius: 6px;
+          padding: 10px 14px;
+          font-size: 13px;
+          line-height: 1.45;
+          margin-bottom: 1rem;
+        }
+        .error-banner {
+          background-color: #ffebe9;
+          border: 1px solid rgba(255, 129, 130, 0.4);
+          color: #cf222e;
+        }
+        .success-banner {
+          background-color: #dafbe1;
+          border: 1px solid rgba(74, 194, 107, 0.4);
+          color: #1a7f37;
+        }
+        .info-banner {
+          background-color: #ddf4ff;
+          border: 1px solid rgba(84, 174, 255, 0.4);
+          color: #0969da;
+        }
+
+        /* Social / Google Buttons */
+        .social-login-wrapper {
+          width: 100%;
+          margin-bottom: 0.25rem;
+        }
+
+        .google-gsi-container {
+          width: 100%;
+          justify-content: center;
+          align-items: center;
+          min-height: 42px;
+        }
+
+        .btn-social {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.65rem;
+          width: 100%;
+          height: 42px;
+          border-radius: 6px;
+          border: 1px solid #d0d7de;
+          background-color: #ffffff;
+          color: #1f2328;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+          transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .btn-social:hover {
+          background-color: #f6f8fa;
+          border-color: #afb8c1;
+        }
+        .btn-social:active {
+          background-color: #f3f4f6;
+        }
+
+        /* Divider with "or" */
+        .horizontal-divider {
+          display: flex;
+          align-items: center;
+          margin: 1.25rem 0;
+          gap: 0.75rem;
+        }
+
+        .divider-line {
+          flex: 1;
+          height: 1px;
+          background-color: #d0d7de;
+        }
+
+        .divider-label {
+          font-size: 12px;
+          color: #656d76;
+          text-transform: lowercase;
+        }
+
+        /* Form Controls */
+        .auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .field-label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #1f2328;
+          margin-bottom: 6px;
+          display: block;
+        }
+
+        .field-label .req {
+          color: #cf222e;
+          font-weight: 600;
+        }
+
+        .field-label-split {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+        }
+
+        .verified-badge {
+          font-size: 12px;
+          font-weight: 600;
+          color: #1a7f37;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .forgot-link {
+          font-size: 12px;
+          color: #0969da;
+          text-decoration: none;
+          font-weight: 500;
+        }
+        .forgot-link:hover {
+          text-decoration: underline;
+        }
+
+        .field-input {
+          height: 40px;
+          padding: 8px 12px;
+          border: 1px solid #d0d7de;
+          border-radius: 6px;
+          font-size: 14px;
+          color: #1f2328;
+          background-color: #ffffff;
+          box-sizing: border-box;
+          width: 100%;
+          outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .field-input::placeholder {
+          color: #8c949e;
+        }
+        .field-input:focus {
+          border-color: #0969da;
+          box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+        }
+        .field-input:disabled {
+          background-color: #f6f8fa;
+          cursor: not-allowed;
+          color: #8c949e;
+        }
+
+        .read-only-input {
+          background-color: #f6f8fa;
+          color: #656d76;
+          cursor: not-allowed;
+        }
+
+        .input-with-icon {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .input-with-icon .field-input {
+          padding-right: 38px;
+        }
+
+        .icon-btn {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          padding: 4px;
+          color: #656d76;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .icon-btn:hover {
+          color: #1f2328;
+        }
+
+        .field-hint {
+          font-size: 12px;
+          color: #656d76;
+          margin: 5px 0 0 0;
+          line-height: 1.4;
+        }
+
+        /* Primary Green Button (GitHub Signature Style) */
+        .btn-github-green {
+          height: 42px;
+          border-radius: 6px;
+          border: 1px solid rgba(27, 31, 36, 0.15);
+          background-color: #1f883d;
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 600;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          box-shadow: 0 1px 0 rgba(27, 31, 36, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+          transition: background-color 0.15s cubic-bezier(0.3, 0, 0.5, 1);
+          margin-top: 0.5rem;
+        }
+        .btn-github-green:hover:not(:disabled) {
+          background-color: #1a7f37;
+        }
+        .btn-github-green:active:not(:disabled) {
+          background-color: #197635;
+          box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.2);
+        }
+        .btn-github-green:disabled {
+          opacity: 0.65;
+          cursor: wait;
+        }
+
+        .btn-link-cancel {
+          background: none;
+          border: none;
+          color: #656d76;
+          cursor: pointer;
+          font-size: 13px;
+          padding: 4px;
+          text-decoration: underline;
+          text-align: center;
+          margin-top: 4px;
+        }
+        .btn-link-cancel:hover {
+          color: #1f2328;
+        }
+
+        /* Bottom Signup Row */
+        .bottom-signup-row {
+          text-align: center;
+          font-size: 14px;
+          color: #656d76;
+          margin-top: 1.25rem;
+        }
+
+        .bottom-signup-btn {
+          background: none;
+          border: none;
+          color: #0969da;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          padding: 0;
+        }
+        .bottom-signup-btn:hover {
+          text-decoration: underline;
+        }
+
+        /* Legal Footer */
+        .form-legal-footer {
+          font-size: 12px;
+          color: #656d76;
+          line-height: 1.5;
+          margin-top: 1.5rem;
+          text-align: center;
+        }
+
+        .legal-link {
+          color: #0969da;
+          text-decoration: none;
+        }
+        .legal-link:hover {
+          text-decoration: underline;
+        }
+
+        /* ----------------------------------------------------------------------- */
+        /* RESPONSIVE BREAKPOINTS (MOBILE & TABLET)                                */
+        /* ----------------------------------------------------------------------- */
         @media (max-width: 960px) {
-          .login-split-page {
-            flex-direction: column !important;
-            overflow-y: auto !important;
+          .github-split-layout {
+            flex-direction: column;
+            height: auto;
+            min-height: 100vh;
+            overflow-y: auto;
           }
-          .login-media-half {
-            width: 100% !important;
-            flex: none !important;
-            height: 320px !important;
-            position: relative !important;
-            top: 0 !important;
+
+          .github-left-panel {
+            width: 100%;
+            flex: none;
+            height: auto;
+            min-height: auto;
+            padding-bottom: 2rem;
           }
-          .login-media-half video {
-            object-position: center 12% !important;
+
+          .left-panel-content {
+            padding: 2.5rem 1.75rem 1rem 1.75rem;
           }
-          .login-quote-overlay {
-            display: none !important;
+
+          .left-heading {
+            font-size: 1.85rem;
           }
-          .login-form-half {
-            width: 100% !important;
-            flex: none !important;
-            height: auto !important;
-            min-height: auto !important;
-            padding: 2.5rem 1.5rem !important;
-            border-left: none !important;
-            border-top: 1px solid var(--border-color) !important;
-            overflow-y: visible !important;
+
+          .left-illustration-container {
+            height: 200px;
+          }
+
+          .character-avatar-wrapper {
+            height: 170px;
+          }
+
+          .badge-left {
+            left: 1rem;
+            bottom: 2.5rem;
+          }
+          .badge-right {
+            right: 1rem;
+            bottom: 2.5rem;
+          }
+
+          .github-right-panel {
+            width: 100%;
+            flex: none;
+            height: auto;
+            min-height: auto;
+            padding: 2.5rem 1.75rem 3.5rem 1.75rem;
+          }
+
+          .form-center-container {
+            max-width: 100%;
           }
         }
       `}</style>
