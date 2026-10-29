@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniVerse Digital Wellbeing Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <!-- Top Navigation Header -->
+    <header class="dashboard-header">
+      <div class="brand-group">
+        <span class="badge">UniVerse • Chrome MV3</span>
+        <h1>Focus & Browsing Analytics Dashboard</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-export-json" class="btn btn-secondary">📥 Export Data (JSON)</button>
+        <button id="btn-go-options" class="btn btn-secondary">⚙️ Categorization Rules</button>
+      </div>
+    </header>
+
+    <!-- Privacy Banner -->
+    <div class="privacy-banner">
+      <span class="privacy-icon">🛡️</span>
+      <div class="privacy-text">
+        <strong>Privacy-First Local Storage:</strong> All browsing events are stored strictly on your local machine using Chrome's sandboxed storage. Zero keystrokes, form fields, passwords, or query parameters are ever captured.
+      </div>
+    </div>
+
+    <!-- 4 Core KPI Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Active Focus Duration</div>
+        <div id="kpi-focus-mins" class="kpi-value text-green">0 mins</div>
+        <div id="kpi-focus-sessions" class="kpi-sub">0 completed session(s)</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Context Switches</div>
+        <div id="kpi-switches" class="kpi-value text-blue">0</div>
+        <div class="kpi-sub">Category & domain hops</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Estimated Distracting Time</div>
+        <div id="kpi-distracting-mins" class="kpi-value text-amber">0 mins</div>
+        <div class="kpi-sub">Attributed to entertainment/social sites</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Goal Completion Index</div>
+        <div id="kpi-goal-percent" class="kpi-value text-purple">0%</div>
+        <div class="kpi-sub">Relative to planned focus goals</div>
+      </div>
+    </section>
+
+    <!-- Category Breakdown Chart -->
+    <section class="card breakdown-card">
+      <h2>Activity Category Distribution</h2>
+      <div id="category-bars-container" class="category-bars-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Recent Activity Timeline -->
+    <section class="card">
+      <div class="card-header-flex">
+        <h2>Recent Activity Stream (Hostnames Only)</h2>
+        <span class="sub-header-note">Each entry is individually deletable</span>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Hostname</th>
+              <th>Category</th>
+              <th>Est. Duration</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="events-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Session History -->
+    <section class="card">
+      <h2>Completed Focus Sessions</h2>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Topic</th>
+              <th>Category</th>
+              <th>Duration</th>
+              <th>Switches</th>
+              <th>Quality</th>
+              <th>Reflection</th>
+            </tr>
+          </thead>
+          <tbody id="sessions-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniVerse Wellbeing</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <span class="brand-badge">UniVerse</span>
+        <h1 class="brand-title">Focus & Wellbeing</h1>
+      </div>
+      <div id="status-pill" class="status-pill idle">
+        <span class="status-dot"></span>
+        <span id="status-text">Idle</span>
+      </div>
+    </header>
+
+    <!-- Current Tab Website Indicator -->
+    <div class="current-site-card">
+      <div class="site-label">CURRENT TAB</div>
+      <div class="site-row">
+        <span id="current-hostname" class="hostname">Checking site...</span>
+        <span id="current-category" class="category-badge uncategorized">UNKNOWN</span>
+      </div>
+    </div>
+
+    <!-- Active Timer Card -->
+    <div class="timer-card">
+      <div id="session-title-display" class="session-title">Ready to Study</div>
+      <div id="timer-display" class="timer-digits">00:00</div>
+      
+      <!-- Progress Bar -->
+      <div id="progress-container" class="progress-container hidden">
+        <div class="progress-header">
+          <span id="progress-percent">0%</span>
+          <span id="target-goal-text">Goal: 25 mins</span>
+        </div>
+        <div class="progress-track">
+          <div id="progress-bar" class="progress-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Actions Form / Buttons -->
+    <div class="actions-container">
+      <!-- Idle State: Start Form -->
+      <div id="start-form-section" class="form-section">
+        <div class="form-group">
+          <label for="session-title-input">Session Topic</label>
+          <input type="text" id="session-title-input" placeholder="e.g. Compiler Design Lab" value="Deep Study Session">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="target-minutes-select">Goal</label>
+            <select id="target-minutes-select">
+              <option value="15">15 min</option>
+              <option value="25" selected>25 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="category-select">Category</label>
+            <select id="category-select">
+              <option value="coding" selected>Coding</option>
+              <option value="revision">Revision</option>
+              <option value="exam_prep">Placement</option>
+              <option value="reading">Reading</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="btn-start" class="btn btn-primary">
+          ▶ Start Focus Session
+        </button>
+      </div>
+
+      <!-- Active / Paused State Controls -->
+      <div id="running-controls-section" class="running-section hidden">
+        <div class="btn-group">
+          <button id="btn-pause" class="btn btn-warning">⏸ Pause</button>
+          <button id="btn-resume" class="btn btn-primary hidden">▶ Resume</button>
+          <button id="btn-stop" class="btn btn-success">⏹ Complete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy Note -->
+    <div class="privacy-note">
+      🔒 <strong>Privacy-First:</strong> Zero background surveillance. No keystrokes or page contents are recorded.
+    </div>
+
+    <!-- Footer Links -->
+    <footer class="popup-footer">
+      <button id="btn-open-dashboard" class="footer-link">📊 Open Dashboard</button>
+      <button id="btn-open-options" class="footer-link">⚙️ Options & Rules</button>
+    </footer>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

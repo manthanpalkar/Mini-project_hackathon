@@ -64,21 +64,34 @@
   - `ComputeTelemetry`: Node utilization (CPU/GPU), active wattage, estimated carbon grams/hr.
   - `GreenComputeJob`: Off-peak scheduling queue for high-compute student projects.
 
-### Module D: Privacy-Aware Digital Wellbeing
-- **Status:** Fully Implemented & Integrated
+### Module D: Privacy-Aware Digital Wellbeing & Chrome Extension
+- **Status:** Fully Implemented, Integrated & Available as Chrome MV3 Extension
 - **Mount Point:** `/api/modules/d`
 - **Frontend Route:** `/digital-wellbeing` (Navbar: "Wellbeing")
+- **Chrome Extension Path:** `loop/extension/` (Manifest V3)
 - **Features:**
-  - **Focus Session Lifecycle Controller:** Robust state machine supporting start, pause, resume, stop, and discard actions. Server-authoritative timestamps calculate true active duration independently of pauses or page reloads.
-  - **User-Defined Categorization Rules:** Custom domain matching (`domain_suffix`, `exact_host`, `contains`) with user priority precedence, instant live domain preview classifier, and built-in academic system presets.
+  - **Focus Session Lifecycle Controller:** Robust state machine supporting start, pause, resume, stop, and discard actions. Server-authoritative and client-authoritative timestamps calculate true active duration independently of pauses, service worker suspension, or reloads.
+  - **Chrome Extension (Manifest V3):**
+    - Compact toolbar popup with live focus timer, status pills, dynamic extension badge (`12m` active, `⏸` paused), and quick start/pause/stop actions.
+    - Full-page Extension Analytics Dashboard with interactive metric cards, time breakdown bars, and recent activity logs.
+    - Full-featured Options & Rules page for custom categorization rules, focus goals, one-click right-to-be-forgotten data wipe, and optional UniVerse cloud sync.
+    - Modular Background Service Worker (`background/service-worker.js`) with `chrome.alarms` badge updater and `chrome.idle` inactivity protection.
+  - **Zero-Surveillance Privacy Engine:**
+    - Strictly active-only gating: Zero tab monitoring when session is idle or paused.
+    - Zero incognito tracking: Incognito tabs/windows are completely ignored.
+    - Hostname-only logging: Strips URL paths, search queries, hashes, and auth tokens.
+    - Zero keystroke, form input, or DOM content inspection.
+    - Local-first architecture: Works 100% offline via `chrome.storage.local` with optional authenticated UniVerse sync.
+  - **User-Defined Categorization Rules:** Custom domain matching (`domain_suffix`, `exact_host`, `contains`) with user priority precedence, instant live domain preview classifier, and built-in academic and developer presets.
   - **Synthetic Activity Generator:** Explicit user-initiated reproducible scenario generator (Mulberry32 PRNG) supporting *Focused Study*, *Mixed Study*, *Frequent Switching*, and *Minimal Sustained Activity*. All records visibly labeled `SIMULATED DEMO DATA`.
   - **Focus & Context-Switch Analytics:** Accurate calculation of active focus time, category distribution, context switches (category transition count), and estimated distracting duration.
-  - **Privacy Center & Data Rights:** Transparent tracking status indicator, strict data minimization (zero keystrokes, zero browser snooping), single-event deletion, full history purge (*right-to-be-forgotten*), and JSON data export.
-- **Core Models:**
+  - **Privacy Center & Data Rights:** Transparent tracking status indicator, strict data minimization, single-event deletion, full history purge (*right-to-be-forgotten*), and JSON data export.
+- **Core Models & Extension Storage:**
   - `FocusSession`: User email, salted SHA-256 anonymous hash, target minutes, accumulated active seconds, pause tracking, quality score, and reflection notes.
   - `CategorizationRule`: User email, pattern, match type, category (`learning`, `productive`, `distracting`, `neutral`, `uncategorized`), priority, and toggle status.
   - `ActivityEvent`: Explicit user-triggered or synthetic browsing events with domain, category, duration, and source label.
   - `NudgeRule`: Configurable study thresholds and mindful break recommendations.
+  - `extensionStorage`: Local chrome storage state containing `universe_wellbeing_session`, `universe_wellbeing_rules`, `universe_wellbeing_events`, `universe_wellbeing_settings`.
 
 ### Module E: Responsible Examination Monitoring
 - **Status:** Fully Implemented & Integrated

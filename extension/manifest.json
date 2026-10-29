@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "UniVerse Digital Wellbeing — Focus & Habit Tracker",
+  "version": "1.0.0",
+  "description": "Privacy-aware focus sessions, configurable website categorization, and distraction analytics for students.",
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "UniVerse Digital Wellbeing",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "32": "assets/icon32.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms",
+    "idle"
+  ]
+}

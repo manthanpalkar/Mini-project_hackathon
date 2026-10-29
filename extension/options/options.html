@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniVerse Wellbeing — Options & Categorization Rules</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-layout">
+    <!-- Header -->
+    <header class="options-header">
+      <div class="brand-group">
+        <span class="badge">UniVerse • Settings</span>
+        <h1>Extension Options & Rules Engine</h1>
+      </div>
+    </header>
+
+    <!-- Feedback Message -->
+    <div id="toast-msg" class="toast hidden"></div>
+
+    <!-- Section 1: Website Categorization Rules -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Website Categorization Rules</h2>
+        <p class="subtitle">Customize which websites count as learning, productive, or distracting. User rules override system presets.</p>
+      </div>
+
+      <!-- Add New Rule Form -->
+      <form id="add-rule-form" class="rule-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="rule-name">Rule Name</label>
+            <input type="text" id="rule-name" placeholder="e.g. SPIT Moodle" required>
+          </div>
+
+          <div class="form-group">
+            <label for="rule-pattern">Domain Pattern</label>
+            <input type="text" id="rule-pattern" placeholder="e.g. moodle.spit.ac.in, stackoverflow.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="rule-category">Category</label>
+            <select id="rule-category">
+              <option value="learning">Learning</option>
+              <option value="productive">Productive</option>
+              <option value="distracting">Distracting</option>
+              <option value="neutral">Neutral</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="rule-match-type">Match Type</label>
+            <select id="rule-match-type">
+              <option value="domain_suffix">Domain Suffix</option>
+              <option value="exact_host">Exact Hostname</option>
+              <option value="contains">Contains Substring</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">+ Add Custom Rule</button>
+      </form>
+
+      <!-- Active User Rules Table -->
+      <div class="rules-list-container">
+        <h3>Your Custom Rules</h3>
+        <div id="user-rules-list" class="rules-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Excluded Domains (Never Tracked) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Excluded Domains</h2>
+        <p class="subtitle">Websites listed here will be completely ignored by the extension even during an active focus session.</p>
+      </div>
+
+      <div class="excluded-form">
+        <input type="text" id="new-excluded-input" placeholder="e.g. bank.com, localhost">
+        <button id="btn-add-excluded" class="btn btn-secondary">+ Exclude Domain</button>
+      </div>
+
+      <div id="excluded-chips" class="chips-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Section 3: Focus & Timing Preferences -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Focus Goals & Idle Auto-Pause</h2>
+      </div>
+
+      <div class="settings-grid">
+        <div class="form-group">
+          <label for="default-goal-minutes">Default Focus Goal (minutes)</label>
+          <input type="number" id="default-goal-minutes" min="5" max="180" value="25">
+        </div>
+
+        <div class="form-group">
+          <label for="idle-pause-select">Auto-pause when away</label>
+          <select id="idle-pause-select">
+            <option value="3">After 3 minutes idle</option>
+            <option value="5" selected>After 5 minutes idle</option>
+            <option value="10">After 10 minutes idle</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="btn-save-prefs" class="btn btn-primary" style="margin-top: 1rem;">Save Preferences</button>
+    </section>
+
+    <!-- Section 4: Optional UniVerse Cloud Sync -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Optional UniVerse Platform Sync</h2>
+        <p class="subtitle">Synchronize completed focus sessions with your UniVerse campus account. The extension remains 100% functional locally without this.</p>
+      </div>
+
+      <div class="settings-grid">
+        <div class="form-group">
+          <label for="sync-url-input">API Base URL</label>
+          <input type="text" id="sync-url-input" value="http://localhost:5001/api/modules/d">
+        </div>
+
+        <div class="form-group">
+          <label for="sync-token-input">UniVerse JWT Auth Token</label>
+          <input type="password" id="sync-token-input" placeholder="Paste your JWT token from UniVerse Web app">
+        </div>
+      </div>
+
+      <div class="sync-actions">
+        <button id="btn-test-sync" class="btn btn-secondary">Test Connection</button>
+        <span id="sync-status-indicator" class="sync-status">Not connected</span>
+      </div>
+    </section>
+
+    <!-- Section 5: Data Privacy & Right to be Forgotten -->
+    <section class="card danger-card">
+      <div class="card-header">
+        <h2 style="color: #EF4444;">Right to be Forgotten · Data Management</h2>
+        <p class="subtitle">Permanently delete all locally recorded browsing history, events, and focus sessions.</p>
+      </div>
+
+      <div class="danger-actions">
+        <button id="btn-clear-history" class="btn btn-danger">⚠️ Wipe All Local Browsing Records</button>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
