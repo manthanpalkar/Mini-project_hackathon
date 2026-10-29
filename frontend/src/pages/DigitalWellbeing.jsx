@@ -186,8 +186,18 @@ export default function DigitalWellbeing() {
       }, '*');
     }
 
+    // 3. Periodic probe every 1.5s until extension is detected
+    const pollInterval = setInterval(() => {
+      if (document.documentElement.dataset.universeExtensionInstalled === 'true') {
+        setExtensionInstalled(true);
+      }
+      window.postMessage({ source: 'UNIVERSE_WEB', type: 'PING_EXTENSION' }, '*');
+    }, 1500);
+
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener('UNIVERSE_EXTENSION_READY', handleExtensionReady);
+      document.removeEventListener('UNIVERSE_EXTENSION_READY', handleExtensionReady);
       window.removeEventListener('message', handleBridgeMessage);
     };
   }, []);

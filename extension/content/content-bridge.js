@@ -10,9 +10,31 @@
  */
 
 (function () {
-  // Mark the page so React immediately knows the extension is installed
-  document.documentElement.dataset.universeExtensionInstalled = 'true';
-  window.dispatchEvent(new CustomEvent('UNIVERSE_EXTENSION_READY', { detail: { version: '1.0.0' } }));
+  function notifyExtensionReady() {
+    try {
+      if (document.documentElement) {
+        document.documentElement.dataset.universeExtensionInstalled = 'true';
+      }
+      window.dispatchEvent(new CustomEvent('UNIVERSE_EXTENSION_READY', { detail: { version: '1.0.0' } }));
+      document.dispatchEvent(new CustomEvent('UNIVERSE_EXTENSION_READY', { detail: { version: '1.0.0' } }));
+
+      window.postMessage({
+        source: 'UNIVERSE_EXTENSION',
+        type: 'EXTENSION_PONG',
+        data: { installed: true, version: '1.0.0' }
+      }, '*');
+    } catch (e) {
+      // DOM not yet ready
+    }
+  }
+
+  // Notify immediately
+  notifyExtensionReady();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', notifyExtensionReady);
+  }
+  window.addEventListener('load', notifyExtensionReady);
 
   // Auto-detect UniVerse authentication token from page localStorage and sync to extension
   function autoSyncAuthToken() {
@@ -37,7 +59,7 @@
             userEmail,
             apiUrl: 'http://localhost:5001/api/modules/d'
           }
-        }, (res) => {
+        }, () => {
           if (chrome.runtime.lastError) {
             // Ignore if worker temporarily sleeping
           }
