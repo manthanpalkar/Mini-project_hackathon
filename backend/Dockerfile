@@ -36,6 +36,9 @@ COPY --chown=node:node package*.json ./
 # Copy backend application source code
 COPY --chown=node:node . .
 
+# Ensure /app/uploads exists and is owned by the unprivileged node user
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
+
 # Run as built-in non-root user 'node' (UID: 1000, GID: 1000)
 USER node
 
