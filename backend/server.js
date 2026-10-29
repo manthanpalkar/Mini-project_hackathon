@@ -864,71 +864,73 @@ async function getSectionVisibility() {
 
 
 // Database connection
-const primaryUri = process.env.MONGODB_URI;
-const fallbackUri = 'mongodb://127.0.0.1:27017/loop_db';
+function sanitizeUriForLog(uri) {
+  if (!uri) return 'undefined';
+  return uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@');
+}
+
+function resolveDbUri(rawUri) {
+  if (!rawUri) return null;
+  let uri = rawUri.trim();
+  try {
+    const url = new URL(uri);
+    const dbPath = url.pathname.replace(/^\//, '');
+    if (!dbPath) {
+      url.pathname = '/loop_universe_dev';
+      if (!url.searchParams.has('retryWrites')) {
+        url.searchParams.set('retryWrites', 'true');
+      }
+      if (!url.searchParams.has('w')) {
+        url.searchParams.set('w', 'majority');
+      }
+      return url.toString();
+    }
+  } catch (_) {
+    if (uri.endsWith('/')) {
+      uri += 'loop_universe_dev?retryWrites=true&w=majority';
+    } else if (/mongodb(\+srv)?:\/\/[^\/]+$/.test(uri)) {
+      uri += '/loop_universe_dev?retryWrites=true&w=majority';
+    }
+  }
+  return uri;
+}
+
+const primaryUri = resolveDbUri(process.env.MONGODB_URI);
 const MONGODB_MAX_POOL_SIZE = parseInt(process.env.MONGODB_MAX_POOL_SIZE || '50', 10);
 const MONGODB_MIN_POOL_SIZE = parseInt(process.env.MONGODB_MIN_POOL_SIZE || '5', 10);
 
 // Disable buffering so that queries fail fast instead of hanging when database is offline
 mongoose.set('bufferCommands', false);
 
-async function connectWithFallback() {
-  if (primaryUri && primaryUri !== fallbackUri) {
-    // Staging Isolation Guard: Log warning if staging points to default database path
-    if (process.env.NODE_ENV === 'staging') {
-      const rawPath = primaryUri.split('?')[0].split('/').pop();
-      if (!rawPath || rawPath === 'test') {
-        console.warn('[STAGING ISOLATION WARNING] MONGODB_URI does not specify an explicit staging database path (e.g. /loop_staging).');
-      }
-    }
-
-    console.log('Attempting to connect to primary MongoDB database...');
-    try {
-      await mongoose.connect(primaryUri, {
-        serverSelectionTimeoutMS: 4000, // fail fast
-        maxPoolSize: MONGODB_MAX_POOL_SIZE,
-        minPoolSize: MONGODB_MIN_POOL_SIZE,
-        autoIndex: process.env.NODE_ENV !== 'production',
-        serverApi: {
-          version: '1',
-          strict: true,
-          deprecationErrors: true
-        }
-      });
-      console.log('Connected to primary MongoDB database successfully.');
-      ensureSystemFolders().catch(e => console.error('System folders sync error:', e.message));
-      return;
-    } catch (err) {
-      console.error('Primary MongoDB connection error:', err.message);
-      if (process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'local_test') {
-        console.error(`Failing closed: silent local fallback disabled in ${process.env.NODE_ENV} environment.`);
-        return;
-      }
-      console.log('Falling back to local MongoDB database...');
-    }
-  }
-
-  if (process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'local_test') {
-    console.error(`Failing closed: MONGODB_URI required in ${process.env.NODE_ENV} environment. Refusing local fallback.`);
+async function connectToDatabase() {
+  if (!primaryUri) {
+    console.error('[DATABASE CRITICAL] MONGODB_URI is not set. Refusing unverified fallback connection.');
     return;
   }
 
+  console.log('[DATABASE] Connecting strictly to target cluster (masked): ' + sanitizeUriForLog(primaryUri));
   try {
-    await mongoose.connect(fallbackUri, {
-      serverSelectionTimeoutMS: 4000,
+    await mongoose.connect(primaryUri, {
+      serverSelectionTimeoutMS: 8000,
       maxPoolSize: MONGODB_MAX_POOL_SIZE,
       minPoolSize: MONGODB_MIN_POOL_SIZE,
-      autoIndex: process.env.NODE_ENV !== 'production'
+      autoIndex: process.env.NODE_ENV !== 'production',
+      serverApi: {
+        version: '1',
+        strict: true,
+        deprecationErrors: true
+      }
     });
-    console.log('Connected to local fallback MongoDB successfully.');
-    ensureSystemFolders().catch(e => console.error('System folders sync error:', e.message));
+    console.log('[DATABASE] Connected to target MongoDB Atlas database [' + mongoose.connection.name + '] successfully.');
+    ensureSystemFolders().catch(e => console.error('[DATABASE] System folders sync error:', e.message));
   } catch (err) {
-    console.error('Local fallback MongoDB connection error:', err.message);
+    console.error('[DATABASE CRITICAL] MongoDB connection error:', err.message);
+    console.error('[DATABASE CRITICAL] Failing closed: Unsafe fallback to legacy or local database is disabled.');
   }
 }
 
 if (require.main === module) {
-  connectWithFallback();
+  connectToDatabase();
 }
 
 // Root & Health Check Endpoints (Guarantees Render and Cloud health probes always pass 200 OK)
@@ -942,6 +944,16 @@ app.get(['/health', '/api/health'], (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// UniVerse Platform Extension Modules (Modules B, C, D, E)
+try {
+  app.use('/api/modules/b', require('./modules/moduleB_ridePooling/routes/rideRoutes'));
+  app.use('/api/modules/c', require('./modules/moduleC_sustainableComputing/routes/computingRoutes'));
+  app.use('/api/modules/d', require('./modules/moduleD_digitalWellbeing/routes/wellbeingRoutes'));
+  app.use('/api/modules/e', require('./modules/moduleE_examMonitoring/routes/examRoutes'));
+} catch (e) {
+  console.warn('[UNIVERSE MODULES WARNING] Module routes initialization:', e.message);
+}
 
 // Dedicated Public Diagnostic Endpoint for Route & Deployment Verification
 app.get(['/api/upload-route-health', '/upload-route-health'], (req, res) => {

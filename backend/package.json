@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "seed": "node seed.js",
     "test": "node --test tests/*.test.js",
-    "audit:health": "node scripts/audit_repo_health.js"
+    "audit:health": "node scripts/audit_repo_health.js",
+    "seed:dev": "node scripts/seed_dev_safe.js"
   },
   "dependencies": {
     "@getbrevo/brevo": "^6.2.0",
