@@ -157,6 +157,7 @@ function isValidImageBuffer(buffer) {
 // Enable CORS with restricted origin access
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://loop-seven-delta.vercel.app',
+  'https://loop-swap15x.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
