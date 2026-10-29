@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Check, ShieldCheck, Sparkles, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Check, ShieldCheck, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
 import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 import { clearAllCaches } from '../hooks/useCachedData';
 import SEOHead from '../components/SEOHead';
@@ -494,10 +494,6 @@ export default function Login() {
           <div className="floating-badge badge-right">
             <ShieldCheck size={12} className="badge-shield" />
             <span>100% SPIT Verified</span>
-          </div>
-          <div className="floating-badge badge-center">
-            <Sparkles size={12} style={{ color: '#c084fc' }} />
-            <span>Official Placement Archive</span>
           </div>
         </div>
       </aside>
@@ -1171,13 +1167,6 @@ export default function Login() {
           animation-delay: 2.2s;
         }
 
-        .badge-center {
-          left: 50%;
-          transform: translateX(-50%);
-          bottom: 5rem;
-          animation-delay: 1.1s;
-        }
-
         .badge-dot {
           width: 6px;
           height: 6px;
@@ -1619,9 +1608,6 @@ export default function Login() {
           .badge-right {
             right: 1rem;
             bottom: 1.5rem;
-          }
-          .badge-center {
-            display: none;
           }
 
           .github-right-panel {
