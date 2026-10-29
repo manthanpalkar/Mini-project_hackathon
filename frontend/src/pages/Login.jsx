@@ -907,13 +907,21 @@ export default function Login() {
         .left-image-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(
-            180deg,
-            rgba(5, 8, 17, 0.72) 0%,
-            rgba(5, 8, 17, 0.15) 30%,
-            rgba(5, 8, 17, 0.25) 70%,
-            rgba(5, 8, 17, 0.82) 100%
-          );
+          background: 
+            linear-gradient(
+              to right,
+              rgba(5, 8, 17, 0.45) 0%,
+              transparent 35%,
+              rgba(5, 8, 17, 0.15) 75%,
+              rgba(5, 8, 17, 0.65) 100%
+            ),
+            linear-gradient(
+              180deg,
+              rgba(5, 8, 17, 0.72) 0%,
+              rgba(5, 8, 17, 0.08) 28%,
+              rgba(5, 8, 17, 0.15) 72%,
+              rgba(5, 8, 17, 0.82) 100%
+            );
           pointer-events: none;
         }
 
@@ -968,13 +976,16 @@ export default function Login() {
         }
 
         /* ----------------------------------------------------------------------- */
-        /* RIGHT PANEL: CRISP WHITE (#FFFFFF)                                    */
+        /* RIGHT PANEL: COHESIVE AMBIENT GRADIENT & ELEVATED FORM CONTAINER        */
         /* ----------------------------------------------------------------------- */
         .github-right-panel {
           width: 50%;
           flex: 0 0 50%;
           height: 100vh;
-          background-color: #ffffff;
+          background: 
+            radial-gradient(ellipse at 90% 8%, rgba(254, 243, 199, 0.28) 0%, transparent 42%),
+            radial-gradient(ellipse at 10% 92%, rgba(224, 231, 255, 0.35) 0%, transparent 50%),
+            linear-gradient(145deg, #f8fafc 0%, #ffffff 42%, #f1f5f9 100%);
           color: #1f2328;
           display: flex;
           flex-direction: column;
@@ -983,6 +994,20 @@ export default function Login() {
           overflow-x: hidden;
           box-sizing: border-box;
           padding: 2rem 2.5rem;
+          border-left: 1px solid rgba(226, 232, 240, 0.7);
+          box-shadow: -24px 0 50px -15px rgba(0, 0, 0, 0.15);
+        }
+
+        .github-right-panel::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          width: 36px;
+          background: linear-gradient(to right, rgba(0, 0, 0, 0.06) 0%, rgba(0, 0, 0, 0.015) 60%, transparent 100%);
+          pointer-events: none;
+          z-index: 5;
         }
 
         .github-right-panel::-webkit-scrollbar {
@@ -1002,6 +1027,8 @@ export default function Login() {
           font-size: 13px;
           color: #656d76;
           margin-bottom: 1.5rem;
+          position: relative;
+          z-index: 6;
         }
 
         .top-nav-text {
@@ -1030,6 +1057,18 @@ export default function Login() {
           margin: auto;
           display: flex;
           flex-direction: column;
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          padding: 2.25rem 2.25rem 2.5rem 2.25rem;
+          border-radius: 16px;
+          border: 1px solid rgba(226, 232, 240, 0.85);
+          box-shadow: 
+            0 4px 6px -1px rgba(0, 0, 0, 0.03),
+            0 20px 35px -10px rgba(15, 23, 42, 0.07),
+            0 1px 0 rgba(255, 255, 255, 0.95) inset;
+          position: relative;
+          z-index: 6;
         }
 
         .form-heading-block {
@@ -1380,11 +1419,19 @@ export default function Login() {
             flex: none;
             height: auto;
             min-height: auto;
-            padding: 2rem 1.75rem 3.5rem 1.75rem;
+            padding: 1.75rem 1.25rem 3rem 1.25rem;
+            border-left: none;
+            box-shadow: none;
+          }
+
+          .github-right-panel::before {
+            display: none;
           }
 
           .form-center-container {
             max-width: 100%;
+            padding: 1.75rem 1.25rem 2rem 1.25rem;
+            border-radius: 12px;
           }
         }
       `}</style>
