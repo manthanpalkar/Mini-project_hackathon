@@ -47,7 +47,8 @@
 11. [Local Development & Setup](#local-development--setup)
 12. [Security, Access Control & Integrity Policies](#security-access-control--integrity-policies)
 13. [License & Acknowledgments](#license--acknowledgments)
-14. [Module E: Deep Technical Evaluation & 8-Repository Comparison Guide](#module-e-deep-technical-evaluation--8-repository-comparison-guide)
+14. [Module E: Deep Technical Evaluation & 8-Repository Comparison Guide](#14-module-e--deep-technical-evaluation--8-repository-comparison-guide)
+15. [Module D: Privacy-Aware Digital Wellbeing & Chrome Extension (Manifest V3)](#15-module-d--privacy-aware-digital-wellbeing--chrome-extension-manifest-v3)
 
 ---
 
@@ -1016,3 +1017,131 @@ Module E operates under strict institutional AI ethics:
 1. **Zero Facial Biometrics:** No facial templates or biometric signatures are recorded, stored, or compared.
 2. **Session-Scoped Ephemeral IDs:** `Track #ID` integers are ephemeral session constructs discarded when the monitoring session closes.
 3. **Human-Authoritative Verification:** The system strictly assists proctors by highlighting observable anomalies. It **never** issues academic penalties or marks a student as "cheating" automatically.
+
+
+---
+
+## 15. Module D — Privacy-Aware Digital Wellbeing & Chrome Extension (Manifest V3)
+
+### 15.1 Technical Motivation & Zero-Surveillance Philosophy
+
+Modern student productivity tools and browser monitoring software frequently overreach by recording full URL paths, search queries, keystrokes, form inputs, and entire browser histories. This intrusive surveillance creates deep privacy violations, anxiety, and distrust among students.
+
+**UniVerse Module D** is engineered under a strict **Zero-Surveillance, Privacy-by-Design** mandate:
+- **Active-Only Gating:** Browser monitoring occurs **exclusively** while a student has an active focus session running. When the session is paused or stopped, monitoring shuts down completely.
+- **Zero Incognito Tracking:** Incognito tabs and windows are 100% ignored.
+- **Hostname-Only Storage:** URLs are stripped to their base domain (e.g. `github.com`). URL paths, search queries, query parameters, hashes, and session tokens are **never** captured or persisted.
+- **Zero Keystroke / DOM Scraping:** The extension contains no content script keyloggers or form scrapers.
+- **Right to Be Forgotten:** Complete local data purge and JSON export available with one click.
+- **Offline-First:** All core features (focus session state machine, categorization rules, timer, analytics) operate 100% locally in `chrome.storage.local` with optional authenticated cloud sync.
+
+---
+
+### 15.2 Chrome Extension Architecture (Manifest V3)
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       Chrome Extension (Manifest V3)                    │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │
+         ┌───────────────────────────┼───────────────────────────┐
+         ▼                           ▼                           ▼
+  [Toolbar Popup]            [Options & Rules]          [Analytics Dashboard]
+  - Live Ticking Timer       - Add / Toggle Rules       - Active Focus Minutes
+  - Status Indicators        - Focus Goal Settings      - Context Switch Counter
+  - Quick Start/Pause/Stop   - Right-to-be-Forgotten    - Distraction Time %
+  - Active Tab Category      - JSON Data Export         - Category SVG Bars
+         │                           │                           │
+         └───────────────────────────┼───────────────────────────┘
+                                     │
+                                     ▼
+                     [Background Service Worker (MV3)]
+                     - Authoritative Timestamp Math across Worker Suspensions
+                     - Active-Only Tab Tracking (chrome.tabs.onActivated / onUpdated)
+                     - Periodic Badge Updater (chrome.alarms)
+                     - Workstation Idle Auto-Pause (chrome.idle)
+                                     │
+                                     ▼
+                        [Two-Way Content Bridge]
+                     - Automatic LocalStorage Token Handshake
+                     - Live Web Dashboard Status & Telemetry
+                     - Authenticated Cloud Sync (/api/modules/d/sync-extension)
+```
+
+---
+
+### 15.3 Live Two-Way Synchronization Bridge
+
+When using the Chrome Extension alongside the UniVerse website:
+1. **Zero-Friction Authentication:** The content script (`content/content-bridge.js`) automatically reads the student's active JWT login token from the web app's `localStorage` and pairs it with the extension.
+2. **Real-Time Website Telemetry:** Your UniVerse web dashboard (`/digital-wellbeing`) displays:
+   - Live **"Chrome Browser Extension: Connected (MV3)"** badge.
+   - Real-time active focus timer if a study session is running in your browser:
+     `● Live Focus Session in Browser: 14m elapsed on github.com (Productive)`
+   - One-click **"Sync Extension Stats"** button to push completed sessions into MongoDB Atlas.
+3. **Source-Segregated Analytics:** Study duration is clearly attributed:
+   - `🌐 Extension` (recorded in browser via Chrome MV3 extension).
+   - `💻 Web App` (recorded on the website timer).
+   - `Synthetic` (reproducible Mulberry32 demo generator).
+
+---
+
+### 15.4 Quick Start: How to Install in Google Chrome
+
+1. Open Google Chrome and navigate to:
+   ```text
+   chrome://extensions
+   ```
+2. In the top-right corner, toggle **Developer mode** to **ON**.
+3. In the top-left corner, click **Load unpacked**.
+4. Select the `loop/extension` folder from this repository:
+   ```text
+   C:\Users\manth\Desktop\Hackathon\loop\extension
+   ```
+5. Pin the **UniVerse Wellbeing** extension to your toolbar.
+6. Open your UniVerse website at `http://localhost:5173/digital-wellbeing` — the **Extension Connected (MV3)** badge will activate automatically!
+
+---
+
+### 15.5 Module D REST API Reference
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/modules/d/health` | Health check, module metadata, and capability list. |
+| `GET` | `/api/modules/d/sessions/active` | Inspect current active or paused session for authenticated user. |
+| `POST` | `/api/modules/d/sessions/start` | Initiate a new focus session with title, category, and target minutes. |
+| `POST` | `/api/modules/d/sessions/:id/pause` | Pause an active focus session (pauses duration accumulation). |
+| `POST` | `/api/modules/d/sessions/:id/resume` | Resume a paused focus session. |
+| `POST` | `/api/modules/d/sessions/:id/stop` | Stop session, finalize active duration, and save reflection notes. |
+| `DELETE` | `/api/modules/d/sessions/:id` | Discard / abandon active session without saving. |
+| `GET` | `/api/modules/d/sessions` | List paginated focus sessions for authenticated user. |
+| `GET` | `/api/modules/d/rules` | List active categorization rules (custom user rules + system defaults). |
+| `POST` | `/api/modules/d/rules` | Create user-defined categorization rule (pattern, matchType, category, priority). |
+| `PATCH` | `/api/modules/d/rules/:id/toggle` | Enable or disable a custom categorization rule. |
+| `DELETE` | `/api/modules/d/rules/:id` | Delete a custom categorization rule. |
+| `POST` | `/api/modules/d/rules/preview` | Test domain against active rule hierarchy and preview classification. |
+| `POST` | `/api/modules/d/events/generate-synthetic` | User-initiated reproducible synthetic demo generator (Mulberry32 PRNG). |
+| `GET` | `/api/modules/d/events` | Inspect activity event records with category and duration. |
+| `DELETE` | `/api/modules/d/events/:id` | Delete single activity event record. |
+| `GET` | `/api/modules/d/analytics` | Aggregated focus metrics, context switch counts, category breakdown, and nudges. |
+| `GET` | `/api/modules/d/privacy/status` | Overview of stored records, tracking status, and privacy guarantees. |
+| `POST` | `/api/modules/d/privacy/clear-history` | Right-to-be-forgotten: permanently purge all focus sessions and events. |
+| `GET` | `/api/modules/d/privacy/export` | Export complete user wellbeing history as JSON. |
+| `POST` | `/api/modules/d/sync-extension` | Sync completed focus sessions and activity events from Chrome Extension. |
+| `GET` | `/api/modules/d/extension/summary` | Extension-specific focus metrics, session counts, and top domains. |
+
+---
+
+### 15.6 Automated Verification
+
+Run Module D extension and backend automated tests:
+
+```bash
+# 1. Chrome Extension Standalone Unit & State Tests (10 tests)
+cd loop/extension
+node --test tests/extensionRules.test.js tests/extensionSession.test.js
+
+# 2. Module D Backend Analytics, Rules & Sync Tests (24 tests)
+cd loop/backend
+node --test tests/wellbeingCalculationsAndRules.test.js tests/wellbeingSessionLifecycle.test.js tests/extensionSyncEndpoint.test.js
+```
