@@ -42,34 +42,6 @@ export default function Login() {
   const googleButtonRef = useRef(null);
   const [isGoogleAvailable, setIsGoogleAvailable] = useState(false);
 
-  // Character reaction state: 'IDLE' | 'EMAIL_ACTIVE' | 'PASSWORD_ACTIVE' | 'LOGIN_SUBMITTED'
-  const [characterState, setCharacterState] = useState('IDLE');
-
-  const handleEmailFocus = () => {
-    if (characterState !== 'LOGIN_SUBMITTED') {
-      setCharacterState('EMAIL_ACTIVE');
-    }
-  };
-
-  const handlePasswordFocus = () => {
-    if (characterState !== 'LOGIN_SUBMITTED') {
-      setCharacterState('PASSWORD_ACTIVE');
-    }
-  };
-
-  const handleInputBlur = (e) => {
-    const nextTarget = e.relatedTarget;
-    if (
-      nextTarget &&
-      (nextTarget.id === 'email-input' || nextTarget.id === 'password-input')
-    ) {
-      return;
-    }
-    if (!loading && characterState !== 'LOGIN_SUBMITTED') {
-      setCharacterState('IDLE');
-    }
-  };
-
   // Helper to validate and sanitize redirect destinations against open redirects (OWASP ASVS 5.1.5)
   const sanitizeRedirectUrl = (url) => {
     if (!url || typeof url !== 'string') return '/';
@@ -210,7 +182,6 @@ export default function Login() {
     const trimmedInput = email.trim();
     if (!trimmedInput) {
       setError('Please enter your SPIT email or username');
-      setCharacterState('IDLE');
       return;
     }
 
@@ -218,19 +189,16 @@ export default function Login() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(trimmedInput)) {
         setError('Please enter a valid email address');
-        setCharacterState('IDLE');
         return;
       }
     }
 
     if (!password) {
       setError('Please enter your password');
-      setCharacterState('IDLE');
       return;
     }
 
     setLoading(true);
-    setCharacterState('LOGIN_SUBMITTED');
 
     try {
       const userData = await loginUser(trimmedInput, password);
@@ -241,7 +209,6 @@ export default function Login() {
       } else {
         setError(err.message || 'Invalid username/email or password. Please try again.');
       }
-      setCharacterState('IDLE');
     } finally {
       setLoading(false);
     }
@@ -257,7 +224,6 @@ export default function Login() {
     setError('');
     setSuccessMsg('');
     setInfoNotice('');
-    setCharacterState('LOGIN_SUBMITTED');
 
     try {
       const result = await verifyGoogleAuth(idToken);
@@ -274,17 +240,14 @@ export default function Login() {
           confirmPassword: ''
         });
         setGoogleAuthStep('SIGNUP');
-        setCharacterState('IDLE');
       } else if (result.action === 'LINK_REQUIRED') {
         setGoogleIdToken(idToken);
         setLinkEmail(result.email);
         setLinkPassword('');
         setGoogleAuthStep('LINK');
-        setCharacterState('IDLE');
       }
     } catch (err) {
       setError(err.message || 'Google authentication failed.');
-      setCharacterState('IDLE');
     } finally {
       setLoading(false);
     }
@@ -384,7 +347,6 @@ export default function Login() {
     }
 
     setLoading(true);
-    setCharacterState('LOGIN_SUBMITTED');
 
     try {
       const autoUsername = googleSignupData.email
@@ -402,7 +364,6 @@ export default function Login() {
       handleLoginSuccess(result);
     } catch (err) {
       setError(err.message || 'Registration is temporarily unavailable. Please try again later.');
-      setCharacterState('IDLE');
     } finally {
       setLoading(false);
     }
@@ -418,7 +379,6 @@ export default function Login() {
     }
 
     setLoading(true);
-    setCharacterState('LOGIN_SUBMITTED');
 
     try {
       const result = await linkGoogleAccount({
@@ -429,7 +389,6 @@ export default function Login() {
       handleLoginSuccess(result);
     } catch (err) {
       setError(err.message || 'Failed to link Google account.');
-      setCharacterState('IDLE');
     } finally {
       setLoading(false);
     }
@@ -469,7 +428,7 @@ export default function Login() {
       />
 
       {/* ========================================================================= */}
-      {/* LEFT PANEL: PURE BLACK (#000000) WITH BRANDING, CHECKLIST & ILLUSTRATION */}
+      {/* LEFT PANEL: PURE BLACK (#000000) WITH BRANDING, CHECKLIST & AMBIENT GLOW  */}
       {/* ========================================================================= */}
       <aside className="github-left-panel">
         {/* Ambient Top Glow */}
@@ -521,13 +480,13 @@ export default function Login() {
           </ul>
         </div>
 
-        {/* Bottom Attractive Illustration Area */}
+        {/* Bottom Ambient Glow & Platform Highlights */}
         <div className="left-illustration-container">
           <div className="stars-layer" aria-hidden="true" />
           <div className="cosmic-glow-purple" aria-hidden="true" />
           <div className="cosmic-glow-blue" aria-hidden="true" />
 
-          {/* Floating Pill Badges */}
+          {/* Floating Metric Badges */}
           <div className="floating-badge badge-left">
             <span className="badge-dot dot-green" />
             <span>430+ Interview Stories</span>
@@ -536,39 +495,9 @@ export default function Login() {
             <ShieldCheck size={12} className="badge-shield" />
             <span>100% SPIT Verified</span>
           </div>
-
-          {/* 3D Student Character Avatar (Interactive) */}
-          <div className="character-avatar-wrapper" title={characterState === 'PASSWORD_ACTIVE' ? 'Privacy Mode Active' : 'SPIT Senior Guide'}>
-            <img 
-              src={characterState === 'PASSWORD_ACTIVE' ? '/character-password-bust-trans.png' : '/character-bust-trans.png'}
-              alt="LOOP Student Ambassador"
-              className="character-avatar-img"
-            />
-          </div>
-
-          {/* Status Reaction Tag */}
-          <div className="character-status-pill">
-            {characterState === 'PASSWORD_ACTIVE' ? (
-              <>
-                <ShieldCheck size={12} className="pill-icon green" />
-                <span>Privacy Mode • Looking Away 🙈</span>
-              </>
-            ) : characterState === 'EMAIL_ACTIVE' ? (
-              <>
-                <span className="pill-dot blue" />
-                <span>Watching Input</span>
-              </>
-            ) : characterState === 'LOGIN_SUBMITTED' ? (
-              <>
-                <Sparkles size={12} className="pill-icon purple" />
-                <span>Authenticating...</span>
-              </>
-            ) : (
-              <>
-                <span className="pill-dot gray" />
-                <span>Senior Guide • Online</span>
-              </>
-            )}
+          <div className="floating-badge badge-center">
+            <Sparkles size={12} style={{ color: '#c084fc' }} />
+            <span>Official Placement Archive</span>
           </div>
         </div>
       </aside>
@@ -900,8 +829,6 @@ export default function Login() {
                     placeholder="name@spit.ac.in or username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onFocus={handleEmailFocus}
-                    onBlur={handleInputBlur}
                     disabled={loading}
                     required
                   />
@@ -927,8 +854,6 @@ export default function Login() {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      onFocus={handlePasswordFocus}
-                      onBlur={handleInputBlur}
                       disabled={loading}
                       required
                     />
@@ -1169,37 +1094,37 @@ export default function Login() {
           margin: 0;
         }
 
-        /* Bottom Attractive Illustration */
+        /* Bottom Ambient Highlights Container */
         .left-illustration-container {
           position: relative;
-          height: 250px;
+          height: 140px;
           width: 100%;
           margin-top: auto;
           display: flex;
           justify-content: center;
-          align-items: flex-end;
-          background: linear-gradient(to top, #100b24 0%, #080514 60%, rgba(0, 0, 0, 0) 100%);
+          align-items: center;
+          background: linear-gradient(to top, #0f0a20 0%, #080514 60%, rgba(0, 0, 0, 0) 100%);
           overflow: hidden;
-          padding-bottom: 0.5rem;
+          padding: 0 1.5rem;
         }
 
         .cosmic-glow-purple {
           position: absolute;
-          bottom: -40px;
-          left: 15%;
-          width: 260px;
-          height: 200px;
-          background: radial-gradient(circle, rgba(147, 51, 234, 0.35) 0%, rgba(0, 0, 0, 0) 70%);
+          bottom: -30px;
+          left: 20%;
+          width: 240px;
+          height: 160px;
+          background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
           pointer-events: none;
         }
 
         .cosmic-glow-blue {
           position: absolute;
-          bottom: -50px;
-          right: 15%;
-          width: 240px;
-          height: 180px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
+          bottom: -40px;
+          right: 20%;
+          width: 220px;
+          height: 150px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, rgba(0, 0, 0, 0) 70%);
           pointer-events: none;
         }
 
@@ -1213,23 +1138,6 @@ export default function Login() {
             radial-gradient(1.5px 1.5px at 85% 60%, rgba(255, 255, 255, 0.75), transparent),
             radial-gradient(1px 1px at 90% 15%, rgba(255, 255, 255, 0.6), transparent);
           pointer-events: none;
-        }
-
-        .character-avatar-wrapper {
-          position: relative;
-          z-index: 2;
-          height: 210px;
-          display: flex;
-          align-items: flex-end;
-          filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.6));
-          transition: transform 0.3s ease;
-        }
-
-        .character-avatar-img {
-          height: 100%;
-          width: auto;
-          object-fit: contain;
-          display: block;
         }
 
         .floating-badge {
@@ -1252,15 +1160,22 @@ export default function Login() {
         }
 
         .badge-left {
-          left: 2rem;
-          bottom: 3.5rem;
+          left: 2.5rem;
+          bottom: 2rem;
           animation-delay: 0s;
         }
 
         .badge-right {
-          right: 2rem;
-          bottom: 4rem;
+          right: 2.5rem;
+          bottom: 2.25rem;
           animation-delay: 2.2s;
+        }
+
+        .badge-center {
+          left: 50%;
+          transform: translateX(-50%);
+          bottom: 5rem;
+          animation-delay: 1.1s;
         }
 
         .badge-dot {
@@ -1278,43 +1193,7 @@ export default function Login() {
 
         @keyframes floatSlow {
           0% { transform: translateY(0px); }
-          100% { transform: translateY(-8px); }
-        }
-
-        .character-status-pill {
-          position: absolute;
-          bottom: 0.75rem;
-          right: 1.5rem;
-          z-index: 4;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          padding: 0.25rem 0.65rem;
-          border-radius: 999px;
-          background: rgba(0, 0, 0, 0.65);
-          backdrop-filter: blur(8px);
-          font-size: 0.68rem;
-          color: #c9d1d9;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .pill-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-        }
-        .pill-dot.blue {
-          background: #58a6ff;
-          box-shadow: 0 0 6px #58a6ff;
-        }
-        .pill-dot.gray {
-          background: #8c949e;
-        }
-        .pill-icon.green {
-          color: #2da44e;
-        }
-        .pill-icon.purple {
-          color: #bc8cff;
+          100% { transform: translateY(-6px); }
         }
 
         /* ----------------------------------------------------------------------- */
@@ -1730,20 +1609,19 @@ export default function Login() {
           }
 
           .left-illustration-container {
-            height: 200px;
-          }
-
-          .character-avatar-wrapper {
-            height: 170px;
+            height: 120px;
           }
 
           .badge-left {
             left: 1rem;
-            bottom: 2.5rem;
+            bottom: 1.5rem;
           }
           .badge-right {
             right: 1rem;
-            bottom: 2.5rem;
+            bottom: 1.5rem;
+          }
+          .badge-center {
+            display: none;
           }
 
           .github-right-panel {
