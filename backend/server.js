@@ -6328,6 +6328,49 @@ app.get('/api/admin/users/:userId/activity/summary', authenticateToken, requireA
 
 let server = null;
 const HOST = process.env.HOST || '0.0.0.0';
+
+function setupGracefulShutdown(httpServer) {
+  let isShuttingDown = false;
+
+  const shutdown = async (signal) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log(`[SHUTDOWN] Received ${signal}. Closing server and connections gracefully...`);
+
+    if (httpServer && typeof httpServer.close === 'function') {
+      httpServer.close(async () => {
+        console.log('[SHUTDOWN] HTTP server closed.');
+        try {
+          await cacheService.shutdown();
+          console.log('[SHUTDOWN] Redis cache connection closed.');
+        } catch (err) {
+          console.error('[SHUTDOWN] Error closing Redis:', err.message);
+        }
+
+        try {
+          await mongoose.disconnect();
+          console.log('[SHUTDOWN] MongoDB connection closed.');
+        } catch (err) {
+          console.error('[SHUTDOWN] Error closing MongoDB:', err.message);
+        }
+
+        process.exit(0);
+      });
+
+      // Force termination if connections linger beyond 10s
+      setTimeout(() => {
+        console.error('[SHUTDOWN] Forcing shutdown after timeout.');
+        process.exit(1);
+      }, 10000).unref();
+    } else {
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
+
 if (require.main === module) {
   server = app.listen(PORT, HOST, () => {
     console.log(`Server is running on ${HOST}:${PORT}.`);
@@ -6338,9 +6381,12 @@ if (require.main === module) {
     StorageService.purgeStaleTempUploads(2).catch(() => {});
 
     // Periodic automatic purge every 60 minutes
-    setInterval(() => {
+    const purgeInterval = setInterval(() => {
       StorageService.purgeStaleTempUploads(2).catch(() => {});
     }, 60 * 60 * 1000);
+    purgeInterval.unref();
+
+    setupGracefulShutdown(server);
   });
 }
 
