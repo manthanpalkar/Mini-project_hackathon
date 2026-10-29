@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Check, ShieldCheck, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, ArrowRight } from 'lucide-react';
 import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 import { clearAllCaches } from '../hooks/useCachedData';
 import SEOHead from '../components/SEOHead';
@@ -394,30 +394,6 @@ export default function Login() {
     }
   };
 
-  // LOOP Core Features list (matching GitHub screenshot's left checklist)
-  const productFeatures = [
-    {
-      title: "Senior Placement Debriefs",
-      desc: "Read real interview rounds, technical coding questions, and CTC breakdowns from SPIT alumni."
-    },
-    {
-      title: "Curated Academic & Placement Repository",
-      desc: "Branch-wise semester notes, lab manuals, and syllabus roadmaps in one centralized archive."
-    },
-    {
-      title: "Private & Community Resource Folders",
-      desc: "Organize personal preparation materials securely with cloud storage and folder permissions."
-    },
-    {
-      title: "SPIT Hall of Fame & Achievements",
-      desc: "Stay inspired with campus hackathon victories, research breakthroughs, and placement honors."
-    },
-    {
-      title: "Student-Verified Institutional Platform",
-      desc: "Protected campus ecosystem built exclusively for Sardar Patel Institute of Technology students."
-    }
-  ];
-
   return (
     <div className="github-split-layout">
       <SEOHead 
@@ -428,7 +404,7 @@ export default function Login() {
       />
 
       {/* ========================================================================= */}
-      {/* LEFT PANEL: PURE BLACK (#000000) WITH BRANDING, CHECKLIST & AMBIENT GLOW  */}
+      {/* LEFT PANEL: PURE BLACK (#000000) WITH BRAND MARK & AMBIENT COSMIC GLOW    */}
       {/* ========================================================================= */}
       <aside className="github-left-panel">
         {/* Ambient Top Glow */}
@@ -447,54 +423,13 @@ export default function Login() {
             </Link>
             <span className="left-brand-badge">SPIT</span>
           </div>
-
-          {/* Large Bold White Heading */}
-          <h1 className="left-heading">
-            Empower your placement journey
-          </h1>
-
-          {/* Supporting Description */}
-          <p className="left-description">
-            Explore LOOP’s verified placement debriefs, interview preparation, and curated academic resources for SPIT students.
-          </p>
-
-          {/* Collapsible Section Label */}
-          <div className="left-section-label">
-            <span>See what's included</span>
-            <ChevronDown size={14} className="left-chevron-icon" />
-          </div>
-
-          {/* 5 Product Features Checklist */}
-          <ul className="left-features-list">
-            {productFeatures.map((feature, idx) => (
-              <li key={idx} className="left-feature-item">
-                <span className="left-check-icon-wrapper" aria-hidden="true">
-                  <Check size={13} strokeWidth={2.8} className="left-check-icon" />
-                </span>
-                <div className="left-feature-text">
-                  <h2 className="left-feature-title">{feature.title}</h2>
-                  <p className="left-feature-desc">{feature.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
         </div>
 
-        {/* Bottom Ambient Glow & Platform Highlights */}
+        {/* Ambient Atmosphere & Cosmic Glow */}
         <div className="left-illustration-container">
           <div className="stars-layer" aria-hidden="true" />
           <div className="cosmic-glow-purple" aria-hidden="true" />
           <div className="cosmic-glow-blue" aria-hidden="true" />
-
-          {/* Floating Metric Badges */}
-          <div className="floating-badge badge-left">
-            <span className="badge-dot dot-green" />
-            <span>430+ Interview Stories</span>
-          </div>
-          <div className="floating-badge badge-right">
-            <ShieldCheck size={12} className="badge-shield" />
-            <span>100% SPIT Verified</span>
-          </div>
         </div>
       </aside>
 
@@ -971,7 +906,7 @@ export default function Login() {
           display: flex;
           align-items: center;
           gap: 0.65rem;
-          margin-bottom: 2rem;
+          margin-bottom: 0;
         }
 
         .left-brand-logo-link {
@@ -1007,120 +942,37 @@ export default function Login() {
           line-height: 1.2;
         }
 
-        .left-heading {
-          font-size: 2.25rem;
-          font-weight: 700;
-          letter-spacing: -0.03em;
-          color: #ffffff;
-          line-height: 1.2;
-          margin: 0 0 0.85rem 0;
-        }
-
-        .left-description {
-          font-size: 0.95rem;
-          line-height: 1.55;
-          color: #8c949e;
-          max-width: 460px;
-          margin: 0 0 1.5rem 0;
-        }
-
-        .left-section-label {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #c9d1d9;
-          margin-bottom: 1.35rem;
-        }
-
-        .left-chevron-icon {
-          transform: rotate(180deg);
-          color: #8c949e;
-        }
-
-        .left-features-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 1.15rem;
-          max-width: 480px;
-        }
-
-        .left-feature-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.85rem;
-        }
-
-        .left-check-icon-wrapper {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          margin-top: 2px;
-          color: #ffffff;
-        }
-
-        .left-check-icon {
-          color: #ffffff;
-        }
-
-        .left-feature-text {
-          flex: 1;
-        }
-
-        .left-feature-title {
-          font-size: 0.88rem;
-          font-weight: 600;
-          color: #ffffff;
-          margin: 0 0 0.2rem 0;
-          line-height: 1.35;
-        }
-
-        .left-feature-desc {
-          font-size: 0.8rem;
-          color: #8c949e;
-          line-height: 1.45;
-          margin: 0;
-        }
-
-        /* Bottom Ambient Highlights Container */
+        /* Ambient Atmosphere Container */
         .left-illustration-container {
           position: relative;
-          height: 140px;
+          flex: 1;
           width: 100%;
-          margin-top: auto;
+          min-height: 200px;
           display: flex;
           justify-content: center;
           align-items: center;
           background: linear-gradient(to top, #0f0a20 0%, #080514 60%, rgba(0, 0, 0, 0) 100%);
           overflow: hidden;
-          padding: 0 1.5rem;
+          pointer-events: none;
         }
 
         .cosmic-glow-purple {
           position: absolute;
-          bottom: -30px;
+          bottom: 20%;
           left: 20%;
-          width: 240px;
-          height: 160px;
-          background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
+          width: 260px;
+          height: 180px;
+          background: radial-gradient(circle, rgba(147, 51, 234, 0.22) 0%, rgba(0, 0, 0, 0) 70%);
           pointer-events: none;
         }
 
         .cosmic-glow-blue {
           position: absolute;
-          bottom: -40px;
+          bottom: 15%;
           right: 20%;
-          width: 220px;
-          height: 150px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, rgba(0, 0, 0, 0) 70%);
+          width: 240px;
+          height: 160px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
           pointer-events: none;
         }
 
@@ -1134,55 +986,6 @@ export default function Login() {
             radial-gradient(1.5px 1.5px at 85% 60%, rgba(255, 255, 255, 0.75), transparent),
             radial-gradient(1px 1px at 90% 15%, rgba(255, 255, 255, 0.6), transparent);
           pointer-events: none;
-        }
-
-        .floating-badge {
-          position: absolute;
-          z-index: 3;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.45rem;
-          padding: 0.45rem 0.85rem;
-          border-radius: 999px;
-          background-color: rgba(18, 19, 26, 0.82);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-          font-size: 0.72rem;
-          font-weight: 600;
-          color: #ffffff;
-          animation: floatSlow 5s ease-in-out infinite alternate;
-        }
-
-        .badge-left {
-          left: 2.5rem;
-          bottom: 2rem;
-          animation-delay: 0s;
-        }
-
-        .badge-right {
-          right: 2.5rem;
-          bottom: 2.25rem;
-          animation-delay: 2.2s;
-        }
-
-        .badge-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-        }
-        .dot-green {
-          background-color: #2da44e;
-          box-shadow: 0 0 8px #2da44e;
-        }
-        .badge-shield {
-          color: #58a6ff;
-        }
-
-        @keyframes floatSlow {
-          0% { transform: translateY(0px); }
-          100% { transform: translateY(-6px); }
         }
 
         /* ----------------------------------------------------------------------- */
@@ -1586,28 +1389,15 @@ export default function Login() {
             flex: none;
             height: auto;
             min-height: auto;
-            padding-bottom: 2rem;
+            padding-bottom: 0;
           }
 
           .left-panel-content {
-            padding: 2.5rem 1.75rem 1rem 1.75rem;
-          }
-
-          .left-heading {
-            font-size: 1.85rem;
+            padding: 1.75rem 1.75rem 0.75rem 1.75rem;
           }
 
           .left-illustration-container {
-            height: 120px;
-          }
-
-          .badge-left {
-            left: 1rem;
-            bottom: 1.5rem;
-          }
-          .badge-right {
-            right: 1rem;
-            bottom: 1.5rem;
+            display: none;
           }
 
           .github-right-panel {
@@ -1615,7 +1405,7 @@ export default function Login() {
             flex: none;
             height: auto;
             min-height: auto;
-            padding: 2.5rem 1.75rem 3.5rem 1.75rem;
+            padding: 2rem 1.75rem 3.5rem 1.75rem;
           }
 
           .form-center-container {
