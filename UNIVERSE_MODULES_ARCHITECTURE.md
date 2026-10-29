@@ -45,10 +45,22 @@
   - `StudentSustainabilityOutcome`: Exactly-once auditable carbon offset and monetary savings ledger.
 
 ### Module C: Sustainable Computing Observatory
-- **Status:** Architectural Scaffold Complete
+- **Status:** Fully Implemented & Integrated
 - **Mount Point:** `/api/modules/c`
-- **Features:** Telemetry collection for SPIT computer lab workstations, server nodes, and cluster power draws. Provides carbon emission estimates and carbon-aware batch job scheduling.
+- **Frontend Route:** `/green-compute` (Navbar: "Green Compute")
+- **Features:**
+  - **Deterministic Simulation Engine:** Mulberry32 PRNG for 100% reproducible baseline vs. optimized experiments across arbitrary seeds and durations.
+  - **3 Specialized Campus Service Workloads:**
+    1. *Campus Core API (`campus_api`):* Request-response workload optimized with distributed in-memory query & profile caching.
+    2. *Student Analytics Worker (`analytics_worker`):* Event streaming telemetry optimized with adaptive event micro-batching.
+    3. *Media & Document Pipeline (`media_processor`):* Heavy compute OCR and image encoding optimized with vectorized single-pass processing.
+  - **Pure Physics & Grid Emissions Formulation:**
+    - Average Power: $P_{\text{avg}} = P_{\text{idle}} + u \cdot (P_{\text{max}} - P_{\text{idle}})$ (Watts)
+    - Energy: $E = \frac{P_{\text{avg}} \cdot t}{3{,}600{,}000}$ (kWh)
+    - Carbon: $C = E \cdot I_{\text{grid}}$ (kg CO₂e), using India Central Electricity Authority baseline factor ($0.708\text{ kg CO}_2\text{e/kWh}$).
+  - **Interactive Observatory UI:** Real-time KPI summaries, side-by-side SVG comparative charts, service ledger, scientific formula disclosure, and historical runs browser.
 - **Core Models:**
+  - `GreenComputeSimulationRun`: Full simulation telemetry with seed, duration, intensity, service-level comparisons, and aggregate savings persisted to MongoDB Atlas.
   - `ComputeTelemetry`: Node utilization (CPU/GPU), active wattage, estimated carbon grams/hr.
   - `GreenComputeJob`: Off-peak scheduling queue for high-compute student projects.
 

@@ -457,6 +457,21 @@ export default function Navbar() {
                 Rides
                 {isActive('/campus-rides') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
+
+              <Link
+                to="/green-compute"
+                onMouseEnter={() => {
+                  import('../pages/GreenCompute');
+                }}
+                style={{
+                  color: isActive('/green-compute') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  position: 'relative',
+                  transition: 'color 0.2s ease'
+                }}
+              >
+                Green Compute
+                {isActive('/green-compute') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+              </Link>
             </div>
           ) : (
             <div className="nav-col-left" style={{ display: 'flex', alignItems: 'center', zIndex: 2 }} />
@@ -681,6 +696,9 @@ export default function Navbar() {
               )}
               <Link to="/campus-rides" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
                 Campus Rides
+              </Link>
+              <Link to="/green-compute" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                Green Compute
               </Link>
             </>
           )}

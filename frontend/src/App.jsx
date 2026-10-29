@@ -49,6 +49,7 @@ const PrivacyPolicy = lazyWithRetry(() => import('./pages/PrivacyPolicy'));
 const TermsOfUse = lazyWithRetry(() => import('./pages/TermsOfUse'));
 const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
 const CampusRides = lazyWithRetry(() => import('./pages/CampusRides'));
+const GreenCompute = lazyWithRetry(() => import('./pages/GreenCompute'));
 
 // Lightweight Apple-style Route Loading Fallback
 function RouteLoadingFallback() {
@@ -264,6 +265,14 @@ function AppLayout() {
                 <CampusRides />
               </ProtectedRoute>
             } />
+
+            {/* UniVerse Module C: Sustainable Computing Observatory */}
+            <Route path="/green-compute" element={
+              <ProtectedRoute>
+                <GreenCompute />
+              </ProtectedRoute>
+            } />
+            <Route path="/universe/green-compute" element={<Navigate to="/green-compute" replace />} />
 
             {/* Authenticated Administrative & Management Routes */}
             <Route path="/admin" element={

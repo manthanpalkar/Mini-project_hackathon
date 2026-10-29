@@ -27,9 +27,10 @@ export const UNIVERSE_MODULES = [
     id: 'module-c',
     title: 'Sustainable Computing Observatory',
     code: 'Module C',
-    status: 'Ready for Implementation',
+    status: 'Active',
+    route: '/green-compute',
     apiEndpoint: '/api/modules/c',
-    description: 'Lab cluster energy monitoring, power telemetry logging, and carbon-aware batch job scheduling.'
+    description: 'Reproducible workload telemetry simulation, baseline vs. optimized carbon reduction modeling, and lab cluster energy observatory.'
   },
   {
     id: 'module-d',

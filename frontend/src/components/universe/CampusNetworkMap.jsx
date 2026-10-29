@@ -33,6 +33,16 @@ const NODES_DATA = [
   { id: 'jvpd_circle', name: 'JVPD Circle Juhu', lat: 19.1105, lng: 72.8302, type: 'corridor', color: '#5E5CE6', shortName: 'JVPD Circle', category: 'junction' }
 ];
 
+// Apple Maps prominent neighborhood landmarks (matching Mumbai/Andheri cartography)
+const LANDMARKS_DATA = [
+  { id: 'joeys_pizza', name: "Joey's Pizza", lat: 19.1238, lng: 72.8270, icon: '🍕', color: '#FF9500' },
+  { id: 'lokhandwala', name: 'Lokhandwala Market', lat: 19.1332, lng: 72.8245, icon: '🛍️', color: '#FFCC00' },
+  { id: 'andhericha_raja', name: 'Andhericha Raja', lat: 19.1265, lng: 72.8315, icon: '🛕', color: '#AF52DE' },
+  { id: 'infiniti_mall', name: 'Infiniti Mall', lat: 19.1336, lng: 72.8305, icon: '🏬', color: '#FF9500' },
+  { id: 'versova_beach', name: 'Versova Beach', lat: 19.1205, lng: 72.8155, icon: '🏖️', color: '#32ADE6' },
+  { id: 'iskcon', name: 'ISKCON Juhu', lat: 19.1115, lng: 72.8260, icon: '🛕', color: '#AF52DE' }
+];
+
 const EDGES_DATA = [
   { from: 'andheri_station_west', to: 'amboli_phatak', roadName: 'Caesar Rd / Station Approach' },
   { from: 'amboli_phatak', to: 'bhavans_lake', roadName: 'Bhavans Campus Rd' },
@@ -601,6 +611,115 @@ export default function CampusNetworkMap({
               />
             </g>
           )}
+
+          {/* --- LAYER 2B: NEIGHBORHOOD LANDMARKS & AREA LABELS (APPLE MAPS CARTOGRAPHY) --- */}
+          {/* Major District / Area Labels */}
+          <text
+            x={project(19.1285, 72.8285).x}
+            y={project(19.1285, 72.8285).y}
+            fill={isDark ? 'rgba(255, 255, 255, 0.22)' : 'rgba(15, 23, 42, 0.25)'}
+            fontSize="18"
+            fontWeight="900"
+            letterSpacing="0.12em"
+          >
+            ANDHERI WEST
+          </text>
+          <text
+            x={project(19.1170, 72.8480).x}
+            y={project(19.1170, 72.8480).y}
+            fill={isDark ? 'rgba(255, 255, 255, 0.22)' : 'rgba(15, 23, 42, 0.25)'}
+            fontSize="16"
+            fontWeight="900"
+            letterSpacing="0.12em"
+          >
+            ANDHERI EAST
+          </text>
+          <text
+            x={project(19.1335, 72.8375).x}
+            y={project(19.1335, 72.8375).y}
+            fill={isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(15, 23, 42, 0.2)'}
+            fontSize="14"
+            fontWeight="800"
+            letterSpacing="0.1em"
+          >
+            JOGESHWARI WEST
+          </text>
+
+          {/* Road Corridor Name Badges (Apple Maps Street Ribbons) */}
+          <g opacity={isDark ? 0.85 : 0.95}>
+            {/* Caesar Road */}
+            <text
+              x={project(19.1205, 72.8445).x}
+              y={project(19.1205, 72.8445).y - 8}
+              fill={isDark ? '#94A3B8' : '#475569'}
+              fontSize="8"
+              fontWeight="800"
+              letterSpacing="0.08em"
+              textAnchor="middle"
+            >
+              CAESAR ROAD
+            </text>
+            {/* Dadabhai Road */}
+            <text
+              x={project(19.1242, 72.8330).x}
+              y={project(19.1242, 72.8330).y - 7}
+              fill={isDark ? '#94A3B8' : '#475569'}
+              fontSize="8"
+              fontWeight="800"
+              letterSpacing="0.08em"
+              textAnchor="middle"
+            >
+              DADABHAI RD
+            </text>
+            {/* S.V. Road */}
+            <text
+              x={project(19.1172, 72.8430).x}
+              y={project(19.1172, 72.8430).y + 12}
+              fill={isDark ? '#94A3B8' : '#475569'}
+              fontSize="8"
+              fontWeight="800"
+              letterSpacing="0.08em"
+              textAnchor="middle"
+            >
+              S.V. ROAD
+            </text>
+            {/* J.P. Road / Metro Line 1 */}
+            <text
+              x={project(19.1265, 72.8275).x}
+              y={project(19.1265, 72.8275).y - 9}
+              fill={isDark ? '#38BDF8' : '#0284C7'}
+              fontSize="8"
+              fontWeight="800"
+              letterSpacing="0.08em"
+              textAnchor="middle"
+            >
+              J.P. ROAD (METRO 1)
+            </text>
+          </g>
+
+          {/* Prominent Landmarks POI (Apple Maps Icons & Pills) */}
+          {LANDMARKS_DATA.map(lm => {
+            const pos = project(lm.lat, lm.lng);
+            return (
+              <g key={lm.id} opacity={isDark ? 0.9 : 0.85}>
+                {/* Tiny Apple POI Dot */}
+                <circle cx={pos.x} cy={pos.y} r="3.5" fill={lm.color} />
+                {/* Landmark Label */}
+                <g transform={`translate(${pos.x + 6}, ${pos.y + 3})`}>
+                  <text
+                    x="0"
+                    y="0"
+                    fill={isDark ? '#E2E8F0' : '#1E293B'}
+                    fontSize="8.5"
+                    fontWeight="700"
+                    letterSpacing="0.01em"
+                  >
+                    {lm.icon} {lm.name}
+                  </text>
+                </g>
+              </g>
+            );
+          })}
 
           {/* --- LAYER 3: ALL ROAD CORRIDORS (GRAPH EDGES) --- */}
           {/* Base Road Casings - Ensures HIGH VISIBILITY even when inactive */}
