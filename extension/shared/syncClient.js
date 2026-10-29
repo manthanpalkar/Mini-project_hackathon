@@ -39,20 +39,28 @@ export async function testBackendConnection(token, apiUrl = 'http://localhost:50
   }
 }
 
-export async function syncCompletedSession(session, token, apiUrl = 'http://localhost:5001/api/modules/d') {
+export async function syncCompletedSession(session, events = [], token, apiUrl = 'http://localhost:5001/api/modules/d') {
   if (!token || !apiUrl) return { skipped: true, reason: 'No auth token or API URL configured.' };
 
   try {
     const payload = {
-      title: session.title,
-      targetDurationMinutes: session.targetDurationMinutes,
-      sessionCategory: session.sessionCategory,
-      durationMinutes: Math.max(1, Math.round((session.accumulatedActiveSeconds || 0) / 60)),
-      focusQualityScore: session.focusQualityScore,
-      reflectionNotes: session.reflectionNotes
+      session: {
+        title: session.title || 'Chrome Focus Session',
+        targetDurationMinutes: session.targetDurationMinutes || 25,
+        sessionCategory: session.sessionCategory || 'deep_work',
+        accumulatedActiveSeconds: session.accumulatedActiveSeconds || (session.durationMinutes ? session.durationMinutes * 60 : 1500),
+        durationMinutes: Math.max(1, Math.round((session.accumulatedActiveSeconds || 0) / 60)),
+        contextSwitchCount: session.contextSwitchCount || 0,
+        distractingDurationSeconds: session.distractingDurationSeconds || 0,
+        focusQualityScore: session.focusQualityScore || 8,
+        reflectionNotes: session.reflectionNotes || 'Recorded via UniVerse Chrome Extension',
+        startedAt: session.startedAt,
+        completedAt: session.completedAt || new Date().toISOString()
+      },
+      events: Array.isArray(events) ? events.slice(0, 100) : []
     };
 
-    const res = await fetch(`${apiUrl}/sessions/start`, {
+    const res = await fetch(`${apiUrl}/sync-extension`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +74,12 @@ export async function syncCompletedSession(session, token, apiUrl = 'http://loca
     }
 
     const created = await res.json();
-    return { success: true, cloudId: created.data?._id };
+    return {
+      success: true,
+      cloudId: created.data?.sessionId,
+      insertedEventsCount: created.data?.insertedEventsCount,
+      accumulatedActiveSeconds: created.data?.accumulatedActiveSeconds
+    };
   } catch (err) {
     console.warn('[SYNC_WARN] Failed to sync session to cloud:', err.message);
     return { success: false, error: err.message };

@@ -25,13 +25,18 @@ A client-side, zero-surveillance browser extension built for students to sustain
    - User-defined rule matching (`domain_suffix`, `exact_host`, `contains`).
    - Pre-loaded with essential developer and academic presets (GitHub, StackOverflow, arXiv, Wikipedia, Canvas, Moodle, YouTube, Reddit, Instagram, etc.).
 
-4. **Dedicated Analytics Dashboard**:
-   - Clean, full-page extension dashboard displaying active focus minutes, session streaks, context switch count, and distracting time percentage.
-   - Visual category time breakdown bars and inspectable recent activity records with rule explanations.
+4. **Seamless Web Dashboard Integration & Live Sync**:
+   - **Automatic Authentication Bridge**: When you visit the UniVerse website, the content script automatically pairs your session with your logged-in campus account.
+   - **Two-Way Synchronization**: Completed study sessions in the browser extension sync directly to `/api/modules/d/sync-extension`.
+   - **Live Website Display**: Your UniVerse web dashboard (`/digital-wellbeing`) displays:
+     - Real-time Chrome Extension connection indicator.
+     - Live elapsed time if a focus session is currently running in your browser.
+     - Total focus minutes and context switches segregated by source (`[Chrome Extension]` vs `[Web App]`).
+     - One-click **"Sync Extension Stats"** button to instantly refresh metrics on the website.
 
-5. **Optional UniVerse Cloud Sync**:
+5. **Local-First & Offline Resilience**:
    - Works **100% offline** out of the box using `chrome.storage.local`.
-   - Optionally sync completed study sessions to the UniVerse campus backend (`/api/modules/d/sessions`) when logged in with a JWT token.
+   - All core features (timer, categorization, analytics, and options) function without an internet connection or backend.
 
 ---
 
@@ -47,7 +52,8 @@ A client-side, zero-surveillance browser extension built for students to sustain
    ```text
    c:\Users\manth\Desktop\Hackathon\loop\extension
    ```
-5. Pin the **UniVerse Wellbeing** extension to your Chrome toolbar for easy access.
+5. Pin the **UniVerse Wellbeing** extension to your Chrome toolbar.
+6. Open your UniVerse website at `http://localhost:5173/digital-wellbeing` — you will see the **Chrome Browser Extension: Connected (MV3)** badge appear automatically!
 
 ---
 
@@ -55,14 +61,16 @@ A client-side, zero-surveillance browser extension built for students to sustain
 
 ```text
 loop/extension/
-├── manifest.json              # Chrome Extension Manifest V3 configuration
+├── manifest.json              # Chrome Extension Manifest V3 configuration (content_scripts, externally_connectable)
 ├── background/
-│   └── service-worker.js      # Background service worker (ES module, alarms, tabs, idle)
+│   └── service-worker.js      # Background service worker (ES module, alarms, tabs, idle, sync handlers)
+├── content/
+│   └── content-bridge.js      # Injected bridge script pairing the web app and extension
 ├── shared/
 │   ├── rulesEngine.js         # Pure domain normalization, matching & presets
 │   ├── storage.js             # chrome.storage.local abstraction with test fallback
 │   ├── sessionManager.js      # Timestamp-based elapsed math & transition tracking
-│   └── syncClient.js          # Optional authenticated UniVerse API sync client
+│   └── syncClient.js          # Authenticated UniVerse API sync client (/api/modules/d/sync-extension)
 ├── popup/
 │   ├── popup.html             # Compact popup view for quick session control
 │   ├── popup.css              # Cyberpunk/UniVerse dark glassmorphism styling
@@ -80,15 +88,6 @@ loop/extension/
     ├── extensionRules.test.js # Unit tests for rules engine & privacy sanitization
     └── extensionSession.test.js # Lifecycle tests for session state & timer math
 ```
-
----
-
-## 🔒 Permissions Rationale
-
-- `"storage"`: Used to persist categorization rules, focus goals, and local session analytics in `chrome.storage.local`.
-- `"tabs"`: Used strictly during active sessions to inspect `tab.url` hostnames. URL paths, queries, and form inputs are never accessed.
-- `"alarms"`: Used for periodic badge updates and session duration synchronization across service worker wake/sleep cycles.
-- `"idle"`: Detects system idle state to notify students or pause tracking when they leave their workstation.
 
 ---
 

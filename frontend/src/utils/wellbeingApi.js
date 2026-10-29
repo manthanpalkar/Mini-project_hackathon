@@ -6,7 +6,17 @@
 const BASE_URL = '/api/modules/d';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('token');
+  let token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  if (!token) {
+    try {
+      const userRaw = localStorage.getItem('loop_current_user');
+      if (userRaw) {
+        const parsed = JSON.parse(userRaw);
+        token = parsed.token;
+      }
+    } catch {}
+  }
+
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -83,15 +93,12 @@ export async function discardFocusSession(sessionId) {
   return handleResponse(res);
 }
 
-export async function fetchUserSessions(params = {}) {
-  const qs = new URLSearchParams();
-  if (params.limit) qs.append('limit', params.limit);
-  if (params.offset) qs.append('offset', params.offset);
-  const res = await fetch(`${BASE_URL}/sessions?${qs.toString()}`, { headers: getAuthHeaders() });
+export async function fetchUserSessions(limit = 20, offset = 0) {
+  const res = await fetch(`${BASE_URL}/sessions?limit=${limit}&offset=${offset}`, { headers: getAuthHeaders() });
   return handleResponse(res);
 }
 
-// 3. Rules
+// 3. User Categorization Rules
 export async function fetchCategorizationRules() {
   const res = await fetch(`${BASE_URL}/rules`, { headers: getAuthHeaders() });
   return handleResponse(res);
@@ -131,7 +138,7 @@ export async function previewDomainClassification(domain) {
   return handleResponse(res);
 }
 
-// 4. Synthetic Event Generator & Event Log
+// 4. Activity Events & Simulator
 export async function generateSyntheticActivity(payload) {
   const res = await fetch(`${BASE_URL}/events/generate-synthetic`, {
     method: 'POST',
@@ -143,10 +150,11 @@ export async function generateSyntheticActivity(payload) {
 
 export async function fetchActivityEvents(params = {}) {
   const qs = new URLSearchParams();
-  if (params.limit) qs.append('limit', params.limit);
-  if (params.offset) qs.append('offset', params.offset);
   if (params.category) qs.append('category', params.category);
   if (params.sessionId) qs.append('sessionId', params.sessionId);
+  if (params.limit) qs.append('limit', params.limit);
+  if (params.offset) qs.append('offset', params.offset);
+
   const res = await fetch(`${BASE_URL}/events?${qs.toString()}`, { headers: getAuthHeaders() });
   return handleResponse(res);
 }
@@ -182,10 +190,25 @@ export async function clearWellbeingHistory() {
 }
 
 export async function exportWellbeingJson() {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('loop_current_user') || '{}')?.token;
   const res = await fetch(`${BASE_URL}/privacy/export`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   if (!res.ok) throw new Error('Failed to download privacy export');
   return res.blob();
+}
+
+// 7. Chrome Extension Synchronization Bridge
+export async function syncExtensionSession(payload) {
+  const res = await fetch(`${BASE_URL}/sync-extension`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload)
+  });
+  return handleResponse(res);
+}
+
+export async function fetchExtensionSummary() {
+  const res = await fetch(`${BASE_URL}/extension/summary`, { headers: getAuthHeaders() });
+  return handleResponse(res);
 }

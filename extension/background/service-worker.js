@@ -7,6 +7,7 @@
  * 2. Track tab activations & navigations ONLY during active focus sessions.
  * 3. Enforce strict privacy rules: no incognito tracking, no internal URLs, hostnames only.
  * 4. Maintain extension badge icon state.
+ * 5. Bridge focus statistics and sessions to the UniVerse campus website.
  */
 
 import {
@@ -14,7 +15,10 @@ import {
   saveSession,
   getUserRules,
   getSettings,
-  appendEvent
+  saveSettings,
+  getEvents,
+  appendEvent,
+  getSessionHistory
 } from '../shared/storage.js';
 
 import {
@@ -34,96 +38,90 @@ import {
 
 import { syncCompletedSession } from '../shared/syncClient.js';
 
-// Internal tracking trackers for time attribution
+// Cache for tracking current domain transitions during an active session
 let lastActiveDomain = null;
 let lastActiveCategory = null;
 let lastSwitchTimestamp = Date.now();
 
 // -----------------------------------------------------------------------------
-// 1. EXTENSION INSTALLATION & ALARMS
+// 1. ALARMS & LIFECYCLE INITIALIZATION
 // -----------------------------------------------------------------------------
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[UniVerse Extension] Digital Wellbeing installed.');
-  // Create periodic check alarm (every 1 minute)
-  chrome.alarms.create('universe_session_reconcile', { periodInMinutes: 1 });
+  console.log('[UniVerse Extension] Installed & Initialized.');
+  chrome.alarms.create('universe_badge_tick', { periodInMinutes: 1 });
   updateBadgeState();
 });
 
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'universe_session_reconcile') {
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'universe_badge_tick') {
     updateBadgeState();
   }
 });
 
-// -----------------------------------------------------------------------------
-// 2. BADGE STATE SYNCHRONIZATION
-// -----------------------------------------------------------------------------
+// Periodic badge updater to display elapsed active focus minutes
 async function updateBadgeState() {
   try {
     const session = await getSession();
-    if (!session || session.status === 'completed') {
-      chrome.action.setBadgeText({ text: '' });
+    if (!session || session.status === 'idle' || session.status === 'completed') {
+      await chrome.action.setBadgeText({ text: '' });
       return;
     }
 
     if (session.status === 'paused') {
-      chrome.action.setBadgeText({ text: '⏸' });
-      chrome.action.setBadgeBackgroundColor({ color: '#F59E0B' });
+      await chrome.action.setBadgeText({ text: '⏸' });
+      await chrome.action.setBadgeBackgroundColor({ color: '#f59e0b' }); // Amber
       return;
     }
 
     if (session.status === 'active') {
       const activeSeconds = calculateActiveSeconds(session);
-      const mins = Math.floor(activeSeconds / 60);
-      chrome.action.setBadgeText({ text: `${mins}m` });
-      chrome.action.setBadgeBackgroundColor({ color: '#10B981' });
+      const activeMinutes = Math.floor(activeSeconds / 60);
+      const badgeText = activeMinutes > 0 ? `${activeMinutes}m` : '●';
+      await chrome.action.setBadgeText({ text: badgeText });
+      await chrome.action.setBadgeBackgroundColor({ color: '#10b981' }); // Emerald green
     }
   } catch (err) {
-    console.warn('[BADGE_UPDATE_WARN]', err);
+    // Service worker badge update fallback
   }
 }
 
 // -----------------------------------------------------------------------------
-// 3. TAB EVENT LISTENERS (ONLY ACTIVE DURING AN ACTIVE FOCUS SESSION)
+// 2. TAB TRACKING ENGINE (Active-Only Privacy Gate)
 // -----------------------------------------------------------------------------
-
-// User switched tabs
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  try {
-    const tab = await chrome.tabs.get(activeInfo.tabId);
-    await handleTabChange(tab);
-  } catch (err) {
-    // Tab might have been closed immediately
-  }
+  await handleTabChange(activeInfo.tabId);
 });
 
-// User navigated in existing tab
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab && tab.active) {
-    await handleTabChange(tab);
+  // Only inspect when URL has actually committed
+  if (changeInfo.url || changeInfo.status === 'complete') {
+    await handleTabChange(tabId, tab);
   }
 });
 
-/**
- * Core Privacy Tracking Handler
- * Enforces all privacy constraints before logging any event.
- */
-async function handleTabChange(tab) {
-  if (!tab || !tab.url) return;
-
-  // PRIVACY CONSTRAINT 1: Never track incognito browsing
-  if (tab.incognito) {
-    return;
-  }
-
-  // PRIVACY CONSTRAINT 2: Only track when an explicit focus session is ACTIVE
+async function handleTabChange(tabId, tabObj = null) {
+  // PRIVACY CONSTRAINT 1: Only monitor when an active session is in progress
   const session = await getSession();
   if (!session || session.status !== 'active') {
     return;
   }
 
-  // PRIVACY CONSTRAINT 3: Never track internal browser URLs (chrome://, about:, etc.)
-  if (isInternalBrowserUrl(tab.url)) {
+  let tab = tabObj;
+  if (!tab) {
+    try {
+      tab = await chrome.tabs.get(tabId);
+    } catch (e) {
+      return; // Tab closed or inaccessible
+    }
+  }
+
+  // PRIVACY CONSTRAINT 2: Strict exemption for Incognito windows
+  if (tab.incognito) {
+    return;
+  }
+
+  // PRIVACY CONSTRAINT 3: Strict exemption for internal browser pages
+  if (!tab.url || isInternalBrowserUrl(tab.url)) {
     return;
   }
 
@@ -177,7 +175,7 @@ async function handleTabChange(tab) {
 }
 
 // -----------------------------------------------------------------------------
-// 4. IDLE STATE HANDLING (Pause on user absence)
+// 3. IDLE STATE HANDLING (Pause on user absence)
 // -----------------------------------------------------------------------------
 if (chrome.idle) {
   chrome.idle.onStateChanged.addListener(async (newState) => {
@@ -193,7 +191,7 @@ if (chrome.idle) {
 }
 
 // -----------------------------------------------------------------------------
-// 5. MESSAGE DISPATCHER (UI <-> BACKGROUND)
+// 4. MESSAGE DISPATCHER (UI & WEB BRIDGE <-> BACKGROUND)
 // -----------------------------------------------------------------------------
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   handleMessage(request)
@@ -201,6 +199,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     .catch((err) => sendResponse({ success: false, error: err.message }));
   return true; // Keep message channel open for async response
 });
+
+if (chrome.runtime.onMessageExternal) {
+  chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
+    handleMessage(request)
+      .then(sendResponse)
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  });
+}
 
 async function handleMessage(request) {
   switch (request.type) {
@@ -266,14 +273,81 @@ async function handleMessage(request) {
       lastActiveDomain = null;
       updateBadgeState();
 
-      // If cloud synchronization is configured, optionally sync to backend
+      // Retrieve events associated with this session to sync together
+      const events = await getEvents();
+      const sessionEvents = events.filter(e => e.sessionId === completed?.id);
+
+      // If cloud synchronization is configured, sync to UniVerse backend
       const settings = await getSettings();
       if (settings.syncEnabled && settings.syncAuthToken && completed) {
-        syncCompletedSession(completed, settings.syncAuthToken, settings.syncApiUrl)
+        syncCompletedSession(completed, sessionEvents, settings.syncAuthToken, settings.syncApiUrl)
           .catch(err => console.warn('[SYNC_BG_WARN]', err));
       }
 
       return { success: true, completed };
+    }
+
+    case 'SAVE_AUTH_TOKEN': {
+      const settings = await getSettings();
+      if (request.payload?.token) {
+        settings.syncAuthToken = request.payload.token;
+        settings.syncEnabled = true;
+      }
+      if (request.payload?.apiUrl) {
+        settings.syncApiUrl = request.payload.apiUrl;
+      }
+      await saveSettings(settings);
+      return { success: true, userEmail: request.payload?.userEmail };
+    }
+
+    case 'TRIGGER_SYNC_TO_CLOUD': {
+      const settings = await getSettings();
+      const token = request.payload?.token || settings.syncAuthToken;
+      const apiUrl = request.payload?.apiUrl || settings.syncApiUrl;
+
+      if (!token) {
+        return { success: false, error: 'No UniVerse authentication token found. Please log in on the website.' };
+      }
+
+      const history = await getSessionHistory();
+      const events = await getEvents();
+      const latest = history[0];
+
+      if (!latest) {
+        return { success: false, error: 'No completed extension sessions found to sync.' };
+      }
+
+      const sessionEvents = events.filter(e => e.sessionId === latest.id);
+      const res = await syncCompletedSession(latest, sessionEvents, token, apiUrl);
+
+      if (res.success) {
+        settings.syncAuthToken = token;
+        settings.syncEnabled = true;
+        await saveSettings(settings);
+      }
+
+      return res;
+    }
+
+    case 'GET_ALL_STATS': {
+      const [session, history, events, settings] = await Promise.all([
+        getSession(),
+        getSessionHistory(),
+        getEvents(),
+        getSettings()
+      ]);
+      const activeSeconds = session ? calculateActiveSeconds(session) : 0;
+      return {
+        success: true,
+        session,
+        activeSeconds,
+        history,
+        eventsCount: events.length,
+        settings: {
+          syncEnabled: settings.syncEnabled,
+          hasAuthToken: Boolean(settings.syncAuthToken)
+        }
+      };
     }
 
     default:

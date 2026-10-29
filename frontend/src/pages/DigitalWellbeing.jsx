@@ -27,7 +27,9 @@ import {
   X,
   Target,
   Coffee,
-  Bookmark
+  Bookmark,
+  Globe,
+  Laptop
 } from 'lucide-react';
 import SEOHead from '../components/SEOHead';
 import {
@@ -50,7 +52,9 @@ import {
   fetchWellbeingAnalytics,
   fetchPrivacyStatus,
   clearWellbeingHistory,
-  exportWellbeingJson
+  exportWellbeingJson,
+  syncExtensionSession,
+  fetchExtensionSummary
 } from '../utils/wellbeingApi';
 
 export default function DigitalWellbeing() {
@@ -106,6 +110,13 @@ export default function DigitalWellbeing() {
   const [successMsg, setSuccessMsg] = useState('');
   const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
 
+  // Chrome Extension Integration State
+  const [extensionInstalled, setExtensionInstalled] = useState(false);
+  const [extensionStats, setExtensionStats] = useState(null);
+  const [extensionSummary, setExtensionSummary] = useState(null);
+  const [isSyncingExtension, setIsSyncingExtension] = useState(false);
+  const [extensionInstructionsOpen, setExtensionInstructionsOpen] = useState(false);
+
   // Local tick interval for smooth Cupertino timer display
   useEffect(() => {
     let timer = null;
@@ -117,6 +128,95 @@ export default function DigitalWellbeing() {
     return () => clearInterval(timer);
   }, [activeSession]);
 
+  // Chrome Extension Detection & Message Bridge
+  useEffect(() => {
+    // 1. Check DOM marker immediately
+    if (document.documentElement.dataset.universeExtensionInstalled === 'true') {
+      setExtensionInstalled(true);
+    }
+
+    const handleExtensionReady = () => {
+      setExtensionInstalled(true);
+      requestExtensionData();
+    };
+
+    window.addEventListener('UNIVERSE_EXTENSION_READY', handleExtensionReady);
+
+    // 2. Window message listener for content-bridge communication
+    const handleBridgeMessage = (event) => {
+      if (event.source !== window || !event.data || event.data.source !== 'UNIVERSE_EXTENSION') return;
+
+      const { type, data } = event.data;
+      if (type === 'EXTENSION_PONG') {
+        setExtensionInstalled(true);
+        requestExtensionData();
+      } else if (type === 'RECEIVE_STATS') {
+        setExtensionInstalled(true);
+        setExtensionStats(data);
+      } else if (type === 'SYNC_COMPLETED') {
+        setIsSyncingExtension(false);
+        if (data?.success) {
+          setSuccessMsg('Successfully synchronized Chrome Extension statistics to your UniVerse dashboard!');
+          loadAllData();
+        } else {
+          setErrorMsg(data?.error || 'Failed to sync extension data.');
+        }
+      }
+    };
+
+    window.addEventListener('message', handleBridgeMessage);
+
+    // Ping extension on mount
+    window.postMessage({ source: 'UNIVERSE_WEB', type: 'PING_EXTENSION' }, '*');
+    window.postMessage({ source: 'UNIVERSE_WEB', type: 'REQUEST_STATS' }, '*');
+
+    // Auto-authenticate extension with currently active UniVerse web token
+    let token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      try {
+        const userRaw = localStorage.getItem('loop_current_user');
+        if (userRaw) token = JSON.parse(userRaw).token;
+      } catch {}
+    }
+    if (token) {
+      window.postMessage({
+        source: 'UNIVERSE_WEB',
+        type: 'PASS_AUTH_TOKEN',
+        payload: { token, apiUrl: 'http://localhost:5001/api/modules/d' }
+      }, '*');
+    }
+
+    return () => {
+      window.removeEventListener('UNIVERSE_EXTENSION_READY', handleExtensionReady);
+      window.removeEventListener('message', handleBridgeMessage);
+    };
+  }, []);
+
+  function requestExtensionData() {
+    window.postMessage({ source: 'UNIVERSE_WEB', type: 'REQUEST_STATS' }, '*');
+  }
+
+  async function handleTriggerExtensionSync() {
+    setIsSyncingExtension(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    // Ask extension to sync to cloud
+    window.postMessage({ source: 'UNIVERSE_WEB', type: 'TRIGGER_SYNC_TO_CLOUD' }, '*');
+
+    // Also query backend summary
+    setTimeout(async () => {
+      try {
+        const summary = await fetchExtensionSummary();
+        if (summary.success) {
+          setExtensionSummary(summary.summary);
+        }
+      } catch {}
+      await loadAllData();
+      setIsSyncingExtension(false);
+    }, 1500);
+  }
+
   // Initial Load of Active Session & Dashboard Data
   useEffect(() => {
     loadAllData();
@@ -126,13 +226,14 @@ export default function DigitalWellbeing() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [activeRes, rulesRes, analyticsRes, sessionsRes, eventsRes, privacyRes] = await Promise.all([
+      const [activeRes, rulesRes, analyticsRes, sessionsRes, eventsRes, privacyRes, extSummaryRes] = await Promise.all([
         fetchActiveSession().catch(() => ({ hasActiveSession: false, data: null })),
         fetchCategorizationRules().catch(() => ({ data: { customRules: [], systemDefaults: [] } })),
         fetchWellbeingAnalytics(analyticsRange).catch(() => ({ data: null })),
         fetchUserSessions({ limit: 15 }).catch(() => ({ data: [] })),
         fetchActivityEvents({ limit: 30 }).catch(() => ({ data: [] })),
-        fetchPrivacyStatus().catch(() => null)
+        fetchPrivacyStatus().catch(() => null),
+        fetchExtensionSummary().catch(() => null)
       ]);
 
       if (activeRes.hasActiveSession && activeRes.data) {
@@ -148,6 +249,7 @@ export default function DigitalWellbeing() {
       setSessionsHistory(sessionsRes.data || []);
       setActivityEventsList(eventsRes.data || []);
       setPrivacyInfo(privacyRes);
+      if (extSummaryRes?.success) setExtensionSummary(extSummaryRes.summary);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to initialize digital wellbeing dashboard.');
     } finally {
@@ -465,6 +567,204 @@ export default function DigitalWellbeing() {
           </button>
         </div>
       </div>
+
+        {/* Chrome Extension Live Integration Panel */}
+        <div style={{
+          background: extensionInstalled
+            ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.06) 100%)'
+            : 'var(--bg-secondary)',
+          border: extensionInstalled
+            ? '1px solid rgba(139, 92, 246, 0.3)'
+            : '1px dashed var(--border-color)',
+          borderRadius: '16px',
+          padding: '1rem 1.25rem',
+          marginTop: '1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              width: 42,
+              height: 42,
+              borderRadius: '10px',
+              background: extensionInstalled ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0,0,0,0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Globe size={22} color={extensionInstalled ? '#8B5CF6' : 'var(--text-secondary)'} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.15rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                  Chrome Browser Extension
+                </span>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: extensionInstalled ? '#EDE9FE' : 'var(--bg-primary)',
+                  color: extensionInstalled ? '#7C3AED' : 'var(--text-secondary)',
+                  border: `1px solid ${extensionInstalled ? '#DDD6FE' : 'var(--border-color)'}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: extensionInstalled ? '#10B981' : '#9CA3AF'
+                  }} />
+                  {extensionInstalled ? 'Extension Connected (MV3)' : 'Not Connected'}
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {extensionInstalled ? (
+                  extensionStats?.session?.status === 'active' ? (
+                    <span style={{ color: '#10B981', fontWeight: 600 }}>
+                      ● Live Focus Session in Browser: {Math.floor((extensionStats?.activeSeconds || 0) / 60)}m elapsed
+                      {extensionStats?.currentTabInfo?.hostname && ` on ${extensionStats.currentTabInfo.hostname}`}
+                    </span>
+                  ) : (
+                    <span>
+                      Statistics: <strong>{analyticsData?.summary?.extensionActiveMinutes || extensionSummary?.totalActiveMinutes || 0} mins</strong> focus time across <strong>{analyticsData?.summary?.extensionSessionCount || extensionSummary?.sessionsCount || 0}</strong> browser session(s).
+                    </span>
+                  )
+                ) : (
+                  <span>
+                    Use the companion Chrome Extension to track study focus across browser tabs with zero surveillance.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {extensionInstalled ? (
+              <>
+                <button
+                  onClick={requestExtensionData}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                  title="Refresh live extension status"
+                >
+                  <RefreshCw size={13} /> Refresh
+                </button>
+                <button
+                  onClick={handleTriggerExtensionSync}
+                  disabled={isSyncingExtension}
+                  style={{
+                    padding: '7px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#8B5CF6',
+                    color: '#FFFFFF',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: isSyncingExtension ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    opacity: isSyncingExtension ? 0.7 : 1
+                  }}
+                >
+                  <RefreshCw size={14} className={isSyncingExtension ? 'animate-spin' : ''} />
+                  {isSyncingExtension ? 'Syncing to Dashboard...' : 'Sync Extension Stats'}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setExtensionInstructionsOpen(true)}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #8B5CF6',
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  color: '#7C3AED',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                How to Load Extension →
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Modal: How to load Chrome Extension */}
+        {extensionInstructionsOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              maxWidth: '520px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Load UniVerse Chrome Extension</h3>
+                <button
+                  onClick={() => setExtensionInstructionsOpen(false)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <ol style={{ paddingLeft: '1.25rem', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 1.25rem 0' }}>
+                <li>Open Google Chrome and navigate to <code>chrome://extensions</code></li>
+                <li>Enable <strong>Developer mode</strong> in the top-right corner.</li>
+                <li>Click <strong>Load unpacked</strong> in the top-left corner.</li>
+                <li>Select the <code>loop/extension</code> directory from this project.</li>
+                <li>Return here — the extension will instantly connect and display your browsing statistics!</li>
+              </ol>
+              <button
+                onClick={() => setExtensionInstructionsOpen(false)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#8B5CF6',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        )}
 
       {/* Alerts */}
       {errorMsg && (
@@ -839,7 +1139,13 @@ export default function DigitalWellbeing() {
                 {analyticsData?.summary?.activeFocusMinutes || 0} <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>mins</span>
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
-                Across {analyticsData?.summary?.completedSessions || 0} completed session(s)
+                {analyticsData?.summary?.hasExtensionData ? (
+                  <span>
+                    <strong>{analyticsData?.summary?.extensionActiveMinutes || 0}m</strong> via Extension · <strong>{analyticsData?.summary?.webActiveMinutes || 0}m</strong> via Web
+                  </span>
+                ) : (
+                  <span>Across {analyticsData?.summary?.completedSessions || 0} completed session(s)</span>
+                )}
               </div>
             </div>
 
@@ -1221,7 +1527,11 @@ export default function DigitalWellbeing() {
                           </td>
                           <td style={{ padding: '0.55rem 0.5rem' }}>{ev.durationSeconds}s</td>
                           <td style={{ padding: '0.55rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                            <span style={{ background: 'rgba(0,0,0,0.04)', padding: '2px 6px', borderRadius: '4px' }}>SIMULATED</span>
+                            {ev.source === 'chrome_extension' ? (
+                              <span style={{ background: '#EDE9FE', color: '#6D28D9', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>EXTENSION</span>
+                            ) : (
+                              <span style={{ background: 'rgba(0,0,0,0.04)', padding: '2px 6px', borderRadius: '4px' }}>SIMULATED</span>
+                            )}
                           </td>
                           <td style={{ padding: '0.55rem 0.5rem', textAlign: 'right' }}>
                             <button
@@ -1267,6 +1577,7 @@ export default function DigitalWellbeing() {
                     <th style={{ padding: '0.65rem 0.5rem' }}>Date</th>
                     <th style={{ padding: '0.65rem 0.5rem' }}>Title</th>
                     <th style={{ padding: '0.65rem 0.5rem' }}>Category</th>
+                    <th style={{ padding: '0.65rem 0.5rem' }}>Source</th>
                     <th style={{ padding: '0.65rem 0.5rem' }}>Status</th>
                     <th style={{ padding: '0.65rem 0.5rem' }}>Active Duration</th>
                     <th style={{ padding: '0.65rem 0.5rem' }}>Switches</th>
@@ -1282,6 +1593,21 @@ export default function DigitalWellbeing() {
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem', fontWeight: 700 }}>{s.title}</td>
                       <td style={{ padding: '0.65rem 0.5rem', textTransform: 'capitalize' }}>{s.sessionCategory}</td>
+                      <td style={{ padding: '0.65rem 0.5rem' }}>
+                        {s.source === 'chrome_extension' ? (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#EDE9FE', color: '#6D28D9', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            🌐 Extension
+                          </span>
+                        ) : s.source === 'synthetic_demo' || s.isSimulated ? (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#F3F4F6', color: '#6B7280' }}>
+                            Synthetic
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#047857' }}>
+                            💻 Web App
+                          </span>
+                        )}
+                      </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
                         <span style={{
                           fontSize: '0.72rem',

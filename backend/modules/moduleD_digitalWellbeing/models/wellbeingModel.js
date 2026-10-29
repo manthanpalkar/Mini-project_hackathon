@@ -37,6 +37,12 @@ const FocusSessionSchema = new mongoose.Schema({
   eventCount: { type: Number, default: 0, min: 0 },
   reflectionNotes: { type: String, default: '', trim: true, maxlength: 1000 },
   isSimulated: { type: Boolean, default: false },
+  source: {
+    type: String,
+    enum: ['web_app', 'chrome_extension', 'synthetic_demo'],
+    default: 'web_app',
+    index: true
+  },
   completedAt: { type: Date, default: null, index: true }
 }, {
   timestamps: true
@@ -69,7 +75,7 @@ const CategorizationRuleSchema = new mongoose.Schema({
 
 CategorizationRuleSchema.index({ userEmail: 1, isEnabled: 1, priority: -1 });
 
-// 3. Activity Event Schema (Purely user-initiated or synthetic demo telemetry)
+// 3. Activity Event Schema (Purely user-initiated, extension, or synthetic demo telemetry)
 const ActivityEventSchema = new mongoose.Schema({
   userEmail: { type: String, required: true, index: true, lowercase: true, trim: true },
   sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'FocusSession', index: true, default: null },
@@ -85,7 +91,7 @@ const ActivityEventSchema = new mongoose.Schema({
   ruleId: { type: mongoose.Schema.Types.ObjectId, ref: 'CategorizationRule', default: null },
   source: {
     type: String,
-    enum: ['synthetic_demo', 'manual_entry'],
+    enum: ['synthetic_demo', 'manual_entry', 'chrome_extension'],
     default: 'synthetic_demo',
     index: true
   },

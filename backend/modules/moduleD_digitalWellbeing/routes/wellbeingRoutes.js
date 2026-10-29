@@ -544,4 +544,135 @@ router.get('/privacy/export', requireAuth, async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// 6. CHROME EXTENSION SYNCHRONIZATION BRIDGE
+// ---------------------------------------------------------------------------
+
+// POST /api/modules/d/sync-extension - Sync completed session and activity events from Chrome Extension
+router.post('/sync-extension', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    const { session, events } = req.body;
+
+    if (!session) {
+      return res.status(400).json({ error: 'Session payload is required.' });
+    }
+
+    const anonymousHash = createAnonymousHash(userEmail);
+    const activeSec = Math.max(
+      10,
+      session.accumulatedActiveSeconds || (session.durationMinutes ? session.durationMinutes * 60 : 1500)
+    );
+    const durationMinutes = Math.max(1, Math.round(activeSec / 60));
+
+    const sessionDoc = {
+      userEmail,
+      anonymousHash,
+      title: session.title || 'Chrome Focus Session',
+      branchTrack: req.user.branch || 'CSE',
+      targetDurationMinutes: session.targetDurationMinutes || 25,
+      status: 'completed',
+      startTime: session.startedAt ? new Date(session.startedAt) : new Date(Date.now() - activeSec * 1000),
+      endTime: session.completedAt ? new Date(session.completedAt) : new Date(),
+      accumulatedActiveSeconds: activeSec,
+      sessionCategory: session.sessionCategory || 'deep_work',
+      focusQualityScore: Math.min(10, Math.max(1, session.focusQualityScore || 8)),
+      contextSwitchCount: Math.max(0, parseInt(session.contextSwitchCount, 10) || 0),
+      distractingDurationSeconds: Math.max(0, parseInt(session.distractingDurationSeconds, 10) || 0),
+      eventCount: Array.isArray(events) ? events.length : 0,
+      reflectionNotes: session.reflectionNotes || 'Recorded via UniVerse Chrome Extension',
+      isSimulated: false,
+      source: 'chrome_extension',
+      completedAt: session.completedAt ? new Date(session.completedAt) : new Date()
+    };
+
+    let savedSession = null;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      savedSession = await FocusSession.create(sessionDoc);
+    } else {
+      savedSession = { _id: new mongoose.Types.ObjectId(), ...sessionDoc };
+    }
+
+    // Insert associated activity events if any
+    let insertedEventsCount = 0;
+    if (Array.isArray(events) && events.length > 0 && mongoose.connection && mongoose.connection.readyState === 1) {
+      const eventDocs = events.map(ev => ({
+        userEmail,
+        sessionId: savedSession._id,
+        timestamp: ev.timestamp ? new Date(ev.timestamp) : new Date(),
+        domain: normalizeDomain(ev.domain || 'unknown'),
+        category: ev.category || 'uncategorized',
+        durationSeconds: Math.min(3600, Math.max(1, parseInt(ev.durationSeconds, 10) || 60)),
+        source: 'chrome_extension',
+        label: ev.label || 'Chrome Extension Activity',
+        isDistracting: Boolean(ev.isDistracting || ev.category === 'distracting')
+      }));
+
+      const inserted = await ActivityEvent.insertMany(eventDocs);
+      insertedEventsCount = inserted.length;
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Extension statistics successfully synchronized to UniVerse dashboard.',
+      data: {
+        sessionId: savedSession._id,
+        source: 'chrome_extension',
+        insertedEventsCount,
+        accumulatedActiveSeconds: savedSession.accumulatedActiveSeconds,
+        activeMinutes: durationMinutes
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to sync extension data', details: err.message });
+  }
+});
+
+// GET /api/modules/d/extension/summary - Extension-specific summary metrics for the user
+router.get('/extension/summary', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    let extensionSessions = [];
+    let extensionEvents = [];
+
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      [extensionSessions, extensionEvents] = await Promise.all([
+        FocusSession.find({ userEmail, source: 'chrome_extension' }).sort({ completedAt: -1 }),
+        ActivityEvent.find({ userEmail, source: 'chrome_extension' }).sort({ timestamp: -1 }).limit(100)
+      ]);
+    }
+
+    const totalSeconds = extensionSessions.reduce((acc, s) => acc + (s.accumulatedActiveSeconds || 0), 0);
+    const totalDistractingSec = extensionSessions.reduce((acc, s) => acc + (s.distractingDurationSeconds || 0), 0);
+    const totalSwitches = extensionSessions.reduce((acc, s) => acc + (s.contextSwitchCount || 0), 0);
+
+    // Group domains
+    const domainCounts = {};
+    extensionEvents.forEach(e => {
+      domainCounts[e.domain] = (domainCounts[e.domain] || 0) + (e.durationSeconds || 60);
+    });
+
+    const topDomains = Object.entries(domainCounts)
+      .map(([domain, durationSeconds]) => ({ domain, durationSeconds, durationMinutes: Math.round(durationSeconds / 60) }))
+      .sort((a, b) => b.durationSeconds - a.durationSeconds)
+      .slice(0, 5);
+
+    res.json({
+      success: true,
+      userEmail,
+      summary: {
+        sessionsCount: extensionSessions.length,
+        totalActiveSeconds: totalSeconds,
+        totalActiveMinutes: Math.round(totalSeconds / 60),
+        distractingMinutes: Math.round(totalDistractingSec / 60),
+        totalContextSwitches: totalSwitches,
+        topDomains
+      },
+      latestSession: extensionSessions[0] || null
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve extension summary', details: err.message });
+  }
+});
+
 module.exports = router;

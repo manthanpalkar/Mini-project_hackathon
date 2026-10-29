@@ -56,6 +56,11 @@ async function getUserAnalytics(userEmail, options = {}) {
         completedSessions: 0,
         activeFocusSeconds: 0,
         activeFocusMinutes: 0,
+        extensionActiveMinutes: 0,
+        webActiveMinutes: 0,
+        extensionSessionCount: 0,
+        webSessionCount: 0,
+        hasExtensionData: false,
         distractingSeconds: 0,
         distractingMinutes: 0,
         totalContextSwitches: 0,
@@ -78,7 +83,7 @@ async function getUserAnalytics(userEmail, options = {}) {
           message: 'Initiate a dedicated study session to boost concentration and track your academic deep work.'
         }
       ],
-      disclaimer: 'METRICS SUMMARY · Derived from user-recorded focus sessions and synthetic demo events. No covert background monitoring.'
+      disclaimer: 'METRICS SUMMARY · Derived from user-recorded focus sessions, extension sync, and synthetic demo events. No covert background monitoring.'
     };
   }
 
@@ -96,10 +101,14 @@ async function getUserAnalytics(userEmail, options = {}) {
   }
   const events = await ActivityEvent.find(eventQuery).sort({ timestamp: 1 });
 
-  // 3. Compute session totals
+  // 3. Compute session totals & source breakdown
   let totalActiveFocusSeconds = 0;
   let totalTargetSeconds = 0;
   let completedCount = 0;
+  let extensionActiveSeconds = 0;
+  let webActiveSeconds = 0;
+  let extensionSessionCount = 0;
+  let webSessionCount = 0;
 
   sessions.forEach(s => {
     const activeSec = calculateActiveSeconds(s, now);
@@ -107,6 +116,13 @@ async function getUserAnalytics(userEmail, options = {}) {
     totalTargetSeconds += (s.targetDurationMinutes || 25) * 60;
     if (s.status === 'completed') {
       completedCount++;
+    }
+    if (s.source === 'chrome_extension') {
+      extensionActiveSeconds += activeSec;
+      extensionSessionCount++;
+    } else {
+      webActiveSeconds += activeSec;
+      webSessionCount++;
     }
   });
 
@@ -151,7 +167,6 @@ async function getUserAnalytics(userEmail, options = {}) {
     : 0;
 
   // Compute nonjudgmental productivity index (0 - 100)
-  // Weighted: 70% study/productive time vs distracting, 30% low switch penalty
   let productivityScore = 85;
   if (totalEventDuration > 0) {
     const positiveSeconds = categoryMap.learning.durationSeconds + categoryMap.productive.durationSeconds;
@@ -186,6 +201,15 @@ async function getUserAnalytics(userEmail, options = {}) {
     });
   }
 
+  if (extensionSessionCount > 0) {
+    nudges.push({
+      id: 'extension_sync_active',
+      type: 'success',
+      title: 'Chrome Extension Synced',
+      message: `${extensionSessionCount} focus session(s) totaling ${Math.round(extensionActiveSeconds / 60)} minutes synchronized from your browser extension.`
+    });
+  }
+
   if (nudges.length === 0) {
     nudges.push({
       id: 'steady_pace',
@@ -201,6 +225,7 @@ async function getUserAnalytics(userEmail, options = {}) {
     title: s.title,
     status: s.status,
     category: s.sessionCategory,
+    source: s.source || (s.isSimulated ? 'synthetic_demo' : 'web_app'),
     targetDurationMinutes: s.targetDurationMinutes,
     activeMinutes: Math.round((s.accumulatedActiveSeconds || 0) / 60),
     activeSeconds: s.accumulatedActiveSeconds || 0,
@@ -222,6 +247,11 @@ async function getUserAnalytics(userEmail, options = {}) {
       completedSessions: completedCount,
       activeFocusSeconds: totalActiveFocusSeconds,
       activeFocusMinutes: Math.round(totalActiveFocusSeconds / 60),
+      extensionActiveMinutes: Math.round(extensionActiveSeconds / 60),
+      webActiveMinutes: Math.round(webActiveSeconds / 60),
+      extensionSessionCount,
+      webSessionCount,
+      hasExtensionData: extensionSessionCount > 0,
       distractingSeconds,
       distractingMinutes: Math.round(distractingSeconds / 60),
       totalContextSwitches,
@@ -231,7 +261,7 @@ async function getUserAnalytics(userEmail, options = {}) {
     categoryBreakdown,
     recentSessions,
     nudges,
-    disclaimer: 'METRICS SUMMARY · Derived from user-recorded focus sessions and synthetic demo events. No covert background monitoring.'
+    disclaimer: 'METRICS SUMMARY · Derived from user-recorded focus sessions, extension sync, and synthetic demo events. No covert background monitoring.'
   };
 }
 
