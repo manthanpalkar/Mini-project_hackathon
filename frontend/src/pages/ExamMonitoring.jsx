@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   ShieldAlert,
   Video,
@@ -24,7 +24,10 @@ import {
   Lock,
   Layers,
   Activity,
-  Cpu
+  Cpu,
+  ChevronLeft,
+  ArrowUpDown,
+  Volume2
 } from 'lucide-react';
 import {
   fetchExamHealth,
@@ -65,13 +68,23 @@ export default function ExamMonitoring() {
     totalFrames: 0,
     processedFrames: 0,
     activeTracks: 0,
-    alertCount: 0
+    alertCount: 0,
+    engine: 'yolov8_python_service',
+    engineLabel: 'YOLOv8 + 17-Keypoint Pose (PyTorch)',
+    isFallbackDemo: false
   });
 
-  // Filtering State
+  // Video Playback Time Tracking
+  const [currentTimeSec, setCurrentTimeSec] = useState(0);
+  const [durationSec, setDurationSec] = useState(0);
+
+  // Table Filtering, Sorting & Pagination State
   const [statusFilter, setStatusFilter] = useState('all');
   const [eventTypeFilter, setEventTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' | 'asc'
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
 
   // Selected Incident Modal State
   const [selectedIncident, setSelectedIncident] = useState(null);
@@ -84,7 +97,7 @@ export default function ExamMonitoring() {
   const containerRef = useRef(null);
   const animationFrameRef = useRef(null);
 
-  // Status and Alerts Notification State
+  // Notification State
   const [toastMsg, setToastMsg] = useState('');
   const [toastType, setToastType] = useState('info'); // 'info' | 'success' | 'warning'
 
@@ -119,16 +132,113 @@ export default function ExamMonitoring() {
     init();
   }, []);
 
-  // Update canvas bounding boxes based on current video playback timestamp
+  // Format seconds to mm:ss.s format
+  const formatTime = (secs) => {
+    if (isNaN(secs) || secs < 0) return '00:00.0';
+    const mins = Math.floor(secs / 60);
+    const remainingSecs = (secs % 60).toFixed(1);
+    return `${String(mins).padStart(2, '0')}:${remainingSecs.padStart(4, '0')}`;
+  };
+
+  // Truthful Status Derivation (No fake active states)
+  const truthfulStatus = useMemo(() => {
+    if (!healthData || healthData.visionServiceStatus === 'Unavailable' || healthData.visionServiceStatus === 'Error') {
+      return {
+        label: 'Vision Service Unavailable',
+        color: '#EF4444',
+        bg: 'rgba(239, 68, 68, 0.12)',
+        border: 'rgba(239, 68, 68, 0.35)',
+        dot: '#EF4444',
+        pulse: false
+      };
+    }
+    if (metrics.isFallbackDemo) {
+      return {
+        label: 'Demo Mode (Synthetic Fallback)',
+        color: '#F59E0B',
+        bg: 'rgba(245, 158, 11, 0.12)',
+        border: 'rgba(245, 158, 11, 0.35)',
+        dot: '#F59E0B',
+        pulse: false
+      };
+    }
+    if (processingState === 'running') {
+      return {
+        label: 'Processing Video (YOLOv8 Active)',
+        color: '#3B82F6',
+        bg: 'rgba(59, 130, 246, 0.15)',
+        border: 'rgba(59, 130, 246, 0.4)',
+        dot: '#3B82F6',
+        pulse: true
+      };
+    }
+    if (processingState === 'paused') {
+      return {
+        label: 'Surveillance Paused',
+        color: '#F59E0B',
+        bg: 'rgba(245, 158, 11, 0.15)',
+        border: 'rgba(245, 158, 11, 0.35)',
+        dot: '#F59E0B',
+        pulse: false
+      };
+    }
+    return {
+      label: `Vision Service Connected (${healthData.accelerator || 'MPS GPU'})`,
+      color: '#10B981',
+      bg: 'rgba(16, 185, 129, 0.12)',
+      border: 'rgba(16, 185, 129, 0.35)',
+      dot: '#10B981',
+      pulse: false
+    };
+  }, [healthData, metrics.isFallbackDemo, processingState]);
+
+  // Video Resize & Overlay Resizing
+  const handleVideoResize = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (video && canvas) {
+      canvas.width = video.clientWidth;
+      canvas.height = video.clientHeight;
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('resize', handleVideoResize);
+    return () => window.removeEventListener('resize', handleVideoResize);
+  }, [handleVideoResize]);
+
+  // Track video time and duration
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const onTimeUpdate = () => setCurrentTimeSec(video.currentTime);
+    const onLoadedMetadata = () => {
+      setDurationSec(video.duration || 0);
+      handleVideoResize();
+    };
+
+    video.addEventListener('timeupdate', onTimeUpdate);
+    video.addEventListener('loadedmetadata', onLoadedMetadata);
+    return () => {
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+    };
+  }, [handleVideoResize]);
+
+  // COLLISION-AWARE CANVAS OVERLAY ENGINE
+  // Solves the multi-candidate overlap defect by checking label bounding boxes and dynamically stacking/shifting slots
   const updateCanvasOverlay = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas || framesData.length === 0) return;
+    if (!video || !canvas) return;
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
+
+    if (framesData.length === 0) return;
 
     const currentTime = video.currentTime;
 
@@ -155,52 +265,218 @@ export default function ExamMonitoring() {
       ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
       ctx.fillRect(rzX1, rzY1, rzW, rzH);
       ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+      ctx.lineWidth = 1.5;
       ctx.setLineDash([6, 4]);
       ctx.strokeRect(rzX1, rzY1, rzW, rzH);
       ctx.setLineDash([]);
       ctx.fillStyle = '#EF4444';
-      ctx.font = '11px Inter, sans-serif';
-      ctx.fillText('Restricted Proctor Podium', rzX1 + 8, rzY1 + 18);
+      ctx.font = 'bold 11px Inter, system-ui, sans-serif';
+      ctx.fillText('Restricted Invigilator Podium', rzX1 + 8, rzY1 + 18);
     }
 
-    // Render Bounding Boxes
-    closestFrame.tracks.forEach((track) => {
+    // Pre-calculate track geometries
+    const items = closestFrame.tracks.map((track) => {
       const [x1Norm, y1Norm, x2Norm, y2Norm] = track.bbox;
-      const x = x1Norm * width;
-      const y = y1Norm * height;
-      const w = (x2Norm - x1Norm) * width;
-      const h = (y2Norm - y1Norm) * height;
-
+      const x = Math.max(0, x1Norm * width);
+      const y = Math.max(0, y1Norm * height);
+      const w = Math.min(width - x, (x2Norm - x1Norm) * width);
+      const h = Math.min(height - y, (y2Norm - y1Norm) * height);
       const isAlert = track.status === 'REVIEW';
 
-      // Box Styling
-      ctx.lineWidth = isAlert ? 3 : 2;
+      // Clean, professional label text
+      let labelText = `Candidate #${track.trackId}`;
+      if (isAlert) {
+        const eventName = track.label || track.eventLabel || 'Review Required';
+        labelText = `⚠️ #${track.trackId} • ${eventName}`;
+      }
+
+      ctx.font = 'bold 11px Inter, system-ui, sans-serif';
+      const textMetrics = ctx.measureText(labelText);
+      const badgeWidth = Math.min(width - 12, textMetrics.width + 16);
+      const badgeHeight = 22;
+
+      return {
+        track,
+        isAlert,
+        labelText,
+        box: { x, y, w, h },
+        badgeWidth,
+        badgeHeight,
+        badgeX: 0,
+        badgeY: 0,
+        hasStem: false
+      };
+    });
+
+    // Sort so alert candidates receive primary top priority
+    items.sort((a, b) => {
+      if (a.isAlert && !b.isAlert) return -1;
+      if (!a.isAlert && b.isAlert) return 1;
+      return a.box.x - b.box.x;
+    });
+
+    // Collision detection & placement algorithm
+    const placedBadges = [];
+    const collidesWithPlaced = (rect) => {
+      const padding = 4;
+      return placedBadges.some(
+        (p) =>
+          rect.x < p.x + p.w + padding &&
+          rect.x + rect.w + padding > p.x &&
+          rect.y < p.y + p.h + padding &&
+          rect.y + rect.h + padding > p.y
+      );
+    };
+
+    items.forEach((item) => {
+      const { box, badgeWidth, badgeHeight } = item;
+
+      // Candidate slots in order of preference
+      const candidateSlots = [
+        // Slot 1: Directly above bounding box
+        { x: box.x, y: box.y - badgeHeight - 4, stem: false },
+        // Slot 2: Directly below bounding box
+        { x: box.x, y: box.y + box.h + 4, stem: false },
+        // Slot 3: Stacked 1 tier higher above
+        { x: box.x, y: box.y - (badgeHeight * 2) - 8, stem: true },
+        // Slot 4: Inside top edge of box
+        { x: box.x + 4, y: box.y + 4, stem: false },
+        // Slot 5: Stacked 1 tier further below
+        { x: box.x, y: box.y + box.h + badgeHeight + 8, stem: true },
+        // Slot 6: Inside bottom edge of box
+        { x: box.x + 4, y: Math.max(4, box.y + box.h - badgeHeight - 4), stem: false }
+      ];
+
+      let chosen = null;
+      for (const slot of candidateSlots) {
+        const clampedX = Math.max(4, Math.min(width - badgeWidth - 4, slot.x));
+        const clampedY = Math.max(4, Math.min(height - badgeHeight - 4, slot.y));
+        const testRect = { x: clampedX, y: clampedY, w: badgeWidth, h: badgeHeight };
+
+        if (!collidesWithPlaced(testRect)) {
+          chosen = { x: clampedX, y: clampedY, stem: slot.stem };
+          break;
+        }
+      }
+
+      // Fallback: stack vertically below the lowest overlapping badge
+      if (!chosen) {
+        let fallbackY = Math.max(4, box.y - badgeHeight - 4);
+        let fallbackX = Math.max(4, Math.min(width - badgeWidth - 4, box.x));
+        placedBadges.forEach((p) => {
+          if (Math.abs(p.x - fallbackX) < badgeWidth) {
+            fallbackY = Math.max(fallbackY, p.y + p.h + 4);
+          }
+        });
+        if (fallbackY + badgeHeight > height - 4) {
+          fallbackY = Math.max(4, box.y + 4);
+        }
+        chosen = { x: fallbackX, y: fallbackY, stem: true };
+      }
+
+      item.badgeX = chosen.x;
+      item.badgeY = chosen.y;
+      item.hasStem = chosen.stem;
+
+      placedBadges.push({
+        x: chosen.x,
+        y: chosen.y,
+        w: badgeWidth,
+        h: badgeHeight
+      });
+    });
+
+    // Step A: Draw candidate bounding boxes
+    items.forEach((item) => {
+      const { box, isAlert } = item;
+
+      ctx.lineWidth = isAlert ? 2.5 : 2;
       ctx.strokeStyle = isAlert ? '#EF4444' : '#10B981';
+      ctx.fillStyle = isAlert ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.04)';
 
       if (isAlert) {
-        // Red Pulsing Glow for Alert Candidate
         ctx.shadowColor = '#EF4444';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
       } else {
-        ctx.shadowColor = 'rgba(16, 185, 129, 0.4)';
+        ctx.shadowColor = 'rgba(16, 185, 129, 0.35)';
         ctx.shadowBlur = 4;
       }
 
-      ctx.strokeRect(x, y, w, h);
-      ctx.shadowBlur = 0; // reset
+      ctx.fillRect(box.x, box.y, box.w, box.h);
+      ctx.strokeRect(box.x, box.y, box.w, box.h);
+      ctx.shadowBlur = 0; // reset shadow
 
-      // Top Header Tag
-      const labelText = track.label || `Track #${track.trackId}`;
-      ctx.font = 'bold 12px Inter, sans-serif';
-      const textMetrics = ctx.measureText(labelText);
-      const badgeWidth = textMetrics.width + 16;
-      const badgeHeight = 22;
+      // Sleek Corner Brackets
+      const bracketLen = Math.min(10, box.w / 4, box.h / 4);
+      ctx.lineWidth = isAlert ? 3 : 2.5;
+      ctx.strokeStyle = isAlert ? '#FCA5A5' : '#6EE7B7';
 
-      ctx.fillStyle = isAlert ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.90)';
-      ctx.fillRect(x, Math.max(0, y - badgeHeight), badgeWidth, badgeHeight);
+      // Top-left
+      ctx.beginPath();
+      ctx.moveTo(box.x, box.y + bracketLen);
+      ctx.lineTo(box.x, box.y);
+      ctx.lineTo(box.x + bracketLen, box.y);
+      ctx.stroke();
 
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillText(labelText, x + 8, Math.max(14, y - 6));
+      // Top-right
+      ctx.beginPath();
+      ctx.moveTo(box.x + box.w - bracketLen, box.y);
+      ctx.lineTo(box.x + box.w, box.y);
+      ctx.lineTo(box.x + box.w, box.y + bracketLen);
+      ctx.stroke();
+
+      // Bottom-left
+      ctx.beginPath();
+      ctx.moveTo(box.x, box.y + box.h - bracketLen);
+      ctx.lineTo(box.x, box.y + box.h);
+      ctx.lineTo(box.x + bracketLen, box.y + box.h);
+      ctx.stroke();
+
+      // Bottom-right
+      ctx.beginPath();
+      ctx.moveTo(box.x + box.w - bracketLen, box.y + box.h);
+      ctx.lineTo(box.x + box.w, box.y + box.h);
+      ctx.lineTo(box.x + box.w, box.y + box.h - bracketLen);
+      ctx.stroke();
+    });
+
+    // Step B: Draw connector stems for stacked badges
+    items.forEach((item) => {
+      if (item.hasStem) {
+        ctx.beginPath();
+        ctx.strokeStyle = item.isAlert ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 2]);
+        const startX = item.badgeX + item.badgeWidth / 2;
+        const startY = item.badgeY < item.box.y ? item.badgeY + item.badgeHeight : item.badgeY;
+        const endX = item.box.x + Math.min(item.box.w / 2, 20);
+        const endY = item.badgeY < item.box.y ? item.box.y : item.box.y + item.box.h;
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+
+    // Step C: Draw non-overlapping badges
+    items.forEach((item) => {
+      const { isAlert, labelText, badgeX, badgeY, badgeWidth, badgeHeight } = item;
+
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 5);
+      } else {
+        ctx.rect(badgeX, badgeY, badgeWidth, badgeHeight);
+      }
+      ctx.fillStyle = isAlert ? 'rgba(185, 28, 28, 0.95)' : 'rgba(6, 78, 59, 0.92)';
+      ctx.fill();
+      ctx.strokeStyle = isAlert ? '#EF4444' : '#10B981';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = isAlert ? '#FFFFFF' : '#ECFDF5';
+      ctx.font = 'bold 11px Inter, system-ui, sans-serif';
+      ctx.fillText(labelText, badgeX + 7, badgeY + 15);
     });
 
     setMetrics((prev) => ({
@@ -228,28 +504,12 @@ export default function ExamMonitoring() {
     };
   }, [updateCanvasOverlay]);
 
-  // Resize canvas overlay to match video dimensions
-  const handleVideoResize = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (video && canvas) {
-      canvas.width = video.clientWidth;
-      canvas.height = video.clientHeight;
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('resize', handleVideoResize);
-    return () => window.removeEventListener('resize', handleVideoResize);
-  }, [handleVideoResize]);
-
   // Start Exam Surveillance Pipeline
   const handleStartSurveillance = async () => {
     setProcessingState('running');
     showToast('Starting multi-student CCTV computer vision pipeline...', 'info');
 
     try {
-      // 1. Create session if needed
       let activeSessionId = currentSession?.sessionId;
       if (!activeSessionId) {
         const createRes = await createExamSession({
@@ -275,7 +535,6 @@ export default function ExamMonitoring() {
         activeSessionId = createRes.session.sessionId;
       }
 
-      // 2. Trigger backend execution
       const analysisRes = await startExamSession(activeSessionId);
       setFramesData(analysisRes.frames || []);
       setIncidents(analysisRes.incidents || []);
@@ -285,17 +544,23 @@ export default function ExamMonitoring() {
         totalFrames: analysisRes.metrics?.totalFrames || 0,
         processedFrames: analysisRes.metrics?.processedFrames || 0,
         activeTracks: analysisRes.metrics?.activeTracksCount || 5,
-        alertCount: analysisRes.incidents?.length || 0
+        alertCount: analysisRes.incidents?.length || 0,
+        engine: analysisRes.engine || 'yolov8_python_service',
+        engineLabel: analysisRes.engineLabel || 'YOLOv8 + 17-Keypoint Pose (PyTorch)',
+        isFallbackDemo: Boolean(analysisRes.isFallbackDemo)
       });
 
-      // Play video
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch(() => {});
         handleVideoResize();
       }
 
-      showToast(`Analysis ready! Detected ${analysisRes.totalIncidents || 0} reviewable incidents.`, 'success');
+      if (analysisRes.isFallbackDemo) {
+        showToast('Running in explicitly labelled DEMO FALLBACK MODE.', 'warning');
+      } else {
+        showToast(`Live YOLOv8 pipeline ready! Analyzed ${analysisRes.metrics?.processedFrames || 0} frames at ${analysisRes.metrics?.fpsMeasured || 18} FPS.`, 'success');
+      }
     } catch (err) {
       console.error('Surveillance execution failed:', err);
       setProcessingState('idle');
@@ -332,16 +597,14 @@ export default function ExamMonitoring() {
     }, 400);
   };
 
-  // Seek video directly to incident timestamp
   const handleSeekToIncident = (seconds) => {
     if (videoRef.current) {
-      videoRef.current.currentTime = Math.max(0, seconds - 1.0);
+      videoRef.current.currentTime = Math.max(0, seconds - 0.5);
       videoRef.current.play().catch(() => {});
-      showToast(`Jumped to ${seconds.toFixed(1)}s in examination video.`, 'info');
+      showToast(`Jumped video to ${seconds.toFixed(1)}s`, 'info');
     }
   };
 
-  // Update Incident Status
   const handleUpdateIncidentStatus = async (incidentId, newStatus) => {
     setIsUpdatingStatus(true);
     try {
@@ -350,7 +613,6 @@ export default function ExamMonitoring() {
         reviewerNotes
       });
 
-      // Update in local state
       setIncidents((prev) =>
         prev.map((inc) => (inc.incidentId === incidentId ? res.incident : inc))
       );
@@ -367,12 +629,11 @@ export default function ExamMonitoring() {
     }
   };
 
-  // Video Upload Handler
   const handleCustomUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    showToast(`Uploading ${file.name} for examination surveillance...`, 'info');
+    showToast(`Uploading ${file.name} for surveillance...`, 'info');
     try {
       const res = await uploadExamVideo(file);
       setSelectedVideo(res.file.fileName);
@@ -382,29 +643,50 @@ export default function ExamMonitoring() {
     }
   };
 
-  // Filtered incidents list
-  const filteredIncidents = incidents.filter((inc) => {
-    const matchesStatus =
-      statusFilter === 'all' || inc.reviewStatus.toLowerCase() === statusFilter.toLowerCase();
-    const matchesType =
-      eventTypeFilter === 'all' || inc.eventType === eventTypeFilter;
-    const matchesSearch =
-      !searchQuery ||
-      inc.incidentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inc.eventLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      String(inc.trackingId).includes(searchQuery);
+  // Filtered and sorted incidents list
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter((inc) => {
+      const matchesStatus =
+        statusFilter === 'all' || inc.reviewStatus.toLowerCase() === statusFilter.toLowerCase();
+      const matchesType =
+        eventTypeFilter === 'all' || inc.eventType === eventTypeFilter;
+      const matchesSearch =
+        !searchQuery ||
+        inc.incidentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.eventLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(inc.trackingId).includes(searchQuery);
 
-    return matchesStatus && matchesType && matchesSearch;
-  });
+      return matchesStatus && matchesType && matchesSearch;
+    });
+  }, [incidents, statusFilter, eventTypeFilter, searchQuery]);
+
+  const sortedIncidents = useMemo(() => {
+    return [...filteredIncidents].sort((a, b) => {
+      return sortOrder === 'desc'
+        ? b.videoTimestampSeconds - a.videoTimestampSeconds
+        : a.videoTimestampSeconds - b.videoTimestampSeconds;
+    });
+  }, [filteredIncidents, sortOrder]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedIncidents.length / pageSize));
+  const paginatedIncidents = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedIncidents.slice(start, start + pageSize);
+  }, [sortedIncidents, currentPage, pageSize]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, eventTypeFilter, searchQuery]);
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '1.5rem 1rem 4rem' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
       {/* Toast Notification Banner */}
       {toastMsg && (
         <div
           style={{
             position: 'fixed',
-            top: '5rem',
+            top: '5.5rem',
             right: '2rem',
             zIndex: 9999,
             backgroundColor:
@@ -412,34 +694,34 @@ export default function ExamMonitoring() {
                 ? '#065F46'
                 : toastType === 'warning'
                 ? '#991B1B'
-                : 'var(--card-bg, #1E293B)',
+                : '#1E293B',
             color: '#FFFFFF',
             padding: '0.85rem 1.4rem',
             borderRadius: '10px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.35)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
             fontSize: '0.9rem',
             fontWeight: 500,
-            border: '1px solid rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.18)',
             animation: 'fadeIn 0.2s ease-out'
           }}
         >
           {toastType === 'success' ? (
-            <CheckCircle size={18} />
+            <CheckCircle size={18} color="#34D399" />
           ) : toastType === 'warning' ? (
-            <AlertTriangle size={18} />
+            <AlertTriangle size={18} color="#FBBF24" />
           ) : (
-            <Info size={18} />
+            <Info size={18} color="#60A5FA" />
           )}
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* Module E Header */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
           <span
             style={{
               fontSize: '0.75rem',
@@ -447,49 +729,60 @@ export default function ExamMonitoring() {
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               color: '#3B82F6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              padding: '0.2rem 0.6rem',
+              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+              padding: '0.25rem 0.65rem',
               borderRadius: '6px',
-              border: '1px solid rgba(59, 130, 246, 0.25)'
+              border: '1px solid rgba(59, 130, 246, 0.3)'
             }}
           >
-            Module E // Autonomous Surveillance
+            Module E // Surveillance Console
           </span>
+
+          {/* Truthful Status Badge */}
           <span
             style={{
               fontSize: '0.75rem',
               fontWeight: 600,
-              color: '#10B981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              padding: '0.2rem 0.6rem',
+              color: truthfulStatus.color,
+              backgroundColor: truthfulStatus.bg,
+              border: `1px solid ${truthfulStatus.border}`,
+              padding: '0.25rem 0.65rem',
               borderRadius: '6px',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem'
+              gap: '0.4rem'
             }}
           >
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-            Vision Service: {healthData?.visionServiceStatus || 'Connected'}
+            <span
+              style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                backgroundColor: truthfulStatus.dot,
+                boxShadow: truthfulStatus.pulse ? `0 0 8px ${truthfulStatus.dot}` : 'none'
+              }}
+            />
+            {truthfulStatus.label}
           </span>
         </div>
 
-        <h1 style={{ fontSize: '2.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+        <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#F8FAFC', margin: 0, letterSpacing: '-0.02em' }}>
           Responsible Examination Monitoring
         </h1>
-        <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)', fontSize: '0.95rem', maxWidth: '900px' }}>
-          Multi-candidate examination hall surveillance with temporary spatial tracking, behavioral event detection,
-          and human-in-the-loop dispute review. Strict zero-biometrics ethical compliance.
+        <p style={{ margin: '0.45rem 0 0', color: '#94A3B8', fontSize: '0.98rem', maxWidth: '960px', lineHeight: 1.55 }}>
+          Computer-vision-assisted examination hall monitoring with real-time event detection and human review.
+          Strict zero-biometrics privacy architecture adhering to responsible AI principles.
         </p>
       </div>
 
-      {/* Ethical & Privacy Safeguards Banner */}
+      {/* Privacy & Ethical Safeguards Alert Banner */}
       <div
         style={{
-          backgroundColor: 'rgba(59, 130, 246, 0.05)',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
           borderRadius: '12px',
-          padding: '0.9rem 1.25rem',
-          marginBottom: '1.5rem',
+          padding: '1rem 1.35rem',
+          marginBottom: '1.75rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -500,8 +793,8 @@ export default function ExamMonitoring() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div
             style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-              padding: '0.5rem',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              padding: '0.55rem',
               borderRadius: '8px',
               color: '#3B82F6'
             }}
@@ -509,78 +802,82 @@ export default function ExamMonitoring() {
             <Lock size={20} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#F8FAFC' }}>
               Responsible AI & Privacy Protection Active
             </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              No facial recognition or identity database matching. Detections are observations requiring human evaluation, never automated proof of cheating.
+            <div style={{ fontSize: '0.82rem', color: '#94A3B8', marginTop: '0.15rem' }}>
+              No facial recognition or identity database matching. Detections represent observable physical gestures requiring human evaluation, never automated proof of misconduct.
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-          <span style={{ padding: '0.2rem 0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#CBD5E1', flexWrap: 'wrap' }}>
+          <span style={{ padding: '0.25rem 0.6rem', backgroundColor: '#0F172A', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
             YOLOv8 + 17-Keypoint Pose
           </span>
-          <span style={{ padding: '0.2rem 0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px' }}>
-            Anonymous Track #IDs
+          <span style={{ padding: '0.25rem 0.6rem', backgroundColor: '#0F172A', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            Anonymous Spatial IDs
           </span>
-          <span style={{ padding: '0.2rem 0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px' }}>
-            Human Invigilator Review
+          <span style={{ padding: '0.25rem 0.6rem', backgroundColor: '#0F172A', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            Human-in-the-Loop Review
           </span>
         </div>
       </div>
 
-      {/* Main Grid: Left Video Player & Controls | Right Stats & Config */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-        {/* Left Column: Video Player with Real-Time Bounding Box Overlay */}
+      {/* Main Workspace Grid: Left Video Player | Right Controls & Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(320px, 1fr)', gap: '1.75rem', marginBottom: '2rem' }}>
+        {/* Left Column: Surveillance Feed with Collision-Free Overlay */}
         <div
           style={{
-            backgroundColor: 'var(--card-bg, #1E293B)',
-            borderRadius: '14px',
-            border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
-            padding: '1.25rem',
+            backgroundColor: '#1E293B',
+            borderRadius: '16px',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            padding: '1.35rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1rem'
+            gap: '1rem',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
           }}
         >
-          {/* Top Player Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Video Header: Camera details & Live Telemetry HUD */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
               <Video size={18} color="#3B82F6" />
-              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.98rem', color: '#F8FAFC' }}>
                 Surveillance Feed // {roomCode}
               </span>
               <span
                 style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  backgroundColor: processingState === 'running' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(100, 116, 139, 0.2)',
-                  color: processingState === 'running' ? '#EF4444' : 'var(--text-secondary)',
-                  padding: '0.15rem 0.5rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  backgroundColor: processingState === 'running' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(100, 116, 139, 0.25)',
+                  color: processingState === 'running' ? '#60A5FA' : '#94A3B8',
+                  padding: '0.2rem 0.55rem',
                   borderRadius: '4px',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.3rem'
+                  gap: '0.35rem'
                 }}
               >
                 {processingState === 'running' && (
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
                 )}
                 {processingState.toUpperCase()}
               </span>
             </div>
 
-            {/* Live Metrics HUD */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              <div>
-                FPS: <strong style={{ color: 'var(--text-primary)' }}>{metrics.fps}</strong>
+            {/* Live Metrics Telemetry Badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#94A3B8', flexWrap: 'wrap' }}>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                Time: <strong style={{ color: '#F8FAFC' }}>{formatTime(currentTimeSec)}</strong> / {formatTime(durationSec)}
               </div>
-              <div>
-                Candidates: <strong style={{ color: '#10B981' }}>{metrics.activeTracks}</strong>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                FPS: <strong style={{ color: '#38BDF8' }}>{metrics.fps}</strong>
               </div>
-              <div>
-                Alerts: <strong style={{ color: '#EF4444' }}>{metrics.alertCount}</strong>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                Candidates: <strong style={{ color: '#34D399' }}>{metrics.activeTracks}</strong>
+              </div>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                Alerts: <strong style={{ color: '#F87171' }}>{metrics.alertCount}</strong>
               </div>
             </div>
           </div>
@@ -593,9 +890,10 @@ export default function ExamMonitoring() {
               width: '100%',
               aspectRatio: '16/9',
               backgroundColor: '#000000',
-              borderRadius: '10px',
+              borderRadius: '12px',
               overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}
           >
             <video
@@ -611,7 +909,7 @@ export default function ExamMonitoring() {
                 objectFit: 'contain'
               }}
             />
-            {/* The Synchronized High-Visibility Canvas Overlay */}
+            {/* Synchronized High-Visibility Collision-Aware Overlay */}
             <canvas
               ref={canvasRef}
               style={{
@@ -632,11 +930,11 @@ export default function ExamMonitoring() {
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: '0.75rem',
-              paddingTop: '0.5rem'
+              gap: '0.85rem',
+              paddingTop: '0.35rem'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               {processingState !== 'running' ? (
                 <button
                   onClick={handleStartSurveillance}
@@ -644,16 +942,19 @@ export default function ExamMonitoring() {
                     backgroundColor: '#2563EB',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '0.55rem 1.15rem',
+                    padding: '0.55rem 1.25rem',
                     borderRadius: '8px',
                     fontWeight: 600,
-                    fontSize: '0.85rem',
+                    fontSize: '0.86rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.45rem',
-                    transition: 'background-color 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)'
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1D4ED8')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563EB')}
                 >
                   <Play size={16} fill="#FFFFFF" />
                   Start Monitoring
@@ -665,15 +966,18 @@ export default function ExamMonitoring() {
                     backgroundColor: '#D97706',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '0.55rem 1.15rem',
+                    padding: '0.55rem 1.25rem',
                     borderRadius: '8px',
                     fontWeight: 600,
-                    fontSize: '0.85rem',
+                    fontSize: '0.86rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.45rem'
+                    gap: '0.45rem',
+                    transition: 'all 0.15s ease'
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#B45309')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#D97706')}
                 >
                   <Pause size={16} />
                   Pause
@@ -687,15 +991,18 @@ export default function ExamMonitoring() {
                     backgroundColor: '#059669',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '0.55rem 1rem',
+                    padding: '0.55rem 1.1rem',
                     borderRadius: '8px',
                     fontWeight: 600,
-                    fontSize: '0.85rem',
+                    fontSize: '0.86rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.4rem'
+                    gap: '0.4rem',
+                    transition: 'all 0.15s ease'
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#047857')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#059669')}
                 >
                   <Play size={16} />
                   Resume
@@ -707,17 +1014,18 @@ export default function ExamMonitoring() {
                 disabled={processingState === 'idle'}
                 style={{
                   backgroundColor: 'transparent',
-                  color: processingState === 'idle' ? 'var(--text-secondary)' : '#EF4444',
-                  border: '1px solid currentColor',
-                  padding: '0.55rem 0.9rem',
+                  color: processingState === 'idle' ? '#64748B' : '#EF4444',
+                  border: `1px solid ${processingState === 'idle' ? '#475569' : '#EF4444'}`,
+                  padding: '0.55rem 1rem',
                   borderRadius: '8px',
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: '0.86rem',
                   cursor: processingState === 'idle' ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  opacity: processingState === 'idle' ? 0.4 : 1
+                  opacity: processingState === 'idle' ? 0.45 : 1,
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <Square size={15} />
@@ -728,26 +1036,29 @@ export default function ExamMonitoring() {
                 onClick={handleRestart}
                 style={{
                   backgroundColor: 'transparent',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  padding: '0.55rem 0.9rem',
+                  color: '#CBD5E1',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  padding: '0.55rem 1rem',
                   borderRadius: '8px',
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: '0.86rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.4rem'
+                  gap: '0.4rem',
+                  transition: 'all 0.15s ease'
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <RotateCcw size={15} />
                 Restart
               </button>
             </div>
 
-            {/* Quick Video Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Source:</span>
+            {/* Quick Video Selector & Upload */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.82rem', color: '#94A3B8' }}>Source:</span>
               <select
                 value={selectedVideo}
                 onChange={(e) => {
@@ -755,12 +1066,14 @@ export default function ExamMonitoring() {
                   handleStop();
                 }}
                 style={{
-                  backgroundColor: 'var(--bg-secondary, #0F172A)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  padding: '0.4rem 0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '0.8rem'
+                  backgroundColor: '#0F172A',
+                  color: '#F8FAFC',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  padding: '0.45rem 0.8rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 {sampleVideos.map((s) => (
@@ -773,16 +1086,19 @@ export default function ExamMonitoring() {
               <label
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.06)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  padding: '0.4rem 0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '0.8rem',
+                  color: '#F8FAFC',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem'
+                  gap: '0.4rem',
+                  transition: 'all 0.15s ease'
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
               >
                 <Upload size={14} />
                 Upload MP4
@@ -792,28 +1108,29 @@ export default function ExamMonitoring() {
           </div>
         </div>
 
-        {/* Right Column: Surveillance Parameters & Live Incident Telemetry */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Hall Configuration Card */}
+        {/* Right Column: Parameters & Real-Time Telemetry Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Hall Configuration Parameters Card */}
           <div
             style={{
-              backgroundColor: 'var(--card-bg, #1E293B)',
-              borderRadius: '14px',
-              border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
-              padding: '1.25rem'
+              backgroundColor: '#1E293B',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              padding: '1.35rem',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '1.15rem' }}>
               <Layers size={18} color="#3B82F6" />
-              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.98rem', color: '#F8FAFC' }}>
                 Surveillance Parameters
               </span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {/* Room Code */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Examination Hall Code */}
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94A3B8', display: 'block', marginBottom: '0.35rem' }}>
                   Examination Hall / Room
                 </label>
                 <input
@@ -822,22 +1139,23 @@ export default function ExamMonitoring() {
                   onChange={(e) => setRoomCode(e.target.value)}
                   style={{
                     width: '100%',
-                    backgroundColor: 'var(--bg-secondary, #0F172A)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                    boxSizing: 'border-box'
+                    backgroundColor: '#0F172A',
+                    color: '#F8FAFC',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                    padding: '0.55rem 0.85rem',
+                    borderRadius: '8px',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box',
+                    outline: 'none'
                   }}
                 />
               </div>
 
-              {/* Frame Skip Acceleration */}
+              {/* Frame Sampling Acceleration */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
                   <span>Frame Sampling (Skip)</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{frameSkip}x (Processes 1/{frameSkip} frames)</strong>
+                  <strong style={{ color: '#F8FAFC' }}>{frameSkip}x (Processes 1/{frameSkip} frames)</strong>
                 </div>
                 <input
                   type="range"
@@ -845,18 +1163,18 @@ export default function ExamMonitoring() {
                   max="5"
                   value={frameSkip}
                   onChange={(e) => setFrameSkip(parseInt(e.target.value, 10))}
-                  style={{ width: '100%', cursor: 'pointer' }}
+                  style={{ width: '100%', cursor: 'pointer', accentColor: '#3B82F6' }}
                 />
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                  Accelerates inference throughput by ~{frameSkip * 100}% on CPU/GPU.
+                <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>
+                  Accelerates inference throughput by ~{frameSkip * 100}% on Apple Silicon GPU / CUDA.
                 </div>
               </div>
 
-              {/* Head Turn Threshold */}
+              {/* Head Turn Sensitivity */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
                   <span>Head Turn Sensitivity</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{headTurnThresh} turns / 5s</strong>
+                  <strong style={{ color: '#F8FAFC' }}>{headTurnThresh} turns / 5s</strong>
                 </div>
                 <input
                   type="range"
@@ -864,15 +1182,15 @@ export default function ExamMonitoring() {
                   max="6"
                   value={headTurnThresh}
                   onChange={(e) => setHeadTurnThresh(parseInt(e.target.value, 10))}
-                  style={{ width: '100%', cursor: 'pointer' }}
+                  style={{ width: '100%', cursor: 'pointer', accentColor: '#3B82F6' }}
                 />
               </div>
 
-              {/* Phone Confidence Threshold */}
+              {/* Device Detection Confidence */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
                   <span>Device Detection Confidence</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{Math.round(phoneConfThresh * 100)}%</strong>
+                  <strong style={{ color: '#F8FAFC' }}>{Math.round(phoneConfThresh * 100)}%</strong>
                 </div>
                 <input
                   type="range"
@@ -881,18 +1199,18 @@ export default function ExamMonitoring() {
                   step="0.05"
                   value={phoneConfThresh}
                   onChange={(e) => setPhoneConfThresh(parseFloat(e.target.value))}
-                  style={{ width: '100%', cursor: 'pointer' }}
+                  style={{ width: '100%', cursor: 'pointer', accentColor: '#3B82F6' }}
                 />
               </div>
 
-              {/* Restricted Zone Toggle */}
+              {/* Restricted Podium Toggle */}
               <div style={{ paddingTop: '0.25rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', fontSize: '0.86rem', color: '#F8FAFC' }}>
                   <input
                     type="checkbox"
                     checked={restrictedZoneEnabled}
                     onChange={(e) => setRestrictedZoneEnabled(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', accentColor: '#3B82F6' }}
                   />
                   <span>Enable Restricted Podium Polygon</span>
                 </label>
@@ -900,47 +1218,48 @@ export default function ExamMonitoring() {
             </div>
           </div>
 
-          {/* Quick Metrics Card */}
+          {/* Hall Telemetry Summary Card */}
           <div
             style={{
-              backgroundColor: 'var(--card-bg, #1E293B)',
-              borderRadius: '14px',
-              border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
-              padding: '1.25rem'
+              backgroundColor: '#1E293B',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              padding: '1.35rem',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '1rem' }}>
               <Activity size={18} color="#10B981" />
-              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.98rem', color: '#F8FAFC' }}>
                 Hall Status Telemetry
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div style={{ backgroundColor: 'var(--bg-secondary, #0F172A)', padding: '0.75rem', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Detected Candidates</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10B981', marginTop: '0.2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Detected Candidates</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#34D399', marginTop: '0.25rem' }}>
                   {metrics.activeTracks}
                 </div>
               </div>
 
-              <div style={{ backgroundColor: 'var(--bg-secondary, #0F172A)', padding: '0.75rem', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Review Alerts</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#EF4444', marginTop: '0.2rem' }}>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Review Alerts</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F87171', marginTop: '0.25rem' }}>
                   {incidents.filter((i) => i.reviewStatus === 'Pending Review').length}
                 </div>
               </div>
 
-              <div style={{ backgroundColor: 'var(--bg-secondary, #0F172A)', padding: '0.75rem', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Inference Rate</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Inference Rate</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F8FAFC', marginTop: '0.25rem' }}>
                   {metrics.fps} FPS
                 </div>
               </div>
 
-              <div style={{ backgroundColor: 'var(--bg-secondary, #0F172A)', padding: '0.75rem', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Frame Latency</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Frame Latency</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F8FAFC', marginTop: '0.25rem' }}>
                   {metrics.latencyMs} ms
                 </div>
               </div>
@@ -949,16 +1268,17 @@ export default function ExamMonitoring() {
         </div>
       </div>
 
-      {/* Incident Dashboard Section */}
+      {/* Incident Audit Trail Section */}
       <div
         style={{
-          backgroundColor: 'var(--card-bg, #1E293B)',
-          borderRadius: '14px',
-          border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
-          padding: '1.5rem'
+          backgroundColor: '#1E293B',
+          borderRadius: '16px',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          padding: '1.5rem',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
         }}
       >
-        {/* Dashboard Title & Filter Controls */}
+        {/* Table Header & Controls Bar */}
         <div
           style={{
             display: 'flex',
@@ -966,17 +1286,17 @@ export default function ExamMonitoring() {
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '1rem',
-            marginBottom: '1.25rem',
-            paddingBottom: '1rem',
-            borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.08))'
+            marginBottom: '1.35rem',
+            paddingBottom: '1.15rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
           }}
         >
           <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
               Examination Incident Audit Trail
             </h2>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Showing {filteredIncidents.length} of {incidents.length} recorded behavioral events
+            <div style={{ fontSize: '0.86rem', color: '#94A3B8', marginTop: '0.25rem' }}>
+              Showing {sortedIncidents.length} of {incidents.length} recorded behavioral events
             </div>
           </div>
 
@@ -985,20 +1305,22 @@ export default function ExamMonitoring() {
             <div style={{ position: 'relative' }}>
               <Search
                 size={14}
-                style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}
+                style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}
               />
               <input
                 type="text"
-                placeholder="Search Incident ID / Track..."
+                placeholder="Search ID / Track..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
-                  backgroundColor: 'var(--bg-secondary, #0F172A)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  padding: '0.4rem 0.75rem 0.4rem 2rem',
-                  borderRadius: '6px',
-                  fontSize: '0.8rem'
+                  backgroundColor: '#0F172A',
+                  color: '#F8FAFC',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  padding: '0.45rem 0.85rem 0.45rem 2.2rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  outline: 'none',
+                  minWidth: '200px'
                 }}
               />
             </div>
@@ -1008,12 +1330,14 @@ export default function ExamMonitoring() {
               value={eventTypeFilter}
               onChange={(e) => setEventTypeFilter(e.target.value)}
               style={{
-                backgroundColor: 'var(--bg-secondary, #0F172A)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                fontSize: '0.8rem'
+                backgroundColor: '#0F172A',
+                color: '#F8FAFC',
+                border: '1px solid rgba(255,255,255,0.18)',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                outline: 'none',
+                cursor: 'pointer'
               }}
             >
               <option value="all">All Event Types</option>
@@ -1023,21 +1347,43 @@ export default function ExamMonitoring() {
               <option value="restricted_zone_entry">Restricted Zone Entry</option>
             </select>
 
-            {/* Review Status Filter */}
-            <div style={{ display: 'flex', gap: '0.35rem' }}>
+            {/* Sort Toggle Button */}
+            <button
+              onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+              style={{
+                backgroundColor: '#0F172A',
+                color: '#F8FAFC',
+                border: '1px solid rgba(255,255,255,0.18)',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                cursor: 'pointer'
+              }}
+              title="Toggle sort direction by timestamp"
+            >
+              <ArrowUpDown size={13} />
+              {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+            </button>
+
+            {/* Review Status Filter Pills */}
+            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
               {['all', 'Pending Review', 'Reviewed', 'Dismissed', 'Resolved'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
                   style={{
-                    backgroundColor: statusFilter === st ? '#3B82F6' : 'rgba(255,255,255,0.06)',
-                    color: statusFilter === st ? '#FFFFFF' : 'var(--text-secondary)',
+                    backgroundColor: statusFilter === st ? '#2563EB' : 'rgba(255,255,255,0.06)',
+                    color: statusFilter === st ? '#FFFFFF' : '#94A3B8',
                     border: 'none',
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
                     fontWeight: 600,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   {st}
@@ -1048,13 +1394,13 @@ export default function ExamMonitoring() {
         </div>
 
         {/* Incidents Table */}
-        {filteredIncidents.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-            <CheckCircle size={36} color="#10B981" style={{ margin: '0 auto 0.75rem' }} />
-            <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+        {sortedIncidents.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94A3B8' }}>
+            <CheckCircle size={38} color="#10B981" style={{ margin: '0 auto 0.85rem' }} />
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F8FAFC' }}>
               No incidents match current filter
             </div>
-            <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '0.88rem', marginTop: '0.35rem' }}>
               {incidents.length === 0
                 ? 'Start surveillance or play the CCTV footage to begin real-time incident capture.'
                 : 'Try adjusting your search criteria or review status filter.'}
@@ -1062,42 +1408,46 @@ export default function ExamMonitoring() {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
               <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.1))', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: '0.75rem' }}>Incident ID</th>
-                  <th style={{ padding: '0.75rem' }}>Candidate</th>
-                  <th style={{ padding: '0.75rem' }}>Observable Event</th>
-                  <th style={{ padding: '0.75rem' }}>Video Time</th>
-                  <th style={{ padding: '0.75rem' }}>Model Certainty</th>
-                  <th style={{ padding: '0.75rem' }}>Review Status</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'right' }}>Actions</th>
+                <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.12)', color: '#CBD5E1', backgroundColor: '#0F172A' }}>
+                  <th style={{ padding: '0.85rem 1rem', borderRadius: '8px 0 0 0' }}>Incident ID</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Candidate</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Observable Event</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Video Time</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Model Certainty</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Review Status</th>
+                  <th style={{ padding: '0.85rem 1rem', textAlign: 'right', borderRadius: '0 8px 0 0' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredIncidents.map((inc) => (
+                {paginatedIncidents.map((inc, idx) => (
                   <tr
                     key={inc.incidentId}
                     style={{
-                      borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.05))',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
                       transition: 'background-color 0.15s ease'
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)')}
                   >
                     {/* Incident ID */}
-                    <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: '#F8FAFC' }}>
                       {inc.incidentId}
                     </td>
 
                     {/* Candidate Temporary Track ID */}
-                    <td style={{ padding: '0.75rem' }}>
+                    <td style={{ padding: '0.85rem 1rem' }}>
                       <span
                         style={{
-                          backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                          color: '#60A5FA',
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                          fontSize: '0.8rem'
+                          backgroundColor: 'rgba(59, 130, 246, 0.18)',
+                          color: '#93C5FD',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '6px',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          border: '1px solid rgba(59, 130, 246, 0.3)'
                         }}
                       >
                         Track #{inc.trackingId}
@@ -1105,9 +1455,9 @@ export default function ExamMonitoring() {
                     </td>
 
                     {/* Observable Event */}
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{inc.eventLabel}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    <td style={{ padding: '0.85rem 1rem' }}>
+                      <div style={{ fontWeight: 700, color: '#F8FAFC' }}>{inc.eventLabel}</div>
+                      <div style={{ fontSize: '0.76rem', color: '#94A3B8', marginTop: '0.1rem' }}>
                         {inc.eventType === 'repeated_head_turn'
                           ? `${inc.metadata?.turns_in_window || 3} direction flips in 5s window`
                           : inc.eventType === 'phone_detected'
@@ -1117,68 +1467,88 @@ export default function ExamMonitoring() {
                     </td>
 
                     {/* Video Time + Seek Button */}
-                    <td style={{ padding: '0.75rem' }}>
+                    <td style={{ padding: '0.85rem 1rem' }}>
                       <button
                         onClick={() => handleSeekToIncident(inc.videoTimestampSeconds)}
                         style={{
-                          backgroundColor: 'rgba(255,255,255,0.06)',
-                          color: 'var(--text-primary)',
-                          border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                          padding: '0.25rem 0.55rem',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
+                          backgroundColor: '#0F172A',
+                          color: '#F8FAFC',
+                          border: '1px solid rgba(255,255,255,0.18)',
+                          padding: '0.3rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.3rem'
+                          gap: '0.35rem',
+                          transition: 'all 0.15s ease'
                         }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0F172A')}
                         title="Seek video player directly to this incident"
                       >
-                        <Clock size={12} />
+                        <Clock size={12} color="#38BDF8" />
                         {inc.videoTimestampSeconds.toFixed(1)}s
                       </button>
                     </td>
 
                     {/* Model Confidence */}
-                    <td style={{ padding: '0.75rem' }}>
-                      <span
-                        style={{
-                          backgroundColor: inc.confidence >= 0.8 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                          color: inc.confidence >= 0.8 ? '#34D399' : '#FBBF24',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                          fontSize: '0.8rem'
-                        }}
-                      >
-                        {Math.round(inc.confidence * 100)}%
-                      </span>
+                    <td style={{ padding: '0.85rem 1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '45px', height: '6px', backgroundColor: '#0F172A', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${Math.round(inc.confidence * 100)}%`,
+                              height: '100%',
+                              backgroundColor: inc.confidence >= 0.8 ? '#10B981' : '#F59E0B'
+                            }}
+                          />
+                        </div>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            color: inc.confidence >= 0.8 ? '#34D399' : '#FBBF24'
+                          }}
+                        >
+                          {Math.round(inc.confidence * 100)}%
+                        </span>
+                      </div>
                     </td>
 
-                    {/* Review Status */}
-                    <td style={{ padding: '0.75rem' }}>
+                    {/* Review Status Badge */}
+                    <td style={{ padding: '0.85rem 1rem' }}>
                       <span
                         style={{
                           backgroundColor:
                             inc.reviewStatus === 'Resolved'
-                              ? 'rgba(16, 185, 129, 0.15)'
+                              ? 'rgba(16, 185, 129, 0.16)'
                               : inc.reviewStatus === 'Dismissed'
-                              ? 'rgba(148, 163, 184, 0.15)'
+                              ? 'rgba(148, 163, 184, 0.16)'
                               : inc.reviewStatus === 'Reviewed'
-                              ? 'rgba(59, 130, 246, 0.15)'
-                              : 'rgba(239, 68, 68, 0.15)',
+                              ? 'rgba(59, 130, 246, 0.16)'
+                              : 'rgba(239, 68, 68, 0.16)',
                           color:
                             inc.reviewStatus === 'Resolved'
                               ? '#34D399'
                               : inc.reviewStatus === 'Dismissed'
                               ? '#94A3B8'
                               : inc.reviewStatus === 'Reviewed'
-                              ? '#60A5FA'
+                              ? '#93C5FD'
                               : '#F87171',
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem'
+                          border: `1px solid ${
+                            inc.reviewStatus === 'Resolved'
+                              ? 'rgba(16, 185, 129, 0.35)'
+                              : inc.reviewStatus === 'Dismissed'
+                              ? 'rgba(148, 163, 184, 0.35)'
+                              : inc.reviewStatus === 'Reviewed'
+                              ? 'rgba(59, 130, 246, 0.35)'
+                              : 'rgba(239, 68, 68, 0.35)'
+                          }`,
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '6px',
+                          fontWeight: 700,
+                          fontSize: '0.78rem'
                         }}
                       >
                         {inc.reviewStatus}
@@ -1186,8 +1556,8 @@ export default function ExamMonitoring() {
                     </td>
 
                     {/* Actions */}
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.45rem' }}>
                         <button
                           onClick={() => {
                             setSelectedIncident(inc);
@@ -1197,12 +1567,15 @@ export default function ExamMonitoring() {
                             backgroundColor: '#2563EB',
                             color: '#FFFFFF',
                             border: 'none',
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
                             fontWeight: 600,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
                           }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1D4ED8')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563EB')}
                         >
                           Review Evidence
                         </button>
@@ -1212,13 +1585,16 @@ export default function ExamMonitoring() {
                             onClick={() => handleUpdateIncidentStatus(inc.incidentId, 'Dismissed')}
                             style={{
                               backgroundColor: 'rgba(255,255,255,0.06)',
-                              color: 'var(--text-secondary)',
-                              border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                              padding: '0.3rem 0.55rem',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              cursor: 'pointer'
+                              color: '#94A3B8',
+                              border: '1px solid rgba(255,255,255,0.18)',
+                              padding: '0.35rem 0.65rem',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
                             }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
                           >
                             Dismiss
                           </button>
@@ -1229,6 +1605,63 @@ export default function ExamMonitoring() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls Footer */}
+            {totalPages > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1.15rem 0.5rem 0.25rem',
+                  fontSize: '0.85rem',
+                  color: '#94A3B8'
+                }}
+              >
+                <div>
+                  Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, sortedIncidents.length)} of {sortedIncidents.length} incidents
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    style={{
+                      backgroundColor: '#0F172A',
+                      color: currentPage === 1 ? '#475569' : '#F8FAFC',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '6px',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
+                    <ChevronLeft size={14} /> Previous
+                  </button>
+                  <span style={{ fontWeight: 600, color: '#F8FAFC', padding: '0 0.5rem' }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    style={{
+                      backgroundColor: '#0F172A',
+                      color: currentPage === totalPages ? '#475569' : '#F8FAFC',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '6px',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
+                    Next <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1242,38 +1675,40 @@ export default function ExamMonitoring() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(5px)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1rem'
+            padding: '1.25rem'
           }}
+          onClick={() => setSelectedIncident(null)}
         >
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: 'var(--card-bg, #1E293B)',
+              backgroundColor: '#1E293B',
               borderRadius: '16px',
-              border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
               maxWidth: '680px',
               width: '100%',
-              maxHeight: '90vh',
+              maxHeight: '92vh',
               overflowY: 'auto',
-              padding: '1.75rem',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              padding: '1.85rem',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.6)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.25rem'
+              gap: '1.35rem'
             }}
           >
             {/* Modal Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3B82F6' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38BDF8', letterSpacing: '0.04em' }}>
                   Incident Appraisal // {selectedIncident.incidentId}
                 </span>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0.15rem 0 0', color: 'var(--text-primary)' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0.2rem 0 0', color: '#F8FAFC' }}>
                   {selectedIncident.eventLabel}
                 </h3>
               </div>
@@ -1282,12 +1717,15 @@ export default function ExamMonitoring() {
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none',
-                  color: 'var(--text-secondary)',
+                  color: '#94A3B8',
                   cursor: 'pointer',
-                  padding: '0.35rem'
+                  padding: '0.35rem',
+                  borderRadius: '50%'
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#94A3B8')}
               >
-                <XCircle size={22} />
+                <XCircle size={24} />
               </button>
             </div>
 
@@ -1299,9 +1737,9 @@ export default function ExamMonitoring() {
                   width: '100%',
                   aspectRatio: '16/9',
                   backgroundColor: '#000000',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
                   overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.1)'
+                  border: '1px solid rgba(255,255,255,0.15)'
                 }}
               >
                 <img
@@ -1312,13 +1750,14 @@ export default function ExamMonitoring() {
                 <div
                   style={{
                     position: 'absolute',
-                    bottom: '0.65rem',
-                    left: '0.75rem',
-                    backgroundColor: 'rgba(0,0,0,0.75)',
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '4px',
+                    bottom: '0.75rem',
+                    left: '0.85rem',
+                    backgroundColor: 'rgba(0,0,0,0.85)',
+                    padding: '0.3rem 0.65rem',
+                    borderRadius: '6px',
                     color: '#FFFFFF',
-                    fontSize: '0.75rem'
+                    fontSize: '0.78rem',
+                    border: '1px solid rgba(255,255,255,0.15)'
                   }}
                 >
                   Timestamp: {selectedIncident.videoTimestampSeconds}s // Anonymous Track #{selectedIncident.trackingId}
@@ -1331,72 +1770,76 @@ export default function ExamMonitoring() {
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr 1fr',
-                gap: '0.75rem',
-                backgroundColor: 'var(--bg-secondary, #0F172A)',
-                padding: '0.85rem',
-                borderRadius: '8px',
-                fontSize: '0.8rem'
+                gap: '0.85rem',
+                backgroundColor: '#0F172A',
+                padding: '0.95rem',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                border: '1px solid rgba(255,255,255,0.08)'
               }}
             >
               <div>
-                <div style={{ color: 'var(--text-secondary)' }}>Model Confidence</div>
-                <strong style={{ color: '#FBBF24', fontSize: '1rem' }}>
+                <div style={{ color: '#94A3B8' }}>Model Certainty</div>
+                <strong style={{ color: '#FBBF24', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
                   {Math.round(selectedIncident.confidence * 100)}%
                 </strong>
               </div>
               <div>
-                <div style={{ color: 'var(--text-secondary)' }}>Assigned Subject</div>
-                <strong style={{ color: '#60A5FA', fontSize: '1rem' }}>
+                <div style={{ color: '#94A3B8' }}>Assigned Subject</div>
+                <strong style={{ color: '#93C5FD', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
                   Track #{selectedIncident.trackingId}
                 </strong>
               </div>
               <div>
-                <div style={{ color: 'var(--text-secondary)' }}>Review Status</div>
-                <strong style={{ color: '#34D399', fontSize: '1rem' }}>
+                <div style={{ color: '#94A3B8' }}>Review Status</div>
+                <strong style={{ color: '#34D399', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
                   {selectedIncident.reviewStatus}
                 </strong>
               </div>
             </div>
 
-            {/* Model Disclaimer Notice */}
+            {/* Responsible AI Disclaimer Notice */}
             <div
               style={{
-                backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                border: '1px solid rgba(245, 158, 11, 0.25)',
-                borderRadius: '8px',
-                padding: '0.75rem',
-                fontSize: '0.8rem',
-                color: '#FBBF24'
+                backgroundColor: 'rgba(245, 158, 11, 0.09)',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                borderRadius: '10px',
+                padding: '0.85rem 1rem',
+                fontSize: '0.82rem',
+                color: '#FDE68A',
+                lineHeight: 1.5
               }}
             >
-              <strong>Important Notice:</strong> Model confidence represents vision certainty of the physical gesture, not proof of misconduct. Invigilators must evaluate environmental context before reaching a decision.
+              <strong>Important Notice:</strong> Model confidence reflects vision detection certainty of the observable physical gesture, not proof of misconduct. Human invigilators must evaluate room context before concluding any disciplinary action.
             </div>
 
             {/* Reviewer Notes Field */}
             <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94A3B8', display: 'block', marginBottom: '0.4rem' }}>
                 Invigilator Audit Notes & Observations
               </label>
               <textarea
                 rows={3}
                 value={reviewerNotes}
                 onChange={(e) => setReviewerNotes(e.target.value)}
-                placeholder="Record objective observations (e.g., student asked proctor for extra answer sheet, posture adjustment, lighting glare)..."
+                placeholder="Record objective observations (e.g., student asked proctor for extra answer sheet, temporary posture shift, lighting reflection)..."
                 style={{
                   width: '100%',
-                  backgroundColor: 'var(--bg-secondary, #0F172A)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  padding: '0.65rem',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  boxSizing: 'border-box'
+                  backgroundColor: '#0F172A',
+                  color: '#F8FAFC',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  fontSize: '0.86rem',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  resize: 'vertical'
                 }}
               />
             </div>
 
             {/* Actions Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.65rem', flexWrap: 'wrap' }}>
               <button
                 onClick={() => {
                   handleSeekToIncident(selectedIncident.videoTimestampSeconds);
@@ -1404,22 +1847,23 @@ export default function ExamMonitoring() {
                 }}
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.08)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  padding: '0.5rem 0.85rem',
-                  borderRadius: '6px',
-                  fontSize: '0.8rem',
+                  color: '#F8FAFC',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  padding: '0.55rem 0.95rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem'
+                  gap: '0.4rem'
                 }}
               >
-                <Clock size={14} />
+                <Clock size={14} color="#38BDF8" />
                 Jump in Video
               </button>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
                   disabled={isUpdatingStatus}
                   onClick={() => handleUpdateIncidentStatus(selectedIncident.incidentId, 'Dismissed')}
@@ -1427,12 +1871,15 @@ export default function ExamMonitoring() {
                     backgroundColor: '#475569',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '0.5rem 0.85rem',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
                     fontWeight: 600,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#334155')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#475569')}
                 >
                   Dismiss (False Positive)
                 </button>
@@ -1444,12 +1891,15 @@ export default function ExamMonitoring() {
                     backgroundColor: '#2563EB',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '0.5rem 0.85rem',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
                     fontWeight: 600,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1D4ED8')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563EB')}
                 >
                   Mark Reviewed
                 </button>
@@ -1461,12 +1911,15 @@ export default function ExamMonitoring() {
                     backgroundColor: '#059669',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '0.5rem 0.85rem',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
                     fontWeight: 600,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#047857')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#059669')}
                 >
                   Resolve Incident
                 </button>

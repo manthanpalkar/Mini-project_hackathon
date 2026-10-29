@@ -343,14 +343,14 @@ export default function Navbar() {
         style={{
           pointerEvents: 'auto',
           width: '100%',
-          maxWidth: isScrolled ? '980px' : '100%',
+          maxWidth: isScrolled ? '1240px' : '100%',
           borderRadius: isScrolled ? '9999px' : '0px',
           borderTop: isScrolled ? '1px solid var(--liquid-pill-border)' : 'none',
           borderLeft: isScrolled ? '1px solid var(--liquid-pill-border)' : 'none',
           borderRight: isScrolled ? '1px solid var(--liquid-pill-border)' : 'none',
           borderBottom: isScrolled ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border-color)',
-          padding: isScrolled ? '0.68rem 1.8rem' : '1.1rem 0',
-          minHeight: isScrolled ? '58px' : 'auto',
+          padding: isScrolled ? '0.65rem 1.6rem' : '1rem 0',
+          minHeight: isScrolled ? '58px' : '64px',
           boxShadow: isScrolled ? 'var(--liquid-pill-shadow)' : 'none',
           backgroundColor: isScrolled ? 'var(--liquid-pill-bg)' : 'var(--glass-bg)',
           backdropFilter: isScrolled ? 'blur(30px) saturate(190%) contrast(105%)' : 'blur(24px)',
@@ -369,19 +369,15 @@ export default function Navbar() {
             justifyContent: 'space-between',
             alignItems: 'center',
             width: '100%',
-            maxWidth: isScrolled ? '100%' : '1200px',
+            maxWidth: '1240px',
             margin: '0 auto',
-            padding: isScrolled ? '0 0.6rem' : '0 2rem',
+            padding: isScrolled ? '0 0.5rem' : '0 1.75rem',
+            gap: '1rem',
             transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
-                    {/* BRAND LOGO - LEFT ALIGNED IN NATURAL FLEX FLOW */}
-          <div className="nav-brand" style={{
-            display: 'flex',
-            alignItems: 'center',
-            zIndex: 3,
-            flexShrink: 0
-          }}>
+          {/* COLUMN 1: BRAND LOGO (In-flow left alignment, never absolute, preventing overlap) */}
+          <div className="nav-logo" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <Link
               to="/"
               onMouseEnter={() => {
@@ -396,7 +392,8 @@ export default function Navbar() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: isScrolled ? '0.35rem' : '0.4rem',
-                marginRight: '0.75rem',
+                color: 'var(--text-primary)',
+                textDecoration: 'none',
                 transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             >
@@ -424,21 +421,20 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* CENTER NAV LINKS - NATURAL FLEX FLOW, ZERO OVERLAP */}
+          {/* COLUMN 2: CENTER NAV LINKS (Desktop only - Authenticated users only) */}
           {user && !isForgotPasswordPage ? (
-            <div className="nav-col-left" style={{
+            <div className="nav-col-center" style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: isScrolled ? '0.85rem' : '1.15rem',
+              gap: isScrolled ? '1rem' : '1.35rem',
               fontFamily: 'var(--font-sans)',
               fontSize: isScrolled ? '0.84rem' : '0.88rem',
               fontWeight: 600,
-              letterSpacing: '0.01em',
-              margin: '0 0.5rem',
+              letterSpacing: '0.02em',
               transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-              zIndex: 2,
-              flexWrap: 'nowrap'
+              flex: 1,
+              margin: '0 0.5rem'
             }}>
               {(visibility.stories || isAdmin) && (
                 <Link
@@ -450,11 +446,13 @@ export default function Navbar() {
                   style={{
                     color: isActive('/stories') ? 'var(--text-primary)' : 'var(--text-secondary)',
                     position: 'relative',
-                    transition: 'color 0.2s ease'
+                    transition: 'color 0.2s ease',
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Stories
-                  {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                  {isActive('/stories') && <span style={{ position: 'absolute', bottom: isScrolled ? '-9px' : '-18px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
                 </Link>
               )}
 
@@ -469,11 +467,13 @@ export default function Navbar() {
                   style={{
                     color: isActive('/resources') ? 'var(--text-primary)' : 'var(--text-secondary)',
                     position: 'relative',
-                    transition: 'color 0.2s ease'
+                    transition: 'color 0.2s ease',
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Resources
-                  {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                  {isActive('/resources') && <span style={{ position: 'absolute', bottom: isScrolled ? '-9px' : '-18px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
                 </Link>
               )}
 
@@ -487,11 +487,13 @@ export default function Navbar() {
                   style={{
                     color: isActive('/achievements') ? 'var(--text-primary)' : 'var(--text-secondary)',
                     position: 'relative',
-                    transition: 'color 0.2s ease'
+                    transition: 'color 0.2s ease',
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Achievements
-                  {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                  {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-9px' : '-18px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
                 </Link>
               )}
 
@@ -503,11 +505,13 @@ export default function Navbar() {
                 style={{
                   color: isActive('/campus-rides') ? 'var(--text-primary)' : 'var(--text-secondary)',
                   position: 'relative',
-                  transition: 'color 0.2s ease'
+                  transition: 'color 0.2s ease',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 Rides
-                {isActive('/campus-rides') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                {isActive('/campus-rides') && <span style={{ position: 'absolute', bottom: isScrolled ? '-9px' : '-18px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
 
               <Link
@@ -518,11 +522,13 @@ export default function Navbar() {
                 style={{
                   color: isActive('/green-compute') ? 'var(--text-primary)' : 'var(--text-secondary)',
                   position: 'relative',
-                  transition: 'color 0.2s ease'
+                  transition: 'color 0.2s ease',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 Green Compute
-                {isActive('/green-compute') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                {isActive('/green-compute') && <span style={{ position: 'absolute', bottom: isScrolled ? '-9px' : '-18px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
 
               <Link
@@ -533,11 +539,13 @@ export default function Navbar() {
                 style={{
                   color: isActive('/digital-wellbeing') ? 'var(--text-primary)' : 'var(--text-secondary)',
                   position: 'relative',
-                  transition: 'color 0.2s ease'
+                  transition: 'color 0.2s ease',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 Wellbeing
-                {isActive('/digital-wellbeing') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                {isActive('/digital-wellbeing') && <span style={{ position: 'absolute', bottom: isScrolled ? '-9px' : '-18px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
 
               <Link
@@ -546,28 +554,49 @@ export default function Navbar() {
                   import('../pages/ExamMonitoring');
                 }}
                 style={{
-                  color: isActive('/exam-monitoring') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  color: isActive('/exam-monitoring') ? '#3B82F6' : 'var(--text-secondary)',
                   position: 'relative',
-                  transition: 'color 0.2s ease'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px',
+                  backgroundColor: isActive('/exam-monitoring') ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+                  fontWeight: isActive('/exam-monitoring') ? 700 : 600,
+                  transition: 'all 0.2s ease',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap'
                 }}
               >
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: isActive('/exam-monitoring') ? '#3B82F6' : '#10B981',
+                    boxShadow: isActive('/exam-monitoring') ? '0 0 6px rgba(59, 130, 246, 0.6)' : 'none'
+                  }}
+                />
                 Proctor
-                {isActive('/exam-monitoring') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+                {isActive('/exam-monitoring') && (
+                  <span style={{ position: 'absolute', bottom: isScrolled ? '-9px' : '-18px', left: 4, right: 4, height: '2.5px', borderRadius: '2px', backgroundColor: '#3B82F6', transition: 'bottom 0.35s ease' }} />
+                )}
               </Link>
             </div>
           ) : (
-            <div className="nav-col-left" style={{ flex: 1 }} />
+            <div className="nav-col-center" style={{ flex: 1 }} />
           )}
 
-{/* COLUMN 3: RIGHT NAV ACTIONS (Desktop only) */}
+          {/* COLUMN 3: RIGHT NAV ACTIONS (Desktop only) */}
           <div className="nav-col-right" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: isScrolled ? '0.75rem' : '1rem',
+            gap: isScrolled ? '0.65rem' : '0.85rem',
             fontFamily: 'var(--font-sans)',
-            fontSize: isScrolled ? '0.86rem' : '0.9rem',
+            fontSize: isScrolled ? '0.84rem' : '0.88rem',
             fontWeight: 600,
+            flexShrink: 0,
             transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
             zIndex: 2
           }}>
@@ -731,8 +760,24 @@ export default function Navbar() {
               <Link to="/digital-wellbeing" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
                 Digital Wellbeing
               </Link>
-              <Link to="/exam-monitoring" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                Exam Proctor
+              <Link
+                to="/exam-monitoring"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  fontSize: '1.05rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  color: isActive('/exam-monitoring') ? '#3B82F6' : 'var(--text-primary)',
+                  backgroundColor: isActive('/exam-monitoring') ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: '8px',
+                  textDecoration: 'none'
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isActive('/exam-monitoring') ? '#3B82F6' : '#10B981' }} />
+                Exam Proctor (Module E)
               </Link>
             </>
           )}
@@ -809,21 +854,17 @@ export default function Navbar() {
       {/* Inline styles for responsive grid */}
       <style>{`
         @media (max-width: 1080px) {
-          .nav-col-left {
-            gap: 0.65rem !important;
-            font-size: 0.8rem !important;
-          }
-        }
-        @media (max-width: 900px) {
-          .navbar-grid {
-            grid-template-columns: 1fr auto !important;
-          }
-          .nav-col-left, .nav-col-right {
+          .nav-col-center, .nav-col-right {
             display: none !important;
           }
           .mobile-nav-toggle {
             display: flex !important;
             justify-content: flex-end;
+          }
+        }
+        @media (min-width: 1081px) {
+          .mobile-nav-toggle {
+            display: none !important;
           }
         }
       `}</style>

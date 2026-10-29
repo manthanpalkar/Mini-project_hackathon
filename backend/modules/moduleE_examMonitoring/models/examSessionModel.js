@@ -54,7 +54,10 @@ const MonitoringSessionSchema = new mongoose.Schema({
     alertTracksCount: { type: Number, default: 0 },
     fpsMeasured: { type: Number, default: 0 },
     latencyMs: { type: Number, default: 0 },
-    durationSeconds: { type: Number, default: 0 }
+    durationSeconds: { type: Number, default: 0 },
+    engine: { type: String, default: 'yolov8_python_service' },
+    engineLabel: { type: String, default: 'Live YOLOv8 + Pose Vision Engine Active' },
+    isFallbackDemo: { type: Boolean, default: false }
   }
 }, { timestamps: true });
 
