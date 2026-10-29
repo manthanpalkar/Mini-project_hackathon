@@ -1028,7 +1028,69 @@ export default function CampusRides() {
 
       {/* TAB 3: MY RIDES & TRIP PROGRESS */}
       {activeTab === 'mine' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Personal Sustainability Impact Ledger Card */}
+          {myOutcomes && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(10, 132, 255, 0.05) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '20px',
+              padding: '1.25rem 1.75rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1.5rem',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <Leaf size={18} style={{ color: '#10B981' }} />
+                  <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                    Your Personal Sustainability Impact
+                  </span>
+                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: 700 }}>
+                    Audited Ledger
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Accrued through completed campus ride shares • Verified at 120g CO₂/km baseline
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>CO₂ Saved</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10B981' }}>
+                    {myOutcomes.totalCo2SavedKg || 0} kg
+                  </div>
+                </div>
+
+                <div style={{ borderLeft: '1px solid rgba(16, 185, 129, 0.2)', paddingLeft: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Money Saved</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0071E3' }}>
+                    ₹{myOutcomes.totalMoneySaved || 0}
+                  </div>
+                </div>
+
+                <div style={{ borderLeft: '1px solid rgba(16, 185, 129, 0.2)', paddingLeft: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Distance Avoided</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                    {myOutcomes.totalDistanceSavedKm || 0} km
+                  </div>
+                </div>
+
+                <div style={{ borderLeft: '1px solid rgba(16, 185, 129, 0.2)', paddingLeft: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Rides Completed</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#F59E0B' }}>
+                    {myOutcomes.completedRidesCount || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
           {/* Driver: Offered Rides with Trip Progression */}
           <div style={{ background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px solid var(--border-color)', padding: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1253,6 +1315,7 @@ export default function CampusRides() {
               </div>
             )}
           </div>
+        </div>
         </div>
       )}
 

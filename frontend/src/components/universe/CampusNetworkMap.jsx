@@ -60,7 +60,7 @@ export default function CampusNetworkMap({
   remainingMins = null,
   passengerPickupEtaMins = null
 }) {
-  const [mapTheme, setMapTheme] = useState('dark'); // 'dark' | 'light'
+  const [mapTheme, setMapTheme] = useState('light'); // 'dark' | 'light'
   const [zoomLevel, setZoomLevel] = useState(1); // 0.85, 1, 1.25, 1.5
   const [showTraffic, setShowTraffic] = useState(true);
   const [selectedNodeDetails, setSelectedNodeDetails] = useState(null);
@@ -219,23 +219,23 @@ export default function CampusNetworkMap({
   // Dynamic Apple Maps Theme Colors
   const isDark = mapTheme === 'dark';
   const theme = {
-    canvasBg: isDark ? '#151C28' : '#F4F6F9',
-    landColor: isDark ? '#1A2332' : '#ECEEF3',
+    canvasBg: isDark ? '#151C28' : '#FFFFFF',
+    landColor: isDark ? '#1A2332' : '#F4F6F9',
     waterColor: isDark ? '#102238' : '#CCE3F9',
     waterBorder: isDark ? '#183658' : '#B0D3F8',
-    parkColor: isDark ? 'rgba(48, 209, 88, 0.12)' : 'rgba(52, 199, 89, 0.18)',
-    parkBorder: isDark ? '#1E4633' : '#A3E3B5',
-    lakeColor: isDark ? '#0E3E4A' : '#A2D5FA',
-    lakeBorder: isDark ? '#155B6C' : '#7EC0F6',
+    parkColor: isDark ? 'rgba(48, 209, 88, 0.12)' : '#D7F5E4',
+    parkBorder: isDark ? '#1E4633' : '#86EFAC',
+    lakeColor: isDark ? '#0E3E4A' : '#BCE0FD',
+    lakeBorder: isDark ? '#155B6C' : '#60A5FA',
     minorStreet: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.06)',
     metroLine: isDark ? '#0284C7' : '#0284C7',
-    railwayLine: isDark ? '#475569' : '#94A3B8',
+    railwayLine: isDark ? '#475569' : '#64748B',
     edgeCasing: isDark ? '#1E293B' : '#CBD5E1',
     edgeFill: isDark ? '#334155' : '#FFFFFF',
     textPrimary: isDark ? '#F8FAFC' : '#0F172A',
     textSecondary: isDark ? '#94A3B8' : '#64748B',
-    panelBg: isDark ? 'rgba(21, 28, 40, 0.88)' : 'rgba(255, 255, 255, 0.92)',
-    panelBorder: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
+    panelBg: isDark ? 'rgba(21, 28, 40, 0.88)' : 'rgba(255, 255, 255, 0.94)',
+    panelBorder: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)'
   };
 
   // Zoom viewBox computation
