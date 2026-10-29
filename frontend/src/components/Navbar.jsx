@@ -375,18 +375,70 @@ export default function Navbar() {
             transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
-          {/* COLUMN 1: LEFT NAV LINKS (Desktop only - Authenticated users only) */}
+                    {/* BRAND LOGO - LEFT ALIGNED IN NATURAL FLEX FLOW */}
+          <div className="nav-brand" style={{
+            display: 'flex',
+            alignItems: 'center',
+            zIndex: 3,
+            flexShrink: 0
+          }}>
+            <Link
+              to="/"
+              onMouseEnter={() => {
+                import('../pages/Landing');
+              }}
+              style={{
+                fontSize: isScrolled ? '1.35rem' : '1.5rem',
+                fontWeight: 800,
+                fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                gap: isScrolled ? '0.35rem' : '0.4rem',
+                marginRight: '0.75rem',
+                transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              <img
+                src="/loop-logo.png"
+                alt="LOOP Logo"
+                style={{
+                  height: isScrolled ? '24px' : '26px',
+                  width: 'auto',
+                  filter: 'var(--logo-filter)',
+                  marginRight: '0.2rem',
+                  transition: 'height 0.35s ease'
+                }}
+              />
+              Loop
+              <span style={{
+                fontSize: isScrolled ? '0.52rem' : '0.55rem',
+                letterSpacing: '0.02em',
+                padding: '1px 5px',
+                border: '1px solid var(--text-primary)',
+                borderRadius: '4px',
+                fontWeight: '700',
+                transition: 'all 0.35s ease'
+              }}>SPIT</span>
+            </Link>
+          </div>
+
+          {/* CENTER NAV LINKS - NATURAL FLEX FLOW, ZERO OVERLAP */}
           {user && !isForgotPasswordPage ? (
             <div className="nav-col-left" style={{
               display: 'flex',
               alignItems: 'center',
-              gap: isScrolled ? '1.5rem' : '2rem',
+              justifyContent: 'center',
+              gap: isScrolled ? '0.85rem' : '1.15rem',
               fontFamily: 'var(--font-sans)',
-              fontSize: isScrolled ? '0.88rem' : '0.9rem',
+              fontSize: isScrolled ? '0.84rem' : '0.88rem',
               fontWeight: 600,
-              letterSpacing: '0.03em',
+              letterSpacing: '0.01em',
+              margin: '0 0.5rem',
               transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-              zIndex: 2
+              zIndex: 2,
+              flexWrap: 'nowrap'
             }}>
               {(visibility.stories || isAdmin) && (
                 <Link
@@ -504,64 +556,10 @@ export default function Navbar() {
               </Link>
             </div>
           ) : (
-            <div className="nav-col-left" style={{ display: 'flex', alignItems: 'center', zIndex: 2 }} />
+            <div className="nav-col-left" style={{ flex: 1 }} />
           )}
 
-          {/* COLUMN 2: CENTER LOGO - ALWAYS MATHEMATICALLY DEAD CENTER */}
-          <div style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 3,
-            pointerEvents: 'auto'
-          }}>
-            <Link
-              to="/"
-              onMouseEnter={() => {
-                import('../pages/Landing');
-              }}
-              style={{
-                fontSize: isScrolled ? '1.45rem' : '1.65rem',
-                fontWeight: 800,
-                fontFamily: 'var(--font-sans)',
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                display: 'flex',
-                alignItems: 'center',
-                gap: isScrolled ? '0.35rem' : '0.4rem',
-                marginRight: '-0.2em',
-                transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
-              }}
-            >
-              <img
-                src="/loop-logo.png"
-                alt="LOOP Logo"
-                style={{
-                  height: isScrolled ? '24px' : '26px',
-                  width: 'auto',
-                  filter: 'var(--logo-filter)',
-                  marginRight: '0.2rem',
-                  transition: 'height 0.35s ease'
-                }}
-              />
-              Loop
-              <span style={{
-                fontSize: isScrolled ? '0.52rem' : '0.55rem',
-                letterSpacing: '0.02em',
-                padding: '1px 5px',
-                border: '1px solid var(--text-primary)',
-                borderRadius: '4px',
-                fontWeight: '700',
-                transition: 'all 0.35s ease'
-              }}>SPIT</span>
-            </Link>
-          </div>
-
-          {/* COLUMN 3: RIGHT NAV ACTIONS (Desktop only) */}
+{/* COLUMN 3: RIGHT NAV ACTIONS (Desktop only) */}
           <div className="nav-col-right" style={{
             display: 'flex',
             alignItems: 'center',
@@ -810,6 +808,12 @@ export default function Navbar() {
 
       {/* Inline styles for responsive grid */}
       <style>{`
+        @media (max-width: 1080px) {
+          .nav-col-left {
+            gap: 0.65rem !important;
+            font-size: 0.8rem !important;
+          }
+        }
         @media (max-width: 900px) {
           .navbar-grid {
             grid-template-columns: 1fr auto !important;
