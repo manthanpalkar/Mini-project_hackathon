@@ -29,6 +29,11 @@ RUN npm run build
 # Stage 2: Serve with official unprivileged Nginx (runs as user nginx, UID: 101)
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runner
 
+# OpenContainers metadata linking to GitHub Packages repository
+LABEL org.opencontainers.image.source="https://github.com/swapnil-exxe/loop" \
+      org.opencontainers.image.description="LOOP SPIT Frontend Web Application" \
+      org.opencontainers.image.licenses="MIT"
+
 # Copy custom Nginx configuration for SPA routing and API reverse proxy
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

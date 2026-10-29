@@ -8,7 +8,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: loop-backend:latest
+    image: ${BACKEND_IMAGE:-ghcr.io/swapnil-exxe/loop-backend:latest}
     container_name: loop-backend
     restart: unless-stopped
     environment:
@@ -50,7 +50,7 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
-    image: loop-frontend:latest
+    image: ${FRONTEND_IMAGE:-ghcr.io/swapnil-exxe/loop-frontend:latest}
     container_name: loop-frontend
     restart: unless-stopped
     ports:

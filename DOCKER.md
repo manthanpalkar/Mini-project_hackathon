@@ -216,3 +216,23 @@ Then restart with `docker compose up -d`.
 3. Clone repository and set production `.env`.
 4. Run `docker compose up -d`.
 5. Point DNS for your institutional domain to the VM and terminate TLS using Caddy or Let's Encrypt Nginx.
+
+---
+
+## 8. GitHub Packages & Container Registry (GHCR)
+
+The repository includes an automated GitHub Actions workflow (`.github/workflows/publish-docker.yml`) that automatically builds and publishes container images to **GitHub Packages** (`ghcr.io`) on every push to `main` and on manual trigger (`workflow_dispatch`).
+
+### Container Image Registry Names
+* **Backend:** `ghcr.io/swapnil-exxe/loop-backend:latest`
+* **Frontend:** `ghcr.io/swapnil-exxe/loop-frontend:latest`
+
+### Deploying Using Pre-Built GitHub Packages (Without Local Building)
+On the production or college server:
+```bash
+# 1. Pull the pre-built images directly from GitHub Packages
+docker compose pull
+
+# 2. Run the platform instantly
+docker compose up -d
+```

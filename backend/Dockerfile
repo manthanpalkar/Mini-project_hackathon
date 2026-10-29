@@ -24,6 +24,11 @@ ENV NODE_ENV=production \
     PORT=5001 \
     HOST=0.0.0.0
 
+# OpenContainers metadata linking to GitHub Packages repository
+LABEL org.opencontainers.image.source="https://github.com/swapnil-exxe/loop" \
+      org.opencontainers.image.description="LOOP SPIT Backend API Service" \
+      org.opencontainers.image.licenses="MIT"
+
 # Copy node_modules from deps stage with non-root ownership
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node package*.json ./

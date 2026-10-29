@@ -116,8 +116,13 @@ cd loop
 cp .env.example .env
 nano .env   # (Add college MongoDB URI, JWT_SECRET, etc.)
 
-# Step 3: Build and start containers in detached mode
-docker compose up -d --build
+# Step 3: Run the application
+# Option A: Pull pre-built images from GitHub Packages (Recommended & Fastest)
+docker compose pull
+docker compose up -d
+
+# Option B: Or build images locally from source
+# docker compose up -d --build
 
 # Step 4: Verify container health status
 docker compose ps
@@ -125,9 +130,9 @@ docker compose ps
 
 Expected output:
 ```
-NAME            IMAGE                  STATUS                    PORTS
-loop-backend    loop-backend:latest    Up (healthy)              5001/tcp
-loop-frontend   loop-frontend:latest   Up (healthy)              0.0.0.0:80->8080/tcp
+NAME            IMAGE                                         STATUS                    PORTS
+loop-backend    ghcr.io/swapnil-exxe/loop-backend:latest      Up (healthy)              5001/tcp
+loop-frontend   ghcr.io/swapnil-exxe/loop-frontend:latest     Up (healthy)              0.0.0.0:80->8080/tcp
 ```
 
 ---
