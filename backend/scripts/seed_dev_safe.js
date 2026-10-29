@@ -121,6 +121,134 @@ async function seedDevSafe() {
       console.log(`[SEED] Found ${resourceCount} existing resources; preserved without overwrite.`);
     }
 
+    // 5. Safe seed Module B demonstration ride offers if empty
+    const { RideOffer, RideRequest } = require('../modules/moduleB_ridePooling/models/rideModel');
+    const rideOfferCount = await RideOffer.countDocuments();
+    if (rideOfferCount === 0) {
+      const now = new Date();
+      const futureTime1 = new Date(now.getTime() + 45 * 60 * 1000); // +45 mins
+      const futureTime2 = new Date(now.getTime() + 90 * 60 * 1000); // +90 mins
+      const futureTime3 = new Date(now.getTime() + 180 * 60 * 1000); // +3 hours
+
+      const demoRide1 = await RideOffer.create({
+        driverEmail: 'aarav.mehta@spit.ac.in',
+        driverName: 'Aarav Mehta (Senior SDE)',
+        driverPhone: '+91 98200 11223',
+        originNodeId: 'andheri_station_west',
+        destinationNodeId: 'spit_library',
+        originName: 'Andheri Railway Station (West)',
+        destinationName: 'SPIT Central Library & Academic Quad',
+        departureTime: futureTime1,
+        totalSeats: 4,
+        availableSeats: 3,
+        confirmedPassengerCount: 1,
+        maxDetourKm: 2.0,
+        costPerSeat: 10,
+        vehicleType: 'car',
+        vehicleModel: 'Hyundai i20 White',
+        vehicleNumber: 'MH-02-EE-4120',
+        originalRoute: ['andheri_station_west', 'spit_main_gate', 'spit_library'],
+        originalDistanceKm: 2.5,
+        originalDurationMins: 9,
+        currentRoute: ['andheri_station_west', 'spit_main_gate', 'spit_library'],
+        currentDistanceKm: 2.5,
+        currentDurationMins: 9,
+        status: 'open',
+        confirmedPassengers: []
+      });
+
+      // Add one confirmed passenger to demoRide1
+      const demoReq = await RideRequest.create({
+        passengerEmail: 'dev.student@spit.ac.in',
+        passengerName: 'Dev Student (Synthetic)',
+        rideOfferId: demoRide1._id,
+        pickupNodeId: 'spit_main_gate',
+        dropoffNodeId: 'spit_library',
+        pickupName: "SPIT Main Gate (Bhavan's Campus)",
+        dropoffName: 'SPIT Central Library & Academic Quad',
+        seatsRequested: 1,
+        desiredDepartureTime: futureTime1,
+        status: 'accepted',
+        matchMetrics: {
+          detourKm: 0,
+          estimatedCo2SavedGrams: 360,
+          fareEstimate: 10,
+          monetarySavings: 25,
+          matchScore: 98,
+          explanation: "Direct match along driver's planned transit trajectory (0 km detour)"
+        }
+      });
+
+      demoRide1.confirmedPassengers.push({
+        passengerEmail: 'dev.student@spit.ac.in',
+        passengerName: 'Dev Student (Synthetic)',
+        pickupNodeId: 'spit_main_gate',
+        dropoffNodeId: 'spit_library',
+        seatsBooked: 1,
+        fareTotal: 10,
+        requestId: demoReq._id
+      });
+      await demoRide1.save();
+
+      await RideOffer.create({
+        driverEmail: 'tanvi.shukla@spit.ac.in',
+        driverName: 'Tanvi Shukla (EXTC 4th Yr)',
+        driverPhone: '+91 98331 44556',
+        originNodeId: 'azad_nagar_metro',
+        destinationNodeId: 'spit_hostel_boys',
+        originName: 'Azad Nagar Metro Station (Line 1)',
+        destinationName: "Bhavan's Boys Hostel Campus",
+        departureTime: futureTime2,
+        totalSeats: 3,
+        availableSeats: 3,
+        confirmedPassengerCount: 0,
+        maxDetourKm: 1.5,
+        costPerSeat: 0, // Free carpool
+        vehicleType: 'car',
+        vehicleModel: 'Maruti Baleno Silver',
+        vehicleNumber: 'MH-02-CB-8891',
+        originalRoute: ['azad_nagar_metro', 'spit_main_gate', 'bhavans_lake', 'spit_hostel_boys'],
+        originalDistanceKm: 1.8,
+        originalDurationMins: 7,
+        currentRoute: ['azad_nagar_metro', 'spit_main_gate', 'bhavans_lake', 'spit_hostel_boys'],
+        currentDistanceKm: 1.8,
+        currentDurationMins: 7,
+        status: 'open',
+        confirmedPassengers: []
+      });
+
+      await RideOffer.create({
+        driverEmail: 'siddharth.deshmukh@spit.ac.in',
+        driverName: 'Siddharth Deshmukh (Faculty CSE)',
+        driverPhone: '+91 98199 77889',
+        originNodeId: 'versova_link_road',
+        destinationNodeId: 'spit_main_gate',
+        originName: 'Versova Link Road Junction',
+        destinationName: "SPIT Main Gate (Bhavan's Campus)",
+        departureTime: futureTime3,
+        totalSeats: 4,
+        availableSeats: 4,
+        confirmedPassengerCount: 0,
+        maxDetourKm: 2.5,
+        costPerSeat: 15,
+        vehicleType: 'car',
+        vehicleModel: 'Honda City Grey',
+        vehicleNumber: 'MH-02-DP-1002',
+        originalRoute: ['versova_link_road', 'dn_nagar_metro', 'spit_main_gate'],
+        originalDistanceKm: 3.2,
+        originalDurationMins: 11,
+        currentRoute: ['versova_link_road', 'dn_nagar_metro', 'spit_main_gate'],
+        currentDistanceKm: 3.2,
+        currentDurationMins: 11,
+        status: 'open',
+        confirmedPassengers: []
+      });
+
+      console.log('[SEED] Seeded 3 synthetic campus ride offers and 1 accepted passenger request.');
+    } else {
+      console.log(`[SEED] Found ${rideOfferCount} existing ride offers; preserved without overwrite.`);
+    }
+
     await mongoose.disconnect();
     console.log('[SUCCESS] Safe dev seeding completed successfully.');
   } catch (err) {

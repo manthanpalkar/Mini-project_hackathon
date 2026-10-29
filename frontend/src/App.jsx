@@ -48,6 +48,7 @@ const FilePreviewPage = lazyWithRetry(() => import('./pages/FilePreviewPage'));
 const PrivacyPolicy = lazyWithRetry(() => import('./pages/PrivacyPolicy'));
 const TermsOfUse = lazyWithRetry(() => import('./pages/TermsOfUse'));
 const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
+const CampusRides = lazyWithRetry(() => import('./pages/CampusRides'));
 
 // Lightweight Apple-style Route Loading Fallback
 function RouteLoadingFallback() {
@@ -254,6 +255,13 @@ function AppLayout() {
                 <SectionRouteGuard section="achievements">
                   <AchievementDetail />
                 </SectionRouteGuard>
+              </ProtectedRoute>
+            } />
+
+            {/* UniVerse Module B: Campus Ride-Pooling */}
+            <Route path="/campus-rides" element={
+              <ProtectedRoute>
+                <CampusRides />
               </ProtectedRoute>
             } />
 

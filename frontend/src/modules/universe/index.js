@@ -18,9 +18,10 @@ export const UNIVERSE_MODULES = [
     id: 'module-b',
     title: 'Smart Campus Ride-Pooling',
     code: 'Module B',
-    status: 'Ready for Implementation',
+    status: 'Active',
+    route: '/campus-rides',
     apiEndpoint: '/api/modules/b',
-    description: 'Peer-to-peer campus commute ride sharing with automated waypoint matching and vehicle seat allocation.'
+    description: 'Graph-based campus mobility, peer ride-matching with constrained detour insertion, and carbon savings analytics.'
   },
   {
     id: 'module-c',

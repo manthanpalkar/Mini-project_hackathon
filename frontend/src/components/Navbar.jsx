@@ -412,6 +412,21 @@ export default function Navbar() {
                   {isActive('/achievements') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
                 </Link>
               )}
+
+              <Link
+                to="/campus-rides"
+                onMouseEnter={() => {
+                  import('../pages/CampusRides');
+                }}
+                style={{
+                  color: isActive('/campus-rides') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  position: 'relative',
+                  transition: 'color 0.2s ease'
+                }}
+              >
+                Rides
+                {isActive('/campus-rides') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+              </Link>
             </div>
           ) : (
             <div className="nav-col-left" style={{ display: 'flex', alignItems: 'center', zIndex: 2 }} />
@@ -634,6 +649,9 @@ export default function Navbar() {
                   Achievements
                 </Link>
               )}
+              <Link to="/campus-rides" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                Campus Rides
+              </Link>
             </>
           )}
 
