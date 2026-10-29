@@ -145,49 +145,49 @@ export default function ExamMonitoring() {
     if (!healthData || healthData.visionServiceStatus === 'Unavailable' || healthData.visionServiceStatus === 'Error') {
       return {
         label: 'Vision Service Unavailable',
-        color: '#EF4444',
+        color: '#DC2626',
         bg: 'rgba(239, 68, 68, 0.12)',
         border: 'rgba(239, 68, 68, 0.35)',
-        dot: '#EF4444',
+        dot: '#DC2626',
         pulse: false
       };
     }
     if (metrics.isFallbackDemo) {
       return {
         label: 'Demo Mode (Synthetic Fallback)',
-        color: '#F59E0B',
+        color: '#D97706',
         bg: 'rgba(245, 158, 11, 0.12)',
         border: 'rgba(245, 158, 11, 0.35)',
-        dot: '#F59E0B',
+        dot: '#D97706',
         pulse: false
       };
     }
     if (processingState === 'running') {
       return {
         label: 'Processing Video (YOLOv8 Active)',
-        color: '#3B82F6',
-        bg: 'rgba(59, 130, 246, 0.15)',
-        border: 'rgba(59, 130, 246, 0.4)',
-        dot: '#3B82F6',
+        color: '#2563EB',
+        bg: 'rgba(37, 99, 235, 0.12)',
+        border: 'rgba(37, 99, 235, 0.35)',
+        dot: '#2563EB',
         pulse: true
       };
     }
     if (processingState === 'paused') {
       return {
         label: 'Surveillance Paused',
-        color: '#F59E0B',
-        bg: 'rgba(245, 158, 11, 0.15)',
+        color: '#D97706',
+        bg: 'rgba(245, 158, 11, 0.12)',
         border: 'rgba(245, 158, 11, 0.35)',
-        dot: '#F59E0B',
+        dot: '#D97706',
         pulse: false
       };
     }
     return {
       label: `Vision Service Connected (${healthData.accelerator || 'MPS GPU'})`,
-      color: '#10B981',
+      color: '#059669',
       bg: 'rgba(16, 185, 129, 0.12)',
       border: 'rgba(16, 185, 129, 0.35)',
-      dot: '#10B981',
+      dot: '#059669',
       pulse: false
     };
   }, [healthData, metrics.isFallbackDemo, processingState]);
@@ -227,7 +227,6 @@ export default function ExamMonitoring() {
   }, [handleVideoResize]);
 
   // COLLISION-AWARE CANVAS OVERLAY ENGINE
-  // Solves the multi-candidate overlap defect by checking label bounding boxes and dynamically stacking/shifting slots
   const updateCanvasOverlay = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -283,7 +282,6 @@ export default function ExamMonitoring() {
       const h = Math.min(height - y, (y2Norm - y1Norm) * height);
       const isAlert = track.status === 'REVIEW';
 
-      // Clean, professional label text
       let labelText = `Candidate #${track.trackId}`;
       if (isAlert) {
         const eventName = track.label || track.eventLabel || 'Review Required';
@@ -308,14 +306,12 @@ export default function ExamMonitoring() {
       };
     });
 
-    // Sort so alert candidates receive primary top priority
     items.sort((a, b) => {
       if (a.isAlert && !b.isAlert) return -1;
       if (!a.isAlert && b.isAlert) return 1;
       return a.box.x - b.box.x;
     });
 
-    // Collision detection & placement algorithm
     const placedBadges = [];
     const collidesWithPlaced = (rect) => {
       const padding = 4;
@@ -331,19 +327,12 @@ export default function ExamMonitoring() {
     items.forEach((item) => {
       const { box, badgeWidth, badgeHeight } = item;
 
-      // Candidate slots in order of preference
       const candidateSlots = [
-        // Slot 1: Directly above bounding box
         { x: box.x, y: box.y - badgeHeight - 4, stem: false },
-        // Slot 2: Directly below bounding box
         { x: box.x, y: box.y + box.h + 4, stem: false },
-        // Slot 3: Stacked 1 tier higher above
         { x: box.x, y: box.y - (badgeHeight * 2) - 8, stem: true },
-        // Slot 4: Inside top edge of box
         { x: box.x + 4, y: box.y + 4, stem: false },
-        // Slot 5: Stacked 1 tier further below
         { x: box.x, y: box.y + box.h + badgeHeight + 8, stem: true },
-        // Slot 6: Inside bottom edge of box
         { x: box.x + 4, y: Math.max(4, box.y + box.h - badgeHeight - 4), stem: false }
       ];
 
@@ -359,7 +348,6 @@ export default function ExamMonitoring() {
         }
       }
 
-      // Fallback: stack vertically below the lowest overlapping badge
       if (!chosen) {
         let fallbackY = Math.max(4, box.y - badgeHeight - 4);
         let fallbackX = Math.max(4, Math.min(width - badgeWidth - 4, box.x));
@@ -386,7 +374,6 @@ export default function ExamMonitoring() {
       });
     });
 
-    // Step A: Draw candidate bounding boxes
     items.forEach((item) => {
       const { box, isAlert } = item;
 
@@ -404,9 +391,8 @@ export default function ExamMonitoring() {
 
       ctx.fillRect(box.x, box.y, box.w, box.h);
       ctx.strokeRect(box.x, box.y, box.w, box.h);
-      ctx.shadowBlur = 0; // reset shadow
+      ctx.shadowBlur = 0;
 
-      // Sleek Corner Brackets
       const bracketLen = Math.min(10, box.w / 4, box.h / 4);
       ctx.lineWidth = isAlert ? 3 : 2.5;
       ctx.strokeStyle = isAlert ? '#FCA5A5' : '#6EE7B7';
@@ -440,7 +426,6 @@ export default function ExamMonitoring() {
       ctx.stroke();
     });
 
-    // Step B: Draw connector stems for stacked badges
     items.forEach((item) => {
       if (item.hasStem) {
         ctx.beginPath();
@@ -458,7 +443,6 @@ export default function ExamMonitoring() {
       }
     });
 
-    // Step C: Draw non-overlapping badges
     items.forEach((item) => {
       const { isAlert, labelText, badgeX, badgeY, badgeWidth, badgeHeight } = item;
 
@@ -486,7 +470,6 @@ export default function ExamMonitoring() {
     }));
   }, [framesData, restrictedZoneEnabled]);
 
-  // Synchronize canvas animation loop with HTML5 video playback
   useEffect(() => {
     let active = true;
     function renderLoop() {
@@ -674,7 +657,6 @@ export default function ExamMonitoring() {
     return sortedIncidents.slice(start, start + pageSize);
   }, [sortedIncidents, currentPage, pageSize]);
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, eventTypeFilter, searchQuery]);
@@ -694,17 +676,17 @@ export default function ExamMonitoring() {
                 ? '#065F46'
                 : toastType === 'warning'
                 ? '#991B1B'
-                : '#1E293B',
-            color: '#FFFFFF',
+                : 'var(--bg-surface)',
+            color: toastType === 'info' ? 'var(--text-primary)' : '#FFFFFF',
             padding: '0.85rem 1.4rem',
-            borderRadius: '10px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.35)',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-modal, 0 10px 30px rgba(0,0,0,0.15))',
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
             fontSize: '0.9rem',
-            fontWeight: 500,
-            border: '1px solid rgba(255,255,255,0.18)',
+            fontWeight: 600,
+            border: '1px solid var(--border-color)',
             animation: 'fadeIn 0.2s ease-out'
           }}
         >
@@ -713,26 +695,26 @@ export default function ExamMonitoring() {
           ) : toastType === 'warning' ? (
             <AlertTriangle size={18} color="#FBBF24" />
           ) : (
-            <Info size={18} color="#60A5FA" />
+            <Info size={18} color="#2563EB" />
           )}
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* Module E Header */}
+      {/* Module E Header — 100% High-Contrast and Readable in Light & Dark Mode */}
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
           <span
             style={{
               fontSize: '0.75rem',
-              fontWeight: 700,
+              fontWeight: 800,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
-              color: '#3B82F6',
-              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+              color: '#2563EB',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
               padding: '0.25rem 0.65rem',
               borderRadius: '6px',
-              border: '1px solid rgba(59, 130, 246, 0.3)'
+              border: '1px solid rgba(37, 99, 235, 0.25)'
             }}
           >
             Module E // Surveillance Console
@@ -742,7 +724,7 @@ export default function ExamMonitoring() {
           <span
             style={{
               fontSize: '0.75rem',
-              fontWeight: 600,
+              fontWeight: 700,
               color: truthfulStatus.color,
               backgroundColor: truthfulStatus.bg,
               border: `1px solid ${truthfulStatus.border}`,
@@ -766,10 +748,11 @@ export default function ExamMonitoring() {
           </span>
         </div>
 
-        <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#F8FAFC', margin: 0, letterSpacing: '-0.02em' }}>
+        {/* PAGE TITLE: Maximum contrast using theme token var(--text-primary) */}
+        <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
           Responsible Examination Monitoring
         </h1>
-        <p style={{ margin: '0.45rem 0 0', color: '#94A3B8', fontSize: '0.98rem', maxWidth: '960px', lineHeight: 1.55 }}>
+        <p style={{ margin: '0.45rem 0 0', color: 'var(--text-secondary)', fontSize: '0.98rem', maxWidth: '960px', lineHeight: 1.55 }}>
           Computer-vision-assisted examination hall monitoring with real-time event detection and human review.
           Strict zero-biometrics privacy architecture adhering to responsible AI principles.
         </p>
@@ -778,10 +761,10 @@ export default function ExamMonitoring() {
       {/* Privacy & Ethical Safeguards Alert Banner */}
       <div
         style={{
-          backgroundColor: 'rgba(59, 130, 246, 0.08)',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
-          borderRadius: '12px',
-          padding: '1rem 1.35rem',
+          backgroundColor: 'rgba(37, 99, 235, 0.06)',
+          border: '1px solid rgba(37, 99, 235, 0.22)',
+          borderRadius: '14px',
+          padding: '1.1rem 1.35rem',
           marginBottom: '1.75rem',
           display: 'flex',
           alignItems: 'center',
@@ -793,31 +776,34 @@ export default function ExamMonitoring() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div
             style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              backgroundColor: 'rgba(37, 99, 235, 0.15)',
               padding: '0.55rem',
-              borderRadius: '8px',
-              color: '#3B82F6'
+              borderRadius: '10px',
+              color: '#2563EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <Lock size={20} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#F8FAFC' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
               Responsible AI & Privacy Protection Active
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#94A3B8', marginTop: '0.15rem' }}>
+            <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
               No facial recognition or identity database matching. Detections represent observable physical gestures requiring human evaluation, never automated proof of misconduct.
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#CBD5E1', flexWrap: 'wrap' }}>
-          <span style={{ padding: '0.25rem 0.6rem', backgroundColor: '#0F172A', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.78rem', flexWrap: 'wrap' }}>
+          <span style={{ padding: '0.3rem 0.65rem', backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', fontWeight: 600 }}>
             YOLOv8 + 17-Keypoint Pose
           </span>
-          <span style={{ padding: '0.25rem 0.6rem', backgroundColor: '#0F172A', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <span style={{ padding: '0.3rem 0.65rem', backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', fontWeight: 600 }}>
             Anonymous Spatial IDs
           </span>
-          <span style={{ padding: '0.25rem 0.6rem', backgroundColor: '#0F172A', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <span style={{ padding: '0.3rem 0.65rem', backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', fontWeight: 600 }}>
             Human-in-the-Loop Review
           </span>
         </div>
@@ -828,29 +814,30 @@ export default function ExamMonitoring() {
         {/* Left Column: Surveillance Feed with Collision-Free Overlay */}
         <div
           style={{
-            backgroundColor: '#1E293B',
+            backgroundColor: 'var(--bg-surface)',
             borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            border: '1px solid var(--border-color)',
             padding: '1.35rem',
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
+            boxShadow: 'var(--card-shadow, 0 4px 20px rgba(0, 0, 0, 0.05))'
           }}
         >
           {/* Video Header: Camera details & Live Telemetry HUD */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <Video size={18} color="#3B82F6" />
-              <span style={{ fontWeight: 700, fontSize: '0.98rem', color: '#F8FAFC' }}>
+              <Video size={18} color="#2563EB" />
+              <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
                 Surveillance Feed // {roomCode}
               </span>
               <span
                 style={{
                   fontSize: '0.72rem',
                   fontWeight: 700,
-                  backgroundColor: processingState === 'running' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(100, 116, 139, 0.25)',
-                  color: processingState === 'running' ? '#60A5FA' : '#94A3B8',
+                  backgroundColor: processingState === 'running' ? 'rgba(37, 99, 235, 0.12)' : 'var(--bg-primary)',
+                  color: processingState === 'running' ? '#2563EB' : 'var(--text-secondary)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.2rem 0.55rem',
                   borderRadius: '4px',
                   display: 'inline-flex',
@@ -859,25 +846,25 @@ export default function ExamMonitoring() {
                 }}
               >
                 {processingState === 'running' && (
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563EB' }} />
                 )}
                 {processingState.toUpperCase()}
               </span>
             </div>
 
             {/* Live Metrics Telemetry Badges */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#94A3B8', flexWrap: 'wrap' }}>
-              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                Time: <strong style={{ color: '#F8FAFC' }}>{formatTime(currentTimeSec)}</strong> / {formatTime(durationSec)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                Time: <strong style={{ color: 'var(--text-primary)' }}>{formatTime(currentTimeSec)}</strong> / {formatTime(durationSec)}
               </div>
-              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                FPS: <strong style={{ color: '#38BDF8' }}>{metrics.fps}</strong>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                FPS: <strong style={{ color: '#0284C7' }}>{metrics.fps}</strong>
               </div>
-              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                Candidates: <strong style={{ color: '#34D399' }}>{metrics.activeTracks}</strong>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                Candidates: <strong style={{ color: '#059669' }}>{metrics.activeTracks}</strong>
               </div>
-              <div style={{ backgroundColor: '#0F172A', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                Alerts: <strong style={{ color: '#F87171' }}>{metrics.alertCount}</strong>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                Alerts: <strong style={{ color: '#DC2626' }}>{metrics.alertCount}</strong>
               </div>
             </div>
           </div>
@@ -892,8 +879,8 @@ export default function ExamMonitoring() {
               backgroundColor: '#000000',
               borderRadius: '12px',
               overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              border: '1px solid var(--border-color)'
             }}
           >
             <video
@@ -944,14 +931,14 @@ export default function ExamMonitoring() {
                     border: 'none',
                     padding: '0.55rem 1.25rem',
                     borderRadius: '8px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '0.86rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.45rem',
                     transition: 'all 0.15s ease',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)'
+                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1D4ED8')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563EB')}
@@ -968,7 +955,7 @@ export default function ExamMonitoring() {
                     border: 'none',
                     padding: '0.55rem 1.25rem',
                     borderRadius: '8px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '0.86rem',
                     cursor: 'pointer',
                     display: 'flex',
@@ -993,7 +980,7 @@ export default function ExamMonitoring() {
                     border: 'none',
                     padding: '0.55rem 1.1rem',
                     borderRadius: '8px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '0.86rem',
                     cursor: 'pointer',
                     display: 'flex',
@@ -1014,11 +1001,11 @@ export default function ExamMonitoring() {
                 disabled={processingState === 'idle'}
                 style={{
                   backgroundColor: 'transparent',
-                  color: processingState === 'idle' ? '#64748B' : '#EF4444',
-                  border: `1px solid ${processingState === 'idle' ? '#475569' : '#EF4444'}`,
+                  color: processingState === 'idle' ? 'var(--text-secondary)' : '#DC2626',
+                  border: `1.5px solid ${processingState === 'idle' ? 'var(--border-color)' : '#DC2626'}`,
                   padding: '0.55rem 1rem',
                   borderRadius: '8px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '0.86rem',
                   cursor: processingState === 'idle' ? 'not-allowed' : 'pointer',
                   display: 'flex',
@@ -1035,9 +1022,9 @@ export default function ExamMonitoring() {
               <button
                 onClick={handleRestart}
                 style={{
-                  backgroundColor: 'transparent',
-                  color: '#CBD5E1',
-                  border: '1px solid rgba(255,255,255,0.18)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.55rem 1rem',
                   borderRadius: '8px',
                   fontWeight: 600,
@@ -1048,8 +1035,8 @@ export default function ExamMonitoring() {
                   gap: '0.4rem',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-color)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-primary)')}
               >
                 <RotateCcw size={15} />
                 Restart
@@ -1058,7 +1045,7 @@ export default function ExamMonitoring() {
 
             {/* Quick Video Selector & Upload */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.82rem', color: '#94A3B8' }}>Source:</span>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Source:</span>
               <select
                 value={selectedVideo}
                 onChange={(e) => {
@@ -1066,12 +1053,13 @@ export default function ExamMonitoring() {
                   handleStop();
                 }}
                 style={{
-                  backgroundColor: '#0F172A',
-                  color: '#F8FAFC',
-                  border: '1px solid rgba(255,255,255,0.18)',
-                  padding: '0.45rem 0.8rem',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.45rem 0.85rem',
                   borderRadius: '8px',
-                  fontSize: '0.82rem',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
                   outline: 'none',
                   cursor: 'pointer'
                 }}
@@ -1085,20 +1073,21 @@ export default function ExamMonitoring() {
 
               <label
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.06)',
-                  color: '#F8FAFC',
-                  border: '1px solid rgba(255,255,255,0.18)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.45rem 0.85rem',
                   borderRadius: '8px',
-                  fontSize: '0.82rem',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-color)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-primary)')}
               >
                 <Upload size={14} />
                 Upload MP4
@@ -1113,16 +1102,16 @@ export default function ExamMonitoring() {
           {/* Hall Configuration Parameters Card */}
           <div
             style={{
-              backgroundColor: '#1E293B',
+              backgroundColor: 'var(--bg-surface)',
               borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              border: '1px solid var(--border-color)',
               padding: '1.35rem',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
+              boxShadow: 'var(--card-shadow, 0 4px 20px rgba(0, 0, 0, 0.05))'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '1.15rem' }}>
-              <Layers size={18} color="#3B82F6" />
-              <span style={{ fontWeight: 700, fontSize: '0.98rem', color: '#F8FAFC' }}>
+              <Layers size={18} color="#2563EB" />
+              <span style={{ fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
                 Surveillance Parameters
               </span>
             </div>
@@ -1130,7 +1119,7 @@ export default function ExamMonitoring() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Examination Hall Code */}
               <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94A3B8', display: 'block', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
                   Examination Hall / Room
                 </label>
                 <input
@@ -1139,12 +1128,13 @@ export default function ExamMonitoring() {
                   onChange={(e) => setRoomCode(e.target.value)}
                   style={{
                     width: '100%',
-                    backgroundColor: '#0F172A',
-                    color: '#F8FAFC',
-                    border: '1px solid rgba(255,255,255,0.18)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
                     padding: '0.55rem 0.85rem',
                     borderRadius: '8px',
                     fontSize: '0.88rem',
+                    fontWeight: 600,
                     boxSizing: 'border-box',
                     outline: 'none'
                   }}
@@ -1153,9 +1143,9 @@ export default function ExamMonitoring() {
 
               {/* Frame Sampling Acceleration */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                  <span>Frame Sampling (Skip)</span>
-                  <strong style={{ color: '#F8FAFC' }}>{frameSkip}x (Processes 1/{frameSkip} frames)</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  <span style={{ fontWeight: 600 }}>Frame Sampling (Skip)</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{frameSkip}x (Processes 1/{frameSkip} frames)</strong>
                 </div>
                 <input
                   type="range"
@@ -1163,18 +1153,18 @@ export default function ExamMonitoring() {
                   max="5"
                   value={frameSkip}
                   onChange={(e) => setFrameSkip(parseInt(e.target.value, 10))}
-                  style={{ width: '100%', cursor: 'pointer', accentColor: '#3B82F6' }}
+                  style={{ width: '100%', cursor: 'pointer', accentColor: '#2563EB' }}
                 />
-                <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                   Accelerates inference throughput by ~{frameSkip * 100}% on Apple Silicon GPU / CUDA.
                 </div>
               </div>
 
               {/* Head Turn Sensitivity */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                  <span>Head Turn Sensitivity</span>
-                  <strong style={{ color: '#F8FAFC' }}>{headTurnThresh} turns / 5s</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  <span style={{ fontWeight: 600 }}>Head Turn Sensitivity</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{headTurnThresh} turns / 5s</strong>
                 </div>
                 <input
                   type="range"
@@ -1182,15 +1172,15 @@ export default function ExamMonitoring() {
                   max="6"
                   value={headTurnThresh}
                   onChange={(e) => setHeadTurnThresh(parseInt(e.target.value, 10))}
-                  style={{ width: '100%', cursor: 'pointer', accentColor: '#3B82F6' }}
+                  style={{ width: '100%', cursor: 'pointer', accentColor: '#2563EB' }}
                 />
               </div>
 
               {/* Device Detection Confidence */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                  <span>Device Detection Confidence</span>
-                  <strong style={{ color: '#F8FAFC' }}>{Math.round(phoneConfThresh * 100)}%</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  <span style={{ fontWeight: 600 }}>Device Detection Confidence</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{Math.round(phoneConfThresh * 100)}%</strong>
                 </div>
                 <input
                   type="range"
@@ -1199,18 +1189,18 @@ export default function ExamMonitoring() {
                   step="0.05"
                   value={phoneConfThresh}
                   onChange={(e) => setPhoneConfThresh(parseFloat(e.target.value))}
-                  style={{ width: '100%', cursor: 'pointer', accentColor: '#3B82F6' }}
+                  style={{ width: '100%', cursor: 'pointer', accentColor: '#2563EB' }}
                 />
               </div>
 
               {/* Restricted Podium Toggle */}
               <div style={{ paddingTop: '0.25rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', fontSize: '0.86rem', color: '#F8FAFC' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', fontSize: '0.86rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                   <input
                     type="checkbox"
                     checked={restrictedZoneEnabled}
                     onChange={(e) => setRestrictedZoneEnabled(e.target.checked)}
-                    style={{ cursor: 'pointer', accentColor: '#3B82F6' }}
+                    style={{ cursor: 'pointer', accentColor: '#2563EB' }}
                   />
                   <span>Enable Restricted Podium Polygon</span>
                 </label>
@@ -1221,45 +1211,45 @@ export default function ExamMonitoring() {
           {/* Hall Telemetry Summary Card */}
           <div
             style={{
-              backgroundColor: '#1E293B',
+              backgroundColor: 'var(--bg-surface)',
               borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              border: '1px solid var(--border-color)',
               padding: '1.35rem',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
+              boxShadow: 'var(--card-shadow, 0 4px 20px rgba(0, 0, 0, 0.05))'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '1rem' }}>
-              <Activity size={18} color="#10B981" />
-              <span style={{ fontWeight: 700, fontSize: '0.98rem', color: '#F8FAFC' }}>
+              <Activity size={18} color="#059669" />
+              <span style={{ fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
                 Hall Status Telemetry
               </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Detected Candidates</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#34D399', marginTop: '0.25rem' }}>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Detected Candidates</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', marginTop: '0.25rem' }}>
                   {metrics.activeTracks}
                 </div>
               </div>
 
-              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Review Alerts</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F87171', marginTop: '0.25rem' }}>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Review Alerts</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#DC2626', marginTop: '0.25rem' }}>
                   {incidents.filter((i) => i.reviewStatus === 'Pending Review').length}
                 </div>
               </div>
 
-              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Inference Rate</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F8FAFC', marginTop: '0.25rem' }}>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Inference Rate</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
                   {metrics.fps} FPS
                 </div>
               </div>
 
-              <div style={{ backgroundColor: '#0F172A', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Frame Latency</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F8FAFC', marginTop: '0.25rem' }}>
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Frame Latency</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
                   {metrics.latencyMs} ms
                 </div>
               </div>
@@ -1271,11 +1261,11 @@ export default function ExamMonitoring() {
       {/* Incident Audit Trail Section */}
       <div
         style={{
-          backgroundColor: '#1E293B',
+          backgroundColor: 'var(--bg-surface)',
           borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
+          border: '1px solid var(--border-color)',
           padding: '1.5rem',
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
+          boxShadow: 'var(--card-shadow, 0 4px 20px rgba(0, 0, 0, 0.05))'
         }}
       >
         {/* Table Header & Controls Bar */}
@@ -1288,14 +1278,14 @@ export default function ExamMonitoring() {
             gap: '1rem',
             marginBottom: '1.35rem',
             paddingBottom: '1.15rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+            borderBottom: '1px solid var(--border-color)'
           }}
         >
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               Examination Incident Audit Trail
             </h2>
-            <div style={{ fontSize: '0.86rem', color: '#94A3B8', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
               Showing {sortedIncidents.length} of {incidents.length} recorded behavioral events
             </div>
           </div>
@@ -1305,7 +1295,7 @@ export default function ExamMonitoring() {
             <div style={{ position: 'relative' }}>
               <Search
                 size={14}
-                style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}
+                style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}
               />
               <input
                 type="text"
@@ -1313,12 +1303,13 @@ export default function ExamMonitoring() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
-                  backgroundColor: '#0F172A',
-                  color: '#F8FAFC',
-                  border: '1px solid rgba(255,255,255,0.18)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.45rem 0.85rem 0.45rem 2.2rem',
                   borderRadius: '8px',
-                  fontSize: '0.82rem',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
                   outline: 'none',
                   minWidth: '200px'
                 }}
@@ -1330,12 +1321,13 @@ export default function ExamMonitoring() {
               value={eventTypeFilter}
               onChange={(e) => setEventTypeFilter(e.target.value)}
               style={{
-                backgroundColor: '#0F172A',
-                color: '#F8FAFC',
-                border: '1px solid rgba(255,255,255,0.18)',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
                 padding: '0.45rem 0.85rem',
                 borderRadius: '8px',
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
+                fontWeight: 600,
                 outline: 'none',
                 cursor: 'pointer'
               }}
@@ -1351,12 +1343,13 @@ export default function ExamMonitoring() {
             <button
               onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
               style={{
-                backgroundColor: '#0F172A',
-                color: '#F8FAFC',
-                border: '1px solid rgba(255,255,255,0.18)',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
                 padding: '0.45rem 0.75rem',
                 borderRadius: '8px',
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
+                fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.35rem',
@@ -1375,13 +1368,13 @@ export default function ExamMonitoring() {
                   key={st}
                   onClick={() => setStatusFilter(st)}
                   style={{
-                    backgroundColor: statusFilter === st ? '#2563EB' : 'rgba(255,255,255,0.06)',
-                    color: statusFilter === st ? '#FFFFFF' : '#94A3B8',
-                    border: 'none',
+                    backgroundColor: statusFilter === st ? '#2563EB' : 'var(--bg-primary)',
+                    color: statusFilter === st ? '#FFFFFF' : 'var(--text-secondary)',
+                    border: `1px solid ${statusFilter === st ? '#2563EB' : 'var(--border-color)'}`,
                     padding: '0.4rem 0.75rem',
                     borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -1395,9 +1388,9 @@ export default function ExamMonitoring() {
 
         {/* Incidents Table */}
         {sortedIncidents.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94A3B8' }}>
-            <CheckCircle size={38} color="#10B981" style={{ margin: '0 auto 0.85rem' }} />
-            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F8FAFC' }}>
+          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-secondary)' }}>
+            <CheckCircle size={38} color="#059669" style={{ margin: '0 auto 0.85rem' }} />
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               No incidents match current filter
             </div>
             <div style={{ fontSize: '0.88rem', marginTop: '0.35rem' }}>
@@ -1410,14 +1403,14 @@ export default function ExamMonitoring() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
               <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.12)', color: '#CBD5E1', backgroundColor: '#0F172A' }}>
-                  <th style={{ padding: '0.85rem 1rem', borderRadius: '8px 0 0 0' }}>Incident ID</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Candidate</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Observable Event</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Video Time</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Model Certainty</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Review Status</th>
-                  <th style={{ padding: '0.85rem 1rem', textAlign: 'right', borderRadius: '0 8px 0 0' }}>Actions</th>
+                <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-primary)' }}>
+                  <th style={{ padding: '0.85rem 1rem', borderRadius: '8px 0 0 0', fontWeight: 700 }}>Incident ID</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Candidate</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Observable Event</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Video Time</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Model Certainty</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Review Status</th>
+                  <th style={{ padding: '0.85rem 1rem', textAlign: 'right', borderRadius: '0 8px 0 0', fontWeight: 700 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1425,15 +1418,13 @@ export default function ExamMonitoring() {
                   <tr
                     key={inc.incidentId}
                     style={{
-                      borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                      borderBottom: '1px solid var(--border-color)',
+                      backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)',
                       transition: 'background-color 0.15s ease'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)')}
                   >
                     {/* Incident ID */}
-                    <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: '#F8FAFC' }}>
+                    <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)' }}>
                       {inc.incidentId}
                     </td>
 
@@ -1441,13 +1432,13 @@ export default function ExamMonitoring() {
                     <td style={{ padding: '0.85rem 1rem' }}>
                       <span
                         style={{
-                          backgroundColor: 'rgba(59, 130, 246, 0.18)',
-                          color: '#93C5FD',
+                          backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                          color: '#2563EB',
                           padding: '0.25rem 0.65rem',
                           borderRadius: '6px',
                           fontWeight: 700,
                           fontSize: '0.82rem',
-                          border: '1px solid rgba(59, 130, 246, 0.3)'
+                          border: '1px solid rgba(37, 99, 235, 0.25)'
                         }}
                       >
                         Track #{inc.trackingId}
@@ -1456,8 +1447,8 @@ export default function ExamMonitoring() {
 
                     {/* Observable Event */}
                     <td style={{ padding: '0.85rem 1rem' }}>
-                      <div style={{ fontWeight: 700, color: '#F8FAFC' }}>{inc.eventLabel}</div>
-                      <div style={{ fontSize: '0.76rem', color: '#94A3B8', marginTop: '0.1rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{inc.eventLabel}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
                         {inc.eventType === 'repeated_head_turn'
                           ? `${inc.metadata?.turns_in_window || 3} direction flips in 5s window`
                           : inc.eventType === 'phone_detected'
@@ -1471,23 +1462,24 @@ export default function ExamMonitoring() {
                       <button
                         onClick={() => handleSeekToIncident(inc.videoTimestampSeconds)}
                         style={{
-                          backgroundColor: '#0F172A',
-                          color: '#F8FAFC',
-                          border: '1px solid rgba(255,255,255,0.18)',
+                          backgroundColor: 'var(--bg-surface)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)',
                           padding: '0.3rem 0.65rem',
                           borderRadius: '6px',
-                          fontSize: '0.78rem',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.35rem',
                           transition: 'all 0.15s ease'
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0F172A')}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-primary)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface)')}
                         title="Seek video player directly to this incident"
                       >
-                        <Clock size={12} color="#38BDF8" />
+                        <Clock size={12} color="#0284C7" />
                         {inc.videoTimestampSeconds.toFixed(1)}s
                       </button>
                     </td>
@@ -1495,20 +1487,20 @@ export default function ExamMonitoring() {
                     {/* Model Confidence */}
                     <td style={{ padding: '0.85rem 1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: '45px', height: '6px', backgroundColor: '#0F172A', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: '45px', height: '6px', backgroundColor: 'var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
                           <div
                             style={{
                               width: `${Math.round(inc.confidence * 100)}%`,
                               height: '100%',
-                              backgroundColor: inc.confidence >= 0.8 ? '#10B981' : '#F59E0B'
+                              backgroundColor: inc.confidence >= 0.8 ? '#059669' : '#D97706'
                             }}
                           />
                         </div>
                         <span
                           style={{
                             fontWeight: 700,
-                            fontSize: '0.82rem',
-                            color: inc.confidence >= 0.8 ? '#34D399' : '#FBBF24'
+                            fontSize: '0.84rem',
+                            color: inc.confidence >= 0.8 ? '#059669' : '#D97706'
                           }}
                         >
                           {Math.round(inc.confidence * 100)}%
@@ -1522,28 +1514,28 @@ export default function ExamMonitoring() {
                         style={{
                           backgroundColor:
                             inc.reviewStatus === 'Resolved'
-                              ? 'rgba(16, 185, 129, 0.16)'
+                              ? 'rgba(16, 185, 129, 0.12)'
                               : inc.reviewStatus === 'Dismissed'
-                              ? 'rgba(148, 163, 184, 0.16)'
+                              ? 'var(--bg-primary)'
                               : inc.reviewStatus === 'Reviewed'
-                              ? 'rgba(59, 130, 246, 0.16)'
-                              : 'rgba(239, 68, 68, 0.16)',
+                              ? 'rgba(37, 99, 235, 0.12)'
+                              : 'rgba(239, 68, 68, 0.12)',
                           color:
                             inc.reviewStatus === 'Resolved'
-                              ? '#34D399'
+                              ? '#059669'
                               : inc.reviewStatus === 'Dismissed'
-                              ? '#94A3B8'
+                              ? 'var(--text-secondary)'
                               : inc.reviewStatus === 'Reviewed'
-                              ? '#93C5FD'
-                              : '#F87171',
+                              ? '#2563EB'
+                              : '#DC2626',
                           border: `1px solid ${
                             inc.reviewStatus === 'Resolved'
-                              ? 'rgba(16, 185, 129, 0.35)'
+                              ? 'rgba(16, 185, 129, 0.3)'
                               : inc.reviewStatus === 'Dismissed'
-                              ? 'rgba(148, 163, 184, 0.35)'
+                              ? 'var(--border-color)'
                               : inc.reviewStatus === 'Reviewed'
-                              ? 'rgba(59, 130, 246, 0.35)'
-                              : 'rgba(239, 68, 68, 0.35)'
+                              ? 'rgba(37, 99, 235, 0.3)'
+                              : 'rgba(239, 68, 68, 0.3)'
                           }`,
                           padding: '0.25rem 0.65rem',
                           borderRadius: '6px',
@@ -1569,8 +1561,8 @@ export default function ExamMonitoring() {
                             border: 'none',
                             padding: '0.35rem 0.75rem',
                             borderRadius: '6px',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease'
                           }}
@@ -1584,17 +1576,18 @@ export default function ExamMonitoring() {
                           <button
                             onClick={() => handleUpdateIncidentStatus(inc.incidentId, 'Dismissed')}
                             style={{
-                              backgroundColor: 'rgba(255,255,255,0.06)',
-                              color: '#94A3B8',
-                              border: '1px solid rgba(255,255,255,0.18)',
+                              backgroundColor: 'var(--bg-primary)',
+                              color: 'var(--text-secondary)',
+                              border: '1px solid var(--border-color)',
                               padding: '0.35rem 0.65rem',
                               borderRadius: '6px',
-                              fontSize: '0.78rem',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
                               cursor: 'pointer',
                               transition: 'all 0.15s ease'
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-color)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-primary)')}
                           >
                             Dismiss
                           </button>
@@ -1615,7 +1608,7 @@ export default function ExamMonitoring() {
                   justifyContent: 'space-between',
                   padding: '1.15rem 0.5rem 0.25rem',
                   fontSize: '0.85rem',
-                  color: '#94A3B8'
+                  color: 'var(--text-secondary)'
                 }}
               >
                 <div>
@@ -1626,35 +1619,37 @@ export default function ExamMonitoring() {
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     style={{
-                      backgroundColor: '#0F172A',
-                      color: currentPage === 1 ? '#475569' : '#F8FAFC',
-                      border: '1px solid rgba(255,255,255,0.15)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: currentPage === 1 ? 'var(--text-secondary)' : 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
                       padding: '0.35rem 0.75rem',
                       borderRadius: '6px',
                       cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.3rem'
+                      gap: '0.3rem',
+                      fontWeight: 600
                     }}
                   >
                     <ChevronLeft size={14} /> Previous
                   </button>
-                  <span style={{ fontWeight: 600, color: '#F8FAFC', padding: '0 0.5rem' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', padding: '0 0.5rem' }}>
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     style={{
-                      backgroundColor: '#0F172A',
-                      color: currentPage === totalPages ? '#475569' : '#F8FAFC',
-                      border: '1px solid rgba(255,255,255,0.15)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: currentPage === totalPages ? 'var(--text-secondary)' : 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
                       padding: '0.35rem 0.75rem',
                       borderRadius: '6px',
                       cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.3rem'
+                      gap: '0.3rem',
+                      fontWeight: 600
                     }}
                   >
                     Next <ChevronRight size={14} />
@@ -1675,7 +1670,7 @@ export default function ExamMonitoring() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
             backdropFilter: 'blur(5px)',
             zIndex: 9999,
             display: 'flex',
@@ -1688,15 +1683,15 @@ export default function ExamMonitoring() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: '#1E293B',
+              backgroundColor: 'var(--bg-surface)',
               borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.18)',
+              border: '1px solid var(--border-color)',
               maxWidth: '680px',
               width: '100%',
               maxHeight: '92vh',
               overflowY: 'auto',
               padding: '1.85rem',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.6)',
+              boxShadow: 'var(--shadow-modal, 0 25px 50px rgba(0,0,0,0.25))',
               display: 'flex',
               flexDirection: 'column',
               gap: '1.35rem'
@@ -1705,10 +1700,10 @@ export default function ExamMonitoring() {
             {/* Modal Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38BDF8', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#2563EB', letterSpacing: '0.04em' }}>
                   Incident Appraisal // {selectedIncident.incidentId}
                 </span>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0.2rem 0 0', color: '#F8FAFC' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0.2rem 0 0', color: 'var(--text-primary)' }}>
                   {selectedIncident.eventLabel}
                 </h3>
               </div>
@@ -1717,13 +1712,13 @@ export default function ExamMonitoring() {
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none',
-                  color: '#94A3B8',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: '0.35rem',
                   borderRadius: '50%'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#94A3B8')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <XCircle size={24} />
               </button>
@@ -1739,7 +1734,7 @@ export default function ExamMonitoring() {
                   backgroundColor: '#000000',
                   borderRadius: '12px',
                   overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.15)'
+                  border: '1px solid var(--border-color)'
                 }}
               >
                 <img
@@ -1757,7 +1752,7 @@ export default function ExamMonitoring() {
                     borderRadius: '6px',
                     color: '#FFFFFF',
                     fontSize: '0.78rem',
-                    border: '1px solid rgba(255,255,255,0.15)'
+                    border: '1px solid rgba(255,255,255,0.2)'
                   }}
                 >
                   Timestamp: {selectedIncident.videoTimestampSeconds}s // Anonymous Track #{selectedIncident.trackingId}
@@ -1771,28 +1766,28 @@ export default function ExamMonitoring() {
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr 1fr',
                 gap: '0.85rem',
-                backgroundColor: '#0F172A',
+                backgroundColor: 'var(--bg-primary)',
                 padding: '0.95rem',
                 borderRadius: '10px',
                 fontSize: '0.82rem',
-                border: '1px solid rgba(255,255,255,0.08)'
+                border: '1px solid var(--border-color)'
               }}
             >
               <div>
-                <div style={{ color: '#94A3B8' }}>Model Certainty</div>
-                <strong style={{ color: '#FBBF24', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
+                <div style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Model Certainty</div>
+                <strong style={{ color: '#D97706', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
                   {Math.round(selectedIncident.confidence * 100)}%
                 </strong>
               </div>
               <div>
-                <div style={{ color: '#94A3B8' }}>Assigned Subject</div>
-                <strong style={{ color: '#93C5FD', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
+                <div style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Assigned Subject</div>
+                <strong style={{ color: '#2563EB', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
                   Track #{selectedIncident.trackingId}
                 </strong>
               </div>
               <div>
-                <div style={{ color: '#94A3B8' }}>Review Status</div>
-                <strong style={{ color: '#34D399', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
+                <div style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Review Status</div>
+                <strong style={{ color: '#059669', fontSize: '1.05rem', display: 'block', marginTop: '0.2rem' }}>
                   {selectedIncident.reviewStatus}
                 </strong>
               </div>
@@ -1801,13 +1796,14 @@ export default function ExamMonitoring() {
             {/* Responsible AI Disclaimer Notice */}
             <div
               style={{
-                backgroundColor: 'rgba(245, 158, 11, 0.09)',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
                 borderRadius: '10px',
                 padding: '0.85rem 1rem',
                 fontSize: '0.82rem',
-                color: '#FDE68A',
-                lineHeight: 1.5
+                color: '#B45309',
+                lineHeight: 1.5,
+                fontWeight: 500
               }}
             >
               <strong>Important Notice:</strong> Model confidence reflects vision detection certainty of the observable physical gesture, not proof of misconduct. Human invigilators must evaluate room context before concluding any disciplinary action.
@@ -1815,7 +1811,7 @@ export default function ExamMonitoring() {
 
             {/* Reviewer Notes Field */}
             <div>
-              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94A3B8', display: 'block', marginBottom: '0.4rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>
                 Invigilator Audit Notes & Observations
               </label>
               <textarea
@@ -1825,12 +1821,13 @@ export default function ExamMonitoring() {
                 placeholder="Record objective observations (e.g., student asked proctor for extra answer sheet, temporary posture shift, lighting reflection)..."
                 style={{
                   width: '100%',
-                  backgroundColor: '#0F172A',
-                  color: '#F8FAFC',
-                  border: '1px solid rgba(255,255,255,0.18)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.75rem',
                   borderRadius: '8px',
                   fontSize: '0.86rem',
+                  fontWeight: 500,
                   boxSizing: 'border-box',
                   outline: 'none',
                   resize: 'vertical'
@@ -1846,9 +1843,9 @@ export default function ExamMonitoring() {
                   setSelectedIncident(null);
                 }}
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                  color: '#F8FAFC',
-                  border: '1px solid rgba(255,255,255,0.18)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.55rem 0.95rem',
                   borderRadius: '8px',
                   fontSize: '0.82rem',
@@ -1859,7 +1856,7 @@ export default function ExamMonitoring() {
                   gap: '0.4rem'
                 }}
               >
-                <Clock size={14} color="#38BDF8" />
+                <Clock size={14} color="#0284C7" />
                 Jump in Video
               </button>
 
@@ -1868,18 +1865,18 @@ export default function ExamMonitoring() {
                   disabled={isUpdatingStatus}
                   onClick={() => handleUpdateIncidentStatus(selectedIncident.incidentId, 'Dismissed')}
                   style={{
-                    backgroundColor: '#475569',
-                    color: '#FFFFFF',
-                    border: 'none',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-color)',
                     padding: '0.55rem 0.95rem',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#334155')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#475569')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-color)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-primary)')}
                 >
                   Dismiss (False Positive)
                 </button>
@@ -1894,7 +1891,7 @@ export default function ExamMonitoring() {
                     padding: '0.55rem 0.95rem',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -1914,7 +1911,7 @@ export default function ExamMonitoring() {
                     padding: '0.55rem 0.95rem',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
