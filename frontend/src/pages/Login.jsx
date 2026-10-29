@@ -907,25 +907,13 @@ export default function Login() {
         .left-image-overlay {
           position: absolute;
           inset: 0;
-          background: 
-            /* Seamless gradient merger fading right edge directly into the white panel */
-            linear-gradient(
-              to right,
-              transparent 0%,
-              transparent 52%,
-              rgba(255, 255, 255, 0.15) 66%,
-              rgba(255, 255, 255, 0.48) 80%,
-              rgba(255, 255, 255, 0.88) 93%,
-              #ffffff 100%
-            ),
-            /* Vertical gradient to protect upper-left brand mark contrast */
-            linear-gradient(
-              180deg,
-              rgba(5, 8, 17, 0.65) 0%,
-              rgba(5, 8, 17, 0.05) 28%,
-              rgba(5, 8, 17, 0.12) 72%,
-              rgba(5, 8, 17, 0.72) 100%
-            );
+          background: linear-gradient(
+            180deg,
+            rgba(5, 8, 17, 0.72) 0%,
+            rgba(5, 8, 17, 0.15) 30%,
+            rgba(5, 8, 17, 0.25) 70%,
+            rgba(5, 8, 17, 0.82) 100%
+          );
           pointer-events: none;
         }
 
@@ -1385,22 +1373,6 @@ export default function Login() {
 
           .left-panel-content {
             padding: 1.5rem 1.75rem;
-          }
-
-          .left-image-overlay {
-            background: 
-              linear-gradient(
-                to bottom,
-                transparent 0%,
-                transparent 45%,
-                rgba(255, 255, 255, 0.5) 75%,
-                #ffffff 100%
-              ),
-              linear-gradient(
-                180deg,
-                rgba(5, 8, 17, 0.6) 0%,
-                transparent 35%
-              );
           }
 
           .github-right-panel {
