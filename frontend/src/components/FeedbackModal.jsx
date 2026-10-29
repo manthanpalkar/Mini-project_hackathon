@@ -19,11 +19,12 @@ const CATEGORIES = [
   { id: 'Other', label: 'Other', short: 'Other', color: '#6b7280' }
 ];
 
-export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug / Technical Issue' }) {
+export default function FeedbackModal({ isOpen, onClose, initialCategory = null }) {
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(() => {
-    return CATEGORIES.find(c => c.id === initialCategory) || CATEGORIES[0];
+    return initialCategory ? (CATEGORIES.find(c => c.id === initialCategory) || null) : null;
   });
+  const [categoryError, setCategoryError] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [screenshot, setScreenshot] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState('');
@@ -42,9 +43,15 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
   useEffect(() => {
     if (isOpen) {
       setErrorMessage('');
+      setCategoryError(false);
       setSubmitSuccess(null);
       setCopiedRef(false);
       setPopoverOpen(false);
+      if (initialCategory) {
+        setSelectedCategory(CATEGORIES.find(c => c.id === initialCategory) || null);
+      } else {
+        setSelectedCategory(null);
+      }
       // Auto-focus textarea on open after short delay
       setTimeout(() => {
         if (textareaRef.current) {
@@ -52,7 +59,7 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
         }
       }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, initialCategory]);
 
   // Handle click outside popover & escape key
   useEffect(() => {
@@ -128,15 +135,30 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!selectedCategory) {
+      setCategoryError(true);
+      setErrorMessage('Please select a feedback category.');
+      setPopoverOpen(true);
+      if (selectorButtonRef.current) {
+        selectorButtonRef.current.focus();
+      }
+      return;
+    }
+
     const cleanDesc = description.trim();
     if (!cleanDesc) {
       setErrorMessage('Please describe your feedback or issue before submitting.');
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
       return;
     }
 
     try {
       setSubmitting(true);
       setErrorMessage('');
+      setCategoryError(false);
 
       const formData = new FormData();
       formData.append('description', cleanDesc);
@@ -159,6 +181,7 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
 
       // Clear draft on successful submission
       setDescription('');
+      setSelectedCategory(null);
       clearScreenshot();
     } catch (err) {
       setErrorMessage(err.message || 'Failed to submit feedback. Please try again.');
@@ -248,38 +271,64 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
                 <button
                   ref={selectorButtonRef}
                   type="button"
-                  onClick={() => setPopoverOpen(prev => !prev)}
+                  onClick={() => {
+                    setPopoverOpen(prev => !prev);
+                    setCategoryError(false);
+                  }}
                   aria-expanded={popoverOpen}
                   aria-haspopup="menu"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '5px 11px',
+                    padding: '5px 12px',
                     borderRadius: '20px',
-                    border: '1px solid var(--border-color, #e5e7eb)',
-                    backgroundColor: popoverOpen ? 'var(--bg-primary, #ffffff)' : 'var(--bg-secondary, #f3f4f6)',
-                    color: 'var(--text-primary, #111827)',
+                    border: categoryError
+                      ? '1.5px solid #ef4444'
+                      : (popoverOpen ? '1.5px solid var(--primary-color, #0071E3)' : (selectedCategory ? '1px solid var(--border-color, #e5e7eb)' : '1.5px solid rgba(0, 113, 227, 0.4)')),
+                    backgroundColor: categoryError
+                      ? 'rgba(239, 68, 68, 0.08)'
+                      : (popoverOpen ? 'var(--bg-primary, #ffffff)' : (selectedCategory ? 'var(--bg-secondary, #f3f4f6)' : 'rgba(0, 113, 227, 0.06)')),
+                    color: categoryError
+                      ? '#ef4444'
+                      : (selectedCategory ? 'var(--text-primary, #111827)' : 'var(--primary-color, #0071E3)'),
                     fontSize: '0.78rem',
-                    fontWeight: 500,
+                    fontWeight: selectedCategory ? 500 : 600,
                     cursor: 'pointer',
                     transition: 'all 0.18s ease',
-                    boxShadow: popoverOpen ? '0 0 0 2px rgba(0, 113, 227, 0.2)' : 'none'
+                    boxShadow: categoryError
+                      ? '0 0 0 2px rgba(239, 68, 68, 0.2)'
+                      : (popoverOpen ? '0 0 0 2px rgba(0, 113, 227, 0.2)' : 'none')
                   }}
-                  title="Select Feedback Category"
+                  title={selectedCategory ? `Category: ${selectedCategory.label}` : 'Select Category (Required)'}
                 >
-                  <span style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: selectedCategory.color,
-                    flexShrink: 0
-                  }} />
-                  <span>{selectedCategory.short}</span>
+                  {selectedCategory ? (
+                    <>
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: selectedCategory.color,
+                        flexShrink: 0
+                      }} />
+                      <span>{selectedCategory.short}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: categoryError ? '#ef4444' : 'var(--primary-color, #0071E3)',
+                        flexShrink: 0
+                      }} />
+                      <span>Select Category *</span>
+                    </>
+                  )}
                   <ChevronDown 
                     size={12} 
                     style={{ 
-                      color: 'var(--text-secondary, #6b7280)',
+                      color: categoryError ? '#ef4444' : (selectedCategory ? 'var(--text-secondary, #6b7280)' : 'var(--primary-color, #0071E3)'),
                       transform: popoverOpen ? 'rotate(180deg)' : 'none',
                       transition: 'transform 0.18s ease'
                     }} 
@@ -301,7 +350,7 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
                       border: '1px solid var(--border-color, #e5e7eb)',
                       borderRadius: '14px',
                       boxShadow: '0 12px 30px -4px rgba(0, 0, 0, 0.2), 0 4px 8px -2px rgba(0, 0, 0, 0.08)',
-                      minWidth: '220px',
+                      minWidth: '230px',
                       padding: '5px',
                       display: 'flex',
                       flexDirection: 'column',
@@ -310,17 +359,21 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
                     }}
                   >
                     <div style={{
-                      padding: '4px 8px 6px',
+                      padding: '5px 8px 6px',
                       fontSize: '0.7rem',
                       fontWeight: 600,
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
-                      color: 'var(--text-secondary, #6b7280)'
+                      color: 'var(--text-secondary, #6b7280)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
                     }}>
-                      Select Category
+                      <span>Select Category</span>
+                      <span style={{ color: '#ef4444', fontSize: '0.68rem', textTransform: 'none', fontWeight: 600 }}>Required *</span>
                     </div>
                     {CATEGORIES.map(cat => {
-                      const isSelected = cat.id === selectedCategory.id;
+                      const isSelected = selectedCategory && cat.id === selectedCategory.id;
                       return (
                         <button
                           key={cat.id}
@@ -328,6 +381,10 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
                           role="menuitem"
                           onClick={() => {
                             setSelectedCategory(cat);
+                            setCategoryError(false);
+                            if (errorMessage === 'Please select a feedback category.') {
+                              setErrorMessage('');
+                            }
                             setPopoverOpen(false);
                           }}
                           style={{
@@ -490,10 +547,35 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
                   fontSize: '0.82rem',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'space-between',
                   gap: '0.5rem'
                 }}>
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span>{errorMessage}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{errorMessage}</span>
+                  </div>
+                  {categoryError && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPopoverOpen(true);
+                        selectorButtonRef.current?.focus();
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#dc2626',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                        padding: 0,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Choose Category
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -680,7 +762,7 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || !description.trim()}
+                  disabled={submitting}
                   className="btn btn-primary"
                   style={{
                     padding: '0.5rem 1.25rem',
@@ -690,9 +772,10 @@ export default function FeedbackModal({ isOpen, onClose, initialCategory = 'Bug 
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.45rem',
-                    opacity: (!description.trim() || submitting) ? 0.6 : 1,
-                    cursor: (!description.trim() || submitting) ? 'not-allowed' : 'pointer'
+                    opacity: submitting ? 0.6 : 1,
+                    cursor: submitting ? 'not-allowed' : 'pointer'
                   }}
+                  title={!selectedCategory ? 'Please select a category above' : (!description.trim() ? 'Please describe your feedback' : 'Submit feedback')}
                 >
                   {submitting ? (
                     <>

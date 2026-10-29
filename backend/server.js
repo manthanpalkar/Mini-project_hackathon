@@ -5843,9 +5843,15 @@ app.post('/api/feedback', feedbackLimiter, authenticateToken, requireOnboarded, 
         if (!cleanTitle) cleanTitle = 'User Feedback Report';
       }
 
-      // Normalize category to schema standard
-      const rawCategory = (category && typeof category === 'string' && category.trim()) ? category.trim() : 'Bug / Error';
-      const cleanCategory = FEEDBACK_CATEGORY_MAP[rawCategory] || (FEEDBACK_VALID_CATEGORIES.includes(rawCategory) ? rawCategory : 'Bug / Error');
+      // Enforce mandatory feedback category
+      const rawCategory = (category && typeof category === 'string' && category.trim()) ? category.trim() : '';
+      if (!rawCategory) {
+        return res.status(400).json({ error: 'Feedback category is required.' });
+      }
+      const cleanCategory = FEEDBACK_CATEGORY_MAP[rawCategory] || (FEEDBACK_VALID_CATEGORIES.includes(rawCategory) ? rawCategory : null);
+      if (!cleanCategory) {
+        return res.status(400).json({ error: 'Invalid feedback category selected.' });
+      }
 
       const cleanSeverity = FEEDBACK_VALID_SEVERITIES.includes(severity) ? severity : 'Moderate';
       const cleanPriority = FEEDBACK_VALID_PRIORITIES.includes(priority) ? priority : 'Medium';

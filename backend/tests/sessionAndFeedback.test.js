@@ -245,6 +245,24 @@ test('Sliding Token Rotation & 401 Expiry Verification', async (t) => {
     const fakeJson = await resFake.json().catch(() => ({}));
     assert.equal(resFake.status, 400, 'Executable masquerading as PNG must be rejected with 400');
     assert.equal(fakeJson.code, 'INVALID_IMAGE_SIGNATURE', 'Error code must be INVALID_IMAGE_SIGNATURE');
+
+    // Test 2: Reject feedback submission missing mandatory category
+    const noCatBody = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="description"\r\n\r\nMissing category test\r\n`),
+      Buffer.from(`\r\n--${boundary}--\r\n`)
+    ]);
+    const resNoCat = await fetch(`${baseUrl}/api/feedback`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${studentToken}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'X-Forwarded-For': '10.99.88.91'
+      },
+      body: noCatBody
+    });
+    const noCatJson = await resNoCat.json().catch(() => ({}));
+    assert.equal(resNoCat.status, 400, 'Missing category must be rejected with 400');
+    assert.equal(noCatJson.error, 'Feedback category is required.');
   });
 
   await t.test('DELETE /api/admin/feedback/:id authorization and feedback deletion', async () => {
