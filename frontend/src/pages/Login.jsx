@@ -404,11 +404,19 @@ export default function Login() {
       />
 
       {/* ========================================================================= */}
-      {/* LEFT PANEL: PURE BLACK (#000000) WITH BRAND MARK & AMBIENT COSMIC GLOW    */}
+      {/* LEFT PANEL: SPIT CAMPUS BACKDROP & AUTHENTIC INSTITUTIONAL BRANDING      */}
       {/* ========================================================================= */}
       <aside className="github-left-panel">
-        {/* Ambient Top Glow */}
-        <div className="left-panel-glow" aria-hidden="true" />
+        {/* Campus Background Image & Vignette Gradient */}
+        <div className="left-image-backdrop">
+          <img 
+            src="/images/spit-campus-foyer.png" 
+            alt="Sardar Patel Institute of Technology Entrance" 
+            className="left-campus-img"
+            loading="eager"
+          />
+          <div className="left-image-overlay" aria-hidden="true" />
+        </div>
 
         <div className="left-panel-content">
           {/* Header Brand Mark */}
@@ -423,13 +431,6 @@ export default function Login() {
             </Link>
             <span className="left-brand-badge">SPIT</span>
           </div>
-        </div>
-
-        {/* Ambient Atmosphere & Cosmic Glow */}
-        <div className="left-illustration-container">
-          <div className="stars-layer" aria-hidden="true" />
-          <div className="cosmic-glow-purple" aria-hidden="true" />
-          <div className="cosmic-glow-blue" aria-hidden="true" />
         </div>
       </aside>
 
@@ -861,43 +862,54 @@ export default function Login() {
         }
 
         /* ----------------------------------------------------------------------- */
-        /* LEFT PANEL: PURE BLACK (#000000)                                       */
+        /* LEFT PANEL: SPIT CAMPUS BACKDROP (#050811)                              */
         /* ----------------------------------------------------------------------- */
         .github-left-panel {
           width: 50%;
           flex: 0 0 50%;
           height: 100vh;
-          background-color: #000000;
+          background-color: #050811;
           color: #ffffff;
           display: flex;
           flex-direction: column;
-          justifyContent: space-between;
           position: relative;
-          overflow-y: auto;
-          overflow-x: hidden;
+          overflow: hidden;
           box-sizing: border-box;
         }
 
-        .github-left-panel::-webkit-scrollbar {
-          width: 6px;
-        }
-        .github-left-panel::-webkit-scrollbar-thumb {
-          background-color: rgba(255, 255, 255, 0.15);
-          border-radius: 999px;
+        .left-image-backdrop {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 1;
+          overflow: hidden;
+          background-color: #050811;
         }
 
-        .left-panel-glow {
+        .left-campus-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
+        }
+
+        .left-image-overlay {
           position: absolute;
-          top: -120px;
-          left: -120px;
-          width: 380px;
-          height: 380px;
-          background: radial-gradient(circle, rgba(138, 43, 226, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(5, 8, 17, 0.72) 0%,
+            rgba(5, 8, 17, 0.15) 30%,
+            rgba(5, 8, 17, 0.25) 70%,
+            rgba(5, 8, 17, 0.82) 100%
+          );
           pointer-events: none;
         }
 
         .left-panel-content {
-          padding: 3.5rem 3.5rem 1.5rem 3.5rem;
+          padding: 3.25rem 3.5rem 1.5rem 3.5rem;
           position: relative;
           z-index: 2;
         }
@@ -915,6 +927,7 @@ export default function Login() {
           gap: 0.5rem;
           text-decoration: none;
           color: #ffffff;
+          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
         }
 
         .left-brand-logo {
@@ -937,55 +950,12 @@ export default function Login() {
           letter-spacing: 0.05em;
           padding: 2px 6px;
           border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.28);
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          background-color: rgba(0, 0, 0, 0.35);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           color: #ffffff;
           line-height: 1.2;
-        }
-
-        /* Ambient Atmosphere Container */
-        .left-illustration-container {
-          position: relative;
-          flex: 1;
-          width: 100%;
-          min-height: 200px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background: linear-gradient(to top, #0f0a20 0%, #080514 60%, rgba(0, 0, 0, 0) 100%);
-          overflow: hidden;
-          pointer-events: none;
-        }
-
-        .cosmic-glow-purple {
-          position: absolute;
-          bottom: 20%;
-          left: 20%;
-          width: 260px;
-          height: 180px;
-          background: radial-gradient(circle, rgba(147, 51, 234, 0.22) 0%, rgba(0, 0, 0, 0) 70%);
-          pointer-events: none;
-        }
-
-        .cosmic-glow-blue {
-          position: absolute;
-          bottom: 15%;
-          right: 20%;
-          width: 240px;
-          height: 160px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
-          pointer-events: none;
-        }
-
-        .stars-layer {
-          position: absolute;
-          inset: 0;
-          background-image: 
-            radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.7), transparent),
-            radial-gradient(1.5px 1.5px at 40% 70%, rgba(255, 255, 255, 0.8), transparent),
-            radial-gradient(1px 1px at 65% 25%, rgba(255, 255, 255, 0.6), transparent),
-            radial-gradient(1.5px 1.5px at 85% 60%, rgba(255, 255, 255, 0.75), transparent),
-            radial-gradient(1px 1px at 90% 15%, rgba(255, 255, 255, 0.6), transparent);
-          pointer-events: none;
         }
 
         /* ----------------------------------------------------------------------- */
@@ -1387,17 +1357,13 @@ export default function Login() {
           .github-left-panel {
             width: 100%;
             flex: none;
-            height: auto;
-            min-height: auto;
-            padding-bottom: 0;
+            height: 180px;
+            min-height: 180px;
+            position: relative;
           }
 
           .left-panel-content {
-            padding: 1.75rem 1.75rem 0.75rem 1.75rem;
-          }
-
-          .left-illustration-container {
-            display: none;
+            padding: 1.5rem 1.75rem;
           }
 
           .github-right-panel {
