@@ -4331,10 +4331,16 @@ app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken,
     const query = mongoose.Types.ObjectId.isValid(sanitizedId)
       ? { $or: [{ id: sanitizedId }, { _id: sanitizedId }] }
       : { id: sanitizedId };
-    let resource = await Resource.findOne(query).lean();
-    if (!resource) {
-      resource = await PendingResource.findOne(query).lean();
-    }
+
+    const cacheKey = cacheService.makeKey('resources:detail', sanitizedId);
+    let resource = await cacheService.getOrSet(cacheKey, async () => {
+      let doc = await Resource.findOne(query).lean();
+      if (!doc) {
+        doc = await PendingResource.findOne(query).lean();
+      }
+      return doc;
+    }, cacheService.DEFAULT_TTLS.resourceDetail);
+
     if (!resource) {
       return res.status(404).json({ error: 'Resource not found.' });
     }

@@ -4,6 +4,22 @@
 # ==============================================================================
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: loop-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    expose:
+      - "6379"
+    networks:
+      - loop-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
   backend:
     build:
       context: ./backend
@@ -23,8 +39,14 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - BREVO_API_KEY=${BREVO_API_KEY:-}
       - EMAIL_FROM=${EMAIL_FROM:-}
-      - REDIS_ENABLED=${REDIS_ENABLED:-false}
-      - REDIS_URL=${REDIS_URL:-}
+      - REDIS_ENABLED=${REDIS_ENABLED:-true}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_TTL_STORIES=${REDIS_TTL_STORIES:-300}
+      - REDIS_TTL_STORY_DETAIL=${REDIS_TTL_STORY_DETAIL:-600}
+      - REDIS_TTL_RESOURCES=${REDIS_TTL_RESOURCES:-300}
+      - REDIS_TTL_RESOURCE_DETAIL=${REDIS_TTL_RESOURCE_DETAIL:-600}
+      - REDIS_TTL_ACHIEVEMENTS=${REDIS_TTL_ACHIEVEMENTS:-600}
+      - REDIS_TTL_FOLDERS=${REDIS_TTL_FOLDERS:-300}
       - GRIDFS_BUCKET_NAME=${GRIDFS_BUCKET_NAME:-loop_resources}
       - GRIDFS_CHUNK_SIZE_MB=${GRIDFS_CHUNK_SIZE_MB:-8}
       - GRIDFS_UPLOAD_CONCURRENCY=${GRIDFS_UPLOAD_CONCURRENCY:-6}
@@ -34,6 +56,9 @@ services:
     # Keep backend private by default. Uncomment to expose direct host port:
     # ports:
     #   - "${BACKEND_PORT:-5001}:5001"
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - loop-network
     healthcheck:

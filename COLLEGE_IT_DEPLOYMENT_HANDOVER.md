@@ -35,6 +35,10 @@ nano .env
 ```env
 # ==============================================================================
 # LOOP SPIT — College Server Environment Configuration
+#
+# IMPORTANT: All placeholder values (<...>, "your-...", "xkeysib-...") MUST be
+# replaced with genuine institutional credentials before starting containers.
+# Leaving placeholder credentials will cause container healthchecks or authentication to fail.
 # ==============================================================================
 
 # --- Server Ports & Host ---
@@ -63,21 +67,26 @@ RESET_SECRET=generate_another_secure_64_character_random_hex_string_here
 ALLOWED_ORIGIN=https://loop.spit.ac.in,http://localhost
 
 # --- Google OAuth 2.0 (SPIT Institutional Single Sign-On) ---
-# Restricted to @spit.ac.in domain in Google Cloud Console
-GOOGLE_CLIENT_ID=your-spit-google-client-id.apps.googleusercontent.com
+# Prebuilt GHCR frontend images have the official SPIT Client ID baked in at CI build:
+# 779605241663-vp20b6cbhoccdeibjlcbtp7d9kbcf5bu.apps.googleusercontent.com
+# If running prebuilt images, set GOOGLE_CLIENT_ID to match this value.
+# If deploying a custom college Client ID, rebuild locally (`docker compose up -d --build`).
+GOOGLE_CLIENT_ID=779605241663-vp20b6cbhoccdeibjlcbtp7d9kbcf5bu.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-spit-google-client-secret
-VITE_GOOGLE_CLIENT_ID=your-spit-google-client-id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=779605241663-vp20b6cbhoccdeibjlcbtp7d9kbcf5bu.apps.googleusercontent.com
 
 # --- Transactional Email (Brevo SMTP for Password Reset OTPs) ---
 # API Key from Brevo account (xkeysib-...)
 BREVO_API_KEY=xkeysib-your_college_brevo_v3_api_key_here
 EMAIL_FROM=tpo@spit.ac.in
 
-# --- Redis Caching & Circuit Breaker (Optional) ---
-# If college does not have a Redis instance, keep REDIS_ENABLED=false
-# The backend will safely fallback to direct MongoDB queries without performance penalty
-REDIS_ENABLED=false
-REDIS_URL=redis://localhost:6379
+# --- Redis Caching & Circuit Breaker ---
+# The bundled Docker Compose provides an internal Redis container (loop-redis).
+# In Docker Compose, use REDIS_URL=redis://redis:6379 (matches internal service name 'redis').
+# Do NOT use 'localhost' inside Docker containers; reserve redis://localhost:6379 for non-Docker host dev.
+# If college disables Redis (REDIS_ENABLED=false), backend safely falls back to MongoDB.
+REDIS_ENABLED=true
+REDIS_URL=redis://redis:6379
 REDIS_TTL_STORIES=300
 REDIS_TTL_STORY_DETAIL=600
 REDIS_TTL_RESOURCES=300
@@ -134,10 +143,12 @@ docker compose pull
 # Start containers in detached mode
 docker compose up -d
 ```
+> [!NOTE]
+> Pre-built GHCR frontend images have the institutional SPIT Google OAuth Client ID (`779605241663-...`) baked in at CI build time. Because Vite compiles frontend environment variables into static JS bundles at build time, runtime variables in `.env` do not alter pre-built client bundles. If the college IT department requires a custom or separate Google OAuth Client ID, use **Option B** below to rebuild the frontend image locally.
 
-**Option B: Building Locally from Source Code**
+**Option B: Building Locally from Source Code (Required if using custom Google Client ID)**
 ```bash
-# Build images locally on the server and start
+# Build images locally on the server with custom build-args and start
 docker compose up -d --build
 ```
 
@@ -151,6 +162,7 @@ docker compose ps
 NAME            IMAGE                                         STATUS                    PORTS
 loop-backend    ghcr.io/swapnil-exxe/loop-backend:latest      Up (healthy)              5001/tcp
 loop-frontend   ghcr.io/swapnil-exxe/loop-frontend:latest     Up (healthy)              0.0.0.0:80->8080/tcp
+loop-redis      redis:7-alpine                                Up (healthy)              6379/tcp
 ```
 
 ---
