@@ -142,6 +142,8 @@ router.post('/rides/search', optionalAuth, async (req, res) => {
 
     res.json({
       success: true,
+      rankedRides: matchResult.matches,
+      matches: matchResult.matches,
       ...matchResult
     });
   } catch (err) {

@@ -659,12 +659,25 @@ export default function CampusRides() {
                   Compatible Rides ({searchResults.matchesCount || 0})
                 </h3>
 
-                {searchResults.rankedRides && searchResults.rankedRides.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {searchResults.rankedRides.map(match => {
-                      const ride = match.ride;
-                      const ratingsSummary = ride.ratingsSummary;
-                      const hasRating = ratingsSummary && ratingsSummary.ratingsCount > 0;
+                {(() => {
+                  const matchesList = searchResults.rankedRides || searchResults.matches || [];
+                  if (matchesList.length === 0) {
+                    return (
+                      <div style={{ padding: '2.5rem', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                        <Car size={32} style={{ marginBottom: '0.75rem', opacity: 0.5 }} />
+                        <p style={{ margin: 0, fontWeight: 600 }}>No compatible rides found in this time window.</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {matchesList.map(match => {
+                        const ride = match.ride || match;
+                        const ratingsSummary = ride.ratingsSummary;
+                        const hasRating = ratingsSummary && ratingsSummary.ratingsCount > 0;
+                        const detourDisplay = match.detourKm !== undefined ? match.detourKm : (match.insertionMetrics?.detourKm || 0);
+                        const co2Display = match.estimatedCo2SavedGrams !== undefined ? match.estimatedCo2SavedGrams : (match.savings?.co2SavedGrams || 0);
+                        const timeDiffDisplay = match.timeDiffMinutes !== undefined ? match.timeDiffMinutes : (match.timeDifferenceMins || 0);
 
                       return (
                         <div
@@ -703,7 +716,7 @@ export default function CampusRides() {
                                 </span>
                               </div>
                               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                                Departing: {new Date(ride.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({match.timeDifferenceMins}m diff)
+                                Departing: {new Date(ride.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({timeDiffDisplay}m diff)
                               </div>
                             </div>
 
@@ -734,14 +747,14 @@ export default function CampusRides() {
                               <span style={{ fontWeight: 600 }}>{ride.destinationName}</span>
                             </div>
                             <div style={{ color: 'var(--text-secondary)' }}>
-                              Detour: <strong>+{match.insertionMetrics?.detourKm || 0} km</strong>
+                              Detour: <strong>+{detourDisplay} km</strong>
                             </div>
                           </div>
 
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.82rem' }}>
                             <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)' }}>
                               <span><Users size={14} /> {ride.availableSeats} seats left</span>
-                              <span style={{ color: '#10B981' }}><Leaf size={14} /> {match.savings?.co2SavedGrams || 0}g CO₂ saved</span>
+                              <span style={{ color: '#10B981' }}><Leaf size={14} /> {co2Display}g CO₂ saved</span>
                               <span><DollarSign size={14} /> ₹{ride.costPerSeat || 0}/seat</span>
                             </div>
 
@@ -767,14 +780,10 @@ export default function CampusRides() {
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ padding: '2.5rem', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-                    <Car size={32} style={{ marginBottom: '0.75rem', opacity: 0.5 }} />
-                    <p style={{ margin: 0, fontWeight: 600 }}>No compatible rides found in this time window.</p>
-                  </div>
-                )}
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div style={{ background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px solid var(--border-color)', padding: '2rem', textAlign: 'center' }}>
