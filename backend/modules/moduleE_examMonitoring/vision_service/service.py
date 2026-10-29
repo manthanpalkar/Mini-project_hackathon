@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
 from .pipeline import ExamPipeline, frame_to_base64_thumbnail
+from .detector import ExamVisionDetector
 
 app = FastAPI(title="UniVerse Module E Vision Service", version="1.0.0")
 
@@ -25,31 +26,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Persistent pipeline instance
+# Persistent singleton detector and pipeline instance to avoid reloading models per request
+shared_detector = None
 pipeline_instance = None
 
+def get_shared_detector():
+    global shared_detector
+    if shared_detector is None:
+        print("[Module E Vision] Instantiating shared YOLOv8 + pose detector...")
+        shared_detector = ExamVisionDetector()
+    return shared_detector
+
 def get_pipeline(frame_skip=3, head_turn_thresh=3, phone_conf_thresh=0.35, restricted_zone=None):
+    detector = get_shared_detector()
     return ExamPipeline(
         frame_skip=frame_skip,
         conf_thresh=0.40,
         head_turn_thresh=head_turn_thresh,
         phone_conf_thresh=phone_conf_thresh,
-        restricted_zone=restricted_zone
+        restricted_zone=restricted_zone,
+        detector=detector
     )
 
 @app.on_event("startup")
 def startup_event():
     global pipeline_instance
-    print("[Module E Vision] Initializing YOLO and pose models...")
+    print("[Module E Vision] Initializing YOLO and pose models on startup...")
+    detector = get_shared_detector()
+    # Warmup inference with dummy frame
+    try:
+        dummy = np.zeros((480, 640, 3), dtype=np.uint8)
+        detector.process_frame(dummy)
+        print(f"[Module E Vision] Warmup complete on accelerator: {detector.device}")
+    except Exception as e:
+        print(f"[Module E Vision] Warmup notice: {e}")
     pipeline_instance = get_pipeline()
-    print("[Module E Vision] Service ready on port 5005.")
+    print(f"[Module E Vision] Service ready on port 5005 (device: {detector.device}).")
 
 @app.get("/health")
 def health_check():
+    detector = get_shared_detector()
     return {
         "service": "UniVerse Module E Vision Service",
         "status": "ready",
         "version": "1.0.0",
+        "device": detector.device,
         "models": ["yolov8n.pt", "yolov8n-pose.pt"],
         "capabilities": [
             "multi_student_tracking",

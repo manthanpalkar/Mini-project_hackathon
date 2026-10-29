@@ -5,12 +5,23 @@ Architecturally adapted and hardened from ShashankJangid/ai-exam-surveillance an
 """
 
 import cv2
+import torch
 import numpy as np
 from ultralytics import YOLO
 
 class ExamVisionDetector:
     def __init__(self, model_name="yolov8n.pt", pose_model_name="yolov8n-pose.pt", conf_thresh=0.40):
         self.conf_thresh = conf_thresh
+        
+        # Hardware acceleration detection: Apple Silicon MPS -> NVIDIA CUDA -> CPU
+        if torch.cuda.is_available():
+            self.device = "cuda"
+        elif torch.backends.mps.is_available():
+            self.device = "mps"
+        else:
+            self.device = "cpu"
+            
+        print(f"[Module E Vision] Loading YOLOv8 models onto accelerator device: {self.device}")
         # Load lightweight nano models
         self.det_model = YOLO(model_name)
         self.pose_model = YOLO(pose_model_name)
@@ -29,8 +40,8 @@ class ExamVisionDetector:
         """
         h, w = frame_bgr.shape[:2]
 
-        # 1. Detect Persons with Pose estimation
-        pose_results = self.pose_model(frame_bgr, conf=self.conf_thresh, verbose=False)[0]
+        # 1. Detect Persons with Pose estimation (using accelerator device and imgsz 640)
+        pose_results = self.pose_model(frame_bgr, conf=self.conf_thresh, imgsz=640, device=self.device, verbose=False)[0]
         
         persons = []
         if pose_results.boxes is not None and len(pose_results.boxes) > 0:
@@ -61,7 +72,7 @@ class ExamVisionDetector:
                 })
 
         # 2. Detect cell phones and unauthorized objects
-        det_results = self.det_model(frame_bgr, conf=0.30, verbose=False)[0]
+        det_results = self.det_model(frame_bgr, conf=0.30, imgsz=640, classes=[self.phone_class, self.book_class], device=self.device, verbose=False)[0]
         devices = []
         if det_results.boxes is not None and len(det_results.boxes) > 0:
             det_boxes = det_results.boxes.xyxy.cpu().numpy()

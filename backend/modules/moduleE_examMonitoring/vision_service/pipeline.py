@@ -27,9 +27,10 @@ class ExamPipeline:
                  conf_thresh=0.40, 
                  head_turn_thresh=3,
                  phone_conf_thresh=0.35,
-                 restricted_zone=None):
+                 restricted_zone=None,
+                 detector=None):
         self.frame_skip = max(1, int(frame_skip))
-        self.detector = ExamVisionDetector(conf_thresh=conf_thresh)
+        self.detector = detector if detector is not None else ExamVisionDetector(conf_thresh=conf_thresh)
         self.tracker = ExamPersonTracker(max_lost=15, iou_threshold=0.25)
         self.rules = ExamRulesEngine(
             head_turn_threshold=head_turn_thresh,

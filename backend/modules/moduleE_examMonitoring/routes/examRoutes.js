@@ -35,14 +35,14 @@ const videoUpload = multer({
 });
 
 /**
- * Helper to ping or call Python Vision Service
+ * Helper to ping or call Python Vision Service with configurable timeout
  */
-async function callVisionService(endpoint, payload) {
+async function callVisionService(endpoint, payload, timeoutMs = 120000) {
   const url = `${PYTHON_VISION_URL}${endpoint}`;
   const options = {
     method: payload ? 'POST' : 'GET',
     headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(25000)
+    signal: AbortSignal.timeout(timeoutMs)
   };
   if (payload) {
     options.body = JSON.stringify(payload);
@@ -161,11 +161,13 @@ function generateDeterministicAnalysis(videoName, durationSec = 24.0) {
 router.get('/health', async (req, res) => {
   let visionStatus = 'offline';
   let visionCaps = [];
+  let visionDevice = 'unknown';
 
   try {
-    const vRes = await callVisionService('/health');
+    const vRes = await callVisionService('/health', null, 5000);
     visionStatus = vRes.status || 'ready';
     visionCaps = vRes.capabilities || [];
+    visionDevice = vRes.device || 'cpu';
   } catch (_) {
     visionStatus = 'standby_simulation_active';
   }
@@ -175,6 +177,7 @@ router.get('/health', async (req, res) => {
     status: 'ready',
     version: '2.0.0-multi-candidate-cctv',
     visionServiceStatus: visionStatus,
+    visionDevice,
     visionCapabilities: visionCaps,
     ethicalGuarantees: [
       'No biometric face recognition or facial identity matching',
@@ -278,10 +281,14 @@ router.post('/upload', videoUpload.single('video'), (req, res) => {
 const inMemorySessions = new Map();
 const inMemoryIncidents = new Map();
 
+function isDatabaseOperational() {
+  return mongoose.connection && mongoose.connection.readyState === 1 && mongoose.connection.db != null;
+}
+
 // GET /api/modules/e/sessions - List monitoring sessions
 router.get('/sessions', async (req, res) => {
   try {
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       const sessions = await MonitoringSession.find().sort({ createdAt: -1 }).limit(30).lean();
       return res.json({ success: true, count: sessions.length, data: sessions });
     }
@@ -341,7 +348,7 @@ router.post('/sessions', async (req, res) => {
       updatedAt: new Date()
     };
 
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       try {
         const session = new MonitoringSession(sessionObj);
         await session.save();
@@ -364,7 +371,7 @@ router.post('/sessions/:sessionId/start', async (req, res) => {
     const { sessionId } = req.params;
     let session = null;
 
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       try {
         session = await MonitoringSession.findOne({ sessionId });
       } catch (_) {}
@@ -391,23 +398,27 @@ router.post('/sessions/:sessionId/start', async (req, res) => {
     let analysisResult = null;
     let usedEngine = 'yolov8_python_service';
 
-    // 1. Try calling the Python Vision Service
+    // 1. Try calling the Python Vision Service with 3-minute timeout window
     try {
+      console.log(`[Module E] Calling Python Vision Service for: ${targetPath}`);
       analysisResult = await callVisionService('/analyze_video', {
         video_path: targetPath,
-        frame_skip: session.config?.frameSkip || 3,
-        head_turn_threshold: session.config?.headTurnThreshold || 3,
-        phone_conf_threshold: session.config?.phoneConfidenceThreshold || 0.40,
+        frame_skip: Math.max(2, session.config?.frameSkip || 3),
+        head_turn_threshold: session.config?.headTurnThreshold || 2,
+        phone_conf_threshold: session.config?.phoneConfidenceThreshold || 0.35,
         restricted_zone: session.config?.restrictedZone,
-        max_frames: req.body?.max_frames || session.config?.maxFrames || 60
-      });
+        max_frames: req.body?.max_frames || session.config?.maxFrames || 250
+      }, 180000);
+      usedEngine = 'yolov8_python_service';
+      console.log(`[Module E] Python Vision Service finished successfully: ${analysisResult.summary?.processedFrames || 0} frames analyzed via YOLOv8.`);
     } catch (visionErr) {
+      console.warn(`[Module E] Python Vision Service unavailable (${visionErr.message}). Switching to verified deterministic DEMO FALLBACK MODE.`);
       analysisResult = generateDeterministicAnalysis(path.basename(targetPath), 23.1);
-      usedEngine = 'deterministic_cctv_engine';
+      usedEngine = 'demo_fallback_mode';
     }
 
     // 2. Clear old incidents for this session
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       await DetectionIncident.deleteMany({ sessionId }).catch(() => {});
     }
     inMemoryIncidents.delete(sessionId);
@@ -428,7 +439,7 @@ router.post('/sessions/:sessionId/start', async (req, res) => {
       metadata: inc.metadata || {}
     }));
 
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       await DetectionIncident.insertMany(incidentDocs).catch(() => {});
     }
     inMemoryIncidents.set(sessionId, incidentDocs);
@@ -443,7 +454,12 @@ router.post('/sessions/:sessionId/start', async (req, res) => {
       alertTracksCount: incidentDocs.length,
       fpsMeasured: summary.fpsMeasured || 18.0,
       latencyMs: summary.elapsedSeconds ? Math.round(summary.elapsedSeconds * 1000 / Math.max(1, summary.processedFrames)) : 45,
-      durationSeconds: summary.durationSeconds || 23.0
+      durationSeconds: summary.durationSeconds || 23.0,
+      engine: usedEngine,
+      engineLabel: usedEngine === 'yolov8_python_service'
+        ? 'Live YOLOv8 + Pose Vision Engine Active'
+        : 'DEMO / SIMULATED FALLBACK MODE (Python Vision Service Offline)',
+      isFallbackDemo: usedEngine !== 'yolov8_python_service'
     };
     if (session.save) {
       await session.save().catch(() => {});
@@ -452,11 +468,18 @@ router.post('/sessions/:sessionId/start', async (req, res) => {
     res.json({
       success: true,
       sessionId,
+      status: 'running',
+      session,
       engine: usedEngine,
+      engineLabel: session.metrics.engineLabel,
+      isFallbackDemo: session.metrics.isFallbackDemo,
       metrics: session.metrics,
       totalIncidents: incidentDocs.length,
       incidents: incidentDocs,
-      frames: analysisResult.frames || []
+      frames: analysisResult.frames || [],
+      message: usedEngine === 'yolov8_python_service'
+        ? 'Live YOLOv8 + Pose Computer Vision analysis completed.'
+        : 'Python Vision Service was unavailable. Results generated in explicitly labelled DEMO FALLBACK MODE.'
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to execute vision analysis', details: err.message });
@@ -468,7 +491,7 @@ router.post('/sessions/:sessionId/pause', async (req, res) => {
   try {
     const { sessionId } = req.params;
     let session = null;
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       session = await MonitoringSession.findOneAndUpdate(
         { sessionId },
         { status: 'paused' },
@@ -491,7 +514,7 @@ router.post('/sessions/:sessionId/resume', async (req, res) => {
   try {
     const { sessionId } = req.params;
     let session = null;
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       session = await MonitoringSession.findOneAndUpdate(
         { sessionId },
         { status: 'running' },
@@ -514,7 +537,7 @@ router.post('/sessions/:sessionId/stop', async (req, res) => {
   try {
     const { sessionId } = req.params;
     let session = null;
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       session = await MonitoringSession.findOneAndUpdate(
         { sessionId },
         { status: 'stopped', endTime: new Date() },
@@ -540,7 +563,7 @@ router.get('/sessions/:sessionId/incidents', async (req, res) => {
     const { status, eventType } = req.query;
     let incidents = [];
 
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       const query = { sessionId };
       if (status && status !== 'all') query.reviewStatus = status;
       if (eventType && eventType !== 'all') query.eventType = eventType;
@@ -575,7 +598,7 @@ router.patch('/incidents/:incidentId', async (req, res) => {
     }
 
     let incident = null;
-    if (mongoose.connection.readyState === 1) {
+    if (isDatabaseOperational()) {
       const updateFields = {};
       if (reviewStatus) {
         updateFields.reviewStatus = reviewStatus;
