@@ -175,3 +175,240 @@ export async function fetchSustainabilityMetrics() {
   const json = await res.json();
   return json.data;
 }
+
+// ==========================================
+// Trip Progression & Simulation APIs
+// ==========================================
+
+export async function startRide(rideId) {
+  const res = await fetch(`${BASE_MODULE_B}/rides/${rideId}/start`, {
+    method: 'POST',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to start ride');
+  }
+  return await res.json();
+}
+
+export async function completeRide(rideId) {
+  const res = await fetch(`${BASE_MODULE_B}/rides/${rideId}/complete`, {
+    method: 'POST',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to complete ride');
+  }
+  return await res.json();
+}
+
+export async function fetchRideProgress(rideId) {
+  const res = await fetch(`${BASE_MODULE_B}/rides/${rideId}/progress`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch ride progress');
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function advanceSimulation(rideId, step = 0.25) {
+  const res = await fetch(`${BASE_MODULE_B}/rides/${rideId}/progress/advance`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ step })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to advance simulation');
+  }
+  return await res.json();
+}
+
+// ==========================================
+// Ratings & Safety Feedback APIs
+// ==========================================
+
+export async function submitRating(rideId, ratingData) {
+  const res = await fetch(`${BASE_MODULE_B}/rides/${rideId}/ratings`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(ratingData)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to submit rating');
+  }
+  return await res.json();
+}
+
+export async function fetchDriverRatings(driverEmail) {
+  const res = await fetch(`${BASE_MODULE_B}/drivers/${encodeURIComponent(driverEmail)}/ratings`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch driver ratings');
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+// ==========================================
+// Driver Contact & Privacy APIs
+// ==========================================
+
+export async function fetchAuthorizedDriverContact(rideId) {
+  const res = await fetch(`${BASE_MODULE_B}/rides/${rideId}/contact`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to retrieve driver contact');
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+// ==========================================
+// In-App Notifications APIs
+// ==========================================
+
+export async function fetchNotifications(limit = 20, unreadOnly = false) {
+  const res = await fetch(`${BASE_MODULE_B}/notifications?limit=${limit}&unread=${unreadOnly}`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch notifications');
+  }
+  const json = await res.json();
+  return json.data || [];
+}
+
+export async function fetchUnreadNotificationCount() {
+  const res = await fetch(`${BASE_MODULE_B}/notifications/unread-count`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    return 0;
+  }
+  const json = await res.json();
+  return json.unreadCount || 0;
+}
+
+export async function markNotificationRead(id) {
+  const res = await fetch(`${BASE_MODULE_B}/notifications/${id}/read`, {
+    method: 'PATCH',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to mark notification read');
+  }
+  return await res.json();
+}
+
+export async function markAllNotificationsRead() {
+  const res = await fetch(`${BASE_MODULE_B}/notifications/read-all`, {
+    method: 'POST',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to mark all notifications read');
+  }
+  return await res.json();
+}
+
+// ==========================================
+// Recurring Commute Templates APIs
+// ==========================================
+
+export async function createRecurringTemplate(templateData) {
+  const res = await fetch(`${BASE_MODULE_B}/recurring-templates`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(templateData)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to create recurring commute template');
+  }
+  return await res.json();
+}
+
+export async function fetchMyRecurringTemplates() {
+  const res = await fetch(`${BASE_MODULE_B}/recurring-templates/mine`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to load recurring templates');
+  }
+  const json = await res.json();
+  return json.data || [];
+}
+
+export async function toggleRecurringTemplate(templateId, enabled) {
+  const res = await fetch(`${BASE_MODULE_B}/recurring-templates/${templateId}/toggle`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ enabled })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to update template status');
+  }
+  return await res.json();
+}
+
+export async function deleteRecurringTemplate(templateId) {
+  const res = await fetch(`${BASE_MODULE_B}/recurring-templates/${templateId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to delete recurring template');
+  }
+  return await res.json();
+}
+
+export async function generateRecurringOccurrences(templateId, horizonDays = 7) {
+  const res = await fetch(`${BASE_MODULE_B}/recurring-templates/${templateId}/generate`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ horizonDays })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to generate recurring rides');
+  }
+  return await res.json();
+}
+
+export async function previewRecurringOccurrences(templateId, horizonDays = 14) {
+  const res = await fetch(`${BASE_MODULE_B}/recurring-templates/${templateId}/preview?horizonDays=${horizonDays}`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to preview template departures');
+  }
+  const json = await res.json();
+  return json.data || [];
+}
+
+export async function fetchMySustainabilityOutcomes() {
+  const res = await fetch(`${BASE_MODULE_B}/outcomes/mine`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch student sustainability history');
+  }
+  return await res.json();
+}

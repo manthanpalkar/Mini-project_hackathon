@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { MapPin, Navigation, Compass, Layers, CheckCircle } from 'lucide-react';
+import { MapPin, Navigation, Compass, Layers, CheckCircle, Car } from 'lucide-react';
 
 // Geographically calibrated nodes for S.P.I.T. and surrounding transit hubs
 const NODES_DATA = [
@@ -36,7 +36,11 @@ export default function CampusNetworkMap({
   activeRoute = [],
   pickupNodeId = '',
   dropoffNodeId = '',
-  onSelectNode = null
+  onSelectNode = null,
+  simulationMode = false,
+  progressFraction = 0, // 0 to 1
+  remainingMins = null,
+  passengerPickupEtaMins = null
 }) {
   const width = 760;
   const height = 440;
@@ -71,18 +75,42 @@ export default function CampusNetworkMap({
     return map;
   }, [bounds]);
 
+  // Interpolate vehicle position along the route
+  const vehiclePosition = useMemo(() => {
+    if (!simulationMode || !activeRoute || activeRoute.length < 2) return null;
+    const segmentsCount = activeRoute.length - 1;
+    const clampedFrac = Math.max(0, Math.min(1, progressFraction));
+    const rawIndex = clampedFrac * segmentsCount;
+    const segIdx = Math.min(segmentsCount - 1, Math.floor(rawIndex));
+    const segT = rawIndex - segIdx;
+
+    const fromNode = nodePositions[activeRoute[segIdx]];
+    const toNode = nodePositions[activeRoute[segIdx + 1]];
+    if (!fromNode || !toNode) return null;
+
+    return {
+      x: fromNode.x + segT * (toNode.x - fromNode.x),
+      y: fromNode.y + segT * (toNode.y - fromNode.y),
+      fromName: fromNode.name,
+      toName: toNode.name
+    };
+  }, [simulationMode, activeRoute, progressFraction, nodePositions]);
+
   // Check if an edge is part of the highlighted route
-  const isEdgeInRoute = (fromId, toId) => {
-    if (!activeRoute || activeRoute.length < 2) return false;
+  const getEdgeRouteStatus = (fromId, toId) => {
+    if (!activeRoute || activeRoute.length < 2) return 'none';
     for (let i = 0; i < activeRoute.length - 1; i++) {
       if (
         (activeRoute[i] === fromId && activeRoute[i + 1] === toId) ||
         (activeRoute[i] === toId && activeRoute[i + 1] === fromId)
       ) {
-        return true;
+        if (!simulationMode) return 'active';
+        const segmentsCount = activeRoute.length - 1;
+        const currentSegment = Math.floor(progressFraction * segmentsCount);
+        return i <= currentSegment ? 'completed' : 'upcoming';
       }
     }
-    return false;
+    return 'none';
   };
 
   return (
@@ -103,21 +131,38 @@ export default function CampusNetworkMap({
         flexWrap: 'wrap',
         gap: '0.75rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <Compass size={18} style={{ color: 'var(--accent-blue, #0071E3)' }} />
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, letterSpacing: '0.02em' }}>
             SPIT Campus & Metro Mobility Network
           </h3>
-          <span style={{
-            fontSize: '0.7rem',
-            padding: '2px 8px',
-            borderRadius: '12px',
-            background: 'rgba(16, 185, 129, 0.12)',
-            color: '#10B981',
-            fontWeight: 600
-          }}>
-            Dijkstra Shortest Path Enabled
-          </span>
+          {simulationMode ? (
+            <span style={{
+              fontSize: '0.7rem',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              background: 'rgba(59, 130, 246, 0.15)',
+              color: '#3B82F6',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              border: '1px solid rgba(59, 130, 246, 0.3)'
+            }}>
+              <Car size={12} /> SIMULATED PROGRESS (Dijkstra Waypoints)
+            </span>
+          ) : (
+            <span style={{
+              fontSize: '0.7rem',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#10B981',
+              fontWeight: 600
+            }}>
+              Dijkstra Shortest Path Enabled
+            </span>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -154,6 +199,10 @@ export default function CampusNetworkMap({
               <feGaussianBlur stdDeviation="3" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
+            <filter id="vehicleGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
 
           {/* Grid Background Pattern */}
@@ -162,12 +211,33 @@ export default function CampusNetworkMap({
           </pattern>
           <rect width={width} height={height} fill="url(#grid)" />
 
-          {/* Regular Road Edges */}
+          {/* Road Edges */}
           {EDGES_DATA.map((edge, idx) => {
             const p1 = nodePositions[edge.from];
             const p2 = nodePositions[edge.to];
             if (!p1 || !p2) return null;
-            const highlighted = isEdgeInRoute(edge.from, edge.to);
+            const status = getEdgeRouteStatus(edge.from, edge.to);
+
+            let strokeColor = 'var(--border-color)';
+            let strokeWidth = 1.8;
+            let strokeDash = 'none';
+            let strokeOpacity = 0.45;
+
+            if (status === 'completed') {
+              strokeColor = '#10B981';
+              strokeWidth = 4.5;
+              strokeOpacity = 0.9;
+            } else if (status === 'upcoming') {
+              strokeColor = '#0071E3';
+              strokeWidth = 4.5;
+              strokeDash = '6 3';
+              strokeOpacity = 0.85;
+            } else if (status === 'active') {
+              strokeColor = 'url(#routeGradient)';
+              strokeWidth = 4.5;
+              strokeDash = '6 3';
+              strokeOpacity = 1;
+            }
 
             return (
               <line
@@ -176,13 +246,12 @@ export default function CampusNetworkMap({
                 y1={p1.y}
                 x2={p2.x}
                 y2={p2.y}
-                stroke={highlighted ? 'url(#routeGradient)' : 'var(--border-color)'}
-                strokeWidth={highlighted ? 4.5 : 1.8}
-                strokeDasharray={highlighted ? '6 3' : 'none'}
-                strokeOpacity={highlighted ? 1 : 0.45}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                strokeDasharray={strokeDash}
+                strokeOpacity={strokeOpacity}
                 style={{
-                  transition: 'all 0.3s ease',
-                  animation: highlighted ? 'dashMove 1s linear infinite' : 'none'
+                  transition: 'all 0.3s ease'
                 }}
               />
             );
@@ -265,24 +334,56 @@ export default function CampusNetworkMap({
               </g>
             );
           })}
+
+          {/* SIMULATED MOVING VEHICLE MARKER */}
+          {vehiclePosition && (
+            <g transform={`translate(${vehiclePosition.x}, ${vehiclePosition.y})`} filter="url(#vehicleGlow)">
+              <circle r="14" fill="#3B82F6" fillOpacity="0.3">
+                <animate attributeName="r" values="12;18;12" dur="1.5s" repeatCount="indefinite" />
+              </circle>
+              <circle r="10" fill="#1D4ED8" stroke="#FFFFFF" strokeWidth="2" />
+              <text textAnchor="middle" dy="3.5" fontSize="10" fill="#FFFFFF">
+                🚗
+              </text>
+            </g>
+          )}
         </svg>
       </div>
 
       {/* Dynamic Route Info Legend */}
-      {activeRoute && activeRoute.length > 0 && (
-        <div style={{
-          marginTop: '0.85rem',
-          padding: '0.75rem 1rem',
-          background: 'var(--bg-primary)',
-          borderRadius: '10px',
-          border: '1px solid var(--border-color)',
-          fontSize: '0.8rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.5rem'
-        }}>
+      <div style={{
+        marginTop: '0.85rem',
+        padding: '0.75rem 1rem',
+        background: 'var(--bg-primary)',
+        borderRadius: '10px',
+        border: '1px solid var(--border-color)',
+        fontSize: '0.8rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        {simulationMode && vehiclePosition ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, color: '#3B82F6', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Car size={14} /> Leg: {vehiclePosition.fromName?.split(' ')[0]} ➔ {vehiclePosition.toName?.split(' ')[0]}
+            </span>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              Progress: <strong>{Math.round(progressFraction * 100)}%</strong>
+            </span>
+            {passengerPickupEtaMins !== null && (
+              <span style={{ color: '#10B981', fontWeight: 700 }}>
+                Pickup ETA: <strong>{passengerPickupEtaMins === 0 ? 'Arrived!' : `${passengerPickupEtaMins} mins`}</strong>
+              </span>
+            )}
+            {remainingMins !== null && (
+              <span style={{ color: 'var(--text-secondary)' }}>
+                Destination ETA: <strong>{remainingMins} mins</strong>
+              </span>
+            )}
+          </div>
+        ) : activeRoute && activeRoute.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Navigation size={14} style={{ color: '#10B981' }} />
             <span style={{ fontWeight: 600 }}>Active Route Trajectory:</span>
@@ -290,11 +391,16 @@ export default function CampusNetworkMap({
               {activeRoute.map(nid => nodePositions[nid]?.name?.split(' ')[0] || nid).join(' ➔ ')}
             </span>
           </div>
+        ) : (
+          <span style={{ color: 'var(--text-secondary)' }}>Select origin and destination to preview shortest road routing.</span>
+        )}
+
+        {activeRoute && activeRoute.length > 0 && (
           <span style={{ color: '#10B981', fontWeight: 600 }}>
             {activeRoute.length - 1} connected hops
           </span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

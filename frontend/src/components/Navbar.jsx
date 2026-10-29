@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Shield, Menu, X, User as UserIcon, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail, MessageSquare } from 'lucide-react';
+import { LogOut, Shield, Menu, X, User as UserIcon, Bell, BookOpen, Calendar, ChevronDown, Lock, Palette, AtSign, Mail, MessageSquare } from 'lucide-react';
 import { requestProfileEdit, updateUser, logoutUser, getStories, getResources, getFolders, getAchievements } from '../utils/db';
 import { prefetchData } from '../hooks/useCachedData';
 import { useVisibility } from '../hooks/useVisibility';
 import FeedbackModal from './FeedbackModal';
+import { fetchUnreadNotificationCount, fetchNotifications, markAllNotificationsRead } from '../utils/rideApi';
 
 // Preset palette colors for the user name badge
 const PRESET_NAME_COLORS = [
@@ -83,6 +84,35 @@ export default function Navbar() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsList, setNotificationsList] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const checkUnread = () => {
+      fetchUnreadNotificationCount()
+        .then(count => setUnreadCount(count))
+        .catch(() => {});
+    };
+    checkUnread();
+    const interval = setInterval(checkUnread, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleToggleNotifications = async () => {
+    if (!showNotifications) {
+      const list = await fetchNotifications(15).catch(() => []);
+      setNotificationsList(list);
+    }
+    setShowNotifications(!showNotifications);
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead().catch(() => {});
+    setUnreadCount(0);
+    setNotificationsList(prev => prev.map(n => ({ ...n, read: true })));
+  };
 
   // Initialize profile form values when modal opens or user updates
   useEffect(() => {

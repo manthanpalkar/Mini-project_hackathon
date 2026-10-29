@@ -1,11 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { RideOffer, RideRequest } = require('../models/rideModel');
+const {
+  RideOffer,
+  RideRequest,
+  RideRating,
+  RecurringRideTemplate,
+  RideNotification,
+  StudentSustainabilityOutcome
+} = require('../models/rideModel');
 const { campusGraphInstance } = require('../services/campusGraphService');
 const { rideMatchingInstance, EMISSION_FACTOR_G_PER_KM } = require('../services/rideMatchingService');
+const { getRideProgressionInstance } = require('../services/rideProgressionService');
+const { getRideRatingInstance } = require('../services/rideRatingService');
+const { getRecurringRideInstance } = require('../services/recurringRideService');
+const {
+  createNotification,
+  getUserNotifications,
+  getUnreadCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getAuthorizedDriverContact
+} = require('../services/rideNotificationService');
 
 const { authenticateToken: requireAuth, optionalAuthenticateToken: optionalAuth } = require('../../../middlewares/authMiddleware');
+
+const progressionService = getRideProgressionInstance();
+const ratingService = getRideRatingInstance();
+const recurringService = getRecurringRideInstance();
 
 // ==========================================
 // 1. Graph & Location APIs
@@ -38,15 +60,19 @@ router.get('/graph', (req, res) => {
   }
 });
 
-// GET /api/modules/b/routes - Route planner using Dijkstra algorithm
+// GET /api/modules/b/routes - Calculate shortest route between two campus nodes
 router.get('/routes', (req, res) => {
   try {
-    const { from, to, metric = 'distance' } = req.query;
+    const { from, to, criteria = 'distance' } = req.query;
     if (!from || !to) {
-      return res.status(400).json({ error: "Query parameters 'from' and 'to' are required." });
+      return res.status(400).json({ error: 'Missing required query parameters: "from" and "to" are mandatory.' });
     }
 
-    const route = campusGraphInstance.findShortestPath(from, to, metric);
+    if (!campusGraphInstance.isValidNode(from) || !campusGraphInstance.isValidNode(to)) {
+      return res.status(400).json({ error: 'Invalid origin or destination node identifier.' });
+    }
+
+    const route = campusGraphInstance.findShortestPath(from, to, criteria);
     if (!route) {
       return res.status(404).json({ error: 'No navigable path found between the selected locations.' });
     }
@@ -73,7 +99,7 @@ router.post('/rides/search', optionalAuth, async (req, res) => {
       desiredDepartureTime,
       seatsRequested = 1,
       maxDetourKm = 2.5,
-      departureWindowMins = 45
+      departureWindowMins = 60
     } = req.body;
 
     if (!pickupNodeId || !dropoffNodeId || !desiredDepartureTime) {
@@ -109,7 +135,7 @@ router.post('/rides/search', optionalAuth, async (req, res) => {
         desiredDepartureTime: targetTime,
         seatsRequested: parseInt(seatsRequested, 10) || 1,
         maxDetourKm: parseFloat(maxDetourKm) || 2.5,
-        departureWindowMins: parseInt(departureWindowMins, 10) || 45
+        departureWindowMins: parseInt(departureWindowMins, 10) || 60
       },
       candidateRides
     );
@@ -140,7 +166,8 @@ router.post('/rides', requireAuth, async (req, res) => {
       vehicleType = 'car',
       vehicleModel = '',
       vehicleNumber = '',
-      driverPhone = ''
+      driverPhone = '',
+      contactSharing = {}
     } = req.body;
 
     if (!originNodeId || !destinationNodeId || !departureTime || !totalSeats) {
@@ -174,6 +201,9 @@ router.post('/rides', requireAuth, async (req, res) => {
     const driverEmail = req.user ? req.user.email : (req.body.driverEmail || 'driver@spit.ac.in');
     const driverName = req.user ? (req.user.name || req.user.email.split('@')[0]) : (req.body.driverName || 'Campus Driver');
 
+    // Fetch driver's existing rating summary
+    const ratingSummary = await ratingService.getDriverRatingSummary(driverEmail).catch(() => null);
+
     const ride = await RideOffer.create({
       driverId: req.user ? req.user.id || req.user._id : null,
       driverEmail: driverEmail.toLowerCase().trim(),
@@ -199,6 +229,16 @@ router.post('/rides', requireAuth, async (req, res) => {
       currentDistanceKm: baselineRoute.totalDistance,
       currentDurationMins: baselineRoute.totalDuration,
       status: 'open',
+      contactSharing: {
+        enabled: Boolean(contactSharing.enabled),
+        phone: contactSharing.phone || driverPhone,
+        allowWhatsApp: contactSharing.allowWhatsApp !== false,
+        allowCall: contactSharing.allowCall !== false
+      },
+      ratingsSummary: {
+        averageRating: ratingSummary?.averageRating || 0,
+        ratingsCount: ratingSummary?.ratingsCount || 0
+      },
       confirmedPassengers: []
     });
 
@@ -271,6 +311,21 @@ router.post('/rides/:id/cancel', requireAuth, async (req, res) => {
       { $set: { status: 'rejected', rejectionReason: 'Ride was cancelled by driver' } }
     );
 
+    // Notify confirmed passengers
+    for (const pass of (ride.confirmedPassengers || [])) {
+      await createNotification({
+        recipientEmail: pass.passengerEmail,
+        actorEmail: ride.driverEmail,
+        actorName: ride.driverName,
+        eventType: 'RIDE_CANCELLED',
+        rideOfferId: ride._id,
+        requestId: pass.requestId,
+        title: 'Ride Cancelled',
+        message: `${ride.driverName} had to cancel the ride from ${ride.originName} to ${ride.destinationName}. Reason: ${ride.cancellationReason}`,
+        actionLink: '/campus-rides'
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: 'Ride cancelled successfully.',
@@ -293,7 +348,7 @@ router.post('/rides/:id/requests', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Ride offer not found.' });
     }
 
-    if (ride.status !== 'open') {
+    if (ride.status !== 'open' && ride.status !== 'scheduled') {
       return res.status(400).json({ error: `Ride is currently not accepting requests (status: ${ride.status}).` });
     }
 
@@ -374,6 +429,19 @@ router.post('/rides/:id/requests', requireAuth, async (req, res) => {
       }
     });
 
+    // Notify driver of incoming request
+    await createNotification({
+      recipientEmail: ride.driverEmail,
+      actorEmail: passengerEmail,
+      actorName: passengerName,
+      eventType: 'REQUEST_RECEIVED',
+      rideOfferId: ride._id,
+      requestId: request._id,
+      title: 'New Seat Request',
+      message: `${passengerName} requested ${seats} seat(s) from ${request.pickupName} to ${request.dropoffName}.`,
+      actionLink: '/campus-rides'
+    }).catch(() => {});
+
     res.status(201).json({
       success: true,
       message: 'Ride request submitted and awaiting driver review.',
@@ -437,6 +505,22 @@ router.post('/requests/:id/cancel', requireAuth, async (req, res) => {
       });
     }
 
+    // Notify driver of cancellation
+    const ride = await RideOffer.findById(request.rideOfferId);
+    if (ride) {
+      await createNotification({
+        recipientEmail: ride.driverEmail,
+        actorEmail: request.passengerEmail,
+        actorName: request.passengerName,
+        eventType: 'REQUEST_CANCELLED',
+        rideOfferId: ride._id,
+        requestId: request._id,
+        title: 'Passenger Cancelled Booking',
+        message: `${request.passengerName} has cancelled their booking for ${request.seatsRequested} seat(s).`,
+        actionLink: '/campus-rides'
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: 'Ride request cancelled successfully.',
@@ -498,7 +582,6 @@ router.post('/requests/:id/accept', requireAuth, async (req, res) => {
     }
 
     // Atomic conditional decrement to guarantee capacity is never exceeded
-    // availableSeats must be >= seatsRequested
     const updatedRide = await RideOffer.findOneAndUpdate(
       {
         _id: ride._id,
@@ -555,6 +638,19 @@ router.post('/requests/:id/accept', requireAuth, async (req, res) => {
     request.status = 'accepted';
     await request.save();
 
+    // Notify passenger that their booking is confirmed
+    await createNotification({
+      recipientEmail: request.passengerEmail,
+      actorEmail: ride.driverEmail,
+      actorName: ride.driverName,
+      eventType: 'REQUEST_ACCEPTED',
+      rideOfferId: ride._id,
+      requestId: request._id,
+      title: 'Seat Request Accepted! 🎉',
+      message: `${ride.driverName} accepted your request for ${request.seatsRequested} seat(s). Check ride details and contact options.`,
+      actionLink: '/campus-rides'
+    }).catch(() => {});
+
     res.json({
       success: true,
       message: 'Request accepted successfully. Passenger seats reserved.',
@@ -594,6 +690,19 @@ router.post('/requests/:id/reject', requireAuth, async (req, res) => {
     request.rejectionReason = req.body.reason || 'Declined by driver';
     await request.save();
 
+    // Notify passenger
+    await createNotification({
+      recipientEmail: request.passengerEmail,
+      actorEmail: ride.driverEmail,
+      actorName: ride.driverName,
+      eventType: 'REQUEST_REJECTED',
+      rideOfferId: ride._id,
+      requestId: request._id,
+      title: 'Seat Request Declined',
+      message: `${ride.driverName} was unable to accept your request. Reason: ${request.rejectionReason}`,
+      actionLink: '/campus-rides'
+    }).catch(() => {});
+
     res.json({
       success: true,
       message: 'Request declined.',
@@ -605,14 +714,372 @@ router.post('/requests/:id/reject', requireAuth, async (req, res) => {
 });
 
 // ==========================================
-// 6. Sustainability & Hub Metrics API
+// 6. Active Trip Progression & Simulation APIs
 // ==========================================
+
+// POST /api/modules/b/rides/:id/start - Driver starts ride
+router.post('/rides/:id/start', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user ? req.user.email.toLowerCase().trim() : (req.body.driverEmail || '').toLowerCase().trim();
+    const updatedRide = await progressionService.startRide(req.params.id, userEmail);
+    res.json({
+      success: true,
+      message: 'Ride has been started and is now in transit.',
+      data: updatedRide
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to start ride' });
+  }
+});
+
+// POST /api/modules/b/rides/:id/complete - Driver marks ride completed
+router.post('/rides/:id/complete', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user ? req.user.email.toLowerCase().trim() : (req.body.driverEmail || '').toLowerCase().trim();
+    const completedRide = await progressionService.completeRide(req.params.id, userEmail);
+    res.json({
+      success: true,
+      message: 'Ride has been successfully completed. Sustainability credits durably recorded.',
+      data: completedRide
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to complete ride' });
+  }
+});
+
+// GET /api/modules/b/rides/:id/progress - Get authoritative simulated progress & ETA
+router.get('/rides/:id/progress', optionalAuth, async (req, res) => {
+  try {
+    const userEmail = req.user ? req.user.email.toLowerCase().trim() : '';
+    const progress = await progressionService.getRideProgress(req.params.id, userEmail);
+    res.json({
+      success: true,
+      data: progress
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to retrieve trip progress' });
+  }
+});
+
+// POST /api/modules/b/rides/:id/progress/advance - Advance simulation for demo
+router.post('/rides/:id/progress/advance', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user ? req.user.email.toLowerCase().trim() : '';
+    const step = parseFloat(req.body.step) || 0.25;
+    const progress = await progressionService.advanceSimulatedProgress(req.params.id, userEmail, step);
+    res.json({
+      success: true,
+      message: 'Simulated vehicle progress advanced.',
+      data: progress
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to advance simulation' });
+  }
+});
+
+// ==========================================
+// 7. Post-Ride Peer Ratings & Safety Feedback APIs
+// ==========================================
+
+// POST /api/modules/b/rides/:id/ratings - Submit participant rating
+router.post('/rides/:id/ratings', requireAuth, async (req, res) => {
+  try {
+    const raterEmail = req.user ? req.user.email.toLowerCase().trim() : req.body.raterEmail;
+    const raterName = req.user ? (req.user.name || raterEmail.split('@')[0]) : 'Student Commuter';
+
+    const {
+      ratedUserEmail,
+      rating,
+      categories = [],
+      comment = '',
+      isSafetyConcern = false,
+      safetyCategory = '',
+      safetyDetails = ''
+    } = req.body;
+
+    const result = await ratingService.submitRating({
+      rideOfferId: req.params.id,
+      raterEmail,
+      raterName,
+      ratedUserEmail,
+      rating,
+      categories,
+      comment,
+      isSafetyConcern,
+      safetyCategory,
+      safetyDetails
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Rating and feedback submitted successfully.',
+      data: result
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to submit rating' });
+  }
+});
+
+// GET /api/modules/b/drivers/:email/ratings - Driver public trust summary
+router.get('/drivers/:email/ratings', async (req, res) => {
+  try {
+    const summary = await ratingService.getDriverRatingSummary(req.params.email);
+    res.json({
+      success: true,
+      data: summary
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve driver rating summary', details: err.message });
+  }
+});
+
+// ==========================================
+// 8. Privacy-Aware Driver Contact API
+// ==========================================
+
+// GET /api/modules/b/rides/:id/contact - Retrieve authorized driver contact for confirmed passenger
+router.get('/rides/:id/contact', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user ? req.user.email.toLowerCase().trim() : (req.query.email || '').toLowerCase().trim();
+    const contactInfo = await getAuthorizedDriverContact(req.params.id, userEmail);
+    res.json({
+      success: true,
+      data: contactInfo
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to retrieve contact details' });
+  }
+});
+
+// ==========================================
+// 9. In-App Notifications APIs
+// ==========================================
+
+// GET /api/modules/b/notifications - List user's notifications
+router.get('/notifications', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const unreadOnly = req.query.unread === 'true';
+
+    const notifications = await getUserNotifications(userEmail, limit, unreadOnly);
+    res.json({
+      success: true,
+      count: notifications.length,
+      data: notifications
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve notifications', details: err.message });
+  }
+});
+
+// GET /api/modules/b/notifications/unread-count - Unread badge count
+router.get('/notifications/unread-count', requireAuth, async (req, res) => {
+  try {
+    const count = await getUnreadCount(req.user.email);
+    res.json({
+      success: true,
+      unreadCount: count
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve unread notification count', details: err.message });
+  }
+});
+
+// PATCH /api/modules/b/notifications/:id/read - Mark notification as read
+router.patch('/notifications/:id/read', requireAuth, async (req, res) => {
+  try {
+    const updated = await markNotificationAsRead(req.params.id, req.user.email);
+    res.json({
+      success: true,
+      data: updated
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to mark notification read' });
+  }
+});
+
+// POST /api/modules/b/notifications/read-all - Mark all user notifications as read
+router.post('/notifications/read-all', requireAuth, async (req, res) => {
+  try {
+    const result = await markAllNotificationsAsRead(req.user.email);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark notifications read', details: err.message });
+  }
+});
+
+// ==========================================
+// 10. Recurring Commute Schedule APIs
+// ==========================================
+
+// POST /api/modules/b/recurring-templates - Create recurring commute template
+router.post('/recurring-templates', requireAuth, async (req, res) => {
+  try {
+    const driverEmail = req.user.email;
+    const driverName = req.user.name || driverEmail.split('@')[0];
+
+    const template = await recurringService.createTemplate({
+      driverId: req.user.id || req.user._id,
+      driverEmail,
+      driverName,
+      driverPhone: req.body.driverPhone || '',
+      originNodeId: req.body.originNodeId,
+      destinationNodeId: req.body.destinationNodeId,
+      departureTimeOfDay: req.body.departureTimeOfDay,
+      daysOfWeek: req.body.daysOfWeek,
+      startDate: req.body.startDate || new Date(),
+      endDate: req.body.endDate || null,
+      totalSeats: req.body.totalSeats,
+      costPerSeat: req.body.costPerSeat,
+      maxDetourKm: req.body.maxDetourKm,
+      vehicleType: req.body.vehicleType,
+      vehicleModel: req.body.vehicleModel,
+      vehicleNumber: req.body.vehicleNumber,
+      contactSharing: req.body.contactSharing || {}
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Recurring commute schedule created successfully.',
+      data: template
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to create recurring commute template' });
+  }
+});
+
+// GET /api/modules/b/recurring-templates/mine - List driver's templates
+router.get('/recurring-templates/mine', requireAuth, async (req, res) => {
+  try {
+    const templates = await RecurringRideTemplate.find({
+      driverEmail: req.user.email.toLowerCase().trim()
+    }).sort({ createdAt: -1 }).lean();
+
+    res.json({
+      success: true,
+      count: templates.length,
+      data: templates
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch recurring templates', details: err.message });
+  }
+});
+
+// PATCH /api/modules/b/recurring-templates/:id/toggle - Pause / resume template
+router.patch('/recurring-templates/:id/toggle', requireAuth, async (req, res) => {
+  try {
+    const updated = await recurringService.toggleTemplate(
+      req.params.id,
+      req.user.email,
+      req.body.enabled
+    );
+    res.json({
+      success: true,
+      message: `Template ${updated.enabled ? 'resumed' : 'paused'} successfully.`,
+      data: updated
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to toggle template' });
+  }
+});
+
+// DELETE /api/modules/b/recurring-templates/:id - Delete template
+router.delete('/recurring-templates/:id', requireAuth, async (req, res) => {
+  try {
+    const template = await RecurringRideTemplate.findById(req.params.id);
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found.' });
+    }
+
+    if (template.driverEmail.toLowerCase() !== req.user.email.toLowerCase().trim()) {
+      return res.status(403).json({ error: 'Forbidden: You can only delete your own templates.' });
+    }
+
+    await RecurringRideTemplate.findByIdAndDelete(req.params.id);
+    res.json({
+      success: true,
+      message: 'Recurring template deleted successfully. Already generated rides remain preserved.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete template', details: err.message });
+  }
+});
+
+// POST /api/modules/b/recurring-templates/:id/generate - Idempotently generate occurrences
+router.post('/recurring-templates/:id/generate', requireAuth, async (req, res) => {
+  try {
+    const horizonDays = parseInt(req.body.horizonDays, 10) || 7;
+    const result = await recurringService.generateOccurrences(req.params.id, horizonDays);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to generate recurring occurrences' });
+  }
+});
+
+// GET /api/modules/b/recurring-templates/:id/preview - Preview upcoming schedule
+router.get('/recurring-templates/:id/preview', requireAuth, async (req, res) => {
+  try {
+    const template = await RecurringRideTemplate.findById(req.params.id);
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found.' });
+    }
+
+    const horizonDays = parseInt(req.query.horizonDays, 10) || 14;
+    const preview = recurringService.previewOccurrences(template, horizonDays);
+
+    res.json({
+      success: true,
+      count: preview.length,
+      data: preview
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Failed to preview template occurrences' });
+  }
+});
+
+// ==========================================
+// 11. Durable Student Outcomes & Sustainability APIs
+// ==========================================
+
+// GET /api/modules/b/outcomes/mine - Student's durable carbon & savings records
+router.get('/outcomes/mine', requireAuth, async (req, res) => {
+  try {
+    const studentEmail = req.user.email.toLowerCase().trim();
+    const outcomes = await StudentSustainabilityOutcome.find({ studentEmail })
+      .populate('rideOfferId', 'originName destinationName departureTime vehicleType')
+      .sort({ completionTimestamp: -1 })
+      .lean();
+
+    const totalCo2Grams = outcomes.reduce((acc, o) => acc + (o.estimatedCo2SavedGrams || 0), 0);
+    const totalMonetaryRupees = outcomes.reduce((acc, o) => acc + (o.monetarySavedRupees || 0), 0);
+
+    res.json({
+      success: true,
+      count: outcomes.length,
+      summary: {
+        totalCompletedTrips: outcomes.length,
+        totalCo2SavedKg: parseFloat((totalCo2Grams / 1000).toFixed(2)),
+        totalMonetarySavedRupees: totalMonetaryRupees
+      },
+      data: outcomes
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch student sustainability history', details: err.message });
+  }
+});
 
 // GET /api/modules/b/metrics - Aggregated sustainability & mobility statistics
 router.get('/metrics', async (req, res) => {
   try {
     const totalRides = await RideOffer.countDocuments();
-    const activeRides = await RideOffer.countDocuments({ status: { $in: ['open', 'full'] } });
+    const activeRides = await RideOffer.countDocuments({ status: { $in: ['open', 'full', 'scheduled', 'in_transit'] } });
     const completedRides = await RideOffer.countDocuments({ status: 'completed' });
 
     // Aggregate confirmed bookings & carbon savings
@@ -628,7 +1095,6 @@ router.get('/metrics', async (req, res) => {
       totalMonetarySavingsRupees += (req.matchMetrics && req.matchMetrics.monetarySavings) || 45;
     }
 
-    // Default demonstration baseline values if database is fresh
     const displayPassengers = Math.max(totalPassengersCarpooled, 14);
     const displayCo2Kg = Math.max(Math.round((totalCo2SavedGrams / 1000) * 10) / 10, 8.4);
     const displaySavings = Math.max(totalMonetarySavingsRupees, 680);
@@ -655,7 +1121,7 @@ router.get('/health', (req, res) => {
   res.json({
     module: 'Module B: Smart Campus Ride-Pooling',
     status: 'ready',
-    version: '2.0.0-dijkstra-matching',
+    version: '2.1.0-lifecycle-ratings-simulation',
     graphNodes: campusGraphInstance.getNodes().length,
     timestamp: new Date().toISOString()
   });
