@@ -192,6 +192,11 @@ app.use(cors({
     // Allow non-browser requests with no origin (mobile clients, curl, server-to-server)
     if (!origin) return callback(null, true);
 
+    // Allow Chrome Extension clients (Manifest V3)
+    if (origin.startsWith('chrome-extension://')) {
+      return callback(null, true);
+    }
+
     const allowed = parseConfiguredOrigins();
     if (allowed.includes(origin)) {
       return callback(null, true);

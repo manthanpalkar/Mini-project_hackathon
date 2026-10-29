@@ -310,15 +310,19 @@ async function handleMessage(request) {
       }
 
       const history = await getSessionHistory();
+      const currentSession = await getSession();
       const events = await getEvents();
-      const latest = history[0];
+      const sessionToSync = history[0];
 
-      if (!latest) {
-        return { success: false, error: 'No completed extension sessions found to sync.' };
+      if (!sessionToSync) {
+        if (currentSession && (currentSession.status === 'active' || currentSession.status === 'paused')) {
+          return { success: false, error: 'Focus session is currently active in browser! Click "Complete & Save" in the extension popup before syncing.' };
+        }
+        return { success: false, error: 'No completed study sessions found to sync yet. Start and complete a focus session in the extension first!' };
       }
 
-      const sessionEvents = events.filter(e => e.sessionId === latest.id);
-      const res = await syncCompletedSession(latest, sessionEvents, token, apiUrl);
+      const sessionEvents = events.filter(e => e.sessionId === sessionToSync.id);
+      const res = await syncCompletedSession(sessionToSync, sessionEvents, token, apiUrl);
 
       if (res.success) {
         settings.syncAuthToken = token;
