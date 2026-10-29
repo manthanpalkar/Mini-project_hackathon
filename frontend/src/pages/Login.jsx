@@ -404,24 +404,26 @@ export default function Login() {
       />
 
       {/* ========================================================================= */}
-      {/* UNIFIED PANORAMIC BACKGROUND & SEAMLESS IN-BETWEEN GRADIENT               */}
+      {/* LEFT PANEL: SPIT CAMPUS BACKDROP & AUTHENTIC INSTITUTIONAL BRANDING      */}
       {/* ========================================================================= */}
-      <div className="panoramic-bg-canvas" aria-hidden="true">
-        <picture>
-          <source srcSet="/images/spit-campus-foyer.webp" type="image/webp" />
-          <img 
-            src="/images/spit-campus-foyer.png" 
-            alt="Sardar Patel Institute of Technology Entrance" 
-            className="panoramic-campus-img"
-            loading="eager"
-          />
-        </picture>
-        <div className="panoramic-gradient-overlay" />
-      </div>
-
-      {/* LEFT PANEL: TRANSPARENT OVER PHOTO (BRAND MARK AT TOP) */}
       <aside className="github-left-panel">
+        {/* Campus Background Image & Vignette Gradient */}
+        <div className="left-image-backdrop">
+          <picture>
+            <source srcSet="/images/spit-campus-foyer.webp" type="image/webp" />
+            <img 
+              src="/images/spit-campus-foyer.png" 
+              alt="Sardar Patel Institute of Technology Entrance" 
+              className="left-campus-img"
+              loading="eager"
+            />
+          </picture>
+          <div className="left-image-overlay" aria-hidden="true" />
+          <div className="seam-gradient-overlay" aria-hidden="true" />
+        </div>
+
         <div className="left-panel-content">
+          {/* Header Brand Mark */}
           <div className="left-brand-row">
             <Link to="/" className="left-brand-logo-link" title="LOOP Home">
               <img 
@@ -850,7 +852,7 @@ export default function Login() {
       {/* SCOPED CSS STYLES FOR PIXEL-PERFECT GITHUB SPLIT SCREEN COMPOSITION       */}
       {/* ========================================================================= */}
       <style>{`
-        /* Full-Screen Unified Layout */
+        /* Full-Screen Two-Column Split Layout */
         .github-split-layout {
           width: 100vw;
           height: 100vh;
@@ -861,76 +863,80 @@ export default function Login() {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
           color: #1f2328;
           box-sizing: border-box;
-          position: relative;
-        }
-
-        /* Full-Page Continuous Panoramic Canvas */
-        .panoramic-bg-canvas {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 0;
-          overflow: hidden;
-          pointer-events: none;
-        }
-
-        .panoramic-bg-canvas picture {
-          display: block;
-          width: 100%;
-          height: 100%;
-        }
-
-        .panoramic-campus-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: 25% center;
-          display: block;
-        }
-
-        /* Seamless In-Between Gradient: Blends naturally across the middle into crisp white */
-        .panoramic-gradient-overlay {
-          position: absolute;
-          inset: 0;
-          background: 
-            /* Main horizontal blend: Clear photo on left -> Smooth in-between gradient -> Crisp white on right */
-            linear-gradient(
-              to right,
-              rgba(5, 8, 17, 0.45) 0%,
-              rgba(5, 8, 17, 0.1) 20%,
-              transparent 34%,
-              rgba(255, 255, 255, 0.22) 44%,
-              rgba(255, 255, 255, 0.65) 54%,
-              rgba(255, 255, 255, 0.94) 66%,
-              #ffffff 78%,
-              #ffffff 100%
-            ),
-            /* Top brand mark contrast */
-            linear-gradient(
-              180deg,
-              rgba(5, 8, 17, 0.65) 0%,
-              rgba(5, 8, 17, 0.05) 24%,
-              transparent 50%
-            );
-          pointer-events: none;
         }
 
         /* ----------------------------------------------------------------------- */
-        /* LEFT PANEL: TRANSPARENT OVER PHOTO (BRAND MARK AT TOP)                  */
+        /* LEFT PANEL: SPIT CAMPUS BACKDROP (#050811)                              */
         /* ----------------------------------------------------------------------- */
         .github-left-panel {
           width: 50%;
           flex: 0 0 50%;
           height: 100vh;
-          background-color: transparent;
+          background-color: #050811;
           color: #ffffff;
           display: flex;
           flex-direction: column;
           position: relative;
-          z-index: 1;
           overflow: hidden;
           box-sizing: border-box;
+        }
+
+        .left-image-backdrop {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 1;
+          overflow: hidden;
+          background-color: #050811;
+        }
+
+        .left-image-backdrop picture {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+
+        .left-campus-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
+        }
+
+        .left-image-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(5, 8, 17, 0.72) 0%,
+            rgba(5, 8, 17, 0.15) 30%,
+            rgba(5, 8, 17, 0.25) 70%,
+            rgba(5, 8, 17, 0.82) 100%
+          );
+          pointer-events: none;
+        }
+
+        /* ----------------------------------------------------------------------- */
+        /* IN-BETWEEN SEAM GRADIENT: Softly dissolves photo into right white panel */
+        /* ----------------------------------------------------------------------- */
+        .seam-gradient-overlay {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          right: 0;
+          width: 120px;
+          background: linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(255, 255, 255, 0.05) 20%,
+            rgba(255, 255, 255, 0.22) 45%,
+            rgba(255, 255, 255, 0.62) 75%,
+            rgba(255, 255, 255, 0.92) 92%,
+            #ffffff 100%
+          );
+          pointer-events: none;
         }
 
         .left-panel-content {
@@ -952,7 +958,7 @@ export default function Login() {
           gap: 0.5rem;
           text-decoration: none;
           color: #ffffff;
-          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
         }
 
         .left-brand-logo {
@@ -975,8 +981,8 @@ export default function Login() {
           letter-spacing: 0.05em;
           padding: 2px 6px;
           border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.4);
-          background-color: rgba(0, 0, 0, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          background-color: rgba(0, 0, 0, 0.35);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           color: #ffffff;
@@ -984,18 +990,17 @@ export default function Login() {
         }
 
         /* ----------------------------------------------------------------------- */
-        /* RIGHT PANEL: TRANSPARENT OVER CRISP WHITE GRADIENT                      */
+        /* RIGHT PANEL: CRISP WHITE (#FFFFFF)                                    */
         /* ----------------------------------------------------------------------- */
         .github-right-panel {
           width: 50%;
           flex: 0 0 50%;
           height: 100vh;
-          background-color: transparent;
+          background-color: #ffffff;
           color: #1f2328;
           display: flex;
           flex-direction: column;
           position: relative;
-          z-index: 1;
           overflow-y: auto;
           overflow-x: hidden;
           box-sizing: border-box;
@@ -1380,29 +1385,28 @@ export default function Login() {
             overflow-y: auto;
           }
 
-          .panoramic-campus-img {
-            object-position: center top;
-          }
-
-          .panoramic-gradient-overlay {
-            background: 
-              linear-gradient(
-                to bottom,
-                rgba(5, 8, 17, 0.55) 0%,
-                transparent 14%,
-                rgba(255, 255, 255, 0.35) 28%,
-                rgba(255, 255, 255, 0.92) 42%,
-                #ffffff 54%,
-                #ffffff 100%
-              );
-          }
-
           .github-left-panel {
             width: 100%;
             flex: none;
             height: 180px;
             min-height: 180px;
             position: relative;
+          }
+
+          .seam-gradient-overlay {
+            top: auto;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(
+              to bottom,
+              transparent 0%,
+              rgba(255, 255, 255, 0.25) 45%,
+              rgba(255, 255, 255, 0.75) 80%,
+              #ffffff 100%
+            );
           }
 
           .left-panel-content {
@@ -1414,7 +1418,7 @@ export default function Login() {
             flex: none;
             height: auto;
             min-height: auto;
-            padding: 1.5rem 1.75rem 3.5rem 1.75rem;
+            padding: 2rem 1.75rem 3.5rem 1.75rem;
           }
 
           .form-center-container {
