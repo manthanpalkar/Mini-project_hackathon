@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build artifacts
+dist/
+*/dist/
+build/
+coverage/
+
+# Environment files and secrets (Strictly ignored)
+.env
+.env.*
+*/.env
+*/.env.*
+!.env.example
+!*/.env.example
+
+# Version control & OS metadata
+.git/
+.gitignore
+.DS_Store
+*.log
+npm-debug.log*
+
+# Scratch & temporary artifacts
+scratch/
+backups/
+__pycache__/
+*.pyc
