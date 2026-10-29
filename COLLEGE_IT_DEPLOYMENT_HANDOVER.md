@@ -1,34 +1,36 @@
 # LOOP SPIT — College IT Server Deployment & Handover Guide
 
-This document contains the complete package for the **Sardar Patel Institute of Technology (SPIT) IT / Server Administration Team** to deploy the LOOP SPIT platform on college infrastructure (Linux server, on-premise VM, or institutional cloud).
+This document contains the complete, production-ready operational guide for the **Sardar Patel Institute of Technology (SPIT) IT / Server Administration Team** to deploy and maintain the LOOP SPIT platform on institutional infrastructure (Linux server, on-premise VM, or institutional cloud).
 
 ---
 
-## 1. Repository Access (Repo)
+## 1. Repository & Container Package Access
 
-- **Repository URL:** [https://github.com/swapnil-exxe/loop](https://github.com/swapnil-exxe/loop)
-- **Primary Branch:** `main`
-- **Access Protocol:**
-  - If private: Grant the IT Cell's GitHub account(s) `Read` or `Triage` permissions under **Settings > Collaborators**.
-  - Clone command on the college server:
-    ```bash
-    git clone https://github.com/swapnil-exxe/loop.git
-    cd loop
-    ```
+### 1.1 Source Repository
+* **Repository URL:** [https://github.com/swapnil-exxe/loop](https://github.com/swapnil-exxe/loop)
+* **Default Production Branch:** `main`
+
+### 1.2 GitHub Container Registry (Pre-Built Docker Packages)
+Pre-compiled production images are automatically built and published via GitHub Actions CI/CD to **GitHub Packages (GHCR)**:
+* **Backend Image:** `ghcr.io/swapnil-exxe/loop-backend:latest`
+* **Frontend Image:** `ghcr.io/swapnil-exxe/loop-frontend:latest`
+* **Package Dashboard:** [https://github.com/swapnil-exxe/loop/packages](https://github.com/swapnil-exxe/loop/packages)
+
+> [!TIP]
+> With pre-built GitHub Packages, the college server does **not** need Node.js, npm, or frontend build toolchains. Docker pulls and runs the optimized production containers directly.
 
 ---
 
-## 2. Environment Configuration (.env)
+## 2. Environment Configuration (`.env`)
 
-Create a `.env` file in the root directory of the cloned repository on the college server.
+Create a `.env` file in the project root on the college server.
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-### Complete Production `.env` Template
-Fill in the values below with the college's dedicated credentials:
+### Complete Production Configuration Template
 
 ```env
 # ==============================================================================
@@ -42,10 +44,10 @@ BACKEND_PORT=5001
 HOST=0.0.0.0
 
 # --- Database (MongoDB Atlas / College MongoDB Replica Set) ---
-# Connection string with write permissions for GridFS file streaming
+# Connection string with write and stream permissions for GridFS
 MONGODB_URI=mongodb+srv://<college_db_user>:<college_db_password>@<cluster_address>/loop?retryWrites=true&w=majority
 
-# GridFS Bucket Settings for PDF Resumes and Study Material uploads
+# GridFS Bucket Settings for Resumes and Study Material uploads
 GRIDFS_BUCKET_NAME=loop_resources
 GRIDFS_CHUNK_SIZE_MB=8
 GRIDFS_UPLOAD_CONCURRENCY=6
@@ -56,7 +58,7 @@ RESUME_MAX_FILE_SIZE_BYTES=10485760
 JWT_SECRET=generate_a_secure_64_character_random_hex_string_here
 RESET_SECRET=generate_another_secure_64_character_random_hex_string_here
 
-# Allowed CORS origins (Comma-separated: server domain name and IPs)
+# Allowed CORS origins (Comma-separated: server domain name and server IPs)
 # Example: https://loop.spit.ac.in,http://<college-server-ip>
 ALLOWED_ORIGIN=https://loop.spit.ac.in,http://localhost
 
@@ -72,7 +74,8 @@ BREVO_API_KEY=xkeysib-your_college_brevo_v3_api_key_here
 EMAIL_FROM=tpo@spit.ac.in
 
 # --- Redis Caching & Circuit Breaker (Optional) ---
-# If college does not have Redis, keep REDIS_ENABLED=false (system safely falls back to MongoDB)
+# If college does not have a Redis instance, keep REDIS_ENABLED=false
+# The backend will safely fallback to direct MongoDB queries without performance penalty
 REDIS_ENABLED=false
 REDIS_URL=redis://localhost:6379
 REDIS_TTL_STORIES=300
@@ -84,51 +87,66 @@ REDIS_TTL_FOLDERS=300
 ```
 
 > [!SECURITY NOTE]
-> Never commit this `.env` file to Git. It is automatically ignored by `.gitignore` and `.dockerignore`.
+> Never commit this `.env` file to Git. It is automatically excluded by `.gitignore` and `.dockerignore`.
 
 ---
 
-## 3. Docker Deployment Instructions (Docker)
+## 3. Server Prerequisites & Docker Deployment
 
-### Server Prerequisites
-The college server (Ubuntu 22.04 / 24.04 LTS or Debian 12 recommended) requires:
-- **Docker Engine** (v24.0 or newer)
-- **Docker Compose Plugin** (v2.20 or newer)
+### 3.1 Server Requirements
+* **OS:** Ubuntu 22.04 / 24.04 LTS, Debian 12, or RHEL 9 (64-bit x86_64 / amd64)
+* **RAM:** Minimum 2 GB (4 GB recommended)
+* **Disk:** Minimum 20 GB free disk space
+* **Docker Engine:** v24.0 or newer
+* **Docker Compose:** v2.20 or newer
 
-To install on a clean Ubuntu/Debian server:
+#### Installation on Clean Ubuntu/Debian Server:
 ```bash
 sudo apt update && sudo apt install -y docker.io docker-compose-v2
 sudo systemctl enable --now docker
 sudo usermod -aG docker $USER
-# Log out and log back in for group changes to take effect
+# Log out and log back in to apply group permissions
 ```
 
 ---
 
-### Step-by-Step Deployment Commands
+### 3.2 Step-by-Step Deployment
 
+#### Step 1: Clone the Repository
 ```bash
-# Step 1: Clone the repository
 git clone https://github.com/swapnil-exxe/loop.git
 cd loop
+```
 
-# Step 2: Configure environment
+#### Step 2: Configure Environment
+```bash
 cp .env.example .env
-nano .env   # (Add college MongoDB URI, JWT_SECRET, etc.)
+nano .env   # Fill in production database URI, secrets, and keys
+```
 
-# Step 3: Run the application
-# Option A: Pull pre-built images from GitHub Packages (Recommended & Fastest)
+#### Step 3: Launch Containers
+
+**Option A: Using Pre-Built GitHub Packages (Fastest & Recommended)**
+```bash
+# Pull official pre-built production images from GitHub Packages
 docker compose pull
+
+# Start containers in detached mode
 docker compose up -d
+```
 
-# Option B: Or build images locally from source
-# docker compose up -d --build
+**Option B: Building Locally from Source Code**
+```bash
+# Build images locally on the server and start
+docker compose up -d --build
+```
 
-# Step 4: Verify container health status
+#### Step 4: Verify Container Status
+```bash
 docker compose ps
 ```
 
-Expected output:
+**Expected Healthy Status Output:**
 ```
 NAME            IMAGE                                         STATUS                    PORTS
 loop-backend    ghcr.io/swapnil-exxe/loop-backend:latest      Up (healthy)              5001/tcp
@@ -137,80 +155,138 @@ loop-frontend   ghcr.io/swapnil-exxe/loop-frontend:latest     Up (healthy)      
 
 ---
 
-### Step 5: Verify Deployment via HTTP Probes
+### 3.3 Verify Deployment via HTTP Probes
+
+Run these commands from the server terminal:
 
 ```bash
-# 1. Verify frontend web application
+# 1. Test frontend static web server & SPA routing
 curl -I http://localhost/
 
-# 2. Verify backend health check through Nginx reverse proxy
+# 2. Test backend health check through Nginx reverse proxy
 curl http://localhost/health
 
-# 3. Verify public settings API
+# 3. Test public platform visibility API
 curl http://localhost/api/settings/visibility
+```
+
+**Expected `/health` JSON Response:**
+```json
+{
+  "status": "healthy",
+  "service": "loop-backend",
+  "version": "2.2.0-gridfs-streaming",
+  "dbState": "connected"
+}
 ```
 
 ---
 
-### Step 6: SSL / TLS Domain Setup (Optional / Recommended)
+## 4. Institutional Domain & SSL Setup (`loop.spit.ac.in`)
 
-If assigning a campus domain (e.g. `https://loop.spit.ac.in`):
+To assign a campus subdomain with automated HTTPS / SSL certificates:
 
-#### Using Nginx Reverse Proxy with Certbot on the Host:
-1. In `.env`, set `FRONTEND_PORT=3000` and restart:
-   ```bash
-   docker compose up -d
-   ```
-2. Install host Nginx and Certbot:
-   ```bash
-   sudo apt install -y nginx certbot python3-certbot-nginx
-   ```
-3. Create host Nginx configuration (`/etc/nginx/sites-available/loop.spit.ac.in`):
-   ```nginx
-   server {
-       server_name loop.spit.ac.in;
+### Step 1: Adjust Port in `.env`
+Change the frontend host port so the host Nginx can bind to standard port 80/443:
+```env
+FRONTEND_PORT=3000
+```
+Apply the change:
+```bash
+docker compose up -d
+```
 
-       location / {
-           proxy_pass http://127.0.0.1:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-           proxy_set_header X-Forwarded-Proto $scheme;
-           client_max_body_size 250M;
-       }
-   }
-   ```
-4. Enable site and issue free SSL certificate:
-   ```bash
-   sudo ln -s /etc/nginx/sites-available/loop.spit.ac.in /etc/nginx/sites-enabled/
-   sudo nginx -t && sudo systemctl reload nginx
-   sudo certbot --nginx -d loop.spit.ac.in
-   ```
+### Step 2: Install Host Nginx & Certbot
+```bash
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+### Step 3: Configure Host Reverse Proxy
+Create `/etc/nginx/sites-available/loop.spit.ac.in`:
+```nginx
+server {
+    server_name loop.spit.ac.in;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 250M;
+    }
+}
+```
+
+### Step 4: Enable Site & Issue SSL Certificate
+```bash
+sudo ln -s /etc/nginx/sites-available/loop.spit.ac.in /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d loop.spit.ac.in
+```
 
 ---
 
-## 4. Operational Maintenance Commands
+## 5. Operational Maintenance Commands
 
-| Action | Command |
+| Operation | Command |
 | :--- | :--- |
-| **View Live Logs (All)** | `docker compose logs -f` |
-| **View Backend Logs** | `docker compose logs -f backend` |
-| **View Frontend Logs** | `docker compose logs -f frontend` |
+| **Pull & Apply Latest Update (Zero Rebuild)** | `docker compose pull && docker compose up -d` |
+| **Rebuild & Apply Local Code Updates** | `git pull origin main && docker compose up -d --build` |
+| **View Combined Live Logs** | `docker compose logs -f` |
+| **View Backend API Logs** | `docker compose logs -f backend` |
+| **View Frontend Web Logs** | `docker compose logs -f frontend` |
 | **Restart Application** | `docker compose restart` |
-| **Stop Application** | `docker compose down` |
-| **Update to Latest Code** | `git pull origin main && docker compose up -d --build` |
-| **Check Container Resources** | `docker stats` |
+| **Stop All Containers** | `docker compose down` |
+| **Check Resource Utilization (CPU/RAM)** | `docker stats` |
+| **Prune Old Unused Images** | `docker image prune -f` |
 
 ---
 
-## 5. College IT Contact & Handoff Checklist
+## 6. Database Backups & Recovery
 
-- [ ] Repository cloned to college server.
-- [ ] Production `.env` populated with institutional credentials.
-- [ ] MongoDB Atlas cluster IP whitelist updated with college server IP.
-- [ ] Google Cloud Console Authorized JavaScript Origins updated with college server domain (`https://loop.spit.ac.in`).
-- [ ] Brevo transactional sender email verified (`tpo@spit.ac.in`).
-- [ ] Initial login tested with root administrator account (`admin@spit.ac.in`).
+### Automated MongoDB Atlas Backup (Recommended)
+If using MongoDB Atlas, automated continuous snapshot backups are enabled under Atlas **Backup** tab.
+
+### Manual CLI Backup (On-Premise or Local Replica Set)
+```bash
+# Export full database dump including GridFS files
+mongodump --uri="<MONGODB_URI>" --out="/backup/loop-$(date +%F)"
+
+# Restore database dump
+mongorestore --uri="<MONGODB_URI>" --drop "/backup/loop-YYYY-MM-DD/loop"
+```
+
+---
+
+## 7. Troubleshooting & FAQ for IT Administrators
+
+### Q1: Port 80 is already in use by another service on the server
+**Fix:** Set `FRONTEND_PORT=8080` (or any available port) in `.env` and restart containers (`docker compose up -d`).
+
+### Q2: Backend health check shows `dbState: "disconnected"`
+**Fix:** Verify that the college server's public outgoing IP address is added to the MongoDB Atlas **Network Access (IP Whitelist)**. Also verify that the database username and password in `MONGODB_URI` have no unencoded special characters.
+
+### Q3: Large PDF file upload fails with HTTP 413
+**Fix:** Nginx reverse proxy inside `frontend/nginx.conf` and host Nginx are already configured with `client_max_body_size 250M`. If using an external load balancer (Cloudflare, AWS ALB), ensure the maximum upload size is set to 50MB+.
+
+### Q4: Google Single Sign-On fails with "redirect_uri_mismatch"
+**Fix:** Go to **Google Cloud Console > Credentials > OAuth 2.0 Client IDs**, and add the college server's production URL (e.g. `https://loop.spit.ac.in`) to **Authorized JavaScript origins**.
+
+---
+
+## 8. College IT Handoff Sign-Off Checklist
+
+- [ ] Repository cloned to `/opt/loop` or designated deployment directory.
+- [ ] Production `.env` created with institutional database connection and 64-char secrets.
+- [ ] College server IP added to MongoDB Atlas IP Whitelist.
+- [ ] Containers started successfully and running in `healthy` state (`docker compose ps`).
+- [ ] Frontend accessible in browser over HTTP/HTTPS.
+- [ ] Backend `/health` endpoint returns HTTP 200 with `"status": "healthy"`.
+- [ ] Google OAuth SSO tested with college email domain (`@spit.ac.in`).
+- [ ] Password reset OTP email delivery verified via Brevo.
+- [ ] Resume upload to GridFS tested from student profile.
+- [ ] Institutional domain DNS record (`loop.spit.ac.in`) pointed to server and SSL verified.
