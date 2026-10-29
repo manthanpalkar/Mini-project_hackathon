@@ -159,6 +159,18 @@ npm test
 
 ## Deployment
 
-The backend runs on **Render Cloud Application Engine**:
+### Option A: Docker Container & GitHub Packages (GHCR)
+The backend is containerized using a multi-stage, hardened Dockerfile ([`backend/Dockerfile`](Dockerfile)) running as non-root user `node` (UID: 1000) with native HTTP health checks.
+
+Pre-built container images are published automatically via GitHub Actions:
+```bash
+# Pull backend image directly from GitHub Packages
+docker pull ghcr.io/swapnil-exxe/loop-backend:latest
+
+# Or run via root docker-compose
+docker compose up -d backend
+```
+
+### Option B: Cloud PaaS (Render Application Engine)
 * **Live API Base URL:** [https://loop-qnh9.onrender.com/api](https://loop-qnh9.onrender.com/api)
 * Features health monitoring (`/api/health`), automatic zero-downtime deployments on git push, and SSL/TLS termination.

@@ -6,7 +6,9 @@
 [![Node](https://img.shields.io/badge/Node.js-Express_4.19-green?logo=node.js&style=flat-square)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_GridFS-brightgreen?logo=mongodb&style=flat-square)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cloud_Cache-red?logo=redis&style=flat-square)](https://redis.io/)
-[![Docker](https://img.shields.io/badge/Docker-MongoDB_7.0_Staging-2496ED?logo=docker&style=flat-square)](https://www.docker.com/)
+[![Docker](https://img.shields.io/badge/Docker-Multi--Container_Prod-2496ED?logo=docker&style=flat-square)](DOCKER.md)
+[![GitHub Packages](https://img.shields.io/badge/GitHub_Packages-ghcr.io-2088FF?logo=github&style=flat-square)](https://github.com/swapnil-exxe/loop/packages)
+[![College IT Handover](https://img.shields.io/badge/College_IT-Deployment_Guide-E65100?logo=readme&style=flat-square)](COLLEGE_IT_DEPLOYMENT_HANDOVER.md)
 [![Tests](https://img.shields.io/badge/Automated_Tests-267_Passed_(28_Suites)-success?style=flat-square)](backend/tests/)
 [![Vite](https://img.shields.io/badge/Bundler-Vite_8-646CFF?logo=vite&style=flat-square)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
@@ -117,6 +119,8 @@ LOOP achieves its mission through four purpose-built subsystems:
 | :--- | :--- | :--- | :--- |
 | **Frontend Web Client** | Vercel Global Edge Network | [https://loop-seven-delta.vercel.app/](https://loop-seven-delta.vercel.app/) | **Production (24/7)** |
 | **Backend API Engine** | Render Cloud Application Engine | [https://loop-qnh9.onrender.com/](https://loop-qnh9.onrender.com/) | **Production (24/7)** |
+| **Docker Container Registry** | GitHub Packages (GHCR) | [ghcr.io/swapnil-exxe/loop](https://github.com/swapnil-exxe/loop/packages) | **Multi-Container Images** |
+| **College Server Handover** | SPIT Campus Infrastructure Guide | [`COLLEGE_IT_DEPLOYMENT_HANDOVER.md`](COLLEGE_IT_DEPLOYMENT_HANDOVER.md) | **Production Runbook** |
 | **Primary Cloud Database** | MongoDB Atlas Cloud (M0 Cluster) | `databaseloop.4qedd5n.mongodb.net` | **Cloud Replica** |
 | **Distributed Query Cache** | Redis Cloud Free Tier | `diaphanous-celery-purpose-99869.db.redis.io` | **In-Memory Cache** |
 | **Transactional Email Engine**| Brevo Transactional API | `smtp-relay.brevo.com` | **Authenticated Delivery** |
@@ -609,7 +613,12 @@ To preserve strict source fidelity while providing intuitive student search:
 
 ```text
 loop/
+├── .github/
+│   └── workflows/
+│       └── publish-docker.yml        # CI/CD: Automated multi-arch container build & push to GHCR
 ├── backend/
+│   ├── Dockerfile                    # Pinned Node.js 20 LTS multi-stage runner (non-root UID 1000)
+│   ├── .dockerignore                 # Excludes .env, tests, and temporary node_modules
 │   ├── middlewares/                  # Express middleware guards
 │   │   ├── auth.js                   # JWT verification, sliding rotation, requireAdmin
 │   │   └── upload.js                 # Multer memory storage & MIME whitelist filter
@@ -638,6 +647,9 @@ loop/
 │   └── package.json                  # Backend dependencies & npm test scripts
 │
 ├── frontend/
+│   ├── Dockerfile                    # Multi-stage build: Vite compiler + Unprivileged Nginx runner
+│   ├── nginx.conf                    # Nginx SPA fallback routing, API reverse proxy, security headers
+│   ├── .dockerignore                 # Excludes .env, local dist, and node_modules
 │   ├── public/                       # Static public assets & meta graphics
 │   │   ├── apple-touch-icon.png      # 180x180 iOS/macOS bookmark icon
 │   │   ├── favicon.png               # 512x512 high-contrast squircle badge (WhatsApp safe)
@@ -670,10 +682,16 @@ loop/
 │   ├── vercel.json                   # Edge CDN SPA rewrite rules
 │   └── package.json                  # Frontend dependencies & npm build scripts
 │
+├── docker-compose.yml                # Production multi-container orchestration (network, healthchecks)
+├── .dockerignore                     # Root Docker exclusion rules
+├── .env.example                      # Complete environment configuration template with safe placeholders
+├── COLLEGE_IT_DEPLOYMENT_HANDOVER.md # Complete SPIT IT Cell deployment and operations manual
+├── DOCKER.md                         # Comprehensive Dockerization & container architecture guide
+├── render.yaml                       # Render Cloud PaaS infrastructure-as-code specification
 ├── vercel.json                       # Root Vercel SPA routing fallback configuration
 ├── reports/                          # Comprehensive audit, security, and performance reports
 │   ├── previous_reports/             # Historical engineering verification reports
-│   └── ...                           # All 49 technical benchmark and audit reports
+│   └── ...                           # All 54 technical benchmark, security, and audit reports
 ├── LICENSE                           # Official MIT License
 └── README.md                         # Complete project documentation
 ```
@@ -765,10 +783,34 @@ npm test
 
 ## Local Development & Setup
 
+### Quickest Start: Instant Multi-Container Docker Deployment
+The fastest way to run the entire LOOP SPIT platform (frontend + backend + Nginx reverse proxy) with zero local compilation:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/swapnil-exxe/loop.git
+cd loop
+
+# 2. Create environment configuration
+cp .env.example .env
+
+# 3. Pull pre-built images from GitHub Packages and start
+docker compose pull
+docker compose up -d
+
+# 4. Verify deployment
+curl http://localhost/health
+```
+The platform is immediately available at `http://localhost`. See [`DOCKER.md`](DOCKER.md) for architecture details and [`COLLEGE_IT_DEPLOYMENT_HANDOVER.md`](COLLEGE_IT_DEPLOYMENT_HANDOVER.md) for campus server deployment.
+
+---
+
+### Standard Development Setup (Without Docker)
+
 ### Prerequisites
 * **Node.js**: `v18.0.0` or higher
 * **npm**: `v9.0.0` or higher
-* **MongoDB**: A free MongoDB Atlas cluster connection URI (or local Docker container for isolated tests)
+* **MongoDB**: A MongoDB Atlas connection URI or local MongoDB instance
 
 ### 1. Clone the Repository
 ```bash

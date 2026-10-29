@@ -167,6 +167,18 @@ npm run preview
 
 ## Deployment
 
-The frontend is continuously integrated and deployed via **Vercel**:
+### Option A: Docker Container & GitHub Packages (GHCR)
+The frontend is containerized using a multi-stage Dockerfile ([`frontend/Dockerfile`](Dockerfile)) that builds the React application with Vite and serves static assets via unprivileged Nginx ([`frontend/nginx.conf`](nginx.conf), UID: 101) with built-in React Router SPA fallback routing and API reverse-proxying.
+
+Pre-built container images are published automatically via GitHub Actions:
+```bash
+# Pull frontend image directly from GitHub Packages
+docker pull ghcr.io/swapnil-exxe/loop-frontend:latest
+
+# Or run via root docker-compose
+docker compose up -d frontend
+```
+
+### Option B: Edge CDN (Vercel)
 * **Production URL:** [https://loop-seven-delta.vercel.app/](https://loop-seven-delta.vercel.app/)
 * Deployed automatically upon every push to the `main` branch of [`swapnil-exxe/loop`](https://github.com/swapnil-exxe/loop).
