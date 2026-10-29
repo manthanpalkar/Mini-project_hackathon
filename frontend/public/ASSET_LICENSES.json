@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": "LOOP SPIT",
+  "version": "1.0.0",
+  "lastAudited": "2026-10-30",
+  "attributionPolicy": "Proprietary project assets are protected by copyright. Third-party trademarks and open-source assets are acknowledged and governed by their respective licenses.",
+  "originalAssets": [
+    {
+      "path": "/loop-logo.png",
+      "description": "LOOP SPIT Official Product Logo and Iconography",
+      "owner": "Swapnil Patil & The LOOP Engineering Team / SPIT",
+      "license": "Proprietary - All Rights Reserved",
+      "usage": "Application header, favicon, branding metadata"
+    },
+    {
+      "path": "/favicon.svg",
+      "description": "LOOP Vector Favicon",
+      "owner": "Swapnil Patil & The LOOP Engineering Team / SPIT",
+      "license": "Proprietary - All Rights Reserved",
+      "usage": "Browser tab icon and PWA manifest"
+    },
+    {
+      "path": "/og-image.png",
+      "description": "Open Graph Social Sharing Preview Card",
+      "owner": "Swapnil Patil & The LOOP Engineering Team / SPIT",
+      "license": "Proprietary - All Rights Reserved",
+      "usage": "Social media preview metadata (Twitter Cards, OpenGraph)"
+    },
+    {
+      "path": "/images/chart-average-ctc.png",
+      "description": "Placement Data Chart: Average CTC Trends",
+      "owner": "LOOP SPIT / SPIT Training & Placement Cell",
+      "license": "Proprietary Institutional Data - Fair Dealing for Campus Students",
+      "usage": "Landing page placement statistics"
+    },
+    {
+      "path": "/images/chart-category-companies-students.png",
+      "description": "Placement Data Chart: Recruiter Category Breakdown",
+      "owner": "LOOP SPIT / SPIT Training & Placement Cell",
+      "license": "Proprietary Institutional Data - Fair Dealing for Campus Students",
+      "usage": "Landing page placement statistics"
+    },
+    {
+      "path": "/images/chart-internships-higherstudies.png",
+      "description": "Placement Data Chart: Internships & Higher Studies",
+      "owner": "LOOP SPIT / SPIT Training & Placement Cell",
+      "license": "Proprietary Institutional Data - Fair Dealing for Campus Students",
+      "usage": "Landing page placement statistics"
+    },
+    {
+      "path": "/images/chart-placed-ctc.png",
+      "description": "Placement Data Chart: CTC Distribution Curve",
+      "owner": "LOOP SPIT / SPIT Training & Placement Cell",
+      "license": "Proprietary Institutional Data - Fair Dealing for Campus Students",
+      "usage": "Landing page placement statistics"
+    },
+    {
+      "path": "/images/chart-placement-percentage.png",
+      "description": "Placement Data Chart: Departmental Placement Percentages",
+      "owner": "LOOP SPIT / SPIT Training & Placement Cell",
+      "license": "Proprietary Institutional Data - Fair Dealing for Campus Students",
+      "usage": "Landing page placement statistics"
+    },
+    {
+      "path": "/images/loop-labs.png",
+      "description": "LOOP Labs Innovation Banner",
+      "owner": "Swapnil Patil & The LOOP Engineering Team",
+      "license": "Proprietary - All Rights Reserved",
+      "usage": "Promotional and experimental feature graphics"
+    }
+  ],
+  "thirdPartyAndInstitutionalAssets": [
+    {
+      "path": "/images/recruiters-partners.png",
+      "description": "Corporate Recruiter Logos Mosaic (Google, Microsoft, Morgan Stanley, etc.)",
+      "owner": "Respective Corporate Trademark Owners",
+      "license": "Nominative Fair Use (Indian Copyright Act § 52(1)(a) / US Trademark Nominative Fair Use)",
+      "usage": "Factual historical campus recruitment reporting"
+    },
+    {
+      "path": "/images/spit-college.jpg",
+      "description": "Sardar Patel Institute of Technology Campus Building Photograph",
+      "owner": "Sardar Patel Institute of Technology (SPIT), Mumbai",
+      "license": "Institutional Educational Use",
+      "usage": "Institutional campus recognition"
+    },
+    {
+      "path": "/images/spit-campus-foyer.png",
+      "description": "SPIT Campus Foyer Interior Photograph",
+      "owner": "Sardar Patel Institute of Technology (SPIT), Mumbai",
+      "license": "Institutional Educational Use",
+      "usage": "Campus showcase and hero backgrounds"
+    },
+    {
+      "path": "/images/tpo-team-placement.jpg",
+      "description": "SPIT Training & Placement Office Student Committee Photograph",
+      "owner": "SPIT Training & Placement Cell / Featured Students",
+      "license": "Institutional Academic Showcase",
+      "usage": "Placement team attribution"
+    },
+    {
+      "path": "/achievements/*.png",
+      "description": "Photographs of SPIT Student Hackathon & Competition Winners (2021-2026)",
+      "owner": "Featured Student Teams & SPIT",
+      "license": "Institutional Academic Recognition",
+      "usage": "Student achievements showcase"
+    },
+    {
+      "path": "/src/assets/react.svg",
+      "description": "React Framework Official Logo",
+      "owner": "Meta Platforms, Inc. and React Contributors",
+      "license": "MIT License",
+      "usage": "Frontend framework branding"
+    },
+    {
+      "path": "/src/assets/vite.svg",
+      "description": "Vite Build Tool Official Logo",
+      "owner": "Evan You and Vite Contributors",
+      "license": "MIT License",
+      "usage": "Frontend tooling branding"
+    }
+  ]
+}

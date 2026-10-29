@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — Mongoose Database Schemas & Data Architecture
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * ============================================================================
+ */
+
 const mongoose = require('mongoose');
 
 // User Schema

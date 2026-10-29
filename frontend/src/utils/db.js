@@ -1,3 +1,11 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — Data Service Layer & API Client
+ * Copyright (c) 2026 The Lawful Rights Holders. All Rights Reserved.
+ * Proprietary and Confidential.
+ * ============================================================================
+ */
+
 import { uploadResourceStream, formatBytes, formatSpeed, formatEta } from './upload';
 import { localMockResources, localMockPendingStories, localMockPendingResources, localMockAchievements, localMockFolders, localMockStories, localMockUsers } from './localMockData';
 

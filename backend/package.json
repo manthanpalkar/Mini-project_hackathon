@@ -1,14 +1,15 @@
 {
   "name": "loop-backend",
   "version": "1.0.0",
-  "license": "MIT",
+  "private": true,
+  "license": "UNLICENSED",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node seed.js",
-    "test": "node --test tests/*.test.js",
+    "test": "node --test -r ./tests/testEnv.js tests/*.test.js",
     "audit:health": "node scripts/audit_repo_health.js",
     "seed:dev": "node scripts/seed_dev_safe.js"
   },

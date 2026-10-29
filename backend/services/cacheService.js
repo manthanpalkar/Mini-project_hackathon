@@ -1,5 +1,14 @@
 /**
- * LOOP — High-Performance Distributed Redis Cache Service
+ * ============================================================================
+ * LOOP SPIT — High-Performance Distributed Redis Cache Service
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * Unauthorized copying, modification, or distribution is strictly prohibited.
+ * ============================================================================
  * 
  * Provides transparent Redis caching with automatic graceful fallback to MongoDB.
  * Implements:
@@ -73,13 +82,13 @@ function decompressPayload(raw) {
 }
 
 const DEFAULT_TTLS = {
-  stories: parseInt(process.env.REDIS_TTL_STORIES || '900', 10), // 15 minutes
-  storyDetail: parseInt(process.env.REDIS_TTL_STORY_DETAIL || '1800', 10), // 30 minutes
-  resources: parseInt(process.env.REDIS_TTL_RESOURCES || '900', 10), // 15 minutes
-  resourceDetail: parseInt(process.env.REDIS_TTL_RESOURCE_DETAIL || '1800', 10), // 30 minutes
-  achievements: parseInt(process.env.REDIS_TTL_ACHIEVEMENTS || '1800', 10), // 30 minutes
-  folders: parseInt(process.env.REDIS_TTL_FOLDERS || '900', 10), // 15 minutes
-  default: 900
+  stories: parseInt(process.env.REDIS_TTL_STORIES || '300', 10), // 5 minutes
+  storyDetail: parseInt(process.env.REDIS_TTL_STORY_DETAIL || '600', 10), // 10 minutes
+  resources: parseInt(process.env.REDIS_TTL_RESOURCES || '300', 10), // 5 minutes
+  resourceDetail: parseInt(process.env.REDIS_TTL_RESOURCE_DETAIL || '600', 10), // 10 minutes
+  achievements: parseInt(process.env.REDIS_TTL_ACHIEVEMENTS || '600', 10), // 10 minutes
+  folders: parseInt(process.env.REDIS_TTL_FOLDERS || '300', 10), // 5 minutes
+  default: 300
 };
 
 // Lightweight Circuit Breaker for Redis Availability

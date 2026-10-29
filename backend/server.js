@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — Launchpad of Outstanding Placements
+ * Backend API Microservice & Application Server
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * Unauthorized copying, modification, redistribution, or commercial use
+ * of this file, via any medium, is strictly prohibited.
+ * ============================================================================
+ */
+
 const envFile = process.env.ENV_FILE;
 if (envFile) {
   require('dotenv').config({ path: envFile });
@@ -346,8 +361,16 @@ app.use(mongoSanitize());
 // --- Helper Functions for Security & File Uploads ---
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (err) {
+  if (err.code !== 'EACCES') {
+    console.warn(`[Storage] Warning: Could not create local uploads directory: ${err.message}`);
+  } else {
+    console.warn(`[Storage] Warning: Permission denied creating local uploads directory (${UPLOADS_DIR}). If running in a non-root container, ensure it is pre-created.`);
+  }
 }
 // Security Guard for Legacy /uploads/* directory
 // Public assets (profile photos, achievement badges) are served statically without authentication.
@@ -4343,10 +4366,16 @@ app.get(['/api/resources/:id', '/api/pending-resources/:id'], authenticateToken,
     const query = mongoose.Types.ObjectId.isValid(sanitizedId)
       ? { $or: [{ id: sanitizedId }, { _id: sanitizedId }] }
       : { id: sanitizedId };
-    let resource = await Resource.findOne(query).lean();
-    if (!resource) {
-      resource = await PendingResource.findOne(query).lean();
-    }
+
+    const cacheKey = cacheService.makeKey('resources:detail', sanitizedId);
+    let resource = await cacheService.getOrSet(cacheKey, async () => {
+      let doc = await Resource.findOne(query).lean();
+      if (!doc) {
+        doc = await PendingResource.findOne(query).lean();
+      }
+      return doc;
+    }, cacheService.DEFAULT_TTLS.resourceDetail);
+
     if (!resource) {
       return res.status(404).json({ error: 'Resource not found.' });
     }

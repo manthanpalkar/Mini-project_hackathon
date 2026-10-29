@@ -63,6 +63,11 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
+          # Google OAuth Client ID is public client-side configuration (not a secret).
+          # Injected at build time via GitHub Actions Variable (vars.VITE_GOOGLE_CLIENT_ID)
+          # or Secret (secrets.VITE_GOOGLE_CLIENT_ID), defaulting to SPIT institutional Web Client ID.
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID || secrets.VITE_GOOGLE_CLIENT_ID || '779605241663-vp20b6cbhoccdeibjlcbtp7d9kbcf5bu.apps.googleusercontent.com' }}
           tags: |
             ${{ steps.names.outputs.frontend_tag_latest }}
             ${{ steps.names.outputs.frontend_tag_sha }}

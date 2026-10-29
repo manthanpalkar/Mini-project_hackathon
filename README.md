@@ -14,7 +14,7 @@
 [![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
 [![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&style=flat-square)](https://loop-qnh9.onrender.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg?style=flat-square)](COPYRIGHT)
 
 > **LOOP** (**Limitless Opportunities, One Platform**) is an institutional placement intelligence, peer mentorship, and academic vault ecosystem engineered for **Sardar Patel Institute of Technology (SPIT), Mumbai**. It connects college juniors, seniors, and alumni under the guiding motto *"Their Journey. Your Opportunity."* by publishing verified 4-year roadmaps, actual round-by-round interview debriefs, compensation packages, senior resumes, and curated study materials.
 
@@ -692,7 +692,9 @@ loop/
 ├── reports/                          # Comprehensive audit, security, and performance reports
 │   ├── previous_reports/             # Historical engineering verification reports
 │   └── ...                           # All 54 technical benchmark, security, and audit reports
-├── LICENSE                           # Official MIT License
+├── COPYRIGHT                         # All-Rights-Reserved Copyright Statement & IP Notice
+├── PROPRIETARY_LICENSE.md            # Comprehensive Draft Proprietary Software License
+├── LICENSE                           # Proprietary Software Notice
 └── README.md                         # Complete project documentation
 ```
 
@@ -858,10 +860,22 @@ TEST_MONGODB_URI=mongodb://127.0.0.1:27018/loop_test npm test
 
 ---
 
-## License & Acknowledgments
+## License & Intellectual Property
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+> **© 2026 LOOP SPIT — All Rights Reserved**
+>
+> LOOP SPIT is a proprietary software project.
+>
+> Unless expressly authorized in writing by the lawful copyright holder, unauthorized copying, reproduction, modification, redistribution, publication, or commercial use of protected project materials is prohibited.
+>
+> This notice applies to original source code, project documentation, original designs, and original visual assets to the extent protected by applicable law.
+>
+> Access to this project does not grant permission to reuse or redistribute its protected materials.
+>
+> Third-party libraries, assets, and dependencies remain subject to their respective licenses.
+>
+> Unauthorized use may result in a copyright infringement complaint or other legal action where applicable.
+>
+> Copyright ownership remains subject to the rights of the project’s lawful owners and contributors.
 
-Engineered for academic empowerment, peer mentorship, and campus recruitment excellence at **Sardar Patel Institute of Technology (SPIT), Mumbai**.
-
-Copyright © 2026 Swapnil Patil & The LOOP Engineering Team. All rights reserved.
+See [COPYRIGHT](COPYRIGHT) and [PROPRIETARY_LICENSE.md](PROPRIETARY_LICENSE.md) for full institutional attribution, third-party acknowledgments, and operational terms.

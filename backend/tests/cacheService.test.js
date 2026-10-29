@@ -483,4 +483,92 @@ describe('Redis Cache Service & Resilient Fallback', () => {
     await cacheService.getOrSet('loop:test:valid_search', async () => [{ id: '1' }], 1800);
     assert.equal(ttls.get('loop:test:valid_search'), 1800, 'Non-empty results must preserve requested TTL');
   });
+
+  test('Production TTL Configuration: Verifies exact requested TTL constants', () => {
+    assert.equal(cacheService.DEFAULT_TTLS.stories, 300, 'Stories TTL must be 300s');
+    assert.equal(cacheService.DEFAULT_TTLS.storyDetail, 600, 'Story Detail TTL must be 600s');
+    assert.equal(cacheService.DEFAULT_TTLS.resources, 300, 'Resources TTL must be 300s');
+    assert.equal(cacheService.DEFAULT_TTLS.resourceDetail, 600, 'Resource Detail TTL must be 600s');
+    assert.equal(cacheService.DEFAULT_TTLS.achievements, 600, 'Achievements TTL must be 600s');
+    assert.equal(cacheService.DEFAULT_TTLS.folders, 300, 'Folders TTL must be 300s');
+  });
+
+  test('Resource Detail Caching & Targeted Invalidation', async () => {
+    const store = new Map();
+    const ttls = new Map();
+    const deletedKeys = [];
+
+    const mockClient = {
+      isOpen: true,
+      get: async (k) => store.get(k) || null,
+      set: async (k, v, opts) => {
+        store.set(k, v);
+        if (opts && opts.EX) ttls.set(k, opts.EX);
+      },
+      del: async (keys) => {
+        const kArr = Array.isArray(keys) ? keys : [keys];
+        kArr.forEach(k => {
+          store.delete(k);
+          deletedKeys.push(k);
+        });
+      },
+      scan: async (cursor, opts) => {
+        const pattern = opts?.MATCH || '*';
+        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+        const matched = Array.from(store.keys()).filter(k => regex.test(k));
+        return { cursor: 0, keys: matched };
+      }
+    };
+    cacheService._setMockClient(mockClient);
+
+    let dbCallCount = 0;
+    const fetcher = async () => {
+      dbCallCount++;
+      return { id: 'res-456', title: 'Operating Systems Virtual Memory Guide', isApproved: true };
+    };
+
+    const key = cacheService.makeKey('resources:detail', 'res-456');
+    const res1 = await cacheService.getOrSet(key, fetcher, cacheService.DEFAULT_TTLS.resourceDetail);
+
+    assert.equal(dbCallCount, 1);
+    assert.equal(res1.title, 'Operating Systems Virtual Memory Guide');
+    assert.equal(ttls.get(key), 600, 'Resource detail TTL must be 600s');
+
+    // Second call: Cache Hit
+    const res2 = await cacheService.getOrSet(key, fetcher, cacheService.DEFAULT_TTLS.resourceDetail);
+    assert.equal(dbCallCount, 1, 'Database must not be queried on cache hit');
+    assert.deepEqual(res1, res2);
+
+    // Invalidation: Updating/Deleting resource invalidates its specific detail cache
+    await cacheService.invalidateResources('res-456');
+    assert.equal(store.has(key), false, 'Targeted resource detail key must be purged');
+  });
+
+  test('Security Policy: Shared cache keys must never store passwords or tokens', async () => {
+    const store = new Map();
+    const mockClient = {
+      isOpen: true,
+      get: async (k) => store.get(k) || null,
+      set: async (k, v) => store.set(k, v),
+      del: async (k) => store.delete(k)
+    };
+    cacheService._setMockClient(mockClient);
+
+    const safeStory = {
+      id: 'story-1',
+      candidateName: 'Student A',
+      company: 'Google',
+      role: 'SWE Intern',
+      status: 'approved'
+    };
+
+    const key = cacheService.makeKey('stories:detail', 'story-1');
+    await cacheService.getOrSet(key, async () => safeStory, 600);
+
+    const cachedRaw = store.get(key);
+    assert.ok(cachedRaw);
+    assert.equal(cachedRaw.includes('password'), false, 'Shared cache must not contain password field');
+    assert.equal(cachedRaw.includes('token'), false, 'Shared cache must not contain token field');
+    assert.equal(cachedRaw.includes('jwt'), false, 'Shared cache must not contain jwt field');
+  });
 });

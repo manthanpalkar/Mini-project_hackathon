@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — Google OAuth 2.0 Institutional Authentication Service
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * ============================================================================
+ */
+
 const { OAuth2Client } = require('google-auth-library');
 
 const SPIT_DOMAIN = 'spit.ac.in';

@@ -27,7 +27,7 @@ ENV NODE_ENV=production \
 # OpenContainers metadata linking to GitHub Packages repository
 LABEL org.opencontainers.image.source="https://github.com/swapnil-exxe/loop" \
       org.opencontainers.image.description="LOOP SPIT Backend API Service" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="Proprietary"
 
 # Copy node_modules from deps stage with non-root ownership
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
@@ -35,6 +35,9 @@ COPY --chown=node:node package*.json ./
 
 # Copy backend application source code
 COPY --chown=node:node . .
+
+# Ensure /app/uploads exists and is owned by the unprivileged node user
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
 
 # Run as built-in non-root user 'node' (UID: 1000, GID: 1000)
 USER node

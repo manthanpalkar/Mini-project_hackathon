@@ -17,11 +17,11 @@ flowchart LR
     subgraph DockerBridge ["loop-network (Private Bridge)"]
         Frontend["loop-frontend (Nginx 1.27 Unprivileged)\nPort: 8080 (Host :80)"]
         Backend["loop-backend (Node.js 20 LTS)\nPort: 5001 (Internal only)"]
+        Redis["loop-redis (Redis 7 Alpine)\nPort: 6379 (Internal only)"]
     end
 
     subgraph ExternalCloud ["External Managed Services"]
         Mongo["MongoDB Atlas + GridFS"]
-        Redis["Redis Cache (Optional)"]
         Brevo["Brevo Transactional SMTP"]
         Google["Google Identity Services"]
     end
@@ -29,8 +29,8 @@ flowchart LR
     Browser -->|HTTP :80| Frontend
     Frontend -->|Static React SPA| Browser
     Frontend -->|Proxy /api/* & /uploads/*| Backend
+    Backend -->|Internal Cache| Redis
     Backend -->|TLS Connection| Mongo
-    Backend -->|TLS Connection| Redis
     Backend -->|HTTPS API| Brevo
     Browser -->|OAuth Credential| Google
 ```
@@ -70,6 +70,9 @@ Edit `.env` with your preferred configuration:
 - `FRONTEND_PORT`: Host port to expose (default: `80`, or change to `3000` / `8080` if port 80 is occupied on your Mac).
 - `BREVO_API_KEY`: Brevo API key starting with `xkeysib-` (for password reset emails).
 - `GOOGLE_CLIENT_ID`: Your Google OAuth Web Client ID for institutional `@spit.ac.in` logins.
+- `REDIS_ENABLED`: `true` to use the bundled Redis container (default: `true` in compose), or `false` to safely fall back to direct MongoDB queries.
+- `REDIS_URL`: Internal container connection string `redis://redis:6379`.
+- `REDIS_TTL_*`: Granular cache TTLs in seconds (defaults: Stories 300s, Resources 300s, Story Detail 600s, Resource Detail 600s, Achievements 600s, Folders 300s).
 
 > [!NOTE]
 > `.env` is strictly ignored by `.gitignore` and `.dockerignore`. Secrets are never baked into Docker images or committed to Git.
@@ -98,7 +101,7 @@ docker compose up -d
 ```bash
 docker compose ps
 ```
-Both containers will display `Up (healthy)`.
+All three containers (`loop-frontend`, `loop-backend`, `loop-redis`) will display `Up (healthy)`.
 
 ### 4.4 View Live Logs
 View all logs:
@@ -114,6 +117,11 @@ docker compose logs -f backend
 View frontend logs only:
 ```bash
 docker compose logs -f frontend
+```
+
+View Redis logs only:
+```bash
+docker compose logs -f redis
 ```
 
 ---
@@ -148,7 +156,14 @@ Expected output:
 }
 ```
 
-### 5.3 Test API Endpoint Connectivity
+### 5.3 Test Redis Container Health & Memory
+```bash
+docker compose exec redis redis-cli ping
+docker compose exec redis redis-cli info memory
+```
+Expected ping response: `PONG`.
+
+### 5.4 Test API Endpoint Connectivity
 ```bash
 curl http://localhost/api/settings/visibility
 ```

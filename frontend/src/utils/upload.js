@@ -1,5 +1,9 @@
 /**
- * Optimized MongoDB GridFS Parallel Chunked Upload Client
+ * ============================================================================
+ * LOOP SPIT — Optimized MongoDB GridFS Parallel Chunked Upload Client
+ * Copyright (c) 2026 The Lawful Rights Holders. All Rights Reserved.
+ * Proprietary and Confidential.
+ * ============================================================================
  *
  * Architecture:
  * - Direct HTTP chunk streaming from browser into MongoDB GridFS
