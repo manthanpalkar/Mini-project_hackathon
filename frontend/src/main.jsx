@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — Launchpad of Outstanding Placements
+ * Single Page Application Web Client (React + Vite)
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * ============================================================================
+ */
+
 // Global polyfills for ECMAScript Uint8Array toHex / fromHex (required by modern PDF.js engines)
 if (typeof Uint8Array !== 'undefined') {
   if (!Uint8Array.prototype.toHex) {

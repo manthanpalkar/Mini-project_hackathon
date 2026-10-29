@@ -1,0 +1,71 @@
+# COPYRIGHT NOTICE & PROPRIETARY RIGHTS STATEMENT
+
+**Project:** LOOP SPIT (Launchpad of Outstanding Placements / Limitless Opportunities, One Platform)  
+**Academic Institution:** Sardar Patel Institute of Technology (SPIT), Munshi Nagar, Andheri (West), Mumbai 400058  
+**Copyright © 2026 The Lawful Rights Holders (Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology). All Rights Reserved.**
+
+---
+
+## 1. Proprietary Software Notice
+
+> **© 2026 LOOP SPIT — All Rights Reserved**
+>
+> LOOP SPIT is a proprietary software project.
+>
+> Unless expressly authorized in writing by the lawful copyright holder, unauthorized copying, reproduction, modification, redistribution, publication, or commercial use of protected project materials is prohibited.
+>
+> This notice applies to original source code, project documentation, original designs, and original visual assets to the extent protected by applicable law.
+>
+> Access to this project does not grant permission to reuse or redistribute its protected materials.
+>
+> Third-party libraries, assets, and dependencies remain subject to their respective licenses.
+>
+> Unauthorized use may result in a copyright infringement complaint or other legal action where applicable.
+>
+> Copyright ownership remains subject to the rights of the project’s lawful owners and contributors.
+
+---
+
+## 2. Allocation of Intellectual Property & Institutional Affiliation
+
+1. **Collaborative Authorship:** This software was designed and engineered by Swapnil Patil in collaboration with student contributors comprising the LOOP Engineering Team at Sardar Patel Institute of Technology (SPIT), Mumbai.
+2. **Institutional Status:** LOOP SPIT was developed for institutional deployment to serve the students, Training & Placement Office (TPO), and alumni community of SPIT Mumbai.
+3. **Pending Formal Determination:** The definitive allocation of proprietary rights between student contributors, project authors, and the institution (SPIT / Bharatiya Vidya Bhavan) remains subject to institutional policy, student intellectual property guidelines, and formal written governance agreements. Neither this notice nor any repository metadata establishes sole, unencumbered ownership in any single individual or entity to the exclusion of other legitimate contributors or the institution.
+
+---
+
+## 3. Third-Party Libraries & Open-Source Acknowledgments
+
+LOOP SPIT incorporates third-party open-source libraries, runtimes, frameworks, and fonts. All third-party software remains the intellectual property of its respective authors and is utilized strictly in accordance with its applicable open-source license:
+
+| Component | Upstream Author / Project | Applicable License | Role in LOOP SPIT |
+| :--- | :--- | :--- | :--- |
+| **Node.js Runtime** | OpenJS Foundation | MIT / Diverse | Server-side JavaScript execution |
+| **React** | Meta Platforms, Inc. | MIT License | Frontend user interface framework |
+| **Vite** | Evan You & Vite Contributors | MIT License | Frontend build tool and dev server |
+| **Express** | StrongLoop, Inc. & OpenJS | MIT License | Backend HTTP microservice framework |
+| **Mongoose** | Automattic, Inc. | MIT License | MongoDB object modeling library |
+| **Redis** | Redis Ltd. / Salvatore Sanfilippo | BSD 3-Clause / Source-Available | In-memory caching and session store |
+| **Nginx** | Igor Sysoev / F5, Inc. | 2-Clause BSD | Static file server and reverse proxy |
+| **PDF.js** | Mozilla Foundation | Apache-2.0 | In-browser PDF document rendering engine |
+| **Lucide Icons** | Lucide Project / Cole Bemis | ISC License | User interface iconography |
+| **Tailwind CSS** | Tailwind Labs, Inc. | MIT License | Utility-first styling engine |
+| **Google Identity** | Google LLC | Google APIs Terms of Service | SPIT Google Workspace authentication |
+
+Third-party copyright notices, licenses, and disclaimers are preserved in their respective dependency distributions and runtime packages. The proprietary claim stated herein applies strictly to original LOOP SPIT code, schemas, and assets, and specifically disclaims ownership of upstream third-party dependencies.
+
+---
+
+## 4. Student & Alumni Contributions (Fair Dealing & Data Protection)
+
+Placement experiences, interview debriefs, compensation packages, and resumes published within LOOP SPIT represent personal, voluntary contributions authored by SPIT students and alumni for peer guidance and campus recruitment preparation:
+* Placement story contributors retain personal copyright in their original literary narratives while granting LOOP SPIT an institutional license to display their submissions to authenticated SPIT students.
+* Unauthorized reproduction, harvesting, public exposure, or commercial sale of student resumes or personal placement accounts is strictly prohibited and constitutes an actionable infringement under the Indian Copyright Act, 1957, and the Digital Personal Data Protection Act (DPDPA), 2023.
+
+---
+
+## 5. Contact & Rights Inquiries
+
+For institutional licensing inquiries, permission requests, or IP clarification, please contact:
+* **Principal Author / Engineering Lead:** Swapnil Patil (`swapnil.patil24@spit.ac.in`)
+* **Institutional Contact:** Sardar Patel Institute of Technology (`tpo@spit.ac.in` / `principal@spit.ac.in`)

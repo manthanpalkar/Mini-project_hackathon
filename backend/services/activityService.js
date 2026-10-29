@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — Audit Trail & User Activity Intelligence Service
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * ============================================================================
+ */
+
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { ActivityLog } = require('../models');

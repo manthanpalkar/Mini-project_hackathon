@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — Launchpad of Outstanding Placements
+ * Backend API Microservice & Application Server
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * Unauthorized copying, modification, redistribution, or commercial use
+ * of this file, via any medium, is strictly prohibited.
+ * ============================================================================
+ */
+
 const envFile = process.env.ENV_FILE;
 if (envFile) {
   require('dotenv').config({ path: envFile });

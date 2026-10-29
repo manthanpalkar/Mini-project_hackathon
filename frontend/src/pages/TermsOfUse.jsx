@@ -528,7 +528,7 @@ export default function TermsOfUse() {
                 <strong>License to LOOP:</strong> By contributing content, you grant LOOP a royalty-free, non-exclusive, perpetual license to host, display, categorize, and format your submission for educational access by SPIT students and faculty.
               </li>
               <li>
-                <strong>LOOP Platform Property:</strong> The LOOP user interface, visual identity, branding, logo, code repository, and diagrammatic resource explorer architecture are the exclusive intellectual property of the LOOP student development team and SPIT.
+                <strong>LOOP Platform Property:</strong> The LOOP user interface, visual identity, branding, logo, code repository, and diagrammatic resource explorer architecture are the proprietary intellectual property of the lawful copyright holders (the LOOP student development team and SPIT). All rights are reserved.
               </li>
             </ul>
           </section>
@@ -538,11 +538,15 @@ export default function TermsOfUse() {
             <div className="section-badge">09</div>
             <h2>9. Copyright and Attribution</h2>
             <p>
-              We respect copyright laws and expect contributors to do the same:
+              <strong>© 2026 LOOP SPIT — All Rights Reserved.</strong> LOOP SPIT is a proprietary software project. Unless expressly authorized in writing by the lawful copyright holder, unauthorized copying, reproduction, modification, redistribution, publication, or commercial use of protected project materials is prohibited.
+            </p>
+            <p>
+              We respect third-party intellectual property rights and expect contributors to do the same:
             </p>
             <ul className="bullet-list">
               <li>Do not upload entire copyrighted commercial textbooks, proprietary pirated video courses, or paid test-series question banks without publisher authorization.</li>
               <li>Always provide appropriate citations or references when summarizing open-source curriculum materials, research papers, or open documentation (e.g., LeetCode, CSES, Striver SDE Sheet, MIT OpenCourseWare).</li>
+              <li>Third-party trademarks, company names, and recruiter logos displayed on the platform belong to their respective corporate owners and are presented strictly under nominative fair use for factual campus recruitment reporting.</li>
             </ul>
           </section>
 

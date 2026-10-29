@@ -1,5 +1,14 @@
 /**
- * LOOP — High-Performance Distributed Redis Cache Service
+ * ============================================================================
+ * LOOP SPIT — High-Performance Distributed Redis Cache Service
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * Unauthorized copying, modification, or distribution is strictly prohibited.
+ * ============================================================================
  * 
  * Provides transparent Redis caching with automatic graceful fallback to MongoDB.
  * Implements:

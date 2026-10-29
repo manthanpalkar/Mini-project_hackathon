@@ -364,17 +364,22 @@ function AppLayout() {
             fontSize: '0.75rem',
             color: 'var(--text-secondary)'
           }}>
-            <p style={{ margin: 0, opacity: 0.75 }}>
-              © 2026 Loop. Created exclusively for Sardar Patel Institute of Technology.
-            </p>
+            <div>
+              <p style={{ margin: 0, opacity: 0.85, fontWeight: 500 }}>
+                © 2026 LOOP SPIT — All Rights Reserved
+              </p>
+              <p style={{ margin: '0.2rem 0 0 0', opacity: 0.65, fontSize: '0.7rem' }}>
+                LOOP SPIT is a proprietary software project. Unauthorized reproduction, modification, or commercial use is prohibited.
+              </p>
+            </div>
             <p style={{ 
               margin: 0, 
-              fontSize: '0.925rem', 
-              fontWeight: 600, 
+              fontSize: '0.85rem', 
+              fontWeight: 500, 
               color: 'var(--text-primary)',
               letterSpacing: '0.01em'
             }}>
-              Developed by Swapnil Patil
+              Developed by Swapnil Patil &amp; The LOOP Engineering Team
             </p>
           </div>
         </footer>

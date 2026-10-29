@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * LOOP SPIT — MongoDB GridFS Parallel Chunk Streaming Storage Service
+ * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL.
+ * Unauthorized copying, modification, or distribution is strictly prohibited.
+ * ============================================================================
+ */
+
 const mongoose = require('mongoose');
 const { GridFSBucket, ObjectId } = require('mongodb');
 const fs = require('fs');

@@ -1,6 +1,10 @@
 /**
  * LOOP — Centralized Brand Identity Source of Truth
  * 
+ * Copyright (c) 2026 The Lawful Rights Holders
+ * Swapnil Patil, The LOOP Student Engineering Team, and Sardar Patel Institute of Technology (SPIT).
+ * All Rights Reserved. Proprietary and Confidential.
+ * 
  * Official Product Name: LOOP
  * Official Full Form: Limitless Opportunities, One Platform
  * Primary Tagline: Their Journey. Your Opportunity.
