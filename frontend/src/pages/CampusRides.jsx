@@ -53,6 +53,7 @@ export default function CampusRides() {
   const [searchSeats, setSearchSeats] = useState(1);
   const [searchMaxDetour, setSearchMaxDetour] = useState(2.5);
   const [searchResults, setSearchResults] = useState(null);
+  const [showSearchMap, setShowSearchMap] = useState(true);
 
   // Offer Ride state
   const [offerOrigin, setOfferOrigin] = useState('andheri_station_west');
@@ -120,6 +121,21 @@ export default function CampusRides() {
   useEffect(() => {
     loadInitialData();
   }, [loadInitialData]);
+
+  // Compute baseline search route preview when search origin/dest changes
+  useEffect(() => {
+    if (searchOrigin && searchDest && searchOrigin !== searchDest) {
+      computeRoute(searchOrigin, searchDest)
+        .then(res => {
+          if (res && res.path) {
+            setInspectRoute(res.path);
+          }
+        })
+        .catch(() => {
+          setInspectRoute([searchOrigin, searchDest]);
+        });
+    }
+  }, [searchOrigin, searchDest]);
 
   // Compute baseline driver route preview when offer origin/dest changes
   useEffect(() => {
@@ -655,9 +671,40 @@ export default function CampusRides() {
           <div>
             {searchResults ? (
               <div>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', fontWeight: 700 }}>
-                  Compatible Rides ({searchResults.matchesCount || 0})
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>
+                    Compatible Rides ({searchResults.matchesCount || (searchResults.matches?.length) || 0})
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowSearchMap(!showSearchMap)}
+                    style={{
+                      background: 'rgba(10, 132, 255, 0.12)',
+                      color: '#0A84FF',
+                      border: '1px solid rgba(10, 132, 255, 0.3)',
+                      padding: '5px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <Compass size={13} /> {showSearchMap ? 'Hide Apple Maps' : 'Show Apple Maps'}
+                  </button>
+                </div>
+
+                {showSearchMap && (
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <CampusNetworkMap
+                      activeRoute={inspectRoute && inspectRoute.length > 0 ? inspectRoute : [searchOrigin, searchDest]}
+                      pickupNodeId={searchOrigin}
+                      dropoffNodeId={searchDest}
+                    />
+                  </div>
+                )}
 
                 {(() => {
                   const matchesList = searchResults.rankedRides || searchResults.matches || [];
@@ -758,25 +805,51 @@ export default function CampusRides() {
                               <span><DollarSign size={14} /> ₹{ride.costPerSeat || 0}/seat</span>
                             </div>
 
-                            <button
-                              onClick={() => handleConfirmRequest(ride._id || match.rideId)}
-                              disabled={loading}
-                              style={{
-                                background: '#10B981',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '10px',
-                                fontWeight: 700,
-                                fontSize: '0.82rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.35rem'
-                              }}
-                            >
-                              Request Seat <ArrowRight size={14} />
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const path = match.sharedPath || ride.directPath || [searchOrigin, searchDest];
+                                  setInspectRoute(path);
+                                  setShowSearchMap(true);
+                                }}
+                                style={{
+                                  background: 'rgba(10, 132, 255, 0.12)',
+                                  color: '#0A84FF',
+                                  border: '1px solid rgba(10, 132, 255, 0.3)',
+                                  padding: '0.5rem 0.85rem',
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem'
+                                }}
+                              >
+                                <Navigation size={13} /> Preview Path
+                              </button>
+
+                              <button
+                                onClick={() => handleConfirmRequest(ride._id || match.rideId)}
+                                disabled={loading}
+                                style={{
+                                  background: '#10B981',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  padding: '0.5rem 1rem',
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem'
+                                }}
+                              >
+                                Request Seat <ArrowRight size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
