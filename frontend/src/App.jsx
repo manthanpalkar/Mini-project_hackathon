@@ -50,6 +50,7 @@ const TermsOfUse = lazyWithRetry(() => import('./pages/TermsOfUse'));
 const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
 const CampusRides = lazyWithRetry(() => import('./pages/CampusRides'));
 const GreenCompute = lazyWithRetry(() => import('./pages/GreenCompute'));
+const DigitalWellbeing = lazyWithRetry(() => import('./pages/DigitalWellbeing'));
 
 // Lightweight Apple-style Route Loading Fallback
 function RouteLoadingFallback() {
@@ -273,6 +274,15 @@ function AppLayout() {
               </ProtectedRoute>
             } />
             <Route path="/universe/green-compute" element={<Navigate to="/green-compute" replace />} />
+
+            {/* UniVerse Module D: Privacy-Aware Digital Wellbeing */}
+            <Route path="/digital-wellbeing" element={
+              <ProtectedRoute>
+                <DigitalWellbeing />
+              </ProtectedRoute>
+            } />
+            <Route path="/wellbeing" element={<Navigate to="/digital-wellbeing" replace />} />
+            <Route path="/universe/digital-wellbeing" element={<Navigate to="/digital-wellbeing" replace />} />
 
             {/* Authenticated Administrative & Management Routes */}
             <Route path="/admin" element={

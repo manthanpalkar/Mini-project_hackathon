@@ -472,6 +472,21 @@ export default function Navbar() {
                 Green Compute
                 {isActive('/green-compute') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
+
+              <Link
+                to="/digital-wellbeing"
+                onMouseEnter={() => {
+                  import('../pages/DigitalWellbeing');
+                }}
+                style={{
+                  color: isActive('/digital-wellbeing') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  position: 'relative',
+                  transition: 'color 0.2s ease'
+                }}
+              >
+                Wellbeing
+                {isActive('/digital-wellbeing') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+              </Link>
             </div>
           ) : (
             <div className="nav-col-left" style={{ display: 'flex', alignItems: 'center', zIndex: 2 }} />
@@ -699,6 +714,9 @@ export default function Navbar() {
               </Link>
               <Link to="/green-compute" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
                 Green Compute
+              </Link>
+              <Link to="/digital-wellbeing" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                Digital Wellbeing
               </Link>
             </>
           )}

@@ -36,9 +36,10 @@ export const UNIVERSE_MODULES = [
     id: 'module-d',
     title: 'Privacy-Aware Digital Wellbeing',
     code: 'Module D',
-    status: 'Ready for Implementation',
+    status: 'Active',
+    route: '/digital-wellbeing',
     apiEndpoint: '/api/modules/d',
-    description: 'Differential-privacy focus tracking, study session logging, and non-intrusive mindful rest nudges.'
+    description: 'User-controlled focus sessions, custom browsing categorization rules, synthetic telemetry demonstration, and zero-surveillance student privacy.'
   },
   {
     id: 'module-e',

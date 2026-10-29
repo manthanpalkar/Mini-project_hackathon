@@ -65,11 +65,19 @@
   - `GreenComputeJob`: Off-peak scheduling queue for high-compute student projects.
 
 ### Module D: Privacy-Aware Digital Wellbeing
-- **Status:** Architectural Scaffold Complete
+- **Status:** Fully Implemented & Integrated
 - **Mount Point:** `/api/modules/d`
-- **Features:** Privacy-first study and focus session tracker. Protects student identity via irreversible salted SHA-256 hashes and provides automated rest break nudges to prevent burnout.
+- **Frontend Route:** `/digital-wellbeing` (Navbar: "Wellbeing")
+- **Features:**
+  - **Focus Session Lifecycle Controller:** Robust state machine supporting start, pause, resume, stop, and discard actions. Server-authoritative timestamps calculate true active duration independently of pauses or page reloads.
+  - **User-Defined Categorization Rules:** Custom domain matching (`domain_suffix`, `exact_host`, `contains`) with user priority precedence, instant live domain preview classifier, and built-in academic system presets.
+  - **Synthetic Activity Generator:** Explicit user-initiated reproducible scenario generator (Mulberry32 PRNG) supporting *Focused Study*, *Mixed Study*, *Frequent Switching*, and *Minimal Sustained Activity*. All records visibly labeled `SIMULATED DEMO DATA`.
+  - **Focus & Context-Switch Analytics:** Accurate calculation of active focus time, category distribution, context switches (category transition count), and estimated distracting duration.
+  - **Privacy Center & Data Rights:** Transparent tracking status indicator, strict data minimization (zero keystrokes, zero browser snooping), single-event deletion, full history purge (*right-to-be-forgotten*), and JSON data export.
 - **Core Models:**
-  - `FocusSession`: Anonymous hash, branch track, duration, focus rating, study category.
+  - `FocusSession`: User email, salted SHA-256 anonymous hash, target minutes, accumulated active seconds, pause tracking, quality score, and reflection notes.
+  - `CategorizationRule`: User email, pattern, match type, category (`learning`, `productive`, `distracting`, `neutral`, `uncategorized`), priority, and toggle status.
+  - `ActivityEvent`: Explicit user-triggered or synthetic browsing events with domain, category, duration, and source label.
   - `NudgeRule`: Configurable study thresholds and mindful break recommendations.
 
 ### Module E: Responsible Examination Monitoring
