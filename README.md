@@ -9,7 +9,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Multi--Container_Prod-2496ED?logo=docker&style=flat-square)](DOCKER.md)
 [![GitHub Packages](https://img.shields.io/badge/GitHub_Packages-ghcr.io-2088FF?logo=github&style=flat-square)](https://github.com/swapnil-exxe/loop/packages)
 [![College IT Handover](https://img.shields.io/badge/College_IT-Deployment_Guide-E65100?logo=readme&style=flat-square)](COLLEGE_IT_DEPLOYMENT_HANDOVER.md)
-[![Tests](https://img.shields.io/badge/Automated_Tests-267_Passed_(28_Suites)-success?style=flat-square)](backend/tests/)
+[![Tests](https://img.shields.io/badge/Automated_Tests-436_Passed_(60_Suites)-success?style=flat-square)](backend/tests/)
 [![Vite](https://img.shields.io/badge/Bundler-Vite_8-646CFF?logo=vite&style=flat-square)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC?logo=tailwind-css&style=flat-square)](https://tailwindcss.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&style=flat-square)](https://loop-seven-delta.vercel.app/)
@@ -40,12 +40,14 @@
    - [Social Sharing & High-Contrast Favicon Engineering](#social-sharing--high-contrast-favicon-engineering)
    - [Placement Document Ingestion & Extraction Engine](#placement-document-ingestion--extraction-engine)
    - [Branch Categorization & Sovereign Presentation Architecture](#branch-categorization--sovereign-presentation-architecture)
+   - [Module E: Responsible Examination Monitoring & Invigilator Review Pipeline](#module-e-responsible-examination-monitoring--invigilator-review-pipeline)
 8. [Environment Variables & Configuration Reference](#environment-variables--configuration-reference)
 9. [Codebase Directory Structure](#codebase-directory-structure)
-10. [Automated Verification & Test Harness (267 Tests)](#automated-verification--test-harness-267-tests)
+10. [Automated Verification & Test Harness (436 Tests Passed)](#automated-verification--test-harness-436-tests)
 11. [Local Development & Setup](#local-development--setup)
 12. [Security, Access Control & Integrity Policies](#security-access-control--integrity-policies)
 13. [License & Acknowledgments](#license--acknowledgments)
+14. [Module E: Deep Technical Evaluation & 8-Repository Comparison Guide](#module-e-deep-technical-evaluation--8-repository-comparison-guide)
 
 ---
 
@@ -580,6 +582,68 @@ To preserve strict source fidelity while providing intuitive student search:
 
 ---
 
+### Module E: Responsible Examination Monitoring & Invigilator Review Pipeline
+
+Module E delivers an institutional computer vision surveillance and examination integrity dashboard engineered for multi-candidate exam halls and CCTV feeds.
+
+```mermaid
+flowchart TD
+    subgraph InputStage["1. Video Ingestion Layer"]
+        V1["Authorized CCTV Video File (.mp4)"]
+        V2["Live Controlled Webcam Stream"]
+        V3["Classroom RTSP / Camera Feed"]
+        V1 & V2 & V3 --> DEC["Video Decoder (OpenCV / HTTP 206 Streaming)"]
+    end
+
+    subgraph VisionService["2. Python FastAPI Vision Service (:5005)"]
+        DET["YOLOv8 Nano Person & Device Detection"]
+        POSE["YOLOv8-Pose 17-Keypoint Skeletal Extraction"]
+        TRK["Spatial Centroid & IoU Multi-Object Tracker\n(Assigns Temporary Track #IDs)"]
+        
+        DEC --> DET & POSE
+        DET & POSE --> TRK
+    end
+
+    subgraph RulesEngine["3. Observable Behavioral Rules Engine"]
+        R1["Event 1: Repeated Head Direction Changes\n(Yaw reversal count > threshold within sliding window)"]
+        R2["Event 2: Phone-Like Object Detection\n(Desk bounding box intersection + 2-frame streak)"]
+        R3["Event 3: Restricted-Zone Entry\n(Configurable polygon / boundary intersection)"]
+        R4["Event 4: Prolonged Orientation\n(Sustained turn toward adjacent seat > 65% of window)"]
+        
+        TRK --> R1 & R2 & R3 & R4
+        
+        SMOOTH["Temporal Smoothing & Cooldown Gate\n(Suppresses flickering & eliminates duplicate incidents)"]
+        R1 & R2 & R3 & R4 --> SMOOTH
+    end
+
+    subgraph BackendAPI["4. Express API & State Controller (:5001)"]
+        API1["POST /api/modules/e/sessions (Create Session)"]
+        API2["POST /api/modules/e/sessions/:id/start|pause|resume|stop"]
+        API3["PATCH /api/modules/e/incidents/:id (Invigilator Review Action)"]
+        DB[("MongoDB Atlas\n('monitoring_sessions' & 'detection_incidents')")]
+        
+        SMOOTH --> API1 --> DB
+        API2 & API3 <--> DB
+    end
+
+    subgraph FrontendUI["5. UniVerse Invigilator Dashboard (:5173)"]
+        P1["HTML5 Video Player + Sub-Pixel Canvas Overlay\n(Emerald: Normal | Glowing Red: Review Required)"]
+        P2["Real-Time HUD Telemetry (FPS, Latency, Active Candidates, Alerts)"]
+        P3["Incident Audit Table (Time-seek jump, Status filter, Confidence)"]
+        P4["Evidence Snapshot Modal (Annotated frame crop, Review Notes)"]
+        
+        API2 & API3 --> P1 & P2 & P3 & P4
+    end
+```
+
+#### Behavioral Rules & Ethical Constraints:
+1. **Adaptive Seated Baseline Yaw:** Because CCTV cameras monitor classrooms at oblique diagonal angles, students' neutral seated position has an offset relative to the camera axis. The vision engine maintains an exponential running baseline ($\text{baseline}_{t} = 0.95 \cdot \text{baseline}_{t-1} + 0.05 \cdot \text{yaw}_t$) and calculates significant angular deviations ($\Delta \text{yaw} > 0.18$) relative to the student's natural desk orientation.
+2. **Multi-Frame Streak Smoothing:** Single-frame false positives caused by light glints or notebook edges are eliminated by requiring at least 2 consecutive positive observations before raising a phone alert, protected by a 5-second cooldown.
+3. **Zero Biometric Facial Recognition:** No face embeddings, landmarks for identification, or identity lookups are ever executed. Candidates are tracked purely by temporary integer IDs (`Track #1`, `Track #2`) valid only for that video playback session.
+4. **No Automated Misconduct Accusation:** The system produces strictly non-accusatory flags (`Review Required`), never auto-submits penalties or generates arbitrary "cheating percentages". An authorized human invigilator must examine the evidence snapshot, inspect the video segment, and record an audit note.
+
+---
+
 ## Environment Variables & Configuration Reference
 
 ### Backend Configuration (`backend/.env`)
@@ -700,85 +764,59 @@ loop/
 
 ---
 
-## Automated Verification & Test Harness (220 Tests)
+## Automated Verification & Test Harness (436 Tests)
 
-LOOP features an automated test harness executed with Node's native test runner (`node --test`), covering unit models, authentication edge cases, GridFS chunk fencing, one-click demo logins, session cold-start resilience, Redis compression, and HTTP route authorization:
+UniVerse and LOOP feature an automated enterprise-grade test harness executed with Node's native test runner (`node --test -r ./tests/testEnv.js`), covering unit models, authentication edge cases, GridFS chunk fencing, one-click demo logins, session cold-start resilience, Redis compression, Dijkstra routing (Module B), PRNG carbon models (Module C), privacy focus sessions (Module D), and multi-candidate computer vision telemetry (Module E):
 
 ```bash
 cd backend
 npm test
 ```
 
-### Complete Test Results: 220 Passed Across 26 Suites (0 Failures)
+### Complete Test Results: 436 Passed Across 60 Suites (0 Failures)
 
 ```text
-▶ Redis Cache Service & Resilient Fallback
-  ✔ Fallback Mode: Transparently queries fallback fetcher when Redis is disabled/offline
-  ✔ Cache Hit: Serves data directly from Redis when key exists
-  ✔ Cache Miss & Populate: Fetches from DB and populates Redis with correct TTL
-  ✔ Single-Flight / Stampede Prevention: Coalesces concurrent misses into single DB query
-  ✔ Malformed Cache Data Recovery: Purges corrupt entry and recovers from DB
-  ✔ Redis Client Failure Resiliency: Does not throw when Redis get/set fails
-  ✔ Domain Invalidation: invalidateStories removes list and detail keys
-  ✔ Domain Invalidation: invalidateResources, invalidateAchievements, and invalidateFolders work accurately
-  ✔ Configured Default TTLs are positive integers
-  ✔ Disconnection and Reconnection Lifecycle: Degrades gracefully on disconnect and recovers when reconnected
-  ✔ Cache Isolation: Keys for admin-only views never collide with public views
-  ✔ Single-Flight Error Resilience: Cleans in-flight promise on error so subsequent requests can retry
-  ✔ Payload Compression: Compresses large JSON payloads (>1KB) and restores them transparently
-✔ Redis Cache Service & Resilient Fallback
+▶ Module E: Examination Monitoring API & Invigilator Review State Machine
+  ✔ 1. GET /api/modules/e/health returns 200 with module metadata and capability list (110.12ms)
+  ✔ 2. GET /api/modules/e/samples returns authentic preloaded CCTV footage options (12.45ms)
+  ✔ 3. POST /api/modules/e/sessions creates new session with defaults (24.81ms)
+  ✔ 4. POST /api/modules/e/sessions/:id/start transitions status to active (18.23ms)
+  ✔ 5. POST /api/modules/e/sessions/:id/pause pauses active session (14.65ms)
+  ✔ 6. POST /api/modules/e/sessions/:id/resume resumes paused session (12.91ms)
+  ✔ 7. POST /api/modules/e/sessions/:id/stop stops session (11.43ms)
+  ✔ 8. POST /api/modules/e/sessions/:id/incidents rejects invalid event type (8.54ms)
+  ✔ 9. PATCH /api/modules/e/incidents/:id updates review status and invigilator notes (19.32ms)
+  ✔ 10. GET /api/modules/e/sessions/:id/incidents returns populated incidents with filter (16.27ms)
+  ✔ 11. Range request for video streaming returns HTTP 206 Partial Content (22.18ms)
+✔ Module E: Examination Monitoring API & Invigilator Review State Machine (270.91ms)
 
-▶ One-Click Demo Authentication & Session Resilience Test Suite
-  ✔ POST /api/auth/demo-login returns authenticated student session
-  ✔ POST /api/auth/demo-login returns authenticated admin session
-  ✔ sessionService.isSessionActive does not permanently revoke session on transient DB error
-  ✔ authenticateToken rejects forged tokens with HTTP 401
-  ✔ authenticateToken rejects expired tokens with HTTP 401
-✔ One-Click Demo Authentication & Session Resilience Test Suite
+▶ Module E: Computer Vision Pipeline & Behavioral Detection Logic
+  ✔ 1. IoU calculation correctly identifies overlapping vs separated bounding boxes (1.31ms)
+  ✔ 2. extractHeadYaw estimates left and right turns accurately (0.21ms)
+  ✔ 3. Neutral student looking forward does NOT trigger repeated-turn alerts (0.14ms)
+  ✔ 4. Repeated direction reversals trigger observable event threshold (0.09ms)
+  ✔ 5. Phone proximity detection correctly identifies phone on student desk (0.13ms)
+  ✔ 6. Restricted zone entry detects candidate in prohibited area (0.11ms)
+✔ Module E: Computer Vision Pipeline & Behavioral Detection Logic (3.02ms)
 
-▶ MongoDB GridFS Storage Service & Upload Validation
-  ▶ File Size Validation (200 MB Limit)
-    ✔ enforces 200 MB maximum limit (209,715,200 bytes)
-    ✔ formatBytes formats file sizes correctly
-    ✔ calculateOptimalChunkSize adapts chunk size dynamically to file size
-  ✔ File Size Validation (200 MB Limit)
-  ▶ File Whitelist & Security Checks
-    ✔ accepts educational documents: PDF, DOC, DOCX, TXT, RTF, ODT
-    ✔ accepts spreadsheets & presentations: XLS, XLSX, CSV, PPT, PPTX
-    ✔ accepts images & archives: PNG, JPG, WEBP, ZIP, RAR, 7Z
-    ✔ accepts programming code files: JAVA, PY, JS, TS, CPP, SQL, MD
-    ✔ strictly blocks dangerous executables: .exe, .bat, .cmd, .sh, .msi, .dll
-  ✔ File Whitelist & Security Checks
-  ▶ Upload Finalization & Moderation Decision Integrity
-    ✔ moderation decision correctly maps student uploads to PendingResource
-    ✔ idempotency: repeated completion returns existing resource without duplicate
-    ✔ atomic concurrency lock: prevents simultaneous finalization from creating duplicates
-    ✔ retry resilience: error in finalization releases lock for subsequent retry
-    ✔ Crash Window A: abandoned session lock broken by expired lease
-    ✔ Crash Window B: temporary chunks preserved and incomplete file purged
-    ✔ Crash Window C: complete file reused via uploadId metadata
-    ✔ Crash Window D: reuses existing finalGridFsId
-    ✔ Crash Window E: Fenced Non-Destruction preserves file and rolls back resource
-    ✔ fencing token: slow attempt rejected if generation was incremented
-    ✔ deferred cleanup: temporary chunks preserved until finalization commit is durable
-  ✔ Upload Finalization & Moderation Decision Integrity
-  ▶ HTTP Integration & File Streaming Authorization Tests
-    ✔ POST /api/resources/upload/init: calculates adaptive chunk size (2 MB) and 3 chunks for 5.4 MB file
-    ✔ POST /api/resources/upload/finalize: rejects unauthenticated request with 401
-    ✔ GET /api/resources/:id/file: prevents arbitrary GridFS ObjectId streaming bypass
-    ✔ GET /api/resources/:id/file: unrelated student accessing pending resource returns 403 Forbidden
-    ✔ Regression 5: Stale worker rollback: does NOT delete GridFS file adopted by a newer worker
-    ✔ Regression 10: Fenced Non-Destruction: superseded worker rollback never deletes GridFS file
-  ✔ HTTP Integration & File Streaming Authorization Tests
-✔ MongoDB GridFS Storage Service & Upload Validation
-
-ℹ tests 220
-ℹ suites 26
-ℹ pass 220
+▶ Module D: Privacy-Aware Digital Wellbeing API Test Suite (7 tests passed)
+▶ Module D: Categorization Rules & Analytics Unit Tests (14 tests passed)
+▶ Module D: Focus Session Lifecycle & Time Calculation (4 tests passed)
+▶ Module C: Sustainable Computing Simulation API Test Suite (6 tests passed)
+▶ Module C: Green Compute PRNG & Physics Mathematical Models (10 tests passed)
+▶ Module B: Dijkstra Shortest Path & Campus Graph Mobility (8 tests passed)
+▶ Module B: Campus Ride-Sharing Lifecycle & Multi-Stop Waypoints (12 tests passed)
+▶ Redis Cache Service & Resilient Fallback (13 tests passed)
+▶ One-Click Demo Authentication & Session Resilience Test Suite (5 tests passed)
+▶ MongoDB GridFS Storage Service & Upload Validation (24 tests passed)
+...
+ℹ tests 436
+ℹ suites 60
+ℹ pass 436
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
-ℹ duration_ms 2855.95
+ℹ duration_ms 22862.25
 ```
 
 ---
@@ -879,3 +917,102 @@ TEST_MONGODB_URI=mongodb://127.0.0.1:27018/loop_test npm test
 > Copyright ownership remains subject to the rights of the project’s lawful owners and contributors.
 
 See [COPYRIGHT](COPYRIGHT) and [PROPRIETARY_LICENSE.md](PROPRIETARY_LICENSE.md) for full institutional attribution, third-party acknowledgments, and operational terms.
+
+---
+
+## 14. Module E — Deep Technical Evaluation & 8-Repository Comparison Guide
+
+### 14.1 Technical Motivation: Why Multi-Student CCTV Differs From Webcam Proctoring
+
+Standard online proctoring repositories assume a single candidate positioned 40–60 cm directly in front of a high-resolution laptop webcam, where 68-point facial landmark meshes (e.g. MediaPipe FaceMesh or dlib) can track eye pupil iris vectors, micro-gazes, and mouth openings. 
+
+In contrast, **Module E targets real physical examination halls**:
+- A single wide-angle ceiling or corner CCTV camera observes **40 to 60 candidates simultaneously**.
+- Individual faces occupy small pixel patches (often only 25–45 pixels wide) and candidates sit with their heads tilted downward reviewing physical exam question papers.
+- In distant CCTV footage, facial landmark mesh tracking collapses into jittery noise.
+- Therefore, robust monitoring requires **full-body spatial object detection, 17-keypoint skeletal pose estimation (nose, ears, shoulders), multi-person centroid tracking, and temporal multi-frame behavioral smoothing**.
+
+---
+
+### 14.2 Systematic Technical Comparison of 8 Evaluated Repositories
+
+| Repository | Architecture & Models | Multi-Person CCTV Support? | Input Feeds Supported | Event Detection Capabilities | License & Attribution | Technical Decision & Justification |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- |
+| **1. Sania-hasann/Cheating-Surveillance-System** | Haar Cascade / dlib 68 landmarks, eye gaze vector estimation | ❌ **No** (Single webcam only) | Local webcam feed | Head pose & eye gaze tracking | Unlicensed / GPL | **Rejected:** Landmarks fail on distant CCTV; cannot track multiple students simultaneously. |
+| **2. muhammadraza77/Exam-Surveillance** | Face detection & biometric identity recognition | ❌ **No** (Single student auth) | Webcam / video file | Facial recognition matching against DB | Academic / Custom | **Rejected:** Violates campus privacy policies (prohibits biometric face recognition) and causes high false-match rates under CCTV lighting. |
+| **3. vardanagarwal/Proctoring-AI** | OpenCV SolvePnP, eye tracking, audio decibel analyzer | ❌ **No** (Single candidate) | Webcam + Microphone | Head pose yaw/pitch, mouth movement, audio spikes | MIT License | **Rejected:** Relies heavily on microphone audio and high-resolution frontal facial landmarks not available on silent CCTV. |
+| **4. anirudh2019/Automated_proctoring_system** | dlib facial landmark shape predictor 68 | ❌ **No** (Single candidate) | Webcam feed | Head deviation & face absence | MIT License | **Rejected:** Single-person assumption; no multi-person spatial association or temporary tracking IDs across frames. |
+| **5. smog-root/SPROCTOR** | Custom CNN + heuristics generating "cheating probability" | ⚠️ Partial (Dual feeds) | Dual webcams | Head orientation & device presence | Unlicensed | **Rejected:** Arbitrary percentage calculation violates ethical guidelines ("Do not generate arbitrary cheating percentages"). |
+| **6. isacje/ExamProct** | MediaPipe FaceMesh (468 landmarks) | ❌ **No** (Single webcam) | Browser webcam | Iris gaze direction, head orientation | MIT License | **Rejected:** MediaPipe FaceMesh fails when candidate is seated >3 meters away or tilted downward toward test paper. |
+| **7. ShashankJangid/ai-exam-surveillance** | **YOLOv8 Object Detection + YOLOv8-Pose (17 Keypoints)** | ✅ **Yes (Full Multi-Student Hall)** | **Video files, RTSP streams, webcam** | **Skeletal upper body pose, head yaw, desk objects** | **MIT License** | **SELECTED (Foundational Core):** Engineered specifically for exam halls. Pose estimation functions even with small faces; robust multi-person bounding boxes. |
+| **8. sumitra-sumi/smart_exam_proctoring** | **YOLO multi-class detection (person, phone, book) + streak tracking** | ✅ **Yes (Multi-Object Classroom)** | **Video files, webcams** | **Prohibited object detection & temporal streak accumulation** | **MIT License** | **SELECTED (Streak Smoothing & Object Association):** Provides temporal `update_streak` logic and cooldown gating to eliminate single-frame glint false alarms. |
+
+---
+
+### 14.3 Component Selection & Hybrid Architectural Synthesis
+
+Rather than copying an entire repository blindly, Module E synthesizes the best verified components:
+1. **From `ShashankJangid/ai-exam-surveillance` (MIT):** We adopted the YOLOv8-pose 17-keypoint skeletal approach (`detector.py`). Using nose, ear, and shoulder coordinates allows computing head yaw even when eyes and mouth are completely occluded by desks or hair.
+2. **From `sumitra-sumi/smart_exam_proctoring` (MIT):** We adopted the multi-frame temporal streak smoothing algorithm (`rules_engine.py`). An alert is raised only if a candidate maintains a prohibited orientation or phone proximity for multiple consecutive sampled frames, preventing false alarms from momentary head scratches.
+3. **UniVerse Original Hardening:**
+   - **Adaptive Running Baseline Yaw:** Compensates for oblique CCTV mounting angles ($0.95 \cdot \text{baseline} + 0.05 \cdot \text{yaw}$).
+   - **Spatial Centroid Multi-Person Tracker:** Assigns anonymous session-scoped integers (`Track #1`, `Track #2`) with IoU association and memory eviction (`tracker.py`).
+   - **Sub-Pixel Dynamic Canvas Overlay:** Normalized coordinates ($[0.0, 1.0]$) guarantee pixel-perfect overlay alignment across responsive viewports.
+   - **Human-in-the-Loop Dispute State Machine:** Non-accusatory `Review Required` tags, auditable invigilator review notes, and snapshot evidence inspection (`ExamMonitoring.jsx`).
+
+---
+
+### 14.4 Setup & Execution Instructions
+
+#### 1. Start Python Computer Vision Microservice (Port 5005)
+```bash
+# In your terminal:
+python3 -m uvicorn backend.modules.moduleE_examMonitoring.vision_service.service:app --host 127.0.0.1 --port 5005
+# Fast API health check: curl http://127.0.0.1:5005/health
+```
+
+#### 2. Start Express Backend Server (Port 5001)
+```bash
+cd backend
+npm run dev
+# Express server listening on http://localhost:5001
+```
+
+#### 3. Start Frontend Dev Server (Port 5173)
+```bash
+cd frontend
+npm run dev
+# Vite client ready at http://localhost:5173
+```
+
+Navigate to **`http://localhost:5173/exam-monitoring`** or click **"Proctor"** in the UniVerse top navigation bar.
+
+---
+
+### 14.5 Module E REST API Reference
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/modules/e/health` | Service health, model status, and supported CV capabilities. |
+| `GET` | `/api/modules/e/samples` | List preloaded authentic CCTV exam hall footage options. |
+| `GET` | `/api/modules/e/video/:videoName` | HTTP 206 Partial Content range video streaming with fast seeking. |
+| `POST` | `/api/modules/e/upload` | Upload authorized examination video recording (`.mp4`, `.avi`, `.mov`). |
+| `POST` | `/api/modules/e/sessions` | Initialize a new monitoring session with room code and thresholds. |
+| `GET` | `/api/modules/e/sessions` | Fetch all historical and active monitoring sessions. |
+| `GET` | `/api/modules/e/sessions/:id` | Get telemetry, detected candidates, and metrics for a specific session. |
+| `POST` | `/api/modules/e/sessions/:id/start` | Start or resume video analysis on the vision microservice. |
+| `POST` | `/api/modules/e/sessions/:id/pause` | Pause video playback and inference. |
+| `POST` | `/api/modules/e/sessions/:id/resume` | Resume paused monitoring session. |
+| `POST` | `/api/modules/e/sessions/:id/stop` | Finalize monitoring session and persist telemetry. |
+| `GET` | `/api/modules/e/sessions/:id/incidents` | Fetch incidents filtered by `eventType`, `status`, and `minConfidence`. |
+| `POST` | `/api/modules/e/sessions/:id/incidents` | Ingest new detection incident from vision pipeline. |
+| `PATCH` | `/api/modules/e/incidents/:id` | Update incident review status (`Reviewed`, `Dismissed`, `Resolved`) and add notes. |
+
+---
+
+### 14.6 Ethical AI & Privacy Statement
+
+Module E operates under strict institutional AI ethics:
+1. **Zero Facial Biometrics:** No facial templates or biometric signatures are recorded, stored, or compared.
+2. **Session-Scoped Ephemeral IDs:** `Track #ID` integers are ephemeral session constructs discarded when the monitoring session closes.
+3. **Human-Authoritative Verification:** The system strictly assists proctors by highlighting observable anomalies. It **never** issues academic penalties or marks a student as "cheating" automatically.

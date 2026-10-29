@@ -45,9 +45,10 @@ export const UNIVERSE_MODULES = [
     id: 'module-e',
     title: 'Responsible Examination Monitoring',
     code: 'Module E',
-    status: 'Ready for Implementation',
+    status: 'Active',
+    route: '/exam-monitoring',
     apiEndpoint: '/api/modules/e',
-    description: 'Ethical proctor telemetry, tamper-evident exam session logs, and transparent student dispute resolution.'
+    description: 'Multi-candidate CCTV examination surveillance with temporary spatial tracking, behavioral event detection, and human-in-the-loop dispute review.'
   }
 ];
 

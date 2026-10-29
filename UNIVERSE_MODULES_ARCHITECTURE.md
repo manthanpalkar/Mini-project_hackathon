@@ -81,11 +81,23 @@
   - `NudgeRule`: Configurable study thresholds and mindful break recommendations.
 
 ### Module E: Responsible Examination Monitoring
-- **Status:** Architectural Scaffold Complete
+- **Status:** Fully Implemented & Integrated
 - **Mount Point:** `/api/modules/e`
-- **Features:** Student-centric, ethical examination integrity verification. Logs proctoring events with transparent dispute resolution mechanisms and student explanation entries.
+- **Vision Service Microservice:** Port `5005` (FastAPI + YOLOv8 + 17-Keypoint Pose)
+- **Frontend Route:** `/exam-monitoring` (Navbar: "Proctor")
+- **Features:**
+  - **Multi-Candidate CCTV Spatial Tracking:** Detects 40–60 candidates simultaneously in classroom or exam hall frames using YOLOv8 nano and centroid/IoU temporal tracking. Assigns anonymous temporary session track identifiers (`Track #ID`).
+  - **Observable Behavioral Event Detectors:**
+    - *Event 1: Repeated Head-Direction Changes:* 17-keypoint human pose estimation (nose, eyes, ears, shoulders) tracks horizontal yaw deviation from each candidate's seated baseline. Triggers review alert on significant direction reversals within a sliding window.
+    - *Event 2: Phone-Like Object Detection:* Pretrained object detection identifies cell phones in student desk proximity. Requires multi-frame temporal persistence to prevent single-frame glint false positives.
+    - *Event 3: Restricted-Zone Entry:* Optional configurable polygon/bounding box for proctor podium or unauthorized examination boundary.
+    - *Event 4: Prolonged Orientation:* Sustained angular orientation toward adjacent candidate desks (> 65% of frames in window).
+  - **Real-Time Video HUD & Dynamic Overlay:** Synchronized HTML5 video player with sub-pixel canvas overlay rendering green/emerald normal tracks and glowing red alert boxes (`REVIEW — Track #ID: Event Label`).
+  - **Human-in-the-Loop Invigilator Dashboard:** Review status state machine (`Pending Review`, `Reviewed`, `Dismissed`, `Resolved`), evidence snapshot viewer, one-click video seek jump, and proctor audit notes.
+  - **Strict Ethical Safeguards:** Zero biometric face recognition, zero facial identity matching, no automated penalties, and clear distinction between model confidence and misconduct verdict.
 - **Core Models:**
-  - `ExamSession`: Exam code, candidate identifier, event timeline (camera checks, blur events, jitter), resolution status.
+  - `MonitoringSession`: Session ID, room code, video/camera source, config parameters (frame skip, thresholds), telemetry metrics.
+  - `DetectionIncident`: Incident ID, temporary track ID, event type, confidence, video timestamp, bounding box, review status, base64 evidence snapshot, reviewer notes.
 
 ---
 

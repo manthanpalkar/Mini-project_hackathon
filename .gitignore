@@ -57,4 +57,5 @@ PROJECT IMG/
 __pycache__/
 *.pyc
 *.png
+*.pt
 

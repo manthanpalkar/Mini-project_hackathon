@@ -487,6 +487,21 @@ export default function Navbar() {
                 Wellbeing
                 {isActive('/digital-wellbeing') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
               </Link>
+
+              <Link
+                to="/exam-monitoring"
+                onMouseEnter={() => {
+                  import('../pages/ExamMonitoring');
+                }}
+                style={{
+                  color: isActive('/exam-monitoring') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  position: 'relative',
+                  transition: 'color 0.2s ease'
+                }}
+              >
+                Proctor
+                {isActive('/exam-monitoring') && <span style={{ position: 'absolute', bottom: isScrolled ? '-11px' : '-21px', left: 0, right: 0, height: '2.5px', borderRadius: '2px', backgroundColor: 'var(--text-primary)', transition: 'bottom 0.35s ease' }} />}
+              </Link>
             </div>
           ) : (
             <div className="nav-col-left" style={{ display: 'flex', alignItems: 'center', zIndex: 2 }} />
@@ -717,6 +732,9 @@ export default function Navbar() {
               </Link>
               <Link to="/digital-wellbeing" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
                 Digital Wellbeing
+              </Link>
+              <Link to="/exam-monitoring" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                Exam Proctor
               </Link>
             </>
           )}
