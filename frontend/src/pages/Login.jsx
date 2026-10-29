@@ -409,12 +409,15 @@ export default function Login() {
       <aside className="github-left-panel">
         {/* Campus Background Image & Vignette Gradient */}
         <div className="left-image-backdrop">
-          <img 
-            src="/images/spit-campus-foyer.png" 
-            alt="Sardar Patel Institute of Technology Entrance" 
-            className="left-campus-img"
-            loading="eager"
-          />
+          <picture>
+            <source srcSet="/images/spit-campus-foyer.webp" type="image/webp" />
+            <img 
+              src="/images/spit-campus-foyer.png" 
+              alt="Sardar Patel Institute of Technology Entrance" 
+              className="left-campus-img"
+              loading="eager"
+            />
+          </picture>
           <div className="left-image-overlay" aria-hidden="true" />
         </div>
 
@@ -885,6 +888,12 @@ export default function Login() {
           z-index: 1;
           overflow: hidden;
           background-color: #050811;
+        }
+
+        .left-image-backdrop picture {
+          display: block;
+          width: 100%;
+          height: 100%;
         }
 
         .left-campus-img {
