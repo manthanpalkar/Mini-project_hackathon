@@ -130,15 +130,41 @@ Higher-education institutions manage complex student interactions across dispara
 ---
 
 ### Module E: Responsible Examination Monitoring & AI Vision Pipeline
-- **Status:** Fully Implemented with YOLOv8 Vision Microservice
+- **Status:** Production Active with High-Speed YOLOv8 Vision Microservice
 - **Mount Point:** `/api/modules/e` • **Frontend Route:** `/exam-monitoring` • **Vision Port:** `5005`
-- **Core Mission:** Ethical, multi-student CCTV exam hall surveillance assisting human invigilators.
+- **Core Mission:** Ethical, multi-student CCTV exam hall surveillance assisting human invigilators with zero facial biometrics.
 - **Key Capabilities:**
-  - **Multi-Student CCTV Spatial Detection:** Engineered specifically for wide-angle exam halls with 40–60 candidates where facial landmark meshes fail.
+  - **Multi-Student CCTV Spatial Detection:** Engineered specifically for wide-angle exam halls with multiple candidates where single-person facial landmark meshes fail.
   - **Upper-Body Skeletal Pose Estimation:** YOLOv8-pose 17-keypoint model tracks nose, ear, and shoulder vectors even when candidates sit with heads downward over physical test papers.
+  - **Centroid Proximity Multi-Object Tracking:** Combines Hungarian IoU matching with desk centroid proximity recovery, assigning stable temporary labels (`Candidate #01`, `Candidate #02`...).
   - **Adaptive Running Baseline Yaw:** Compensates for oblique CCTV camera angles ($0.95 \cdot \text{baseline} + 0.05 \cdot \text{yaw}$).
-  - **Temporal Streak Smoothing:** Requires sustained deviations across sampled frames before flagging alerts, eliminating single-frame false positives.
-  - **Human-in-the-Loop Dispute Review:** Non-accusatory `Review Required` tags, auditable invigilator review actions, and transparent dispute resolution.
+  - **Supported Observable Events:**
+    1. *Repeated Head Turns:* Direction reversal counting over sliding 5s windows.
+    2. *Phone-Like Object Detection:* Proximity check within candidate desk bounding box with 2-frame temporal streak confirmation.
+    3. *Prolonged Neighbor Orientation:* Sustained lateral turn $>65\%$ of window frames.
+    4. *Restricted Zone Monitoring:* Configurable podium/boundary polygon alert.
+  - **Forensic Evidence Snapshots:** Downscaled base64 snapshots watermarked with candidate bounding boxes and event labels.
+  - **Candidate-Wise Spatial Breakdown:** Interactive candidate cards with individual event counts and single-click table filtering.
+  - **Auditable Human Review & Multi-Format Exports:** Invigilators can mark incidents as `Reviewed`, `Dismissed (False Positive)`, or `Resolved`. Downloadable JSON audit reports, CSV logs, and printable institutional PDF reports.
+
+---
+
+### Candidate Repositories Evaluation & Architectural Selection
+
+To engineer a resilient multi-student surveillance pipeline suitable for distant CCTV cameras, 8 candidate GitHub exam monitoring repositories were audited:
+
+| Repository | Multi-Person CCTV? | Input Types | Core Models & Methods | CCTV Distant Footage Suitability | License / Architectural Decision |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| **1. Sania-hasann/Cheating-Surveillance-System** | ❌ Single Person | Webcams | Dlib 68-Facial Landmarks + Roboflow YOLO Phone | Fails on distant CCTV; facial landmarks require large frontal faces. | MIT. Architectural inspiration for phone proximity logic; replaced Dlib with YOLOv8-pose. |
+| **2. muhammadraza77/Exam-Surveillance** | ⚠️ Limited | Video Streams | OpenCV Cascades + Activity Logging | Cascades suffer from high false negatives under seated posture. | Academic. Replaced Haar cascades with deep PyTorch inference. |
+| **3. vardanagarwal/Proctoring-AI** | ❌ Single Person | Webcams | BlazeFace + Dlib + Eye Gaze Mesh + Speech | Unsuitable for CCTV; relies on single-user webcam gaze and audio. | MIT. Excellent for online remote proctoring; inapplicable to exam halls. |
+| **4. anirudh2019/Automated_proctoring_system** | ❌ Single Person | Webcams | FaceNet + Dlib 68 Landmarks + Lip Tracking | Incompatible with CCTV; facial mesh collapses at $>3\text{m}$ distances. | Apache 2.0. Inapplicable to hall monitoring. |
+| **5. smog-root/SPROCTOR** | ⚠️ Partial | Recorded Video | YOLOv5 Person Count + Simple Heuristics | High track switching rate when candidates write or lean forward. | Open Source. Adapted concept; hardened tracker with centroid recovery. |
+| **6. isacje/ExamProct** | ❌ Single Person | Webcams | OpenCV + Eye aspect ratio (EAR) | Fails on distant camera; EAR requires high-resolution iris tracking. | Unlicensed / Incompatible. Excluded from codebase. |
+| **7. ShashankJangid/ai-exam-surveillance** | ✅ Multi-Person | CCTV / RTSP | YOLOv8 + Multi-Person Pose Estimation | **High Suitability.** 17-keypoint skeletal vectors remain robust in CCTV. | MIT. Selected as architectural reference for skeletal pose & orientation. |
+| **8. sumitra-sumi/smart_exam_proctoring** | ✅ Multi-Person | Video Files / CCTV | YOLOv8 Person Count + Temporal Risk Scoring | **High Suitability.** Temporal windowing reduces single-frame false alerts. | MIT. Selected as reference for temporal streak rules and evidence snapshots. |
+
+**Selected Architecture:** A unified microservice combining **YOLOv8 nano** object detection (`yolov8n.pt`), **YOLOv8 17-keypoint pose estimation** (`yolov8n-pose.pt`), and **Centroid Proximity Hungarian Tracking**, accelerated via Apple Silicon Metal Performance Shaders (`mps`) and NVIDIA `cuda`.
 
 ---
 
@@ -386,12 +412,18 @@ python -m uvicorn modules.moduleE_examMonitoring.vision_service.service:app --ho
 ### Module E: Responsible Examination Monitoring
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/modules/e/health` | Vision microservice health and active model weights status. |
+| `GET` | `/api/modules/e/health` | Vision microservice health, MPS/CUDA accelerator, and active model status. |
 | `GET` | `/api/modules/e/samples` | List authentic preloaded CCTV examination hall footage options. |
-| `POST` | `/api/modules/e/sessions` | Initialize new examination monitoring session with room code. |
-| `POST` | `/api/modules/e/sessions/:id/start` | Start inference pipeline and stream telemetry from vision service. |
-| `GET` | `/api/modules/e/sessions/:id/incidents` | Fetch incidents filtered by event type, status, and confidence. |
-| `PATCH` | `/api/modules/e/incidents/:id` | Human-in-the-loop invigilator review action (`Reviewed`, `Dismissed`). |
+| `POST` | `/api/modules/e/upload` | Upload authorized custom exam footage (`.mp4`, `.avi`, `.mov`, `.mkv`). |
+| `POST` | `/api/modules/e/sessions` | Initialize new examination monitoring session with room code and video path. |
+| `POST` | `/api/modules/e/sessions/:id/start` | Start YOLOv8 inference pipeline and stream frames and telemetry. |
+| `POST` | `/api/modules/e/sessions/:id/pause` | Pause active examination monitoring session. |
+| `POST` | `/api/modules/e/sessions/:id/resume` | Resume paused examination monitoring session. |
+| `POST` | `/api/modules/e/sessions/:id/stop` | Finalize examination monitoring session and flush audit metrics. |
+| `GET` | `/api/modules/e/sessions/:id/incidents` | Fetch incidents filtered by candidate, event type, status, and confidence. |
+| `PATCH` | `/api/modules/e/incidents/:id` | Human-in-the-loop review action (`Reviewed`, `Dismissed`, `Resolved`). |
+| `GET` | `/api/modules/e/sessions/:id/report` | Comprehensive JSON examination audit report with candidate metrics. |
+| `GET` | `/api/modules/e/sessions/:id/export/csv` | Download RFC 4180-compliant CSV incident and audit trail log. |
 
 ---
 

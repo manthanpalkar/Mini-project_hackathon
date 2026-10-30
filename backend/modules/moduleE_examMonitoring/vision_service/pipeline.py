@@ -11,13 +11,29 @@ from .detector import ExamVisionDetector
 from .tracker import ExamPersonTracker
 from .rules_engine import ExamRulesEngine
 
-def frame_to_base64_thumbnail(frame_bgr, max_width=400):
-    """Encodes a downscaled snapshot for privacy-safe evidence storage without bulky raw video retention."""
-    h, w = frame_bgr.shape[:2]
+def frame_to_base64_thumbnail(frame_bgr, bbox=None, label=None, max_width=480):
+    """Encodes a downscaled snapshot for privacy-safe evidence storage with visual event bounding box."""
+    annotated = frame_bgr.copy()
+    h, w = annotated.shape[:2]
+
+    # Draw evidence bounding box if provided
+    if bbox is not None:
+        x1 = max(0, min(w - 1, int(bbox[0] * w)))
+        y1 = max(0, min(h - 1, int(bbox[1] * h)))
+        x2 = max(0, min(w - 1, int(bbox[2] * w)))
+        y2 = max(0, min(h - 1, int(bbox[3] * h)))
+
+        # Bright red evidence bounding box
+        cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 0, 220), 2)
+        if label:
+            badge_text = label[:42]
+            cv2.rectangle(annotated, (x1, max(0, y1 - 22)), (min(w, x1 + 240), y1), (0, 0, 200), -1)
+            cv2.putText(annotated, badge_text, (x1 + 4, max(14, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 255), 1, cv2.LINE_AA)
+
     scale = max_width / float(w)
     target_h = int(h * scale)
-    thumb = cv2.resize(frame_bgr, (max_width, target_h), interpolation=cv2.INTER_AREA)
-    _, buffer = cv2.imencode('.jpg', thumb, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+    thumb = cv2.resize(annotated, (max_width, target_h), interpolation=cv2.INTER_AREA)
+    _, buffer = cv2.imencode('.jpg', thumb, [int(cv2.IMWRITE_JPEG_QUALITY), 78])
     encoded = base64.b64encode(buffer).decode('utf-8')
     return f"data:image/jpeg;base64,{encoded}"
 
@@ -95,19 +111,21 @@ class ExamPipeline:
             # Process any new alerts triggered this frame
             for alert in alerts:
                 tid = alert['track_id']
-                label = f"REVIEW — Track #{tid}: {alert['event_label']}"
+                cand_name = f"Candidate #{tid:02d}"
+                label = f"REVIEW — {cand_name}: {alert['event_label']}"
                 active_track_alerts[tid] = (t_sec + 4.5, label)
 
                 incidents.append({
                     'incidentId': f"INC-{1000 + incident_counter}",
                     'trackingId': tid,
+                    'candidateName': cand_name,
                     'eventType': alert['event_type'],
                     'eventLabel': alert['event_label'],
                     'videoTimestampSeconds': round(t_sec, 2),
                     'confidence': alert['confidence'],
                     'boundingBox': alert['bbox'],
                     'reviewStatus': 'Pending Review',
-                    'evidenceSnapshot': frame_to_base64_thumbnail(frame),
+                    'evidenceSnapshot': frame_to_base64_thumbnail(frame, bbox=alert['bbox'], label=alert['event_label']),
                     'metadata': alert['metadata']
                 })
                 incident_counter += 1
@@ -116,11 +134,13 @@ class ExamPipeline:
             overlay_tracks = []
             for trk in tracks:
                 tid = trk.track_id
+                cand_name = getattr(trk, 'candidate_name', f"Candidate #{tid:02d}")
                 is_alert = tid in active_track_alerts
-                status_text = active_track_alerts[tid][1] if is_alert else f"NORMAL — Track #{tid}"
+                status_text = active_track_alerts[tid][1] if is_alert else f"NORMAL — {cand_name}"
                 
                 overlay_tracks.append({
                     'trackId': tid,
+                    'candidateName': cand_name,
                     'bbox': trk.bbox, # Normalized [x1, y1, x2, y2]
                     'status': 'REVIEW' if is_alert else 'NORMAL',
                     'label': status_text,

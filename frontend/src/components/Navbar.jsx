@@ -343,14 +343,14 @@ export default function Navbar() {
         style={{
           pointerEvents: 'auto',
           width: '100%',
-          maxWidth: isScrolled ? '1240px' : '100%',
+          maxWidth: isScrolled ? '1360px' : '100%',
           borderRadius: isScrolled ? '9999px' : '0px',
           borderTop: isScrolled ? '1px solid var(--liquid-pill-border)' : 'none',
           borderLeft: isScrolled ? '1px solid var(--liquid-pill-border)' : 'none',
           borderRight: isScrolled ? '1px solid var(--liquid-pill-border)' : 'none',
           borderBottom: isScrolled ? '1px solid var(--liquid-pill-border)' : '1px solid var(--border-color)',
-          padding: isScrolled ? '0.65rem 1.6rem' : '1rem 0',
-          minHeight: isScrolled ? '58px' : '64px',
+          padding: isScrolled ? '0.55rem 1.4rem' : '1rem 0',
+          minHeight: isScrolled ? '54px' : '64px',
           boxShadow: isScrolled ? 'var(--liquid-pill-shadow)' : 'none',
           backgroundColor: isScrolled ? 'var(--liquid-pill-bg)' : 'var(--glass-bg)',
           backdropFilter: isScrolled ? 'blur(30px) saturate(190%) contrast(105%)' : 'blur(24px)',
@@ -369,10 +369,10 @@ export default function Navbar() {
             justifyContent: 'space-between',
             alignItems: 'center',
             width: '100%',
-            maxWidth: '1240px',
+            maxWidth: '1360px',
             margin: '0 auto',
             padding: isScrolled ? '0 0.5rem' : '0 1.75rem',
-            gap: '1rem',
+            gap: isScrolled ? '0.65rem' : '1rem',
             transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
@@ -427,11 +427,11 @@ export default function Navbar() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: isScrolled ? '1rem' : '1.35rem',
+              gap: isScrolled ? '0.75rem' : '1.15rem',
               fontFamily: 'var(--font-sans)',
-              fontSize: isScrolled ? '0.84rem' : '0.88rem',
+              fontSize: isScrolled ? '0.82rem' : '0.86rem',
               fontWeight: 600,
-              letterSpacing: '0.02em',
+              letterSpacing: '0.015em',
               transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
               flex: 1,
               margin: '0 0.5rem'
@@ -853,7 +853,7 @@ export default function Navbar() {
 
       {/* Inline styles for responsive grid */}
       <style>{`
-        @media (max-width: 1080px) {
+        @media (max-width: 1180px) {
           .nav-col-center, .nav-col-right {
             display: none !important;
           }
@@ -862,7 +862,7 @@ export default function Navbar() {
             justify-content: flex-end;
           }
         }
-        @media (min-width: 1081px) {
+        @media (min-width: 1181px) {
           .mobile-nav-toggle {
             display: none !important;
           }
