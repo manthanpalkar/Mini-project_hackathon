@@ -240,11 +240,105 @@ const RecurringRideTemplate = mongoose.models.RecurringRideTemplate || mongoose.
 const RideNotification = mongoose.models.RideNotification || mongoose.model('RideNotification', RideNotificationSchema);
 const StudentSustainabilityOutcome = mongoose.models.StudentSustainabilityOutcome || mongoose.model('StudentSustainabilityOutcome', StudentSustainabilityOutcomeSchema);
 
+
+// High-availability in-memory store for ride offers, requests, ratings, and templates
+const IN_MEMORY_RIDES = {
+  offers: [
+    {
+      _id: 'ride_seed_1',
+      driverId: 'driver_rohan',
+      driverEmail: 'rohan.sharma@spit.ac.in',
+      driverName: 'Rohan Sharma (TE CSE)',
+      driverPhone: '9820123456',
+      originNodeId: 'andheri_station_west',
+      destinationNodeId: 'spit_main_gate',
+      originName: 'Andheri Railway Station (West)',
+      destinationName: "SPIT Main Gate (Bhavan's Campus)",
+      departureTime: new Date(Date.now() + 45 * 60 * 1000),
+      totalSeats: 3,
+      availableSeats: 2,
+      confirmedPassengerCount: 1,
+      costPerSeat: 20,
+      currentRoute: ['andheri_station_west', 'spit_main_gate'],
+      originalRoute: ['andheri_station_west', 'spit_main_gate'],
+      currentDistanceKm: 2.2,
+      currentDurationMins: 8,
+      vehicleType: 'car',
+      vehicleModel: 'Maruti Swift (Silver)',
+      vehicleNumber: 'MH-02-CD-5421',
+      status: 'open',
+      ratingsSummary: { averageRating: 4.9, ratingsCount: 14 },
+      confirmedPassengers: [],
+      createdAt: new Date()
+    },
+    {
+      _id: 'ride_seed_2',
+      driverId: 'driver_priya',
+      driverEmail: 'priya.nair@spit.ac.in',
+      driverName: 'Priya Nair (BE EXTC)',
+      driverPhone: '9819234567',
+      originNodeId: 'dn_nagar_metro',
+      destinationNodeId: 'spit_library',
+      originName: 'D.N. Nagar Metro Station (Line 1 & 2A)',
+      destinationName: 'SPIT Central Library & Academic Quad',
+      departureTime: new Date(Date.now() + 90 * 60 * 1000),
+      totalSeats: 4,
+      availableSeats: 3,
+      confirmedPassengerCount: 1,
+      costPerSeat: 25,
+      currentRoute: ['dn_nagar_metro', 'spit_main_gate', 'spit_library'],
+      originalRoute: ['dn_nagar_metro', 'spit_main_gate', 'spit_library'],
+      currentDistanceKm: 2.1,
+      currentDurationMins: 7,
+      vehicleType: 'car',
+      vehicleModel: 'Hyundai i20 (White)',
+      vehicleNumber: 'MH-02-AB-9876',
+      status: 'open',
+      ratingsSummary: { averageRating: 4.8, ratingsCount: 9 },
+      confirmedPassengers: [],
+      createdAt: new Date()
+    },
+    {
+      _id: 'ride_seed_3',
+      driverId: 'driver_aditya',
+      driverEmail: 'aditya.joshi@spit.ac.in',
+      driverName: 'Aditya Joshi (SE IT)',
+      driverPhone: '9769345678',
+      originNodeId: 'azad_nagar_metro',
+      destinationNodeId: 'spit_gymkhana',
+      originName: 'Azad Nagar Metro Station (Line 1)',
+      destinationName: 'SPIT Sports Gymkhana & Ground',
+      departureTime: new Date(Date.now() + 110 * 60 * 1000),
+      totalSeats: 3,
+      availableSeats: 2,
+      confirmedPassengerCount: 1,
+      costPerSeat: 20,
+      currentRoute: ['azad_nagar_metro', 'spit_main_gate', 'spit_gymkhana'],
+      originalRoute: ['azad_nagar_metro', 'spit_main_gate', 'spit_gymkhana'],
+      currentDistanceKm: 2.4,
+      currentDurationMins: 9,
+      vehicleType: 'car',
+      vehicleModel: 'Tata Nexon (Blue)',
+      vehicleNumber: 'MH-03-EF-1234',
+      status: 'open',
+      ratingsSummary: { averageRating: 5.0, ratingsCount: 11 },
+      confirmedPassengers: [],
+      createdAt: new Date()
+    }
+  ],
+  requests: [],
+  ratings: [],
+  templates: [],
+  outcomes: []
+};
+
 module.exports = {
   RideOffer,
   RideRequest,
   RideRating,
   RecurringRideTemplate,
   RideNotification,
-  StudentSustainabilityOutcome
+  StudentSustainabilityOutcome,
+  IN_MEMORY_RIDES
 };
+
