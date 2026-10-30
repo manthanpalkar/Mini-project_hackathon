@@ -949,7 +949,7 @@ export default function CampusRides() {
                               </button>
 
                               <button
-                                onClick={() => handleConfirmRequest(ride._id || match.rideId)}
+                                onClick={() => handleConfirmRequest(ride._id || match.rideId, { co2: co2Display, money: moneySavedDisplay })}
                                 disabled={loading}
                                 style={{
                                   background: '#10B981',
