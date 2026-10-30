@@ -309,7 +309,10 @@ router.post('/sessions', async (req, res) => {
     const effectiveSourceName = sourceName || (sourceType === 'webcam' ? 'Live Proctor Webcam Feed' : 'Classroom CCTV (Diagonal View)');
     const effectiveFileName = videoFileName || 'classroom_diagonal_exam.mp4';
     const videoUrl = `/api/modules/e/video/${effectiveFileName}`;
-    const videoPath = path.join(SAMPLES_DIR, effectiveFileName);
+    let videoPath = path.join(SAMPLES_DIR, effectiveFileName);
+    if (!fs.existsSync(videoPath)) {
+      videoPath = path.join(UPLOADS_DIR, effectiveFileName);
+    }
 
     const sessionObj = {
       sessionId,
@@ -317,6 +320,7 @@ router.post('/sessions', async (req, res) => {
       roomCode: roomCode || 'EXAM-HALL-302',
       sourceType: sourceType || 'preloaded_sample',
       sourceName: effectiveSourceName,
+      videoFileName: effectiveFileName,
       videoPath: fs.existsSync(videoPath) ? videoPath : null,
       videoUrl: videoUrl,
       status: 'idle',
@@ -392,7 +396,16 @@ router.post('/sessions/:sessionId/start', async (req, res) => {
     // Determine target video file path
     let targetPath = session.videoPath;
     if (!targetPath || !fs.existsSync(targetPath)) {
-      targetPath = path.join(SAMPLES_DIR, 'classroom_diagonal_exam.mp4');
+      const vidName = session.videoFileName || 'classroom_diagonal_exam.mp4';
+      const sampleP = path.join(SAMPLES_DIR, vidName);
+      const uploadP = path.join(UPLOADS_DIR, vidName);
+      if (fs.existsSync(uploadP)) {
+        targetPath = uploadP;
+      } else if (fs.existsSync(sampleP)) {
+        targetPath = sampleP;
+      } else {
+        targetPath = path.join(SAMPLES_DIR, 'classroom_diagonal_exam.mp4');
+      }
     }
 
     let analysisResult = null;
@@ -428,6 +441,7 @@ router.post('/sessions/:sessionId/start', async (req, res) => {
       incidentId: `${sessionId}-${inc.incidentId || Math.random().toString(36).substring(2, 6)}`,
       sessionId,
       trackingId: inc.trackingId,
+      candidateName: inc.candidateName || `Candidate #${String(inc.trackingId).padStart(2, '0')}`,
       eventType: inc.eventType,
       eventLabel: inc.eventLabel,
       videoTimestampSeconds: inc.videoTimestampSeconds,
@@ -645,6 +659,155 @@ router.patch('/incidents/:incidentId', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update incident', details: err.message });
+  }
+});
+
+// GET /api/modules/e/sessions/:sessionId/report - Comprehensive analysis report for human review
+router.get('/sessions/:sessionId/report', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    let session = null;
+    let incidents = [];
+
+    if (isDatabaseOperational()) {
+      session = await MonitoringSession.findOne({ sessionId }).lean().catch(() => null);
+      incidents = await DetectionIncident.find({ sessionId }).sort({ videoTimestampSeconds: 1 }).lean().catch(() => []);
+    }
+    if (!session) {
+      session = inMemorySessions.get(sessionId);
+    }
+    if (incidents.length === 0 && inMemoryIncidents.has(sessionId)) {
+      incidents = inMemoryIncidents.get(sessionId) || [];
+    }
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Build Candidate-wise aggregation
+    const candidateMap = new Map();
+    const candidateCount = session.metrics?.activeTracksCount || 5;
+    for (let c = 1; c <= candidateCount; c++) {
+      const cName = `Candidate #${String(c).padStart(2, '0')}`;
+      candidateMap.set(c, {
+        candidateId: cName,
+        trackingId: c,
+        status: 'NORMAL',
+        incidentCount: 0,
+        incidents: []
+      });
+    }
+
+    // Incident counts by type
+    const incidentCountsByType = {};
+    const reviewStatusCounts = { pending: 0, reviewed: 0, dismissed: 0, resolved: 0 };
+
+    for (const inc of incidents) {
+      const tid = inc.trackingId;
+      if (!candidateMap.has(tid)) {
+        candidateMap.set(tid, {
+          candidateId: inc.candidateName || `Candidate #${String(tid).padStart(2, '0')}`,
+          trackingId: tid,
+          status: 'NORMAL',
+          incidentCount: 0,
+          incidents: []
+        });
+      }
+      const cObj = candidateMap.get(tid);
+      cObj.incidentCount += 1;
+      cObj.status = inc.reviewStatus === 'Dismissed' ? cObj.status : 'REVIEW';
+      cObj.incidents.push({
+        incidentId: inc.incidentId,
+        eventType: inc.eventType,
+        eventLabel: inc.eventLabel,
+        timestampSec: inc.videoTimestampSeconds,
+        confidence: inc.confidence,
+        reviewStatus: inc.reviewStatus,
+        reviewerNotes: inc.reviewerNotes || ''
+      });
+
+      incidentCountsByType[inc.eventType] = (incidentCountsByType[inc.eventType] || 0) + 1;
+      const st = (inc.reviewStatus || '').toLowerCase();
+      if (st.includes('dismiss')) reviewStatusCounts.dismissed += 1;
+      else if (st.includes('resolved')) reviewStatusCounts.resolved += 1;
+      else if (st.includes('review') && !st.includes('pending')) reviewStatusCounts.reviewed += 1;
+      else reviewStatusCounts.pending += 1;
+    }
+
+    const report = {
+      summary: {
+        sessionId: session.sessionId,
+        sessionName: session.sessionName,
+        roomCode: session.roomCode,
+        videoFileName: session.videoFileName || path.basename(session.videoPath || 'footage.mp4'),
+        durationSeconds: session.metrics?.durationSeconds || 0,
+        processedFrames: session.metrics?.processedFrames || 0,
+        totalFrames: session.metrics?.totalFrames || 0,
+        fpsMeasured: session.metrics?.fpsMeasured || 0,
+        latencyMs: session.metrics?.latencyMs || 0,
+        engine: session.metrics?.engine || 'yolov8_python_service',
+        engineLabel: session.metrics?.engineLabel || 'Live YOLOv8 + Pose Vision Engine Active',
+        isFallbackDemo: Boolean(session.metrics?.isFallbackDemo),
+        totalCandidates: candidateMap.size,
+        totalIncidents: incidents.length,
+        incidentCountsByType,
+        reviewStatusCounts,
+        generatedAt: new Date().toISOString()
+      },
+      candidateFindings: Array.from(candidateMap.values()),
+      timeline: incidents.map(i => ({
+        incidentId: i.incidentId,
+        candidateName: i.candidateName || `Candidate #${String(i.trackingId).padStart(2, '0')}`,
+        trackingId: i.trackingId,
+        eventType: i.eventType,
+        eventLabel: i.eventLabel,
+        timestampSeconds: i.videoTimestampSeconds,
+        confidence: i.confidence,
+        reviewStatus: i.reviewStatus,
+        reviewerNotes: i.reviewerNotes || '',
+        evidenceAvailable: Boolean(i.evidenceSnapshot)
+      })),
+      ethicalNotice: 'UniVerse Module E uses zero facial biometrics. Detections represent observable physical gestures requiring human invigilator appraisal, never automated accusations of misconduct.'
+    };
+
+    res.json({ success: true, report });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate report', details: err.message });
+  }
+});
+
+// GET /api/modules/e/sessions/:sessionId/export/csv - Download CSV incident report
+router.get('/sessions/:sessionId/export/csv', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    let incidents = [];
+
+    if (isDatabaseOperational()) {
+      incidents = await DetectionIncident.find({ sessionId }).sort({ videoTimestampSeconds: 1 }).lean().catch(() => []);
+    }
+    if (incidents.length === 0 && inMemoryIncidents.has(sessionId)) {
+      incidents = inMemoryIncidents.get(sessionId) || [];
+    }
+
+    const headers = ['Incident ID', 'Candidate', 'Tracking ID', 'Event Type', 'Event Label', 'Timestamp (s)', 'Confidence', 'Review Status', 'Reviewer Notes'];
+    const rows = incidents.map(i => [
+      i.incidentId,
+      `"${i.candidateName || 'Candidate #' + i.trackingId}"`,
+      i.trackingId,
+      `"${i.eventType}"`,
+      `"${i.eventLabel}"`,
+      i.videoTimestampSeconds,
+      i.confidence,
+      `"${i.reviewStatus}"`,
+      `"${(i.reviewerNotes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="exam_audit_${sessionId}.csv"`);
+    res.send(csvContent);
+  } catch (err) {
+    res.status(500).send('Error generating CSV: ' + err.message);
   }
 });
 

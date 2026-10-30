@@ -27,7 +27,9 @@ import {
   Cpu,
   ChevronLeft,
   ArrowUpDown,
-  Volume2
+  Volume2,
+  Download,
+  Printer
 } from 'lucide-react';
 import {
   fetchExamHealth,
@@ -40,7 +42,9 @@ import {
   stopExamSession,
   fetchSessionIncidents,
   updateIncidentReview,
-  uploadExamVideo
+  uploadExamVideo,
+  fetchExamReport,
+  getExamCsvExportUrl
 } from '../utils/examApi';
 
 export default function ExamMonitoring() {
@@ -63,8 +67,8 @@ export default function ExamMonitoring() {
   const [framesData, setFramesData] = useState([]);
   const [incidents, setIncidents] = useState([]);
   const [metrics, setMetrics] = useState({
-    fps: 18.2,
-    latencyMs: 42,
+    fps: 0,
+    latencyMs: 0,
     totalFrames: 0,
     processedFrames: 0,
     activeTracks: 0,
@@ -73,6 +77,9 @@ export default function ExamMonitoring() {
     engineLabel: 'YOLOv8 + 17-Keypoint Pose (PyTorch)',
     isFallbackDemo: false
   });
+  const [activeCandidatesInFrame, setActiveCandidatesInFrame] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedCandidateFilter, setSelectedCandidateFilter] = useState('all');
 
   // Video Playback Time Tracking
   const [currentTimeSec, setCurrentTimeSec] = useState(0);
@@ -254,6 +261,10 @@ export default function ExamMonitoring() {
 
     if (!closestFrame || !closestFrame.tracks) return;
 
+    if (closestFrame.tracks.length !== activeCandidatesInFrame) {
+      setActiveCandidatesInFrame(closestFrame.tracks.length);
+    }
+
     // Optional Restricted Zone Rendering
     if (restrictedZoneEnabled) {
       const rzX1 = 0 * width;
@@ -282,10 +293,10 @@ export default function ExamMonitoring() {
       const h = Math.min(height - y, (y2Norm - y1Norm) * height);
       const isAlert = track.status === 'REVIEW';
 
-      let labelText = `Candidate #${track.trackId}`;
+      let labelText = track.candidateName || `Candidate #${String(track.trackId).padStart(2, '0')}`;
       if (isAlert) {
         const eventName = track.label || track.eventLabel || 'Review Required';
-        labelText = `⚠️ #${track.trackId} • ${eventName}`;
+        labelText = `⚠️ ${track.candidateName || '#' + track.trackId} • ${eventName}`;
       }
 
       ctx.font = 'bold 11px Inter, system-ui, sans-serif';
@@ -493,13 +504,17 @@ export default function ExamMonitoring() {
     showToast('Starting multi-student CCTV computer vision pipeline...', 'info');
 
     try {
-      let activeSessionId = currentSession?.sessionId;
-      if (!activeSessionId) {
+      let activeSession = currentSession;
+      if (!activeSession || activeSession.videoFileName !== selectedVideo) {
         const createRes = await createExamSession({
           sessionName: `Exam Surveillance - ${roomCode}`,
           roomCode,
           videoFileName: selectedVideo,
-          sourceName: selectedVideo.includes('front') ? 'Front Aisle View' : 'Diagonal Hall View',
+          sourceName: selectedVideo.includes('front')
+            ? 'Front Aisle View'
+            : selectedVideo.includes('exam_')
+            ? 'Uploaded Exam Recording'
+            : 'Diagonal Hall View',
           config: {
             frameSkip,
             headTurnThreshold: headTurnThresh,
@@ -514,24 +529,28 @@ export default function ExamMonitoring() {
             }
           }
         });
-        setCurrentSession(createRes.session);
-        activeSessionId = createRes.session.sessionId;
+        activeSession = createRes.session;
+        setCurrentSession(activeSession);
       }
 
-      const analysisRes = await startExamSession(activeSessionId);
+      const analysisRes = await startExamSession(activeSession.sessionId);
       setFramesData(analysisRes.frames || []);
       setIncidents(analysisRes.incidents || []);
       setMetrics({
-        fps: analysisRes.metrics?.fpsMeasured || 18.2,
-        latencyMs: analysisRes.metrics?.latencyMs || 42,
+        fps: analysisRes.metrics?.fpsMeasured || 0,
+        latencyMs: analysisRes.metrics?.latencyMs || 0,
         totalFrames: analysisRes.metrics?.totalFrames || 0,
         processedFrames: analysisRes.metrics?.processedFrames || 0,
-        activeTracks: analysisRes.metrics?.activeTracksCount || 5,
+        activeTracks: analysisRes.metrics?.activeTracksCount || 0,
         alertCount: analysisRes.incidents?.length || 0,
         engine: analysisRes.engine || 'yolov8_python_service',
         engineLabel: analysisRes.engineLabel || 'YOLOv8 + 17-Keypoint Pose (PyTorch)',
         isFallbackDemo: Boolean(analysisRes.isFallbackDemo)
       });
+
+      if (analysisRes.frames && analysisRes.frames[0]?.tracks) {
+        setActiveCandidatesInFrame(analysisRes.frames[0].tracks.length);
+      }
 
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
@@ -542,7 +561,7 @@ export default function ExamMonitoring() {
       if (analysisRes.isFallbackDemo) {
         showToast('Running in explicitly labelled DEMO FALLBACK MODE.', 'warning');
       } else {
-        showToast(`Live YOLOv8 pipeline ready! Analyzed ${analysisRes.metrics?.processedFrames || 0} frames at ${analysisRes.metrics?.fpsMeasured || 18} FPS.`, 'success');
+        showToast(`Live YOLOv8 pipeline ready! Analyzed ${analysisRes.metrics?.processedFrames || 0} frames at ${analysisRes.metrics?.fpsMeasured || 0} FPS.`, 'success');
       }
     } catch (err) {
       console.error('Surveillance execution failed:', err);
@@ -616,19 +635,235 @@ export default function ExamMonitoring() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploading(true);
     showToast(`Uploading ${file.name} for surveillance...`, 'info');
     try {
       const res = await uploadExamVideo(file);
       setSelectedVideo(res.file.fileName);
-      showToast('Custom examination video loaded successfully!', 'success');
+
+      const createRes = await createExamSession({
+        sessionName: `Uploaded CCTV - ${file.name}`,
+        roomCode,
+        videoFileName: res.file.fileName,
+        sourceType: 'uploaded_video',
+        sourceName: `Uploaded: ${file.name}`,
+        config: {
+          frameSkip,
+          headTurnThreshold: headTurnThresh,
+          phoneConfidenceThreshold: phoneConfThresh,
+          restrictedZone: {
+            enabled: restrictedZoneEnabled,
+            name: 'Invigilator Master Desk Zone',
+            xMin: 0.0,
+            yMin: 0.0,
+            xMax: 0.25,
+            yMax: 0.35
+          }
+        }
+      });
+      setCurrentSession(createRes.session);
+      showToast('Video uploaded and verified! Initializing vision analysis...', 'success');
+
+      setProcessingState('running');
+      const analysisRes = await startExamSession(createRes.session.sessionId);
+      setFramesData(analysisRes.frames || []);
+      setIncidents(analysisRes.incidents || []);
+      setMetrics({
+        fps: analysisRes.metrics?.fpsMeasured || 0,
+        latencyMs: analysisRes.metrics?.latencyMs || 0,
+        totalFrames: analysisRes.metrics?.totalFrames || 0,
+        processedFrames: analysisRes.metrics?.processedFrames || 0,
+        activeTracks: analysisRes.metrics?.activeTracksCount || 0,
+        alertCount: analysisRes.incidents?.length || 0,
+        engine: analysisRes.engine || 'yolov8_python_service',
+        engineLabel: analysisRes.engineLabel || 'YOLOv8 + 17-Keypoint Pose (PyTorch)',
+        isFallbackDemo: Boolean(analysisRes.isFallbackDemo)
+      });
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch(() => {});
+        handleVideoResize();
+      }
+      showToast(`Analysis complete! Processed ${analysisRes.metrics?.processedFrames || 0} frames with ${analysisRes.incidents?.length || 0} alerts.`, 'success');
     } catch (err) {
       showToast(err.message || 'Video upload failed', 'warning');
+      setProcessingState('idle');
+    } finally {
+      setIsUploading(false);
     }
   };
+
+  const handleExportJson = async () => {
+    try {
+      if (!currentSession?.sessionId) {
+        showToast('No active session available to export report.', 'warning');
+        return;
+      }
+      const res = await fetchExamReport(currentSession.sessionId);
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(res.report, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `Exam_Audit_Report_${currentSession.sessionId}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('JSON Examination Audit Report downloaded.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to export JSON report', 'warning');
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (!currentSession?.sessionId) {
+      showToast('No active session available to export CSV.', 'warning');
+      return;
+    }
+    const url = getExamCsvExportUrl(currentSession.sessionId);
+    window.open(url, '_blank');
+    showToast('CSV Incident log export initiated.', 'success');
+  };
+
+  const handlePrintReport = async () => {
+    try {
+      if (!currentSession?.sessionId) {
+        showToast('No active session available to print report.', 'warning');
+        return;
+      }
+      const res = await fetchExamReport(currentSession.sessionId);
+      const rep = res.report;
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showToast('Please allow popups to view the printable audit report.', 'warning');
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>UniVerse Module E — Examination Audit Report</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 2.5rem; color: #111; line-height: 1.5; }
+            .header { border-bottom: 2px solid #111; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+            .title { font-size: 1.6rem; font-weight: 800; margin: 0; }
+            .subtitle { color: #666; font-size: 0.9rem; margin-top: 0.35rem; }
+            .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; background: #f7f7f5; padding: 1.25rem; border-radius: 8px; }
+            .metric-label { font-size: 0.75rem; text-transform: uppercase; color: #666; font-weight: 700; }
+            .metric-val { font-size: 1.4rem; font-weight: 800; margin-top: 0.25rem; }
+            table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.88rem; }
+            th { background: #eee; text-align: left; padding: 8px 10px; border-bottom: 2px solid #ccc; }
+            td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
+            .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; }
+            .badge-review { background: #fee2e2; color: #dc2626; }
+            .badge-ok { background: #d1fae5; color: #059669; }
+            .footer { margin-top: 3rem; border-top: 1px solid #eee; padding-top: 1rem; font-size: 0.8rem; color: #888; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">Sardar Patel Institute of Technology — Examination Surveillance Audit</div>
+            <div class="subtitle">UniVerse Module E: Responsible AI Monitoring Audit Report • Room: ${rep.summary.roomCode} • Session: ${rep.summary.sessionId}</div>
+          </div>
+          <div class="grid">
+            <div><div class="metric-label">Tracked Candidates</div><div class="metric-val">${rep.summary.totalCandidates}</div></div>
+            <div><div class="metric-label">Observable Events</div><div class="metric-val">${rep.summary.totalIncidents}</div></div>
+            <div><div class="metric-label">Frames Analyzed</div><div class="metric-val">${rep.summary.processedFrames}</div></div>
+            <div><div class="metric-label">Inference Rate</div><div class="metric-val">${rep.summary.fpsMeasured} FPS</div></div>
+          </div>
+          <h3>Candidate Findings & Behavioral Summary</h3>
+          <table>
+            <thead>
+              <tr><th>Candidate</th><th>Status</th><th>Logged Events</th><th>Key Observations</th></tr>
+            </thead>
+            <tbody>
+              ${rep.candidateFindings.map(c => `
+                <tr>
+                  <td><strong>${c.candidateId}</strong></td>
+                  <td><span class="badge ${c.incidentCount > 0 ? 'badge-review' : 'badge-ok'}">${c.incidentCount > 0 ? 'Review Required' : 'Normal'}</span></td>
+                  <td>${c.incidentCount}</td>
+                  <td>${c.incidents.map(i => i.eventLabel).join('; ') || 'No anomalous gestures'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <h3 style="margin-top: 2rem;">Incident Chronology</h3>
+          <table>
+            <thead>
+              <tr><th>Incident ID</th><th>Candidate</th><th>Event</th><th>Video Time</th><th>Certainty</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              ${rep.timeline.map(t => `
+                <tr>
+                  <td>${t.incidentId}</td>
+                  <td>${t.candidateName}</td>
+                  <td>${t.eventLabel}</td>
+                  <td>${t.timestampSeconds}s</td>
+                  <td>${Math.round(t.confidence * 100)}%</td>
+                  <td>${t.reviewStatus}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="footer">
+            ${rep.ethicalNotice}
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+      showToast('Printable report opened in new window.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to generate printable report', 'warning');
+    }
+  };
+
+  const candidateProfiles = useMemo(() => {
+    const map = new Map();
+    const totalCands = Math.max(metrics.activeTracks || 0, ...incidents.map(i => i.trackingId || 0), framesData[0]?.tracks?.length || 0);
+    const count = totalCands > 0 ? totalCands : 0;
+    for (let c = 1; c <= count; c++) {
+      map.set(c, {
+        trackingId: c,
+        name: `Candidate #${String(c).padStart(2, '0')}`,
+        alertCount: 0,
+        hasActiveAlert: false,
+        events: []
+      });
+    }
+
+    incidents.forEach((inc) => {
+      const tid = inc.trackingId;
+      if (!map.has(tid)) {
+        map.set(tid, {
+          trackingId: tid,
+          name: inc.candidateName || `Candidate #${String(tid).padStart(2, '0')}`,
+          alertCount: 0,
+          hasActiveAlert: false,
+          events: []
+        });
+      }
+      const prof = map.get(tid);
+      prof.alertCount += 1;
+      if (inc.reviewStatus === 'Pending Review') {
+        prof.hasActiveAlert = true;
+      }
+      prof.events.push(inc);
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.trackingId - b.trackingId);
+  }, [incidents, metrics.activeTracks, framesData]);
 
   // Filtered and sorted incidents list
   const filteredIncidents = useMemo(() => {
     return incidents.filter((inc) => {
+      const matchesCandidate =
+        selectedCandidateFilter === 'all' ||
+        String(inc.trackingId) === String(selectedCandidateFilter);
       const matchesStatus =
         statusFilter === 'all' || inc.reviewStatus.toLowerCase() === statusFilter.toLowerCase();
       const matchesType =
@@ -637,11 +872,12 @@ export default function ExamMonitoring() {
         !searchQuery ||
         inc.incidentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inc.eventLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (inc.candidateName && inc.candidateName.toLowerCase().includes(searchQuery.toLowerCase())) ||
         String(inc.trackingId).includes(searchQuery);
 
-      return matchesStatus && matchesType && matchesSearch;
+      return matchesCandidate && matchesStatus && matchesType && matchesSearch;
     });
-  }, [incidents, statusFilter, eventTypeFilter, searchQuery]);
+  }, [incidents, selectedCandidateFilter, statusFilter, eventTypeFilter, searchQuery]);
 
   const sortedIncidents = useMemo(() => {
     return [...filteredIncidents].sort((a, b) => {
@@ -662,7 +898,7 @@ export default function ExamMonitoring() {
   }, [statusFilter, eventTypeFilter, searchQuery]);
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '3.25rem 1.5rem 5rem' }}>
       {/* Toast Notification Banner */}
       {toastMsg && (
         <div
@@ -858,13 +1094,13 @@ export default function ExamMonitoring() {
                 Time: <strong style={{ color: 'var(--text-primary)' }}>{formatTime(currentTimeSec)}</strong> / {formatTime(durationSec)}
               </div>
               <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                FPS: <strong style={{ color: '#0284C7' }}>{metrics.fps}</strong>
+                FPS: <strong style={{ color: '#0284C7' }}>{processingState === 'running' || metrics.fps > 0 ? metrics.fps : 'Idle'}</strong>
               </div>
               <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                Candidates: <strong style={{ color: '#059669' }}>{metrics.activeTracks}</strong>
+                Candidates: <strong style={{ color: '#059669' }}>{processingState === 'running' ? activeCandidatesInFrame : (framesData.length > 0 ? (framesData[0]?.detectedPeople || metrics.activeTracks) : 0)}</strong>
               </div>
               <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                Alerts: <strong style={{ color: '#DC2626' }}>{metrics.alertCount}</strong>
+                Alerts: <strong style={{ color: '#DC2626' }}>{incidents.length}</strong>
               </div>
             </div>
           </div>
@@ -1229,7 +1465,7 @@ export default function ExamMonitoring() {
               <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Detected Candidates</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', marginTop: '0.25rem' }}>
-                  {metrics.activeTracks}
+                  {processingState === 'running' ? activeCandidatesInFrame : (framesData.length > 0 ? (framesData[0]?.detectedPeople || metrics.activeTracks) : 0)}
                 </div>
               </div>
 
@@ -1243,18 +1479,167 @@ export default function ExamMonitoring() {
               <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Inference Rate</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
-                  {metrics.fps} FPS
+                  {processingState === 'running' || metrics.fps > 0 ? `${metrics.fps} FPS` : 'Idle'}
                 </div>
               </div>
 
               <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Frame Latency</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
-                  {metrics.latencyMs} ms
+                  {processingState === 'running' || metrics.latencyMs > 0 ? `${metrics.latencyMs} ms` : '—'}
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Candidate-Wise Behavioral Profiles & Spatial Analysis Bento Card */}
+      <div
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderRadius: '16px',
+          border: '1px solid var(--border-color)',
+          padding: '1.5rem',
+          marginBottom: '2rem',
+          boxShadow: 'var(--card-shadow, 0 4px 20px rgba(0, 0, 0, 0.05))'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <Users size={20} color="#2563EB" />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--text-primary)' }}>
+                Candidate-Wise Behavioral Profiles & Spatial Analysis
+              </div>
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                Temporary anonymous spatial IDs. Zero facial biometrics. Click a candidate card to filter their timeline below.
+              </div>
+            </div>
+          </div>
+
+          {/* Audit Report Export Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleExportJson}
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.15s ease'
+              }}
+              title="Download full JSON audit report with all frame telemetry"
+            >
+              <Download size={14} color="#2563EB" />
+              JSON Report
+            </button>
+
+            <button
+              onClick={handleExportCsv}
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.15s ease'
+              }}
+              title="Download CSV log for spreadsheet review"
+            >
+              <FileText size={14} color="#059669" />
+              CSV Log
+            </button>
+
+            <button
+              onClick={handlePrintReport}
+              style={{
+                backgroundColor: '#2563EB',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '0.45rem 0.95rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+              }}
+              title="Print or export formatted institutional audit PDF"
+            >
+              <Printer size={14} color="#FFFFFF" />
+              Print / Export PDF
+            </button>
+          </div>
+        </div>
+
+        {/* Candidate Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '0.85rem' }}>
+          {candidateProfiles.length === 0 ? (
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', padding: '0.75rem 0' }}>
+              No candidates active yet. Click "Start Monitoring" or upload examination footage to populate candidate tracking profiles.
+            </div>
+          ) : (
+            candidateProfiles.map((cand) => {
+              const isSelected = selectedCandidateFilter === String(cand.trackingId);
+              return (
+                <div
+                  key={cand.trackingId}
+                  onClick={() => setSelectedCandidateFilter(isSelected ? 'all' : String(cand.trackingId))}
+                  style={{
+                    backgroundColor: isSelected ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-primary)',
+                    border: `1.5px solid ${isSelected ? '#2563EB' : 'var(--border-color)'}`,
+                    borderRadius: '12px',
+                    padding: '0.85rem 0.95rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                      {cand.name}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                        backgroundColor: cand.alertCount > 0 ? '#FEE2E2' : '#D1FAE5',
+                        color: cand.alertCount > 0 ? '#DC2626' : '#059669'
+                      }}
+                    >
+                      {cand.alertCount > 0 ? `${cand.alertCount} Flagged` : 'Normal'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                    Track #{cand.trackingId} • {cand.events.length} observable event{cand.events.length === 1 ? '' : 's'}
+                  </div>
+                  {isSelected && (
+                    <div style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 700, marginTop: '0.25rem' }}>
+                      Filtered below (click to clear)
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -1285,8 +1670,25 @@ export default function ExamMonitoring() {
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               Examination Incident Audit Trail
             </h2>
-            <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-              Showing {sortedIncidents.length} of {incidents.length} recorded behavioral events
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <span>Showing {sortedIncidents.length} of {incidents.length} recorded behavioral events</span>
+              {selectedCandidateFilter !== 'all' && (
+                <span
+                  onClick={() => setSelectedCandidateFilter('all')}
+                  style={{
+                    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                    color: '#2563EB',
+                    padding: '0.15rem 0.55rem',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '0.78rem'
+                  }}
+                  title="Click to clear candidate filter"
+                >
+                  Filtered to Candidate #{selectedCandidateFilter} ✕
+                </span>
+              )}
             </div>
           </div>
 
@@ -1441,7 +1843,7 @@ export default function ExamMonitoring() {
                           border: '1px solid rgba(37, 99, 235, 0.25)'
                         }}
                       >
-                        Track #{inc.trackingId}
+                        {inc.candidateName || `Candidate #${String(inc.trackingId).padStart(2, '0')}`}
                       </span>
                     </td>
 

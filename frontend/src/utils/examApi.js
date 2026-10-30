@@ -103,3 +103,13 @@ export async function uploadExamVideo(file) {
   }
   return res.json();
 }
+
+export async function fetchExamReport(sessionId) {
+  const res = await fetch(`${MODULE_E_BASE}/sessions/${sessionId}/report`);
+  if (!res.ok) throw new Error('Failed to retrieve structured exam audit report');
+  return res.json();
+}
+
+export function getExamCsvExportUrl(sessionId) {
+  return `${MODULE_E_BASE}/sessions/${sessionId}/export/csv`;
+}
