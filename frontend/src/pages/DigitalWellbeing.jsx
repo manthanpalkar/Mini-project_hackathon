@@ -117,16 +117,24 @@ export default function DigitalWellbeing() {
   const [isSyncingExtension, setIsSyncingExtension] = useState(false);
   const [extensionInstructionsOpen, setExtensionInstructionsOpen] = useState(false);
 
-  // Local tick interval for smooth Cupertino timer display
+    // Local tick interval for smooth Cupertino timer display (works for both web and extension)
   useEffect(() => {
     let timer = null;
-    if (activeSession && activeSession.status === 'active') {
+    const isRunning = (activeSession && activeSession.status === 'active') ||
+      (!activeSession && extensionStats?.session?.status === 'active');
+    if (isRunning) {
       timer = setInterval(() => {
         setElapsedSeconds(prev => prev + 1);
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [activeSession]);
+  }, [activeSession, extensionStats?.session?.status]);
+
+  useEffect(() => {
+    if (!activeSession && extensionStats?.session?.status === 'active' && typeof extensionStats.activeSeconds === 'number') {
+      setElapsedSeconds(extensionStats.activeSeconds);
+    }
+  }, [extensionStats?.activeSeconds, activeSession]);
 
   // Chrome Extension Detection & Message Bridge
   useEffect(() => {
@@ -186,12 +194,13 @@ export default function DigitalWellbeing() {
       }, '*');
     }
 
-    // 3. Periodic probe every 1.5s until extension is detected
+    // 3. Periodic probe every 1.5s until extension is detected + query live stats
     const pollInterval = setInterval(() => {
       if (document.documentElement.dataset.universeExtensionInstalled === 'true') {
         setExtensionInstalled(true);
       }
       window.postMessage({ source: 'UNIVERSE_WEB', type: 'PING_EXTENSION' }, '*');
+      window.postMessage({ source: 'UNIVERSE_WEB', type: 'REQUEST_STATS' }, '*');
     }, 1500);
 
     return () => {
@@ -454,23 +463,146 @@ export default function DigitalWellbeing() {
     }
   }
 
+  // Unified Extension & Web session computations
+  const effectiveSession = useMemo(() => {
+    if (activeSession) return activeSession;
+    if (extensionStats?.session && (extensionStats.session.status === 'active' || extensionStats.session.status === 'paused')) {
+      return {
+        _id: extensionStats.session.id || 'ext_active',
+        title: extensionStats.session.title || 'Chrome Focus Session',
+        sessionCategory: extensionStats.session.sessionCategory || extensionStats.session.category || 'coding',
+        status: extensionStats.session.status,
+        targetDurationMinutes: extensionStats.session.targetDurationMinutes || 25,
+        source: 'chrome_extension'
+      };
+    }
+    return null;
+  }, [activeSession, extensionStats]);
+
+  const effectiveElapsedSeconds = useMemo(() => {
+    if (activeSession) return elapsedSeconds;
+    if (extensionStats?.session && (extensionStats.session.status === 'active' || extensionStats.session.status === 'paused')) {
+      return elapsedSeconds > 0 ? elapsedSeconds : (extensionStats.activeSeconds || 0);
+    }
+    return 0;
+  }, [activeSession, elapsedSeconds, extensionStats]);
+
+  const extCompletedMins = useMemo(() => {
+    return (extensionStats?.history || []).reduce((acc, s) => acc + Math.round((s.accumulatedActiveSeconds || 0) / 60), 0);
+  }, [extensionStats]);
+
+  const extLiveSec = useMemo(() => {
+    if (extensionStats?.session && (extensionStats.session.status === 'active' || extensionStats.session.status === 'paused')) {
+      return extensionStats.activeSeconds || 0;
+    }
+    return 0;
+  }, [extensionStats]);
+
+  const extLiveMinutes = Math.floor(extLiveSec / 60);
+
+  const displayExtMinutes = useMemo(() => {
+    return Math.max(
+      extensionStats?.totalActiveMinutes || 0,
+      analyticsData?.summary?.extensionActiveMinutes || 0,
+      extensionSummary?.totalActiveMinutes || 0,
+      extCompletedMins + extLiveMinutes
+    );
+  }, [extensionStats, analyticsData, extensionSummary, extCompletedMins, extLiveMinutes]);
+
+  const displayExtSessions = useMemo(() => {
+    return Math.max(
+      extensionStats?.totalSessionsCount || 0,
+      analyticsData?.summary?.extensionSessionCount || 0,
+      extensionSummary?.sessionsCount || 0,
+      (extensionStats?.history?.length || 0) + (extensionStats?.session ? 1 : 0)
+    );
+  }, [extensionStats, analyticsData, extensionSummary]);
+
+  const displayTotalFocusMinutes = useMemo(() => {
+    const backendMins = analyticsData?.summary?.activeFocusMinutes || 0;
+    if (backendMins > 0) {
+      return backendMins + (extensionStats?.session?.status === 'active' ? extLiveMinutes : 0);
+    }
+    return displayExtMinutes > 0 ? displayExtMinutes : (effectiveSession ? Math.floor(effectiveElapsedSeconds / 60) : 0);
+  }, [analyticsData, displayExtMinutes, extensionStats, extLiveMinutes, effectiveSession, effectiveElapsedSeconds]);
+
+  const displayTotalContextSwitches = useMemo(() => {
+    const backendSwitches = analyticsData?.summary?.totalContextSwitches || 0;
+    const extSwitches = extensionStats?.totalContextSwitches ||
+      ((extensionStats?.session?.contextSwitchCount || 0) +
+      (extensionStats?.history || []).reduce((acc, s) => acc + (s.contextSwitchCount || 0), 0));
+    return Math.max(backendSwitches, extSwitches);
+  }, [analyticsData, extensionStats]);
+
+  const displayTotalSessions = useMemo(() => {
+    const backendSessions = analyticsData?.summary?.completedSessions || 0;
+    return Math.max(backendSessions, displayExtSessions);
+  }, [analyticsData, displayExtSessions]);
+
+  const combinedSessionsHistory = useMemo(() => {
+    const list = [...sessionsHistory];
+    const existingIds = new Set(list.map(s => String(s._id || s.id)));
+    if (extensionStats?.history && Array.isArray(extensionStats.history)) {
+      extensionStats.history.forEach(extSess => {
+        if (!existingIds.has(String(extSess.id))) {
+          list.push({
+            _id: extSess.id,
+            createdAt: extSess.completedAt || extSess.startedAt || new Date().toISOString(),
+            title: extSess.title || 'Chrome Focus Session',
+            sessionCategory: extSess.sessionCategory || extSess.category || 'coding',
+            source: 'chrome_extension',
+            status: extSess.status || 'completed',
+            accumulatedActiveSeconds: extSess.accumulatedActiveSeconds || (extSess.durationMinutes ? extSess.durationMinutes * 60 : 1500),
+            targetDurationMinutes: extSess.targetDurationMinutes || 25,
+            contextSwitchCount: extSess.contextSwitchCount || 0,
+            focusQualityScore: extSess.focusQualityScore || 9,
+            reflectionNotes: extSess.reflectionNotes || 'Chrome Extension (Browser Focus)'
+          });
+        }
+      });
+    }
+    return list;
+  }, [sessionsHistory, extensionStats]);
+
+  const combinedActivityEvents = useMemo(() => {
+    const list = [...activityEventsList];
+    const existingIds = new Set(list.map(e => String(e._id || e.id)));
+    if (extensionStats?.events && Array.isArray(extensionStats.events)) {
+      extensionStats.events.forEach(extEv => {
+        if (!existingIds.has(String(extEv.id))) {
+          list.push({
+            _id: extEv.id,
+            timestamp: extEv.timestamp || new Date().toISOString(),
+            domain: extEv.domain || 'unknown',
+            label: extEv.label || ('Live Tab (' + (extEv.category || 'web') + ')'),
+            category: extEv.category || 'uncategorized',
+            durationSeconds: extEv.durationSeconds || 60,
+            source: 'chrome_extension'
+          });
+        }
+      });
+    }
+    return list;
+  }, [activityEventsList, extensionStats]);
+
   // Format Elapsed Time (MM:SS or HH:MM:SS)
   const formattedTimer = useMemo(() => {
-    const hrs = Math.floor(elapsedSeconds / 3600);
-    const mins = Math.floor((elapsedSeconds % 3600) / 60);
-    const secs = elapsedSeconds % 60;
+    const totalSec = effectiveElapsedSeconds;
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
     if (hrs > 0) {
       return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  }, [elapsedSeconds]);
+  }, [effectiveElapsedSeconds]);
 
   // Target Goal Progress percentage
   const goalProgressPercent = useMemo(() => {
-    if (!activeSession) return 0;
-    const targetSec = (activeSession.targetDurationMinutes || 25) * 60;
-    return Math.min(100, Math.round((elapsedSeconds / targetSec) * 100));
-  }, [activeSession, elapsedSeconds]);
+    if (!effectiveSession) return 0;
+    const targetSec = (effectiveSession.targetDurationMinutes || 25) * 60;
+    return Math.min(100, Math.round((effectiveElapsedSeconds / targetSec) * 100));
+  }, [effectiveSession, effectiveElapsedSeconds]);
 
   // Category Badge Color
   const getCategoryColor = (cat) => {
@@ -636,16 +768,23 @@ export default function DigitalWellbeing() {
 
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                 {extensionInstalled ? (
-                  extensionStats?.session?.status === 'active' ? (
-                    <span style={{ color: '#10B981', fontWeight: 600 }}>
-                      ● Live Focus Session in Browser: {Math.floor((extensionStats?.activeSeconds || 0) / 60)}m elapsed
-                      {extensionStats?.currentTabInfo?.hostname && ` on ${extensionStats.currentTabInfo.hostname}`}
-                    </span>
-                  ) : (
-                    <span>
-                      Statistics: <strong>{analyticsData?.summary?.extensionActiveMinutes || extensionSummary?.totalActiveMinutes || 0} mins</strong> focus time across <strong>{analyticsData?.summary?.extensionSessionCount || extensionSummary?.sessionsCount || 0}</strong> browser session(s).
-                    </span>
-                  )
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>
+                        Extension Stats: <strong>{displayExtMinutes} mins</strong> focus time across <strong>{displayExtSessions}</strong> browser session(s).
+                      </span>
+                      {extensionStats?.currentTabInfo?.hostname && (
+                        <span style={{ background: '#EDE9FE', color: '#6D28D9', padding: '1px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 600 }}>
+                          🌐 Active Tab: {extensionStats.currentTabInfo.hostname} ({extensionStats.currentTabInfo.category || 'general'})
+                        </span>
+                      )}
+                    </div>
+                    {extensionStats?.session?.status === 'active' && (
+                      <span style={{ color: '#10B981', fontWeight: 600 }}>
+                        ● Live Extension Session: {extensionStats?.session?.title || 'Study Session'} — {Math.floor(effectiveElapsedSeconds / 60)}m {effectiveElapsedSeconds % 60}s elapsed
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span>
                     Use the companion Chrome Extension to track study focus across browser tabs with zero surveillance.
@@ -851,7 +990,7 @@ export default function DigitalWellbeing() {
             overflow: 'hidden'
           }}>
             <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#10B981', marginBottom: '0.35rem' }}>
-              {activeSession ? activeSession.title : 'Focus Session Ready'}
+              {effectiveSession ? effectiveSession.title : 'Focus Session Ready'}
             </div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
               Category: <strong>{activeSession ? activeSession.sessionCategory.toUpperCase() : sessionForm.sessionCategory.toUpperCase()}</strong>
@@ -864,7 +1003,7 @@ export default function DigitalWellbeing() {
               fontWeight: 900,
               fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", monospace',
               letterSpacing: '-0.03em',
-              color: activeSession?.status === 'paused' ? '#F59E0B' : 'var(--text-primary)',
+              color: effectiveSession?.status === 'paused' ? '#F59E0B' : 'var(--text-primary)',
               lineHeight: 1,
               marginBottom: '1rem',
               transition: 'color 0.3s ease'
@@ -1500,10 +1639,10 @@ export default function DigitalWellbeing() {
           </form>
 
           {/* Generated Events Inspection Table */}
-          {activityEventsList.length > 0 && (
+          {combinedActivityEvents.length > 0 && (
             <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Inspectable Event Stream ({activityEventsList.length} events)</h4>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Inspectable Event Stream ({combinedActivityEvents.length} events)</h4>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Each record is independently deletable</span>
               </div>
 
@@ -1521,7 +1660,7 @@ export default function DigitalWellbeing() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activityEventsList.slice(0, 15).map(ev => {
+                    {combinedActivityEvents.slice(0, 20).map(ev => {
                       const style = getCategoryColor(ev.category);
                       return (
                         <tr key={ev._id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
@@ -1573,7 +1712,7 @@ export default function DigitalWellbeing() {
             Complete audit trail of user-initiated focus blocks with duration, context switches, and self-ratings.
           </p>
 
-          {sessionsHistory.length === 0 ? (
+          {combinedSessionsHistory.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
               <Clock size={32} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
               <div style={{ fontWeight: 600 }}>No focus sessions recorded yet.</div>
@@ -1596,7 +1735,7 @@ export default function DigitalWellbeing() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessionsHistory.map(s => (
+                  {combinedSessionsHistory.map(s => (
                     <tr key={s._id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                       <td style={{ padding: '0.65rem 0.5rem', whiteSpace: 'nowrap' }}>
                         {new Date(s.createdAt).toLocaleDateString()}

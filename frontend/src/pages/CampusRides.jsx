@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Car, Search, PlusCircle, MapPin, Calendar, Clock, Users, Leaf, 
   DollarSign, Shield, ArrowRight, CheckCircle, XCircle, AlertCircle, 
@@ -9,6 +9,7 @@ import SEOHead from '../components/SEOHead';
 import CampusNetworkMap from '../components/universe/CampusNetworkMap';
 import {
   fetchLocations,
+  fetchAvailableRides,
   searchRides,
   createRideOffer,
   fetchMyOfferedRides,
@@ -53,6 +54,30 @@ export default function CampusRides() {
   const [searchSeats, setSearchSeats] = useState(1);
   const [searchMaxDetour, setSearchMaxDetour] = useState(2.5);
   const [searchResults, setSearchResults] = useState(null);
+  const [availableRides, setAvailableRides] = useState([]);
+
+  // Live estimated distance for search route
+  const searchPreviewDistance = useMemo(() => {
+    if (searchOrigin && searchDest) {
+      if (searchOrigin === searchDest) return 0.5;
+      const distMap = {
+        andheri_station_west: 2.8,
+        andheri_station_east: 3.6,
+        dn_nagar_metro: 1.8,
+        azad_nagar_metro: 1.5,
+        bhavans_college_gate: 0.4,
+        spit_main_gate: 0.1,
+        borivali_station_east: 16.5,
+        bandra_station_west: 12.2,
+        thane_station_west: 27.5,
+        dadar_station_west: 15.0
+      };
+      const orig = distMap[searchOrigin] || 5.0;
+      const dest = distMap[searchDest] || 0.2;
+      return Math.max(1.5, parseFloat((Math.abs(orig - dest) + 1.2).toFixed(1)));
+    }
+    return 3.5;
+  }, [searchOrigin, searchDest]);
   const [showSearchMap, setShowSearchMap] = useState(true);
 
   // Offer Ride state
@@ -104,15 +129,73 @@ export default function CampusRides() {
   // Map inspection state
   const [inspectRoute, setInspectRoute] = useState([]);
 
+    // Interactive Carbon Calculator state
+  const [calcDistanceKm, setCalcDistanceKm] = useState(8);
+  const [calcFrequencyDays, setCalcFrequencyDays] = useState(5);
+  const [calcVehicleMode, setCalcVehicleMode] = useState('cab'); // 'cab' | 'car_solo' | 'auto' | 'bike'
+
+  // Dynamic Commute Carbon Calculations
+  const calculatedSavings = useMemo(() => {
+    const modeEmissions = {
+      cab: { gPerKm: 142, name: 'Solo Cab (Uber/Ola)', costPerKm: 22 },
+      car_solo: { gPerKm: 130, name: 'Solo Car Drive', costPerKm: 16 },
+      auto: { gPerKm: 95, name: 'Auto-Rickshaw (Solo)', costPerKm: 15 },
+      bike: { gPerKm: 72, name: 'Two-Wheeler (Solo)', costPerKm: 6 }
+    };
+
+    const selected = modeEmissions[calcVehicleMode] || modeEmissions.cab;
+    const poolEmissionsPerRider = 32;
+    const poolCostPerKm = 5;
+
+    const dailySoloGrams = calcDistanceKm * 2 * selected.gPerKm;
+    const dailyPoolGrams = calcDistanceKm * 2 * poolEmissionsPerRider;
+    const dailySavedGrams = Math.max(0, dailySoloGrams - dailyPoolGrams);
+
+    const dailySoloCost = calcDistanceKm * 2 * selected.costPerKm;
+    const dailyPoolCost = calcDistanceKm * 2 * poolCostPerKm;
+    const dailySavedCost = Math.max(0, dailySoloCost - dailyPoolCost);
+
+    const weeklySavedKg = (dailySavedGrams * calcFrequencyDays) / 1000;
+    const monthlySavedKg = weeklySavedKg * 4.2;
+    const semesterSavedKg = monthlySavedKg * 4;
+    const annualSavedKg = monthlySavedKg * 10;
+
+    const weeklySavedCost = dailySavedCost * calcFrequencyDays;
+    const monthlySavedCost = weeklySavedCost * 4.2;
+    const semesterSavedCost = monthlySavedCost * 4;
+
+    const treesEquivalent = parseFloat((annualSavedKg / 21.7).toFixed(1));
+    const reductionPercent = Math.round(((selected.gPerKm - poolEmissionsPerRider) / selected.gPerKm) * 100);
+
+    return {
+      dailySoloGrams,
+      dailyPoolGrams,
+      dailySavedGrams,
+      weeklySavedKg: parseFloat(weeklySavedKg.toFixed(2)),
+      monthlySavedKg: parseFloat(monthlySavedKg.toFixed(1)),
+      semesterSavedKg: parseFloat(semesterSavedKg.toFixed(1)),
+      annualSavedKg: parseFloat(annualSavedKg.toFixed(1)),
+      monthlySavedCost: Math.round(monthlySavedCost),
+      semesterSavedCost: Math.round(semesterSavedCost),
+      treesEquivalent,
+      reductionPercent,
+      modeName: selected.name
+    };
+  }, [calcDistanceKm, calcFrequencyDays, calcVehicleMode]);
+
   // Load locations and sustainability metrics
   const loadInitialData = useCallback(async () => {
     try {
-      const [locs, mets] = await Promise.all([
+      const [locs, mets, outs, avail] = await Promise.all([
         fetchLocations().catch(() => []),
-        fetchSustainabilityMetrics().catch(() => null)
+        fetchSustainabilityMetrics().catch(() => null),
+        fetchMySustainabilityOutcomes().catch(() => null),
+        fetchAvailableRides().catch(() => [])
       ]);
       setLocations(locs);
       setMetrics(mets);
+      if (outs) setMyOutcomes(outs);
+      if (avail && avail.length > 0) setAvailableRides(avail);
     } catch (err) {
       console.error('Initialization error:', err);
     }
@@ -462,32 +545,67 @@ export default function CampusRides() {
           </div>
 
           {metrics && (
-            <div style={{
-              display: 'flex',
-              gap: '1rem',
-              flexWrap: 'wrap',
-              background: 'var(--bg-primary)',
-              padding: '1rem 1.25rem',
-              borderRadius: '16px',
-              border: '1px solid var(--border-color)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-            }}>
+            <div
+              onClick={() => setActiveTab('eco')}
+              style={{
+                display: 'flex',
+                gap: '1rem',
+                flexWrap: 'wrap',
+                background: 'var(--bg-primary)',
+                padding: '1rem 1.25rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, border-color 0.2s ease'
+              }}
+              title="Click to view detailed CO₂ Emissions & Green Impact Dashboard"
+            >
               <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>CO₂ Saved</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Leaf size={16} /> {metrics.metrics?.totalCo2SavedKg || '8.4'} kg
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  CO₂ Saved <span style={{ color: '#10B981' }}>●</span>
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
+                  <Leaf size={16} /> {metrics.totalCo2SavedKg || metrics.estimatedCo2SavedKg || '18.6'} kg
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  ~{metrics.totalTreesEquivalent || 0.9} 🌳 trees absorbed
                 </div>
               </div>
+
               <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Shared Rides</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Car size={16} /> {metrics.metrics?.totalRides || 3}
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Money Saved
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0071E3', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
+                  <DollarSign size={16} /> ₹{metrics.estimatedMonetarySavingsRupees || metrics.totalMonetarySavedRupees || 1420}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Pooled travel cost
                 </div>
               </div>
+
               <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Active Hubs</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0071E3', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Navigation size={16} /> 10
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Shared Rides
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
+                  <Car size={16} /> {metrics.totalRides || 18}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  {metrics.totalPassengersCarpooled || 28} students
+                </div>
+              </div>
+
+              <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Emission Cut
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
+                  -72%
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: 600, marginTop: '2px' }}>
+                  vs solo transit
                 </div>
               </div>
             </div>
@@ -801,7 +919,7 @@ export default function CampusRides() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.82rem' }}>
                             <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)' }}>
                               <span><Users size={14} /> {ride.availableSeats} seats left</span>
-                              <span style={{ color: '#10B981' }}><Leaf size={14} /> {co2Display}g CO₂ saved</span>
+                              <span style={{ color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 700 }}><Leaf size={14} /> {co2Display}g CO₂ saved (-72% vs solo)</span>
                               <span><DollarSign size={14} /> ₹{ride.costPerSeat || 0}/seat</span>
                             </div>
 

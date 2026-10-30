@@ -825,7 +825,89 @@ export default function Login() {
                 </button>
               </form>
 
-              {/* 6. Registration Link: "Don't have an account? Sign up" */}
+              {/* 6. Instant 1-Click Fast-Switch Login Accounts */}
+              <div style={{ marginTop: '1.25rem', paddingTop: '1.1rem', borderTop: '1px solid #e1e4e8' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: '#656d76', marginBottom: '0.65rem', textAlign: 'center' }}>
+                  ⚡ Instant 1-Click Demo Logins
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={async () => {
+                      setEmail('manthan.palkar24@spit.ac.in');
+                      setPassword('spit123');
+                      setLoading(true);
+                      setError('');
+                      try {
+                        const userData = await loginUser('manthan.palkar24@spit.ac.in', 'spit123');
+                        handleSuccessfulLogin(userData);
+                      } catch (err) {
+                        setError(err.message || 'Login failed');
+                        setLoading(false);
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.6rem 0.5rem',
+                      background: '#f6f8fa',
+                      border: '1px solid #d0d7de',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#24292f',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Sign in as Manthan Palkar (Admin)"
+                  >
+                    <span style={{ color: '#0969da', fontWeight: 700 }}>👑 Manthan</span>
+                    <span style={{ fontSize: '10px', color: '#656d76' }}>Admin • CSE</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={async () => {
+                      setEmail('student@spit.ac.in');
+                      setPassword('spit123');
+                      setLoading(true);
+                      setError('');
+                      try {
+                        const userData = await loginUser('student@spit.ac.in', 'spit123');
+                        handleSuccessfulLogin(userData);
+                      } catch (err) {
+                        setError(err.message || 'Login failed');
+                        setLoading(false);
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.6rem 0.5rem',
+                      background: '#f6f8fa',
+                      border: '1px solid #d0d7de',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#24292f',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Sign in as SPIT Demo Student"
+                  >
+                    <span style={{ color: '#1a7f37', fontWeight: 700 }}>🎓 Demo Student</span>
+                    <span style={{ fontSize: '10px', color: '#656d76' }}>Student • CSE</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 7. Registration Link: "Don't have an account? Sign up" */}
               <div className="bottom-signup-row">
                 <span>Don’t have an account? </span>
                 <button 

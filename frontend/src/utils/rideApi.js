@@ -1,3 +1,14 @@
+export async function fetchAvailableRides() {
+  try {
+    const res = await fetch(`${BASE_MODULE_B}/rides`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data || [];
+  } catch (err) {
+    return [];
+  }
+}
+
 /**
  * UniVerse Module B: Smart Campus Ride-Pooling API Client
  */

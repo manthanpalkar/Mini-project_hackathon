@@ -118,10 +118,17 @@ const FocusSession = mongoose.models.FocusSession || mongoose.model('FocusSessio
 const CategorizationRule = mongoose.models.CategorizationRule || mongoose.model('CategorizationRule', CategorizationRuleSchema);
 const ActivityEvent = mongoose.models.ActivityEvent || mongoose.model('ActivityEvent', ActivityEventSchema);
 const NudgeRule = mongoose.models.NudgeRule || mongoose.model('NudgeRule', NudgeRuleSchema);
+// In-Memory fallback store for Module D sessions and events (Active when DB is offline)
+const IN_MEMORY_WELLBEING = {
+  sessions: [],
+  events: []
+};
+
 
 module.exports = {
   FocusSession,
   CategorizationRule,
   ActivityEvent,
-  NudgeRule
+  NudgeRule,
+  IN_MEMORY_WELLBEING
 };

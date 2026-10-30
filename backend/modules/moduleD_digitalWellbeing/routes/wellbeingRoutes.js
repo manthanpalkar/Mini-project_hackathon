@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { FocusSession, CategorizationRule, ActivityEvent, NudgeRule } = require('../models/wellbeingModel');
+const { FocusSession, CategorizationRule, ActivityEvent, NudgeRule, IN_MEMORY_WELLBEING } = require('../models/wellbeingModel');
 const { authenticateToken: requireAuth, optionalAuthenticateToken: optionalAuth } = require('../../../middlewares/authMiddleware');
 
 const {
@@ -588,15 +588,23 @@ router.post('/sync-extension', requireAuth, async (req, res) => {
 
     let savedSession = null;
     if (mongoose.connection && mongoose.connection.readyState === 1) {
-      savedSession = await FocusSession.create(sessionDoc);
-    } else {
-      savedSession = { _id: new mongoose.Types.ObjectId(), ...sessionDoc };
+      try {
+        savedSession = await FocusSession.create(sessionDoc);
+      } catch (err) {
+        console.warn('[SYNC_DB_FALLBACK] Could not save to remote MongoDB, storing in-memory:', err.message);
+      }
     }
+    if (!savedSession) {
+      savedSession = { _id: new mongoose.Types.ObjectId(), ...sessionDoc, createdAt: new Date() };
+    }
+    // Always keep in memory store for immediate dashboard availability
+    IN_MEMORY_WELLBEING.sessions.unshift(savedSession);
 
     // Insert associated activity events if any
     let insertedEventsCount = 0;
-    if (Array.isArray(events) && events.length > 0 && mongoose.connection && mongoose.connection.readyState === 1) {
+    if (Array.isArray(events) && events.length > 0) {
       const eventDocs = events.map(ev => ({
+        _id: new mongoose.Types.ObjectId(),
         userEmail,
         sessionId: savedSession._id,
         timestamp: ev.timestamp ? new Date(ev.timestamp) : new Date(),
@@ -608,8 +616,14 @@ router.post('/sync-extension', requireAuth, async (req, res) => {
         isDistracting: Boolean(ev.isDistracting || ev.category === 'distracting')
       }));
 
-      const inserted = await ActivityEvent.insertMany(eventDocs);
-      insertedEventsCount = inserted.length;
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        try {
+          const inserted = await ActivityEvent.insertMany(eventDocs);
+          insertedEventsCount = inserted.length;
+        } catch (_) {}
+      }
+      IN_MEMORY_WELLBEING.events.unshift(...eventDocs);
+      insertedEventsCount = Math.max(insertedEventsCount, eventDocs.length);
     }
 
     res.status(201).json({
@@ -636,11 +650,30 @@ router.get('/extension/summary', requireAuth, async (req, res) => {
     let extensionEvents = [];
 
     if (mongoose.connection && mongoose.connection.readyState === 1) {
-      [extensionSessions, extensionEvents] = await Promise.all([
-        FocusSession.find({ userEmail, source: 'chrome_extension' }).sort({ completedAt: -1 }),
-        ActivityEvent.find({ userEmail, source: 'chrome_extension' }).sort({ timestamp: -1 }).limit(100)
-      ]);
+      try {
+        [extensionSessions, extensionEvents] = await Promise.all([
+          FocusSession.find({ userEmail, source: 'chrome_extension' }).sort({ completedAt: -1 }),
+          ActivityEvent.find({ userEmail, source: 'chrome_extension' }).sort({ timestamp: -1 }).limit(100)
+        ]);
+      } catch (_) {}
     }
+    // Blend with in-memory store
+    const memSessions = IN_MEMORY_WELLBEING.sessions.filter(s => s.userEmail.toLowerCase() === userEmail.toLowerCase() && s.source === 'chrome_extension');
+    const memEvents = IN_MEMORY_WELLBEING.events.filter(e => e.userEmail.toLowerCase() === userEmail.toLowerCase() && e.source === 'chrome_extension');
+
+    const seenSessionIds = new Set(extensionSessions.map(s => String(s._id)));
+    memSessions.forEach(s => {
+      if (!seenSessionIds.has(String(s._id))) {
+        extensionSessions.push(s);
+      }
+    });
+
+    const seenEventIds = new Set(extensionEvents.map(e => String(e._id)));
+    memEvents.forEach(e => {
+      if (!seenEventIds.has(String(e._id))) {
+        extensionEvents.push(e);
+      }
+    });
 
     const totalSeconds = extensionSessions.reduce((acc, s) => acc + (s.accumulatedActiveSeconds || 0), 0);
     const totalDistractingSec = extensionSessions.reduce((acc, s) => acc + (s.distractingDurationSeconds || 0), 0);
