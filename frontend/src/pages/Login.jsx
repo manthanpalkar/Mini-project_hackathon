@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, ShieldCheck, ArrowLeft, ArrowRight } from 'lucide-react';
-import { loginUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, ArrowRight, Sparkles, GraduationCap } from 'lucide-react';
+import { loginUser, loginDemoUser, verifyGoogleAuth, signupWithGoogle, linkGoogleAccount } from '../utils/db';
 import { clearAllCaches } from '../hooks/useCachedData';
 import SEOHead from '../components/SEOHead';
 import BRAND from '../constants/branding';
@@ -26,6 +26,7 @@ export default function Login() {
   const [infoNotice, setInfoNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [demoLoadingRole, setDemoLoadingRole] = useState(null); // 'admin' | 'student' | null
 
   // Google OAuth States
   const [googleAuthStep, setGoogleAuthStep] = useState('IDLE'); // 'IDLE' | 'SIGNUP' | 'LINK'
@@ -210,6 +211,30 @@ export default function Login() {
         setError(err.message || 'Invalid username/email or password. Please try again.');
       }
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async (targetRole) => {
+    setError('');
+    setSuccessMsg('');
+    setInfoNotice('');
+    setLoading(true);
+    setDemoLoadingRole(targetRole);
+
+    try {
+      const userData = await loginDemoUser(targetRole);
+      setEmail(userData.email || (targetRole === 'admin' ? 'admin@spit.ac.in' : 'student@spit.ac.in'));
+      setPassword('••••••••');
+      setSuccessMsg(`Welcome, ${userData.name || (targetRole === 'admin' ? 'Administrator' : 'Student')}! Redirecting...`);
+      handleLoginSuccess(userData);
+    } catch (err) {
+      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
+        setError('Network or server connection error. Please try again.');
+      } else {
+        setError(err.message || `One-click ${targetRole} login failed. Please try again.`);
+      }
+      setDemoLoadingRole(null);
       setLoading(false);
     }
   };
@@ -825,84 +850,97 @@ export default function Login() {
                 </button>
               </form>
 
-              {/* 6. Instant 1-Click Fast-Switch Login Accounts */}
+              {/* 6. One-Click Demo Login Access (Student & Admin) */}
               <div style={{ marginTop: '1.25rem', paddingTop: '1.1rem', borderTop: '1px solid #e1e4e8' }}>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: '#656d76', marginBottom: '0.65rem', textAlign: 'center' }}>
-                  ⚡ Instant 1-Click Demo Logins
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: '#57606a', marginBottom: '0.75rem' }}>
+                  <Sparkles size={12} color="#0969da" />
+                  <span>One-Click Demo Access</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={async () => {
-                      setEmail('manthan.palkar24@spit.ac.in');
-                      setPassword('spit123');
-                      setLoading(true);
-                      setError('');
-                      try {
-                        const userData = await loginUser('manthan.palkar24@spit.ac.in', 'spit123');
-                        handleSuccessfulLogin(userData);
-                      } catch (err) {
-                        setError(err.message || 'Login failed');
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={() => handleDemoLogin('student')}
                     style={{
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0.6rem 0.5rem',
+                      gap: '0.6rem',
+                      padding: '0.65rem 0.75rem',
                       background: '#f6f8fa',
                       border: '1px solid #d0d7de',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: '#24292f',
-                      transition: 'all 0.15s ease'
+                      borderRadius: '8px',
+                      cursor: loading ? 'wait' : 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 1px 2px rgba(27, 31, 36, 0.04)'
                     }}
-                    title="Sign in as Manthan Palkar (Admin)"
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.background = '#ffffff';
+                        e.currentTarget.style.borderColor = '#0969da';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(9, 105, 218, 0.12)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#f6f8fa';
+                      e.currentTarget.style.borderColor = '#d0d7de';
+                      e.currentTarget.style.boxShadow = '0 1px 2px rgba(27, 31, 36, 0.04)';
+                    }}
+                    title="One-click login as Demo Student (student@spit.ac.in)"
                   >
-                    <span style={{ color: '#0969da', fontWeight: 700 }}>👑 Manthan</span>
-                    <span style={{ fontSize: '10px', color: '#656d76' }}>Admin • CSE</span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'rgba(9, 105, 218, 0.1)', color: '#0969da', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <GraduationCap size={16} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#1f2328', lineHeight: 1.25 }}>Demo Student</div>
+                      <div style={{ fontSize: '11px', color: '#656d76', lineHeight: 1.2 }}>student@spit.ac.in</div>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#0969da' }}>
+                      {demoLoadingRole === 'student' ? '...' : '→'}
+                    </span>
                   </button>
 
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={async () => {
-                      setEmail('student@spit.ac.in');
-                      setPassword('spit123');
-                      setLoading(true);
-                      setError('');
-                      try {
-                        const userData = await loginUser('student@spit.ac.in', 'spit123');
-                        handleSuccessfulLogin(userData);
-                      } catch (err) {
-                        setError(err.message || 'Login failed');
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={() => handleDemoLogin('admin')}
                     style={{
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0.6rem 0.5rem',
+                      gap: '0.6rem',
+                      padding: '0.65rem 0.75rem',
                       background: '#f6f8fa',
                       border: '1px solid #d0d7de',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: '#24292f',
-                      transition: 'all 0.15s ease'
+                      borderRadius: '8px',
+                      cursor: loading ? 'wait' : 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 1px 2px rgba(27, 31, 36, 0.04)'
                     }}
-                    title="Sign in as SPIT Demo Student"
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.background = '#ffffff';
+                        e.currentTarget.style.borderColor = '#1a7f37';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(26, 127, 55, 0.12)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#f6f8fa';
+                      e.currentTarget.style.borderColor = '#d0d7de';
+                      e.currentTarget.style.boxShadow = '0 1px 2px rgba(27, 31, 36, 0.04)';
+                    }}
+                    title="One-click login as Administrator (admin@spit.ac.in)"
                   >
-                    <span style={{ color: '#1a7f37', fontWeight: 700 }}>🎓 Demo Student</span>
-                    <span style={{ fontSize: '10px', color: '#656d76' }}>Student • CSE</span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'rgba(31, 136, 61, 0.12)', color: '#1a7f37', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <ShieldCheck size={16} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#1f2328', lineHeight: 1.25 }}>Demo Admin</div>
+                      <div style={{ fontSize: '11px', color: '#656d76', lineHeight: 1.2 }}>admin@spit.ac.in</div>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#1a7f37' }}>
+                      {demoLoadingRole === 'admin' ? '...' : '→'}
+                    </span>
                   </button>
                 </div>
               </div>
