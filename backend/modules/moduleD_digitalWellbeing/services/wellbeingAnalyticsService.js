@@ -6,7 +6,7 @@
  */
 
 const mongoose = require('mongoose');
-const { FocusSession, ActivityEvent } = require('../models/wellbeingModel');
+const { FocusSession, ActivityEvent, IN_MEMORY_WELLBEING } = require('../models/wellbeingModel');
 const { calculateActiveSeconds } = require('./wellbeingSessionService');
 
 /**
@@ -46,60 +46,52 @@ async function getUserAnalytics(userEmail, options = {}) {
     dateFilter = { createdAt: { $gte: oneWeekAgo } };
   }
 
-  // Fallback defaults for testing without active DB
-  if (!mongoose.connection || mongoose.connection.readyState !== 1) {
-    return {
-      range,
-      userEmail: cleanEmail,
-      summary: {
-        totalSessions: 0,
-        completedSessions: 0,
-        activeFocusSeconds: 0,
-        activeFocusMinutes: 0,
-        extensionActiveMinutes: 0,
-        webActiveMinutes: 0,
-        extensionSessionCount: 0,
-        webSessionCount: 0,
-        hasExtensionData: false,
-        distractingSeconds: 0,
-        distractingMinutes: 0,
-        totalContextSwitches: 0,
-        goalCompletionPercent: 0,
-        productivityScore: 100
-      },
-      categoryBreakdown: [
-        { category: 'learning', count: 0, durationSeconds: 0, percent: 0 },
-        { category: 'productive', count: 0, durationSeconds: 0, percent: 0 },
-        { category: 'neutral', count: 0, durationSeconds: 0, percent: 0 },
-        { category: 'distracting', count: 0, durationSeconds: 0, percent: 0 },
-        { category: 'uncategorized', count: 0, durationSeconds: 0, percent: 0 }
-      ],
-      recentSessions: [],
-      nudges: [
-        {
-          id: 'ready_nudge',
-          type: 'info',
-          title: 'Start a Focus Session',
-          message: 'Initiate a dedicated study session to boost concentration and track your academic deep work.'
-        }
-      ],
-      disclaimer: 'METRICS SUMMARY · Derived from user-recorded focus sessions, extension sync, and synthetic demo events. No covert background monitoring.'
-    };
+  // Fetch sessions & events from DB and/or in-memory store
+  let sessions = [];
+  let events = [];
+
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      const sessionQuery = { userEmail: cleanEmail, ...dateFilter };
+      if (options.sessionId && mongoose.Types.ObjectId.isValid(options.sessionId)) {
+        sessionQuery._id = options.sessionId;
+      }
+      const eventQuery = { userEmail: cleanEmail, ...dateFilter };
+      if (options.sessionId && mongoose.Types.ObjectId.isValid(options.sessionId)) {
+        eventQuery.sessionId = options.sessionId;
+      }
+      [sessions, events] = await Promise.all([
+        FocusSession.find(sessionQuery).sort({ createdAt: -1 }),
+        ActivityEvent.find(eventQuery).sort({ timestamp: 1 })
+      ]);
+    } catch (_) {}
   }
 
-  // 1. Fetch user sessions
-  const sessionQuery = { userEmail: cleanEmail, ...dateFilter };
-  if (options.sessionId && mongoose.Types.ObjectId.isValid(options.sessionId)) {
-    sessionQuery._id = options.sessionId;
-  }
-  const sessions = await FocusSession.find(sessionQuery).sort({ createdAt: -1 });
+  // Blend in-memory sessions
+  if (IN_MEMORY_WELLBEING) {
+    const memSessions = IN_MEMORY_WELLBEING.sessions.filter(s => s.userEmail.toLowerCase() === cleanEmail);
+    const memEvents = IN_MEMORY_WELLBEING.events.filter(e => e.userEmail.toLowerCase() === cleanEmail);
 
-  // 2. Fetch user events
-  const eventQuery = { userEmail: cleanEmail, ...dateFilter };
-  if (options.sessionId && mongoose.Types.ObjectId.isValid(options.sessionId)) {
-    eventQuery.sessionId = options.sessionId;
+    const seenSessionIds = new Set(sessions.map(s => String(s._id)));
+    memSessions.forEach(s => {
+      if (!seenSessionIds.has(String(s._id))) {
+        sessions.push(s);
+      }
+    });
+
+    const seenEventIds = new Set(events.map(e => String(e._id)));
+    memEvents.forEach(e => {
+      if (!seenEventIds.has(String(e._id))) {
+        events.push(e);
+      }
+    });
   }
-  const events = await ActivityEvent.find(eventQuery).sort({ timestamp: 1 });
+
+  // Sort combined
+  sessions.sort((a, b) => new Date(b.createdAt || b.startTime || 0) - new Date(a.createdAt || a.startTime || 0));
+  events.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+
+// (Sessions and events resolved with DB + in-memory store above)
 
   // 3. Compute session totals & source breakdown
   let totalActiveFocusSeconds = 0;

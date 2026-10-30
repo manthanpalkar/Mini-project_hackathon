@@ -135,6 +135,25 @@
         });
         break;
       }
+
+      case 'START_SESSION':
+      case 'PAUSE_SESSION':
+      case 'RESUME_SESSION':
+      case 'STOP_SESSION': {
+        if (!chrome.runtime?.id) return;
+        chrome.runtime.sendMessage({
+          type,
+          payload
+        }, (response) => {
+          window.postMessage({
+            source: 'UNIVERSE_EXTENSION',
+            type: 'SESSION_ACTION_RESPONSE',
+            action: type,
+            data: response || { success: false }
+          }, '*');
+        });
+        break;
+      }
     }
   });
 })();
