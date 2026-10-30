@@ -9,6 +9,7 @@ import SEOHead from '../components/SEOHead';
 import CampusNetworkMap from '../components/universe/CampusNetworkMap';
 import {
   fetchLocations,
+  fetchAvailableRides,
   searchRides,
   createRideOffer,
   fetchMyOfferedRides,
@@ -53,6 +54,30 @@ export default function CampusRides() {
   const [searchSeats, setSearchSeats] = useState(1);
   const [searchMaxDetour, setSearchMaxDetour] = useState(2.5);
   const [searchResults, setSearchResults] = useState(null);
+  const [availableRides, setAvailableRides] = useState([]);
+
+  // Live estimated distance for search route
+  const searchPreviewDistance = useMemo(() => {
+    if (searchOrigin && searchDest) {
+      if (searchOrigin === searchDest) return 0.5;
+      const distMap = {
+        andheri_station_west: 2.8,
+        andheri_station_east: 3.6,
+        dn_nagar_metro: 1.8,
+        azad_nagar_metro: 1.5,
+        bhavans_college_gate: 0.4,
+        spit_main_gate: 0.1,
+        borivali_station_east: 16.5,
+        bandra_station_west: 12.2,
+        thane_station_west: 27.5,
+        dadar_station_west: 15.0
+      };
+      const orig = distMap[searchOrigin] || 5.0;
+      const dest = distMap[searchDest] || 0.2;
+      return Math.max(1.5, parseFloat((Math.abs(orig - dest) + 1.2).toFixed(1)));
+    }
+    return 3.5;
+  }, [searchOrigin, searchDest]);
   const [showSearchMap, setShowSearchMap] = useState(true);
 
   // Offer Ride state
@@ -161,14 +186,16 @@ export default function CampusRides() {
   // Load locations and sustainability metrics
   const loadInitialData = useCallback(async () => {
     try {
-      const [locs, mets, outs] = await Promise.all([
+      const [locs, mets, outs, avail] = await Promise.all([
         fetchLocations().catch(() => []),
         fetchSustainabilityMetrics().catch(() => null),
-        fetchMySustainabilityOutcomes().catch(() => null)
+        fetchMySustainabilityOutcomes().catch(() => null),
+        fetchAvailableRides().catch(() => [])
       ]);
       setLocations(locs);
       setMetrics(mets);
       if (outs) setMyOutcomes(outs);
+      if (avail && avail.length > 0) setAvailableRides(avail);
     } catch (err) {
       console.error('Initialization error:', err);
     }
