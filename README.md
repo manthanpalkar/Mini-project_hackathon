@@ -238,7 +238,7 @@ flowchart TD
 ## 5. Codebase Directory Structure
 
 ```text
-loop/
+Mini-project_hackathon/                    # Repository Root
 ├── backend/                               # Express API server & services
 │   ├── modules/
 │   │   ├── moduleB_ridePooling/          # Module B: Dijkstra router & ride-sharing
@@ -248,7 +248,7 @@ loop/
 │   │       └── vision_service/           # FastAPI YOLOv8 computer vision runner (:5005)
 │   ├── middlewares/                      # Auth, upload, and CORS guards
 │   ├── services/                         # Storage, caching, and audit services
-│   ├── tests/                            # Comprehensive automated test suites
+│   ├── tests/                            # Comprehensive automated test suites (61 suites, 441 tests)
 │   ├── models.js                         # Mongoose schemas & compound indexes
 │   ├── server.js                         # Central Express server entrypoint
 │   └── package.json
@@ -306,7 +306,7 @@ loop/
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/manthanpalkar/Mini-project_hackathon.git
-cd Mini-project_hackathon/loop
+cd Mini-project_hackathon
 ```
 
 ### 2. Configure Environment Variables
@@ -333,10 +333,14 @@ npm run dev
 # Client ready at http://localhost:5173
 ```
 
-### 5. (Optional) Start Module E Computer Vision Microservice (Port 5005)
+### 5. Start Module E Computer Vision Microservice (Port 5005)
 ```bash
-cd ../backend
-python -m uvicorn modules.moduleE_examMonitoring.vision_service.service:app --host 127.0.0.1 --port 5005
+# Run from repository root:
+python3 -m uvicorn backend.modules.moduleE_examMonitoring.vision_service.service:app --host 127.0.0.1 --port 5005
+
+# Or from backend directory:
+cd backend
+python3 -m uvicorn modules.moduleE_examMonitoring.vision_service.service:app --host 127.0.0.1 --port 5005
 ```
 
 ---
@@ -349,9 +353,9 @@ python -m uvicorn modules.moduleE_examMonitoring.vision_service.service:app --ho
    ```
 2. In the top-right corner, toggle **Developer mode** to **ON**.
 3. In the top-left corner, click **Load unpacked**.
-4. Select the `loop/extension` directory:
+4. Select the `extension/` directory inside your cloned repository:
    ```text
-   C:\Users\manth\Desktop\Hackathon\loop\extension
+   <path-to-cloned-repo>/Mini-project_hackathon/extension
    ```
 5. Pin the **UniVerse Wellbeing** extension to your toolbar.
 6. Open your UniVerse website at `http://localhost:5173/digital-wellbeing` — the **Extension Connected (MV3)** badge will appear automatically!
@@ -429,14 +433,17 @@ python -m uvicorn modules.moduleE_examMonitoring.vision_service.service:app --ho
 
 ## 9. Automated Verification & Test Suite
 
-UniVerse features a native test harness executed with Node's built-in test runner (`node --test`), covering all 5 modules with zero external test runner bloat:
+UniVerse features a native test harness executed with Node's built-in test runner (`node --test`), covering all 5 modules (61 test suites, 441 automated tests) with zero external test runner bloat:
 
 ```bash
-# 1. Run Complete Backend Multi-Module Test Suite
+# 1. Run Complete Backend Multi-Module Test Suite (441 tests across 61 suites)
 cd backend
+node --test tests/*.test.js
+
+# Or run specific module unit tests:
 node --test tests/wellbeingCalculationsAndRules.test.js tests/wellbeingSessionLifecycle.test.js tests/extensionSyncEndpoint.test.js tests/universeModules.test.js
 
-# 2. Run Chrome Extension Standalone Unit Tests
+# 2. Run Chrome Extension Standalone Unit Tests (10 tests across 2 suites)
 cd ../extension
 node --test tests/extensionRules.test.js tests/extensionSession.test.js
 
